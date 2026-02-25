@@ -1,0 +1,321 @@
+{
+    "brn": {
+        "id": 1,
+        "name": "brn",
+        "effectType": 1,
+        "residualOrder": 10,
+        "residualType": 1,
+        "residual": 16
+    },
+    "par": {
+        "id": 2,
+        "name": "par",
+        "effectType": 1,
+        "modifySpePriority": -101,
+        "modifySpe": 4,
+        "beforeMovePriority": 1,
+        "beforeMoveType": 2,
+        "beforeMove": 4
+    },
+    "slp": {
+        "id": 3,
+        "name": "slp",
+        "effectType": 1,
+        "beforeMovePriority": 10,
+        "beforeMoveType": 3,
+        "maxRound": 3
+    },
+    "frz": {
+        "id": 4,
+        "name": "frz",
+        "effectType": 1,
+        "beforeMovePriority": 10,
+        "beforeMoveType": 4,
+        "beforeMove": 5
+    },
+    "psn": {
+        "id": 5,
+        "name": "psn",
+        "effectType": 1,
+        "residualOrder": 9,
+        "residualType": 1,
+        "residual": 8
+    },
+    "tox": {
+        "id": 6,
+        "name": "tox",
+        "effectType": 1,
+        "residualOrder": 9,
+        "residualType": 5,
+        "residual": 16,
+        "extraResidual": 16
+    },
+    "confusion": {
+        "id": 7,
+        "name": "confusion",
+        "effectType": 3,
+        "maxRound": 4,
+        "beforeMovePriority": 3
+    },
+    "flinch": {
+        "id": 8,
+        "name": "flinch",
+        "effectType": 3,
+        "duration": 1,
+        "beforeMovePriority": 8,
+        "beforeMoveType": 9,
+        "beforeMove": 0
+    },
+    "trapped": {
+        "id": 9,
+        "name": "trapped",
+        "effectType": 3,
+        "noCopy": true
+    },
+    "trapper": {
+        "id": 10,
+        "name": "trapper",
+        "effectType": 3,
+        "noCopy": true
+    },
+    "partiallytrapped": {
+        "id": 11,
+        "name": "partiallytrapped",
+        "effectType": 3,
+        "duration": 5,
+        "durationCallback": "function(target, source) { if (source?.hasItem('gripclaw')) return 8; return this.random(5, 7); }",
+        "start": "function(pokemon, source) { this.add('-activate', pokemon, 'move: ' + this.effectState.sourceEffect, `[of] ${source}`); this.effectState.boundDivisor = source.hasItem('bindingband') ? 6 : 8; }",
+        "residualOrder": 13,
+        "residual": "function(pokemon) { const source = this.effectState.source; const gmaxEffect = ['gmaxcentiferno', 'gmaxsandblast'].includes(this.effectState.sourceEffect.id); if (source && (!source.isActive || source.hp <= 0 || !source.activeTurns) && !gmaxEffect) { delete pokemon.volatiles['partiallytrapped']; this.add('-end', pokemon, this.effectState.sourceEffect, '[partiallytrapped]', '[silent]'); return; } this.damage(pokemon.baseMaxhp / this.effectState.boundDivisor); }",
+        "end": "function(pokemon) { this.add('-end', pokemon, this.effectState.sourceEffect, '[partiallytrapped]'); }",
+        "trapPokemon": "function(pokemon) { const gmaxEffect = ['gmaxcentiferno', 'gmaxsandblast'].includes(this.effectState.sourceEffect.id); if (this.effectState.source?.isActive || gmaxEffect) pokemon.tryTrap(); }"
+    },
+    "lockedmove": {
+        "id": 12,
+        "name": "lockedmove",
+        "effectType": 3,
+        "duration": 2,
+        "residual": "function(target) { if (target.status === 'slp') { delete target.volatiles['lockedmove']; } this.effectState.trueDuration--; }",
+        "start": "function(target, source, effect) { this.effectState.trueDuration = this.random(2, 4); this.effectState.move = effect.id; }",
+        "restart": "function() { if (this.effectState.trueDuration >= 2) { this.effectState.duration = 2; } }",
+        "afterMove": "function(pokemon) { if (this.effectState.duration === 1) { pokemon.removeVolatile('lockedmove'); } }",
+        "end": "function(target) { if (this.effectState.trueDuration > 1) return; target.addVolatile('confusion'); }",
+        "lockMove": "function(pokemon) { if (pokemon.volatiles['dynamax']) return; return this.effectState.move; }"
+    },
+    "twoturnmove": {
+        "id": 13,
+        "name": "twoturnmove",
+        "effectType": 3,
+        "duration": 2,
+        "start": "function(attacker, defender, effect) { this.effectState.move = effect.id; attacker.addVolatile(effect.id); let moveTargetLoc = attacker.lastMoveTargetLoc!; if (effect.sourceEffect && this.dex.moves.get(effect.id).target !== 'self') { if (defender.fainted) { defender = this.sample(attacker.foes(true)); } moveTargetLoc = attacker.getLocOf(defender); } attacker.volatiles[effect.id].targetLoc = moveTargetLoc; this.attrLastMove('[still]'); this.runEvent('PrepareHit', attacker, defender, effect); }",
+        "end": "function(target) { target.removeVolatile(this.effectState.move); }",
+        "lockMove": "function() { return this.effectState.move; }",
+        "moveAborted": "function(pokemon) { pokemon.removeVolatile('twoturnmove'); }"
+    },
+    "choicelock": {
+        "id": 14,
+        "name": "choicelock",
+        "effectType": 3,
+        "noCopy": true,
+        "start": "function(pokemon) { if (!this.activeMove) throw new Error('Battle.activeMove is null'); if (!this.activeMove.id || this.activeMove.hasBounced || this.activeMove.sourceEffect === 'snatch') return false; this.effectState.move = this.activeMove.id; }",
+        "beforeMove": "function(pokemon, target, move) { if (!pokemon.getItem().isChoice) { pokemon.removeVolatile('choicelock'); return; } if (!pokemon.ignoringItem() && !pokemon.volatiles['dynamax'] && move.id !== this.effectState.move && move.id !== 'struggle') { this.addMove('move', pokemon, move.name); this.attrLastMove('[still]'); this.debug('Disabled by Choice item lock'); this.add('-fail', pokemon); return false; } }",
+        "disableMove": "function(pokemon) { if (!pokemon.getItem().isChoice || !pokemon.hasMove(this.effectState.move)) { pokemon.removeVolatile('choicelock'); return; } if (pokemon.ignoringItem() || pokemon.volatiles['dynamax']) { return; } for (const moveSlot of pokemon.moveSlots) { if (moveSlot.id !== this.effectState.move) { pokemon.disableMove(moveSlot.id, false, this.effectState.sourceEffect); } } }"
+    },
+    "mustrecharge": {
+        "id": 15,
+        "name": "mustrecharge",
+        "effectType": 3,
+        "duration": 2,
+        "beforeMovePriority": 11,
+        "beforeMove": "function(pokemon) { this.add('cant', pokemon, 'recharge'); pokemon.removeVolatile('mustrecharge'); pokemon.removeVolatile('truant'); return null; }",
+        "start": "function(pokemon) { this.add('-mustrecharge', pokemon); }",
+        "lockMove": "recharge"
+    },
+    "futuremove": {
+        "id": 16,
+        "name": "futuremove",
+        "effectType": 3,
+        "start": "function(target) { this.effectState.targetSlot = target.getSlot(); this.effectState.endingTurn = (this.turn - 1) + 2; if (this.effectState.endingTurn >= 254) { this.hint(`In Gen 8+, Future attacks will never resolve when used on the 255th turn or later.`); } }",
+        "residualOrder": 3,
+        "residual": "function(target) { if (this.getOverflowedTurnCount() < this.effectState.endingTurn) return; target.side.removeSlotCondition(this.getAtSlot(this.effectState.targetSlot), 'futuremove'); }",
+        "end": "function(target) { const data = this.effectState; const move = this.dex.moves.get(data.move); if (target.fainted || target === data.source) { this.hint(`${move.name} did not hit because the target is ${(target.fainted ? 'fainted' : 'the user')}.`); return; } this.add('-end', target, 'move: ' + move.name); target.removeVolatile('Protect'); target.removeVolatile('Endure'); if (data.source.hasAbility('infiltrator') && this.gen >= 6) { data.moveData.infiltrates = true; } if (data.source.hasAbility('normalize') && this.gen >= 6) { data.moveData.type = 'Normal'; } const hitMove = new this.dex.Move(data.moveData); this.actions.trySpreadMoveHit([target], data.source, hitMove, true); if (data.source.isActive && data.source.hasItem('lifeorb') && this.gen >= 5) { this.singleEvent('AfterMoveSecondarySelf', data.source.getItem(), data.source.itemState, data.source, target, data.source.getItem()); } this.activeMove = null; this.checkWin(); }"
+    },
+    "healreplacement": {
+        "id": 17,
+        "name": "healreplacement",
+        "effectType": 3,
+        "start": "function(target, source, sourceEffect) { this.effectState.sourceEffect = sourceEffect; this.add('-activate', source, 'healreplacement'); }",
+        "switchIn": "function(target) { if (!target.fainted) { target.heal(target.maxhp); this.add('-heal', target, target.getHealth, '[from] move: ' + this.effectState.sourceEffect, '[zeffect]'); target.side.removeSlotCondition(target, 'healreplacement'); } }"
+    },
+    "stall": {
+        "id": 18,
+        "name": "stall",
+        "effectType": 3,
+        "duration": 2,
+        "counterMax": 729,
+        "start": "function() { this.effectState.counter = 3; }",
+        "stallMove": "function(pokemon) { const counter = this.effectState.counter || 1; this.debug(`Success chance: ${Math.round(100 / counter)}%`); const success = this.randomChance(1, counter); if (!success) delete pokemon.volatiles['stall']; return success; }",
+        "restart": "function() { if (this.effectState.counter < this.counterMax) { this.effectState.counter *= 3; } this.effectState.duration = 2; }"
+    },
+    "gem": {
+        "id": 19,
+        "name": "gem",
+        "effectType": 3,
+        "duration": 1,
+        "affectsFainted": true,
+        "basePowerPriority": 14,
+        "basePower": "function(basePower, user, target, move) { this.debug('Gem Boost'); return this.chainModify([5325, 4096]); }"
+    },
+    "raindance": {
+        "id": 20,
+        "name": "RainDance",
+        "effectType": 2,
+        "duration": 5,
+        "weatherModifyDamage": {
+            "fire": 0.5,
+            "water": 1.5
+        },
+        "fieldResidualOrder": 1
+    },
+    "primordialsea": {
+        "id": 21,
+        "name": "PrimordialSea",
+        "effectType": 2,
+        "duration": 0,
+        "tryMovePriority": 1,
+        "weatherModifyDamage": {
+            "water": 1.5,
+            "fire": 0
+        },
+        "fieldResidualOrder": 1
+    },
+    "sunnyday": {
+        "id": 22,
+        "name": "SunnyDay",
+        "effectType": 2,
+        "duration": 5,
+        "extraDuration": 8,
+        "weatherModifyDamage": {
+            "fire": 1.5,
+            "water": 0.5
+        },
+        "fieldResidualOrder": 1
+    },
+    "desolateland": {
+        "id": 23,
+        "name": "DesolateLand",
+        "effectType": 2,
+        "duration": 0,
+        "tryMovePriority": 1,
+        "weatherModifyDamage": {
+            "fire": 1.5,
+            "water": 0
+        },
+        "fieldResidualOrder": 1
+    },
+    "sandstorm": {
+        "id": 24,
+        "name": "Sandstorm",
+        "effectType": 2,
+        "duration": 5,
+        "extraDuration": 8,
+        "modifyStatPriority": 10,
+        "modifyStatType": "Spd",
+        "modifyStat": {
+            "rock": 1.5
+        },"fieldResidualOrder": 1,
+        "weatherDamage": 16
+    },
+    "hail": {
+        "id": 25,
+        "name": "Hail",
+        "effectType": 2,
+        "duration": 5,
+        "extraDuration": 8,
+        "fieldResidualOrder": 1,
+        "weatherDamage": 16
+    },
+    "snowscape": {
+        "id": 26,
+        "name": "Snowscape",
+        "effectType": 2,
+        "duration": 5,
+        "extraDuration": 8,
+        "modifyStatPriority": 10,
+        "modifyStatType": "Def",
+        "modifyStat": {
+            "ice": 1.5
+        },
+        "fieldResidualOrder": 1
+    },
+    "deltastream": {
+        "id": 27,
+        "name": "DeltaStream",
+        "effectType": 2,
+        "duration": 0,
+        "effectivenessPriority": -1,
+        "effectiveness": {
+            "fly": 1
+        },"fieldResidualOrder": 1
+    },
+    "dynamax": {
+        "id": 28,
+        "name": "Dynamax",
+        "effectType": 3,
+        "noCopy": true,
+        "start": "function(pokemon) { this.effectState.turns = 0; pokemon.removeVolatile('minimize'); pokemon.removeVolatile('substitute'); if (pokemon.volatiles['torment']) { delete pokemon.volatiles['torment']; this.add('-end', pokemon, 'Torment', '[silent]'); } if (['cramorantgulping', 'cramorantgorging'].includes(pokemon.species.id) && !pokemon.transformed) { pokemon.formeChange('cramorant'); } this.add('-start', pokemon, 'Dynamax', pokemon.gigantamax ? 'Gmax' : ''); if (pokemon.baseSpecies.name === 'Shedinja') return; const ratio = 1.5 + (pokemon.dynamaxLevel * 0.05); pokemon.maxhp = Math.floor(pokemon.maxhp * ratio); pokemon.hp = Math.floor(pokemon.hp * ratio); this.add('-heal', pokemon, pokemon.getHealth, '[silent]'); }",
+        "tryAddVolatile": "function(status, pokemon) { if (status.id === 'flinch') return null; }",
+        "beforeSwitchOutPriority": -1,
+        "beforeSwitchOut": "function(pokemon) { pokemon.removeVolatile('dynamax'); }",
+        "sourceModifyDamage": "function(damage, source, target, move) { if (move.id === 'behemothbash' || move.id === 'behemothblade' || move.id === 'dynamaxcannon') { return this.chainModify(2); } }",
+        "dragOutPriority": 2,
+        "dragOut": "function(pokemon) { this.add('-block', pokemon, 'Dynamax'); return null; }",
+        "residualPriority": -100,
+        "residual": "function() { this.effectState.turns++; }",
+        "end": "function(pokemon) { this.add('-end', pokemon, 'Dynamax'); if (pokemon.baseSpecies.name === 'Shedinja') return; pokemon.hp = pokemon.getUndynamaxedHP(); pokemon.maxhp = pokemon.baseMaxhp; this.add('-heal', pokemon, pokemon.getHealth, '[silent]'); }"
+    },
+    "commanded": {
+        "id": 29,
+        "name": "Commanded",
+        "effectType": 3,
+        "noCopy": true,
+        "start": "function(pokemon) { this.boost({ atk: 2, spa: 2, spe: 2, def: 2, spd: 2 }, pokemon); }",
+        "dragOutPriority": 2,
+        "dragOut": "function() { return false; }",
+        "trapPokemonPriority": -11,
+        "trapPokemon": "function(pokemon) { pokemon.trapped = true; }"
+    },
+    "commanding": {
+        "id": 30,
+        "name": "Commanding",
+        "effectType": 3,
+        "noCopy": true,
+        "dragOutPriority": 2,
+        "dragOut": "function() { return false; }",
+        "trapPokemonPriority": -11,
+        "trapPokemon": "function(pokemon) { pokemon.trapped = true; }",
+        "invulnerability": false,
+        "beforeTurn": "function(pokemon) { this.queue.cancelAction(pokemon); }"
+    },
+    "arceus": {
+        "id": 31,
+        "name": "Arceus",
+        "effectType": 3,
+        "typePriority": 1,
+        "type": "function(types, pokemon) { if (pokemon.transformed || pokemon.ability !== 'multitype' && this.gen >= 8) return types; let type = 'Normal'; if (pokemon.ability === 'multitype') { type = pokemon.getItem().onPlate; if (!type) { type = 'Normal'; } } return [type]; }"
+    },
+    "silvally": {
+        "id": 32,
+        "name": "Silvally",
+        "effectType": 3,
+        "typePriority": 1,
+        "type": "function(types, pokemon) { if (pokemon.transformed || pokemon.ability !== 'rkssystem' && this.gen >= 8) return types; let type = 'Normal'; if (pokemon.ability === 'rkssystem') { type = pokemon.getItem().onMemory; if (!type) { type = 'Normal'; } } return [type]; }"
+    },
+    "rolloutstorage": {
+        "id": 33,
+        "name": "rolloutstorage",
+        "effectType": 3,
+        "duration": 2,
+        "basePower": "function(relayVar, source, target, move) { let bp = Math.max(1, move.basePower); bp *= 2 ** source.volatiles['rolloutstorage'].contactHitCount; if (source.volatiles['defensecurl']) { bp *= 2; } source.removeVolatile('rolloutstorage'); return bp; }"
+    }
+}

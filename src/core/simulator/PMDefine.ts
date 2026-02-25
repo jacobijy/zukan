@@ -87,6 +87,64 @@ export enum Terrain {
     Psychic = 4
 }
 
-export default class PM {
+export enum Condition {
+    Burn = 1,
+    Paralyze = 2,
+    Sleep = 3,
+    Freeze = 4,
+    Poison = 5,
+    Toxic = 6,
+    Confusion = 7,
+    Flinch = 8,
+    Trapped = 9,
+    Trapper = 10,
+    PartiallyTrapped = 11,
+    LockedMove = 12,
+    TwoTurnMove = 13,
+    ChoiceLock = 14,
+    MustRecharge = 15,
+    FutureMove = 16,
+    HealReplacement = 17,
+    Stall = 18,
+    Gem = 19,
+    RainDance = 20,
+    PrimordialSea = 21,
+    SunnyDay = 22,
+    DesolateLand = 23,
+    Sandstorm = 24,
+    Hail = 25,
+    Snowscape = 26,
+    DeltaStream = 27,
+    Dynamax = 28,
+    Commanded = 29,
+    Commanding = 30,
+    Arceus = 31,
+    Silvally = 32,
+    RolloutStorage = 33
+}
 
+export enum EffectType {
+    Status = 1,
+    Weather = 2,
+    Volatile = 3
+}
+
+export enum ResidualType {
+    Damage = 1,
+    Heal = 2,
+    StatBoost = 3,
+    StatDrop = 4,
+    ToxicDamage = 5
+}
+
+export enum BeforeMoveType {
+    Paralyze = 1,
+    Sleep = 2,
+    Freeze = 3,
+    Flinch = 4,
+    Confusion = 5,
+    Disable = 6,
+    Taunt = 7,
+    Imprison = 8,
+    Stall = 9
 }
