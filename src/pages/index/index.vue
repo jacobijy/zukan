@@ -1,23 +1,55 @@
 <template>
-    <view class="container">
+    <view class="min-h-screen bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef]" :style="{ paddingTop: 'calc(var(--status-bar-height) + 60px)', paddingBottom: '100px' }">
         <!-- 导航栏 -->
         <NavBar />
 
         <!-- 筛选和排序 -->
-        <FilterBar v-show="isShow" class="fixed-filter-bar" :types="types" @filterToggle="filterToggle" @sort="onSort" />
+        <FilterBar v-show="isShow" :types="types" @filterToggle="filterToggle" @sort="onSort" />
 
-        <!-- 宝可梦列表 -->
-        <view
-            class="flex flex-col gap-2 px-4 py-4"
-            @scroll="onScroll"
-            :style="{ height: 'calc(100vh - 180px)', overflow: 'auto' }"
-        >
-            <PokemonCard v-for="pokemon in filteredPokemons" :key="pokemon.id" :pokemon="pokemon"
-                @click="navigateToDetail(pokemon.id)" />
-            <view v-if="loadingMore" class="loading-more">
-                加载中...
+        <!-- 收藏按钮区域 -->
+        <view class="px-5 py-3">
+            <view 
+                class="flex items-center justify-between bg-white rounded-xl px-4 py-3 shadow-[0_2px_12px_rgba(0,0,0,0.08)] cursor-pointer active:scale-98 transition-transform"
+                @click="goToFavorites"
+            >
+                <view class="flex items-center gap-3">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#EF4444" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <text class="text-sm font-semibold text-[#333]">我的收藏</text>
+                </view>
+                <view class="flex items-center gap-2">
+                    <view v-if="favoritesCount > 0" class="bg-[#EF4444] text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                        {{ favoritesCount }}
+                    </view>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </view>
             </view>
         </view>
+
+        <!-- 宝可梦列表 -->
+        <view class="h-[calc(100vh-var(--status-bar-height)-60px-100px-70px)] overflow-y-auto p-5 custom-scrollbar" @scroll="onScroll">
+            <view class="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-4 max-w-[1400px] mx-auto">
+                <PokemonCard 
+                    v-for="pokemon in filteredPokemons" 
+                    :key="pokemon.id" 
+                    :pokemon="pokemon"
+                    @click="navigateToDetail(pokemon.id)" 
+                />
+            </view>
+            <view v-if="loadingMore" class="flex flex-col items-center justify-center py-8 gap-3 text-[#666] text-sm">
+                <view class="w-8 h-8 border-[3px] border-[rgba(255,107,107,0.2)] border-t-[#FF6B6B] rounded-full animate-spin"></view>
+                <text>加载中...</text>
+            </view>
+            <view v-if="!hasMore && filteredPokemons.length > 0" class="text-center py-8 text-[#999] text-sm">
+                <text>已经到底了~</text>
+            </view>
+        </view>
+
+        <!-- 底部 TabBar -->
+        <TabBar v-model="currentTab" @change="onTabChange" />
     </view>
 </template>
 
@@ -25,13 +57,14 @@
 import FilterBar from "@/components/FilterBar.vue";
 import NavBar from "@/components/NavBar.vue";
 import PokemonCard from "@/components/pokemon/PokemonCard.vue";
+import TabBar from "@/components/TabBar.vue";
 import { usePokemonStore } from "@/store/pokemon";
+import { debounce } from 'lodash-es';
 import { storeToRefs } from "pinia";
 import { computed, onMounted, ref } from "vue";
-import { debounce } from 'lodash-es';
 
 const pokemonStore = usePokemonStore();
-const { pokemonList, hasMore } = storeToRefs(pokemonStore);
+const { pokemonList, hasMore, favorites } = storeToRefs(pokemonStore);
 const { fetchPokemon, loadMore } = pokemonStore;
 const loadingMore = ref(false);
 const searchQuery = ref("");
@@ -65,6 +98,7 @@ onMounted(async () => {
 const currentFilter = ref<string | null>(null);
 const currentSort = ref<string>('default');
 const isShow = ref(false);
+const currentTab = ref(0); // 当前选中的 tab 索引
 
 // 实现 onFilter 方法
 const onFilter = (filterType: string) => {
@@ -82,6 +116,24 @@ const filterToggle = (value: boolean) => {
     // vShow.value = value;
     console.log('filterToggle', value);
     isShow.value = value;
+};
+
+// Tab 切换处理
+const onTabChange = (index: number) => {
+    console.log('Tab changed to:', index);
+    // 这里可以添加额外的逻辑，比如埋点统计等
+};
+
+// 收藏数量
+const favoritesCount = computed(() => {
+    return favorites.value.length;
+});
+
+// 跳转到收藏页面
+const goToFavorites = () => {
+    uni.navigateTo({
+        url: '/pages/favorite/favorite'
+    });
 };
 
 // 更新计算属性 filteredPokemons 以应用筛选和排序
@@ -131,26 +183,35 @@ const filteredPokemons = computed(() => {
 });
 </script>
 
-<style lang="scss">
-.container {
-    min-height: 100vh;
-    background-color: #f5f5f5;
-    padding-top: 20px;
+<style lang="scss" scoped>
+/* 所有样式已迁移至 Tailwind CSS */
+
+.custom-scrollbar {
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 3px;
+        
+        &:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+    }
 }
 
-.fixed-filter-bar {
-    position: fixed;
-    top: 60px; /* 假设 NavBar 高度为 60px */
-    left: 0;
-    right: 0;
-    z-index: 999;
-    background-color: white; /* 防止内容穿透 */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 可选：增加阴影效果 */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-.loading-more {
-    text-align: center;
-    padding: 20px;
-    color: #666;
+.animate-spin {
+    animation: spin 0.8s linear infinite;
 }
 </style>

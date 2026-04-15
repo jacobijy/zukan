@@ -3,9 +3,12 @@
     <view class="flex justify-between items-center mb-4">
       <text class="text-xl font-bold text-gray-800">招式列表</text>
       <picker mode="selector" :range="['全部', '升级', '技能机器', '遗传', '教授招式']" @change="onMoveTypeChange">
-        <view class="px-3 py-1 border border-gray-300 rounded-lg text-sm flex items-center">
+        <view class="px-3 py-1 border border-gray-300 rounded-lg text-sm flex items-center gap-1">
           <text>{{ moveTypeFilterText }}</text>
-          <image src="/static/icons/down-arrow.png" mode="aspectFit" class="w-3 h-3 ml-1"></image>
+          <!-- 下拉箭头图标 -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-[#666]">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </view>
       </picker>
     </view>

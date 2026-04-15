@@ -1,8 +1,13 @@
 <template>
   <view class="relative bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl shadow-lg overflow-hidden mb-6">
-    <!-- 背景装饰 -->
+    <!-- 背景装饰 - 宝可梦球图案 -->
     <view class="absolute -right-10 -top-10 w-64 h-64 opacity-10">
-      <image src="/static/icons/pokeball.png" mode="aspectFit" class="w-full h-full"></image>
+      <svg viewBox="0 0 100 100" class="w-full h-full text-white">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="3"></circle>
+        <path d="M 5 50 L 95 50" stroke="currentColor" stroke-width="3"></path>
+        <circle cx="50" cy="50" r="12" fill="none" stroke="currentColor" stroke-width="3"></circle>
+        <circle cx="50" cy="50" r="6" fill="currentColor"></circle>
+      </svg>
     </view>
     
     <!-- 宝可梦图片 -->

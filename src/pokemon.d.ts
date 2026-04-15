@@ -48,6 +48,9 @@ interface IPokemonBaseModel {
     description: string;
     moves: string[];
     evolutionChain: number[];
+    height?: number;
+    weight?: number;
+    category?: string;
 }
 
 interface IPokemonCardModel extends IPokemonBaseModel {

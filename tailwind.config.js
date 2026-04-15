@@ -1,0 +1,33 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./index.html",
+    "./src/**/*.{vue,js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // 宝可梦类型颜色
+        'type-normal': '#A8A77A',
+        'type-fire': '#EE8130',
+        'type-water': '#6390F0',
+        'type-electric': '#F7D02C',
+        'type-grass': '#7AC74C',
+        'type-ice': '#96D9D6',
+        'type-fighting': '#C22E28',
+        'type-poison': '#A33EA1',
+        'type-ground': '#E2BF65',
+        'type-flying': '#A98FF3',
+        'type-psychic': '#F95587',
+        'type-bug': '#A6B91A',
+        'type-rock': '#B6A136',
+        'type-ghost': '#735797',
+        'type-dragon': '#6F35FC',
+        'type-dark': '#705746',
+        'type-steel': '#B7B7CE',
+        'type-fairy': '#D685AD',
+      },
+    },
+  },
+  plugins: [],
+}

@@ -39,16 +39,19 @@ export const usePokemonStore = defineStore('pokemon', () => {
     const hasMore = ref(true);
     const allPokemons = ref<IPokemonBaseModel[]>([]);
 
-    const loadMore = () => {
-        const start = (currentPage.value - 1) * pageSize.value;
-        const end = start + pageSize.value;
-        const newPokemons = allPokemons.value.slice(start, end);
+    const loadMore = (): Promise<void> => {
+        return new Promise((resolve) => {
+            const start = (currentPage.value - 1) * pageSize.value;
+            const end = start + pageSize.value;
+            const newPokemons = allPokemons.value.slice(start, end);
 
-        if (newPokemons.length > 0) {
-            pokemonList.value = [...pokemonList.value, ...newPokemons];
-            currentPage.value++;
-            hasMore.value = end < allPokemons.value.length;
-        }
+            if (newPokemons.length > 0) {
+                pokemonList.value = [...pokemonList.value, ...newPokemons];
+                currentPage.value++;
+                hasMore.value = end < allPokemons.value.length;
+            }
+            resolve();
+        });
     };
 
 

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 宝可梦球外框 -->
+  <circle cx="24" cy="24" r="18" stroke="#EF4444" stroke-width="2.5" fill="none"/>
+  
+  <!-- 上半部分红色填充 -->
+  <path d="M6 24 C6 14.06 14.06 6 24 6 C33.94 6 42 14.06 42 24" fill="#EF4444"/>
+  
+  <!-- 中间横线 -->
+  <line x1="6" y1="24" x2="42" y2="24" stroke="#EF4444" stroke-width="2.5"/>
+  
+  <!-- 中心按钮 -->
+  <circle cx="24" cy="24" r="5" stroke="#EF4444" stroke-width="2.5" fill="white"/>
+  <circle cx="24" cy="24" r="3" fill="#EF4444"/>
+</svg>
