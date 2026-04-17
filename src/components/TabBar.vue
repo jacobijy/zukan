@@ -8,14 +8,14 @@
         @click="switchTab(0)"
       >
         <!-- 宝可梦球图标 SVG -->
-        <svg v-if="currentTab !== 0" width="16" height="16" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg v-if="currentTab !== 0" width="16" height="16" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="transition-colors duration-300">
           <circle cx="24" cy="24" r="18" stroke="#9CA3AF" stroke-width="2.5" fill="none"/>
           <path d="M6 24 C6 14.06 14.06 6 24 6 C33.94 6 42 14.06 42 24" stroke="#9CA3AF" stroke-width="2.5" fill="none"/>
           <line x1="6" y1="24" x2="42" y2="24" stroke="#9CA3AF" stroke-width="2.5"/>
           <circle cx="24" cy="24" r="5" stroke="#9CA3AF" stroke-width="2.5" fill="white"/>
           <circle cx="24" cy="24" r="3" fill="#9CA3AF"/>
         </svg>
-        <svg v-else width="16" height="16" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg v-else width="16" height="16" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="transition-colors duration-300">
           <circle cx="24" cy="24" r="18" stroke="white" stroke-width="2.5" fill="none"/>
           <path d="M6 24 C6 14.06 14.06 6 24 6 C33.94 6 42 14.06 42 24" fill="white"/>
           <line x1="6" y1="24" x2="42" y2="24" stroke="white" stroke-width="2.5"/>
@@ -37,10 +37,10 @@
         @click="switchTab(1)"
       >
         <!-- 功能图标 SVG (闪电) -->
-        <svg v-if="currentTab !== 1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg v-if="currentTab !== 1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-colors duration-300">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
         </svg>
-        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-colors duration-300">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
         </svg>
         <text 
@@ -58,11 +58,11 @@
         @click="switchTab(2)"
       >
         <!-- 资料图标 SVG (书本) -->
-        <svg v-if="currentTab !== 2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg v-if="currentTab !== 2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-colors duration-300">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
         </svg>
-        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-colors duration-300">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
         </svg>
@@ -81,11 +81,11 @@
         @click="switchTab(3)"
       >
         <!-- 用户图标 SVG -->
-        <svg v-if="currentTab !== 3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg v-if="currentTab !== 3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-colors duration-300">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
           <circle cx="12" cy="7" r="4"></circle>
         </svg>
-        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-colors duration-300">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
           <circle cx="12" cy="7" r="4"></circle>
         </svg>
@@ -119,6 +119,15 @@ const currentTab = computed({
 const switchTab = (index: number) => {
   if (currentTab.value === index) return
   
+  // 添加一个轻微的缩放效果反馈
+  const tabElement = event?.target as HTMLElement;
+  if (tabElement) {
+    tabElement.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      tabElement.style.transform = '';
+    }, 150);
+  }
+  
   currentTab.value = index
   emit('change', index)
   
@@ -140,5 +149,12 @@ const switchTab = (index: number) => {
 /* 安全区域适配 */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 添加更平滑的过渡动画 */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
 }
 </style>

@@ -1,91 +1,77 @@
 <template>
-    <view class="min-h-screen bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef]" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '100px' }">
-        <!-- 顶部标题栏 -->
-        <view class="fixed top-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-lg shadow-[0_2px_12px_rgba(0,0,0,0.08)] px-6 py-4" :style="{ paddingTop: 'var(--status-bar-height)' }">
-            <text class="text-xl font-bold text-[#333]">功能中心</text>
-        </view>
+    <view 
+        class="min-h-screen bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef] transition-opacity duration-300" 
+        :class="{'opacity-0': transitioning, 'opacity-100': !transitioning}"
+        :style="{ paddingTop: 'calc(var(--status-bar-height) + 60px)', paddingBottom: '100px' }"
+    >
+        <!-- 导航栏 -->
+        <NavBar />
 
-        <!-- 内容区域 -->
-        <scroll-view scroll-y class="h-[calc(100vh-var(--status-bar-height)-100px)] p-5">
-            <!-- 功能卡片网格 -->
-            <view class="grid grid-cols-2 gap-4">
-                <!-- 对战模拟器 -->
-                <view class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.08)] cursor-pointer active:scale-95 transition-transform" @click="navigateTo('/pages/calc/calc')">
-                    <view class="w-14 h-14 rounded-full bg-gradient-to-br from-[#FF6B6B]/10 to-[#EE5A6F]/10 flex items-center justify-center mb-3">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                        </svg>
-                    </view>
-                    <text class="text-base font-bold text-[#333] block mb-1">对战模拟</text>
-                    <text class="text-xs text-[#999]">伤害计算器</text>
-                </view>
-
-                <!-- 队伍构建 -->
-                <view class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.08)] cursor-pointer active:scale-95 transition-transform">
-                    <view class="w-14 h-14 rounded-full bg-gradient-to-br from-[#4ECDC4]/10 to-[#44A08D]/10 flex items-center justify-center mb-3">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4ECDC4" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                    </view>
-                    <text class="text-base font-bold text-[#333] block mb-1">队伍构建</text>
-                    <text class="text-xs text-[#999]">组建最强阵容</text>
-                </view>
-
-                <!-- 属性克制 -->
-                <view class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.08)] cursor-pointer active:scale-95 transition-transform">
-                    <view class="w-14 h-14 rounded-full bg-gradient-to-br from-[#A78BFA]/10 to-[#8B5CF6]/10 flex items-center justify-center mb-3">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2">
+        <!-- 功能卡片网格 -->
+        <view class="p-5">
+            <view class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4 max-w-[1400px] mx-auto">
+                <!-- 计算器功能卡片 -->
+                <view 
+                    class="bg-white rounded-2xl p-5 shadow-[0_4px_16px_rgba(0,0,0,0.08)] cursor-pointer active:scale-95 transition-all duration-300 border border-black/4 flex flex-col items-center justify-center gap-3 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+                    @click="goToPage('/pages/calc/calc')"
+                >
+                    <view class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M12 6v6l4 2"></path>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                            <line x1="12" y1="12" x2="12" y2="12"></line>
+                            <line x1="16" y1="16" x2="16" y2="16"></line>
+                            <line x1="8" y1="8" x2="8" y2="8"></line>
                         </svg>
                     </view>
-                    <text class="text-base font-bold text-[#333] block mb-1">属性克制</text>
-                    <text class="text-xs text-[#999]">查看相克关系</text>
+                    <text class="text-sm font-semibold text-[#333]">伤害计算器</text>
                 </view>
 
-                <!-- 技能查询 -->
-                <view class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.08)] cursor-pointer active:scale-95 transition-transform">
-                    <view class="w-14 h-14 rounded-full bg-gradient-to-br from-[#FBBF24]/10 to-[#F59E0B]/10 flex items-center justify-center mb-3">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                <!-- 对战模拟功能卡片 -->
+                <view 
+                    class="bg-white rounded-2xl p-5 shadow-[0_4px_16px_rgba(0,0,0,0.08)] cursor-pointer active:scale-95 transition-all duration-300 border border-black/4 flex flex-col items-center justify-center gap-3 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+                    @click="goToPage('/pages/simulate/simulate')"
+                >
+                    <view class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
                         </svg>
                     </view>
-                    <text class="text-base font-bold text-[#333] block mb-1">技能查询</text>
-                    <text class="text-xs text-[#999]">招式详细信息</text>
+                    <text class="text-sm font-semibold text-[#333]">对战模拟器</text>
                 </view>
 
-                <!-- 特性大全 -->
-                <view class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.08)] cursor-pointer active:scale-95 transition-transform">
-                    <view class="w-14 h-14 rounded-full bg-gradient-to-br from-[#10B981]/10 to-[#059669]/10 flex items-center justify-center mb-3">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                <!-- 数据统计功能卡片 -->
+                <view 
+                    class="bg-white rounded-2xl p-5 shadow-[0_4px_16px_rgba(0,0,0,0.08)] cursor-pointer active:scale-95 transition-all duration-300 border border-black/4 flex flex-col items-center justify-center gap-3 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+                    @click="goToPage('/pages/data/data')"
+                >
+                    <view class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
                         </svg>
                     </view>
-                    <text class="text-base font-bold text-[#333] block mb-1">特性大全</text>
-                    <text class="text-xs text-[#999]">所有特性介绍</text>
+                    <text class="text-sm font-semibold text-[#333]">数据统计</text>
                 </view>
 
-                <!-- 道具百科 -->
-                <view class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.08)] cursor-pointer active:scale-95 transition-transform">
-                    <view class="w-14 h-14 rounded-full bg-gradient-to-br from-[#EC4899]/10 to-[#DB2777]/10 flex items-center justify-center mb-3">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2">
-                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <!-- 联系我们功能卡片 -->
+                <view 
+                    class="bg-white rounded-2xl p-5 shadow-[0_4px_16px_rgba(0,0,0,0.08)] cursor-pointer active:scale-95 transition-all duration-300 border border-black/4 flex flex-col items-center justify-center gap-3 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+                    @click="goToPage('/pages/contact/contact')"
+                >
+                    <view class="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl flex items-center justify-center">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
                         </svg>
                     </view>
-                    <text class="text-base font-bold text-[#333] block mb-1">道具百科</text>
-                    <text class="text-xs text-[#999]">道具效果说明</text>
+                    <text class="text-sm font-semibold text-[#333]">联系我们</text>
                 </view>
             </view>
-
-            <!-- 底部提示 -->
-            <view class="mt-6 text-center text-[#999] text-sm">
-                <text>更多功能开发中...</text>
-            </view>
-        </scroll-view>
+        </view>
 
         <!-- 底部 TabBar -->
         <TabBar v-model="currentTab" @change="onTabChange" />
@@ -93,16 +79,34 @@
 </template>
 
 <script lang="ts" setup>
-import TabBar from '@/components/TabBar.vue'
-import { ref } from 'vue'
+import NavBar from "@/components/NavBar.vue";
+import TabBar from "@/components/TabBar.vue";
+import { ref } from "vue";
 
-const currentTab = ref(1)
+const currentTab = ref(1); // 当前选中的 tab 索引
+const transitioning = ref(false); // 控制页面切换动画
 
+// 页面跳转方法
+const goToPage = (url: string) => {
+    uni.navigateTo({
+        url: url
+    });
+};
+
+// Tab 切换处理
 const onTabChange = (index: number) => {
-    console.log('Tab changed to:', index)
-}
-
-const navigateTo = (url: string) => {
-    uni.navigateTo({ url })
-}
+    console.log('Tab changed to:', index);
+    
+    // 添加页面切换动画
+    transitioning.value = true;
+    
+    // 延迟切换页面，确保动画完成
+    setTimeout(() => {
+        currentTab.value = index;
+    }, 150);
+};
 </script>
+
+<style lang="scss" scoped>
+/* 所有样式已迁移至 Tailwind CSS */
+</style>

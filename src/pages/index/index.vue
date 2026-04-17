@@ -1,5 +1,9 @@
 <template>
-    <view class="min-h-screen bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef]" :style="{ paddingTop: 'calc(var(--status-bar-height) + 60px)', paddingBottom: '100px' }">
+    <view 
+        class="min-h-screen bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef] transition-opacity duration-300" 
+        :class="{'opacity-0': transitioning, 'opacity-100': !transitioning}"
+        :style="{ paddingTop: 'calc(var(--status-bar-height) + 60px)', paddingBottom: '100px' }"
+    >
         <!-- 导航栏 -->
         <NavBar />
 
@@ -18,7 +22,7 @@
                     </svg>
                     <text class="text-sm font-semibold text-[#333]">我的收藏</text>
                 </view>
-                <view class="flex items-center gap-2">
+                <view class="flex items-center gap-1">
                     <view v-if="favoritesCount > 0" class="bg-[#EF4444] text-white text-xs font-bold px-2.5 py-1 rounded-full">
                         {{ favoritesCount }}
                     </view>
@@ -69,6 +73,22 @@ const { fetchPokemon, loadMore } = pokemonStore;
 const loadingMore = ref(false);
 const searchQuery = ref("");
 const loading = ref(true);
+const transitioning = ref(false); // 控制页面切换动画
+
+// 监听页面显示事件，添加淡入动画
+onMounted(async () => {
+    try {
+        await fetchPokemon();
+        // 页面加载完成后执行淡入动画
+        setTimeout(() => {
+            transitioning.value = false;
+        }, 100);
+    } catch (error) {
+        console.error("加载宝可梦数据失败:", error);
+    } finally {
+        loading.value = false;
+    }
+});
 
 // 定义类型数组
 const types = ref(['一般', '火', '水', '电', '草', '冰', '格斗', '毒', '地面', '飞行', '超能力', '虫', '岩石', '幽灵', '龙', '恶', '钢', '妖精']);
@@ -83,16 +103,6 @@ const navigateToDetail = (id: number) => {
         url: `/pages/detail/detail?id=${id}`,
     });
 };
-
-onMounted(async () => {
-    try {
-        await fetchPokemon();
-    } catch (error) {
-        console.error("加载宝可梦数据失败:", error);
-    } finally {
-        loading.value = false;
-    }
-});
 
 // 新增响应式变量用于存储当前筛选和排序状态
 const currentFilter = ref<string | null>(null);
@@ -121,7 +131,14 @@ const filterToggle = (value: boolean) => {
 // Tab 切换处理
 const onTabChange = (index: number) => {
     console.log('Tab changed to:', index);
-    // 这里可以添加额外的逻辑，比如埋点统计等
+    
+    // 添加页面切换动画
+    transitioning.value = true;
+    
+    // 延迟切换页面，确保动画完成
+    setTimeout(() => {
+        currentTab.value = index;
+    }, 150);
 };
 
 // 收藏数量
