@@ -2,7 +2,7 @@
     <view 
         class="min-h-screen bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef] transition-opacity duration-300" 
         :class="{'opacity-0': transitioning, 'opacity-100': !transitioning}"
-        :style="{ paddingTop: 'calc(var(--status-bar-height) + 60px)', paddingBottom: '100px' }"
+        :style="{ paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))', paddingBottom: '100px' }"
     >
         <!-- 导航栏 -->
         <NavBar />

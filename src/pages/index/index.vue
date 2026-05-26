@@ -1,13 +1,17 @@
 <template>
     <view 
-        class="min-h-screen bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef] transition-all duration-300 flex flex-col relative overflow-hidden" 
-        :class="{'opacity-0': transitioning, 'opacity-100': !transitioning}"
-        :style="{ 
-            paddingTop: 'calc(var(--status-bar-height) + 60px)', 
-            paddingBottom: '100px',
-            transform: showGenerationPanel ? 'translateX(-280px) scale(0.95)' : 'translateX(0) scale(1)'
-        }"
+        class="h-screen bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef] flex flex-col relative overflow-hidden"
+        :style="{ paddingBottom: '100px' }"
     >
+        <!-- 主内容区：transform 仅作用于此，避免 fixed TabBar 随页面高度偏移 -->
+        <view
+            class="flex flex-col flex-1 min-h-0 transition-all duration-300"
+            :class="{'opacity-0': transitioning, 'opacity-100': !transitioning}"
+            :style="{
+                paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))',
+                transform: showGenerationPanel ? 'translateX(-280px) scale(0.95)' : 'translateX(0) scale(1)'
+            }"
+        >
         <!-- 导航栏 -->
         <NavBar @search="onSearch" @filterToggle="filterToggle" @showFavorites="toggleFavoritesView" @generationToggle="toggleGenerationPanel" />
 
@@ -15,7 +19,7 @@
         <FilterBar v-show="isShow" @filterToggle="filterToggle" @filterChange="onFilterChange" />
 
         <!-- 收藏视图提示 -->
-        <view v-if="showFavoritesOnly" class="fixed z-[998] bg-gradient-to-r from-yellow-400 to-orange-400 shadow-[0_2px_8px_rgba(0,0,0,0.1)] animate-slideDown" :style="{ top: 'calc(var(--status-bar-height) + 60px)' }">
+        <view v-if="showFavoritesOnly" class="fixed z-[998] bg-gradient-to-r from-yellow-400 to-orange-400 shadow-[0_2px_8px_rgba(0,0,0,0.1)] animate-slideDown" :style="{ top: 'calc(var(--status-bar-height) + var(--navbar-content-height))' }">
             <view class="px-5 py-3 flex items-center justify-between">
                 <view class="flex items-center gap-2">
                     <svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white">
@@ -31,7 +35,7 @@
 
         <!-- 宝可梦列表 -->
         <view 
-            class="flex-1 overflow-y-auto p-3 custom-scrollbar" 
+            class="flex-1 min-h-0 overflow-y-auto p-3 custom-scrollbar" 
             @scroll="onScroll"
             @touchstart="handleTouchStart"
             @touchmove="handleTouchMove"
@@ -65,8 +69,9 @@
                 <text>已经到底了~</text>
             </view>
         </view>
+        </view>
 
-        <!-- 底部 TabBar -->
+        <!-- 底部 TabBar（置于 transform 容器外，保持相对视口固定） -->
         <TabBar v-model="currentTab" @change="onTabChange" />
 
         <!-- 世代筛选面板 -->

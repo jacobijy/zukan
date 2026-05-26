@@ -1,5 +1,5 @@
 <template>
-  <view class="fixed z-[999] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] border-b border-black/5 animate-slideDown" :style="{ top: 'calc(var(--status-bar-height) + 60px)' }">
+  <view class="fixed z-[999] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] border-b border-black/5 animate-slideDown" :style="{ top: 'calc(var(--status-bar-height) + var(--navbar-content-height))' }">
     <view class="px-5 py-4 flex flex-col gap-4">
       <!-- 类型筛选 -->
       <view class="flex flex-col gap-3">
