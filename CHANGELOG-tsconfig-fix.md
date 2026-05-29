@@ -27,13 +27,13 @@
 
 #### 1. 升级依赖包
 ```bash
-pnpm add -D @vue/tsconfig@0.4.0
+pnpm add -D @vue/tsconfig@^0.9.1 typescript@^5.8.2 vue-tsc@^3.3.2
 ```
 
 **变更详情：**
-- **之前**：`@vue/tsconfig@^0.1.3`
-- **之后**：`@vue/tsconfig@^0.4.0`
-- **兼容性**：✅ 兼容 TypeScript 4.9.x（无需升级 TS 版本）
+- **之前**：`@vue/tsconfig@^0.4.0`、`typescript@^4.9.4`、`vue-tsc@^1.0.24`
+- **之后**：`@vue/tsconfig@^0.9.1`、`typescript@^5.8.2`、`vue-tsc@^3.3.2`
+- **兼容性**：✅ `pnpm type-check` 已通过
 
 #### 2. 配置文件状态
 **文件**：[tsconfig.json](file://d:\Code\pokedex\tsconfig.json)
@@ -60,28 +60,26 @@ pnpm add -D @vue/tsconfig@0.4.0
 
 ## 📊 版本对比
 
-### @vue/tsconfig@0.1.3 vs @vue/tsconfig@0.4.0
+### 类型检查工具链
 
-| 配置项 | v0.1.3 | v0.4.0 | 状态 |
-|--------|--------|--------|------|
-| `importsNotUsedAsValues` | `"error"` | ❌ 已移除 | ✅ 修复 |
-| `preserveValueImports` | `true` | ❌ 已移除 | ✅ 修复 |
-| `verbatimModuleSyntax` | ❌ 不存在 | `true` | ✅ 新增 |
-| `moduleResolution` | `"Node"` | `"bundler"` | 🔄 优化 |
-| `jsxImportSource` | ❌ 不存在 | `"vue"` | ✨ 新增 |
+| 工具 | 之前 | 之后 | 状态 |
+|------|------|------|------|
+| `@vue/tsconfig` | `^0.4.0` | `^0.9.1` | ✅ 与当前 Vue/TS 工具链匹配 |
+| `typescript` | `^4.9.4` | `^5.8.2` | ✅ 支持 `moduleResolution: "bundler"` 和 `verbatimModuleSyntax` |
+| `vue-tsc` | `^1.0.24` | `^3.3.2` | ✅ 支持新版 Vue 语言服务 |
 
 ### 关键改进
-1. **移除废弃选项**：删除了 TypeScript 5.0+ 废弃的配置项
-2. **采用新标准**：使用 `verbatimModuleSyntax` 统一管理类型导入
-3. **模块解析优化**：从 `"Node"` 改为 `"bundler"`，更适合现代构建工具
-4. **Vue 3 支持增强**：添加 `jsxImportSource: "vue"` 以更好地支持 Vue 3
+1. **升级 TypeScript**：解决 TS 4.9 不支持 `moduleResolution: "bundler"` 和 `verbatimModuleSyntax` 的问题
+2. **升级 vue-tsc**：避免旧版 Vue 类型检查器将虚拟 `.vue.js` 文件错误纳入编译
+3. **同步 @vue/tsconfig**：使用与 TypeScript 5.8 兼容的 Vue 官方配置
 
 ## ✅ 验证结果
 
 ### 环境信息
-- **TypeScript 版本**：4.9.5
-- **@vue/tsconfig 版本**：0.4.0
-- **兼容性检查**：✅ 完全兼容
+- **TypeScript 版本**：5.8.2
+- **@vue/tsconfig 版本**：0.9.1
+- **vue-tsc 版本**：3.3.2
+- **兼容性检查**：✅ `pnpm type-check` 通过
 
 ### 预期效果
 - ✅ TypeScript 编译器不再报告废弃选项错误
@@ -97,18 +95,10 @@ pnpm add -D @vue/tsconfig@0.4.0
 - **未修饰的导入/导出**：保留不变（对 `<script setup>` 很重要）
 - **优势**：更清晰的类型分离，减少运行时开销
 
-### 为什么选择 v0.4.0 而非最新版本？
-- **v0.7.0+ 要求**：TypeScript >= 5.0 且 Vue >= 3.4
-- **当前环境**：TypeScript 4.9.5
-- **决策**：选择最后一个支持 TS 4.9 的稳定版本 v0.4.0
+### 版本选择
+当前使用 `@vue/tsconfig@0.9.1`，它要求 TypeScript >= 5.8；因此同步升级 TypeScript 到 5.8.2，并升级 `vue-tsc` 到 3.3.2。
 
 ## 🎯 后续建议
-
-### 可选升级路径
-如果未来希望升级到最新的 `@vue/tsconfig@0.9.1`，需要：
-1. 升级 TypeScript 到 5.0+
-2. 确认 Vue 版本 >= 3.4
-3. 测试所有依赖包的兼容性
 
 ### 最佳实践
 - 定期检查 TypeScript 和相关配置的更新
