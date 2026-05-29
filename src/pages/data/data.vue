@@ -5,7 +5,7 @@
         :style="{ paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))', paddingBottom: '100px' }"
     >
         <!-- 导航栏 -->
-        <NavBar />
+        <NavBar title="资料中心" />
 
         <!-- 数据概览 -->
         <view class="p-5">

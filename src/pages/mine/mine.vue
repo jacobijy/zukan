@@ -5,7 +5,7 @@
         :style="{ paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))', paddingBottom: '100px' }"
     >
         <!-- 导航栏 -->
-        <NavBar />
+        <NavBar title="个人中心" />
 
         <!-- 个人信息卡片 -->
         <view class="mx-5 mt-5 mb-4 bg-gradient-to-br from-[#FF6B6B] to-[#EE5A6F] rounded-2xl p-5 text-white shadow-[0_4px_16px_rgba(238,90,111,0.3)]">

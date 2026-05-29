@@ -1,50 +1,27 @@
 <template>
     <view class="min-h-screen bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef]" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '100px' }">
         <!-- 顶部导航栏 -->
-        <view class="fixed top-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-lg shadow-[0_2px_12px_rgba(0,0,0,0.08)] px-4 py-3 flex items-center" :style="{ paddingTop: 'var(--status-bar-height)' }">
-            <view class="relative">
-                <button class="p-2 rounded-full bg-white/80 shadow-md transition-all duration-300 hover:scale-110 active:scale-95 mr-3" @click="toggleDropdown">
-                    <!-- 菜单图标 -->
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#333]">
-                        <circle cx="12" cy="12" r="1"></circle>
-                        <circle cx="12" cy="5" r="1"></circle>
-                        <circle cx="12" cy="19" r="1"></circle>
-                    </svg>
-                </button>
-                
-                <!-- 下拉菜单 -->
-                <view v-if="showDropdown" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] z-[1001] overflow-hidden border border-gray-100">
-                    <view class="py-2">
-                        <view class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer active:scale-[0.98] transition-transform" @click="goBack">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M19 12H5"></path>
-                                <polyline points="12 19 5 12 12 5"></polyline>
-                            </svg>
-                            <text class="text-base font-medium text-[#333]">返回</text>
-                        </view>
-                        
-                        <view class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer active:scale-[0.98] transition-transform" @click="toggleFavorite">
-                            <svg v-if="!isFavorite" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EE5A6F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                            </svg>
-                            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="#EE5A6F" stroke="#EE5A6F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                            </svg>
-                            <text class="text-base font-medium text-[#333]">{{ isFavorite ? '取消收藏' : '添加收藏' }}</text>
-                        </view>
-                    </view>
-                </view>
-            </view>
-            
-            <view class="flex-1 flex justify-center">
-                <text class="font-bold text-lg text-[#333] truncate max-w-[60%]">{{ pokemon.name || '宝可梦详情' }}</text>
-            </view>
-            
-            <view class="w-10"></view> <!-- 占位符，保持标题居中 -->
-        </view>
+        <view class="fixed top-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-lg shadow-[0_2px_12px_rgba(0,0,0,0.08)] px-4 py-3 flex items-center justify-between" :style="{ paddingTop: 'var(--status-bar-height)' }">
+            <button class="w-10 h-10 rounded-full bg-white/80 shadow-md flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95" @click="goBack">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#333]">
+                    <path d="M19 12H5"></path>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </button>
 
-        <!-- 遮罩层，用于关闭下拉菜单 -->
-        <view v-if="showDropdown" class="fixed inset-0 z-[1000] bg-transparent" @click="showDropdown = false"></view>
+            <view class="flex-1 flex justify-center px-3">
+                <text class="font-bold text-lg text-[#333] truncate max-w-full">{{ pokemon.name || '宝可梦详情' }}</text>
+            </view>
+
+            <button class="w-10 h-10 rounded-full bg-white/80 shadow-md flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95" @click="toggleFavorite">
+                <svg v-if="!isFavorite" viewBox="0 0 24 24" fill="none" stroke="#EE5A6F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="#EE5A6F" stroke="#EE5A6F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+            </button>
+        </view>
 
         <!-- 内容区域 -->
         <scroll-view scroll-y class="h-[calc(100vh-var(--status-bar-height)-100px)] mt-[calc(var(--status-bar-height)+64px)]">
@@ -178,9 +155,6 @@ import { computed, ref } from 'vue'
 const pokemonStore = usePokemonStore()
 const { toggleFavorite: storeToggleFavorite, favorites } = pokemonStore
 
-// 添加下拉菜单状态
-const showDropdown = ref(false)
-
 // 计算是否已收藏
 const isFavorite = computed(() => {
     return pokemon.value.id ? favorites.includes(pokemon.value.id) : false
@@ -191,17 +165,14 @@ const toggleFavorite = () => {
     if (pokemon.value.id) {
         storeToggleFavorite(pokemon.value.id)
     }
-    showDropdown.value = false // 关闭下拉菜单
 }
 
 const goBack = () => {
-    uni.navigateBack();
-    showDropdown.value = false // 关闭下拉菜单
-}
-
-// 切换下拉菜单显示/隐藏
-const toggleDropdown = () => {
-    showDropdown.value = !showDropdown.value
+    uni.navigateBack({
+        fail: () => {
+            uni.reLaunch({ url: '/pages/index/index' })
+        }
+    })
 }
 
 // Tab 状态

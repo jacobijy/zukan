@@ -13,13 +13,76 @@
             }"
         >
         <!-- 导航栏 -->
-        <NavBar @search="onSearch" @filterToggle="filterToggle" @showFavorites="toggleFavoritesView" @generationToggle="toggleGenerationPanel" />
+        <NavBar title="宝可梦图鉴" />
+
+        <!-- 图鉴工具栏 -->
+        <view class="sticky top-0 z-[997] bg-white/95 backdrop-blur border-b border-black/5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-3 py-3">
+            <view class="max-w-[1400px] mx-auto flex items-center gap-2">
+                <view class="flex-1 relative h-10">
+                    <input
+                        type="text"
+                        placeholder="搜索宝可梦名称、编号或属性..."
+                        class="w-full h-10 rounded-full border-none bg-gray-100 text-[#333] text-sm shadow-inner pl-10 pr-10 box-border placeholder:text-[#999] focus:bg-white focus:shadow-[0_0_0_2px_rgba(238,90,111,0.18)] transition-all"
+                        v-model="searchText"
+                        @input="onSearchInput"
+                    />
+                    <view class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-60">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full text-[#666]">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                    </view>
+                    <view v-if="searchText" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 cursor-pointer" @click="clearSearch">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full text-[#999]">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </view>
+                </view>
+
+                <button
+                    class="toolbar-button w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 relative border-none p-0"
+                    :class="showGenerationPanel ? 'bg-gradient-to-br from-[#5B8CFF] to-[#6D5DF6] shadow-[0_6px_14px_rgba(91,140,255,0.32)]' : 'bg-[#EEF4FF] shadow-[inset_0_0_0_1px_rgba(91,140,255,0.12),0_2px_6px_rgba(35,65,120,0.06)]'"
+                    @click="toggleGenerationPanel(!showGenerationPanel)"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" :class="showGenerationPanel ? 'text-white' : 'text-[#5B75D6]'">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <view v-if="selectedGeneration" class="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-white"></view>
+                </button>
+
+                <button
+                    class="toolbar-button w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 relative border-none p-0"
+                    :class="isShow ? 'bg-gradient-to-br from-[#FF7A90] to-[#EE5A6F] shadow-[0_6px_14px_rgba(238,90,111,0.34)]' : 'bg-[#FFF0F3] shadow-[inset_0_0_0_1px_rgba(238,90,111,0.13),0_2px_6px_rgba(120,35,50,0.06)]'"
+                    @click="filterToggle(!isShow)"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="toolbar-filter-icon w-5 h-5" :class="isShow ? 'text-white' : 'text-[#D94A62]'">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                    <view v-if="currentFilterTypes.length > 0" class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white"></view>
+                </button>
+
+                <button
+                    class="toolbar-button w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 relative border-none p-0"
+                    :class="showFavoritesOnly ? 'bg-gradient-to-br from-[#FFD166] to-[#F59E0B] shadow-[0_6px_14px_rgba(245,158,11,0.34)]' : 'bg-[#FFF7DE] shadow-[inset_0_0_0_1px_rgba(245,158,11,0.16),0_2px_6px_rgba(120,80,15,0.06)]'"
+                    @click="toggleFavoritesView"
+                >
+                    <svg viewBox="0 0 24 24" :fill="showFavoritesOnly ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="toolbar-favorite-icon w-5 h-5 transition-colors duration-200" :class="showFavoritesOnly ? 'text-white' : 'text-[#D97706]'">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <view v-if="pokemonStore.favorites.length > 0" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-white shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
+                        <text class="text-[10px] font-bold text-white">{{ pokemonStore.favorites.length > 99 ? '99+' : pokemonStore.favorites.length }}</text>
+                    </view>
+                </button>
+            </view>
+        </view>
 
         <!-- 筛选和排序 -->
         <FilterBar v-show="isShow" @filterToggle="filterToggle" @filterChange="onFilterChange" />
 
         <!-- 收藏视图提示 -->
-        <view v-if="showFavoritesOnly" class="fixed z-[998] bg-gradient-to-r from-yellow-400 to-orange-400 shadow-[0_2px_8px_rgba(0,0,0,0.1)] animate-slideDown" :style="{ top: 'calc(var(--status-bar-height) + var(--navbar-content-height))' }">
+        <view v-if="showFavoritesOnly" class="sticky top-0 z-[996] bg-gradient-to-r from-yellow-400 to-orange-400 shadow-[0_2px_8px_rgba(0,0,0,0.1)] animate-slideDown">
             <view class="px-5 py-3 flex items-center justify-between">
                 <view class="flex items-center gap-2">
                     <svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white">
@@ -150,6 +213,7 @@ const pokemonStore = usePokemonStore();
 const { pokemonList, hasMore } = storeToRefs(pokemonStore);
 const { fetchPokemon, loadMore } = pokemonStore;
 const loadingMore = ref(false);
+const searchText = ref("");
 const searchQuery = ref("");
 const loading = ref(true);
 const transitioning = ref(false); // 控制页面切换动画
@@ -215,8 +279,13 @@ const selectGeneration = (generation: string) => {
 };
 
 // 搜索处理
-const onSearch = (query: string) => {
-    searchQuery.value = query;
+const onSearchInput = () => {
+    searchQuery.value = searchText.value;
+};
+
+const clearSearch = () => {
+    searchText.value = '';
+    searchQuery.value = '';
 };
 
 const filterToggle = (value: boolean) => {
@@ -386,6 +455,23 @@ const filteredPokemons = computed(() => {
 
 <style lang="scss" scoped>
 /* 所有样式已迁移至 Tailwind CSS */
+
+.toolbar-button {
+    line-height: 1;
+}
+
+.toolbar-filter-icon {
+    transform: translateY(1px);
+}
+
+.toolbar-favorite-icon {
+    display: block;
+    flex-shrink: 0;
+}
+
+.toolbar-button::after {
+    border: none !important;
+}
 
 .custom-scrollbar {
     &::-webkit-scrollbar {

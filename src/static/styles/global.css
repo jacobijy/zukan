@@ -8,10 +8,12 @@ page {
 }
 
 button {
-    border: none;
     outline: none;
-    background: none;
     cursor: pointer;
+}
+
+button::after {
+    border: none !important;
 }
 
 input {
