@@ -27,7 +27,7 @@
 
 #### 1. 升级依赖包
 ```bash
-npm install --save-dev @vue/tsconfig@0.4.0
+pnpm add -D @vue/tsconfig@0.4.0
 ```
 
 **变更详情：**

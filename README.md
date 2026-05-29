@@ -62,7 +62,7 @@ pokedex/
 ### 环境要求
 
 - Node.js (推荐使用 LTS 版本)
-- npm 或 yarn 或 pnpm
+- pnpm
 
 ### 安装步骤
 
@@ -76,7 +76,7 @@ cd pokedex
 2. 安装依赖：
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 运行项目
@@ -85,64 +85,64 @@ npm install
 
 - **H5 平台**：
   ```bash
-  npm run dev:h5
+  pnpm dev:h5
   ```
 
 - **微信小程序**：
   ```bash
-  npm run dev:mp-weixin
+  pnpm dev:mp-weixin
   ```
 
 - **支付宝小程序**：
   ```bash
-  npm run dev:mp-alipay
+  pnpm dev:mp-alipay
   ```
 
 - **百度小程序**：
   ```bash
-  npm run dev:mp-baidu
+  pnpm dev:mp-baidu
   ```
 
 - **QQ 小程序**：
   ```bash
-  npm run dev:mp-qq
+  pnpm dev:mp-qq
   ```
 
 - **其他平台**：
-  - 头条: `npm run dev:mp-toutiao`
-  - 快手: `npm run dev:mp-kuaishou`
-  - 京东: `npm run dev:mp-jd`
-  - 飞书: `npm run dev:mp-lark`
-  - 小红书: `npm run dev:mp-xhs`
-  - 快应用: `npm run dev:quickapp-webview`
+  - 头条: `pnpm dev:mp-toutiao`
+  - 快手: `pnpm dev:mp-kuaishou`
+  - 京东: `pnpm dev:mp-jd`
+  - 飞书: `pnpm dev:mp-lark`
+  - 小红书: `pnpm dev:mp-xhs`
+  - 快应用: `pnpm dev:quickapp-webview`
 
 #### 构建生产版本
 
 - **H5 平台**：
   ```bash
-  npm run build:h5
+  pnpm build:h5
   ```
 
 - **微信小程序**：
   ```bash
-  npm run build:mp-weixin
+  pnpm build:mp-weixin
   ```
 
 - **其他平台**：
-  - 支付宝: `npm run build:mp-alipay`
-  - 百度: `npm run build:mp-baidu`
-  - QQ: `npm run build:mp-qq`
-  - 头条: `npm run build:mp-toutiao`
-  - 快手: `npm run build:mp-kuaishou`
-  - 京东: `npm run build:mp-jd`
-  - 飞书: `npm run build:mp-lark`
-  - 小红书: `npm run build:mp-xhs`
-  - 快应用: `npm run build:quickapp-webview`
+  - 支付宝: `pnpm build:mp-alipay`
+  - 百度: `pnpm build:mp-baidu`
+  - QQ: `pnpm build:mp-qq`
+  - 头条: `pnpm build:mp-toutiao`
+  - 快手: `pnpm build:mp-kuaishou`
+  - 京东: `pnpm build:mp-jd`
+  - 飞书: `pnpm build:mp-lark`
+  - 小红书: `pnpm build:mp-xhs`
+  - 快应用: `pnpm build:quickapp-webview`
 
 ### 类型检查
 
 ```bash
-npm run type-check
+pnpm type-check
 ```
 
 ## 部署说明
