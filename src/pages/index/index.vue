@@ -1,188 +1,198 @@
 <template>
-    <view 
-        class="h-screen bg-gradient-to-b from-[#f8f9fa] to-[#e9ecef] flex flex-col relative overflow-hidden"
-        :style="{ paddingBottom: '100px' }"
-    >
-        <!-- 主内容区：transform 仅作用于此，避免 fixed TabBar 随页面高度偏移 -->
+    <view class="dex-page h-screen flex flex-col relative overflow-hidden" :style="{ paddingBottom: '100px' }">
+        <view class="dex-orb dex-orb--leaf"></view>
+        <view class="dex-orb dex-orb--gold"></view>
+
         <view
-            class="flex flex-col flex-1 min-h-0 transition-all duration-300"
+            class="relative z-10 flex flex-col flex-1 min-h-0 transition-all duration-300"
             :class="{'opacity-0': transitioning, 'opacity-100': !transitioning}"
             :style="{
                 paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))',
                 transform: showGenerationPanel ? 'translateX(-280px) scale(0.95)' : 'translateX(0) scale(1)'
             }"
         >
-        <!-- 导航栏 -->
-        <NavBar title="宝可梦图鉴" />
+            <NavBar title="宝可梦图鉴" />
 
-        <!-- 图鉴工具栏 -->
-        <view class="sticky top-0 z-[997] bg-white/95 backdrop-blur border-b border-black/5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-3 py-3">
-            <view class="max-w-[1400px] mx-auto flex items-center gap-2">
-                <view class="flex-1 relative h-10">
-                    <input
-                        type="text"
-                        placeholder="搜索宝可梦名称、编号或属性..."
-                        class="w-full h-10 rounded-full border-none bg-gray-100 text-[#333] text-sm shadow-inner pl-10 pr-10 box-border placeholder:text-[#999] focus:bg-white focus:shadow-[0_0_0_2px_rgba(238,90,111,0.18)] transition-all"
-                        v-model="searchText"
-                        @input="onSearchInput"
+            <view class="px-3 pt-2 sm:px-5 sm:pt-3">
+                <view class="mx-auto max-w-[1400px] overflow-hidden rounded-[24px] border border-white/65 bg-[#fff9e8]/88 p-2.5 shadow-[0_14px_34px_rgba(37,55,30,0.13)] backdrop-blur-xl sm:rounded-[28px] sm:p-3">
+                    <view class="flex items-center gap-2 sm:gap-3">
+                        <view class="relative h-10 min-w-0 flex-1 sm:h-11">
+                            <input
+                                type="text"
+                                placeholder="搜索名称、编号或属性..."
+                                class="h-10 w-full rounded-[20px] border border-[#334322]/10 bg-white/74 pl-10 pr-9 text-sm font-semibold text-[#26351f] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_22px_rgba(46,62,35,0.07)] outline-none placeholder:text-[#8b957f] focus:bg-white focus:shadow-[0_0_0_4px_rgba(131,179,82,0.16),0_12px_24px_rgba(46,62,35,0.09)] sm:h-11 sm:rounded-[22px] sm:pl-11 sm:pr-10"
+                                v-model="searchText"
+                                @input="onSearchInput"
+                            />
+                            <view class="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#6f7b62] sm:left-4 sm:h-5 sm:w-5">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="m21 21-4.35-4.35"></path>
+                                </svg>
+                            </view>
+                            <view v-if="searchText" class="absolute right-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 cursor-pointer text-[#90997f] sm:right-4 sm:h-5 sm:w-5" @click="clearSearch">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </view>
+                        </view>
+
+                        <button
+                            class="icon-tool-button icon-tool-button--favorite panel-button"
+                            :class="showFavoritesOnly ? 'icon-tool-button--favorite-active' : ''"
+                            @click="toggleFavoritesView"
+                        >
+                            <svg viewBox="0 0 24 24" :fill="showFavoritesOnly ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon-tool-button__svg icon-tool-button__svg--star">
+                                <polygon points="12 2.8 14.9 8.7 21.4 9.65 16.7 14.25 17.8 20.75 12 17.68 6.2 20.75 7.3 14.25 2.6 9.65 9.1 8.7 12 2.8"></polygon>
+                            </svg>                        </button>
+
+                        <button class="icon-tool-button panel-button" @click="isIndexCollapsed = !isIndexCollapsed">
+                            <svg v-if="isIndexCollapsed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="icon-tool-button__svg icon-tool-button__svg--arrow">
+                                <path d="M7 10.5 12 15.5 17 10.5"></path>
+                            </svg>
+                            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="icon-tool-button__svg icon-tool-button__svg--arrow">
+                                <path d="M7 13.5 12 8.5 17 13.5"></path>
+                            </svg>
+                        </button>
+                    </view>
+
+                    <view v-if="!isIndexCollapsed" class="mt-2 grid grid-cols-[1fr_1fr_1.18fr] gap-2 sm:mt-3 sm:grid-cols-[140px_140px_180px]">
+                        <view class="stat-tile">
+                            <text class="stat-tile__label">当前样本</text>
+                            <text class="stat-tile__value">{{ filteredPokemons.length }}</text>
+                        </view>
+                        <view class="stat-tile">
+                            <text class="stat-tile__label">已收藏</text>
+                            <text class="stat-tile__value">{{ pokemonStore.favorites.length }}</text>
+                        </view>
+                        <view class="filter-stack">
+                            <button class="filter-stack__button" :class="showGenerationPanel ? 'filter-stack__button--active-green' : ''" @click="toggleGenerationPanel(!showGenerationPanel)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="filter-stack__icon">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <text class="filter-stack__text">{{ selectedGenerationLabel }}</text>
+                                <view v-if="selectedGeneration" class="pill-dot"></view>
+                            </button>
+
+                            <button class="filter-stack__button" :class="isShow ? 'filter-stack__button--active-red' : ''" @click="filterToggle(!isShow)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="filter-stack__icon">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                </svg>
+                                <text class="filter-stack__text">属性筛选</text>
+                                <view v-if="currentFilterTypes.length > 0" class="pill-dot"></view>
+                            </button>
+                        </view>
+                    </view>
+                </view>
+            </view>
+
+            <FilterBar v-show="isShow" @filterToggle="filterToggle" @filterChange="onFilterChange" />
+
+            <view v-if="showFavoritesOnly" class="mx-3 mt-3 rounded-[24px] border border-[#e6bd4f]/35 bg-[linear-gradient(135deg,#ffe28a,#f3a93f)] px-4 py-3 shadow-[0_15px_32px_rgba(148,94,14,0.22)] sm:mx-5">
+                <view class="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
+                    <view class="flex items-center gap-2">
+                        <view class="flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+                            <svg viewBox="0 0 24 24" fill="currentColor" class="icon-tool-button__svg icon-tool-button__svg--arrow">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </view>
+                        <view>
+                            <text class="block text-sm font-black text-white">收藏标本架</text>
+                            <text class="block text-xs font-semibold text-white/80">当前显示 {{ filteredPokemons.length }} 只</text>
+                        </view>
+                    </view>
+                    <button class="panel-button rounded-full bg-white/24 px-4 py-2 text-xs font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] active:scale-95" @click="toggleFavoritesView">查看全部</button>
+                </view>
+            </view>
+
+            <view
+                class="custom-scrollbar flex-1 min-h-0 overflow-y-auto px-3 pb-5 pt-4 sm:px-5"
+                @scroll="onScroll"
+                @touchstart="handleTouchStart"
+                @touchmove="handleTouchMove"
+                @touchend="handleTouchEnd"
+            >
+                <view v-if="loading" class="mx-auto flex max-w-[1400px] flex-col items-center justify-center py-20 text-[#6b765f]">
+                    <view class="field-loader mb-4"></view>
+                    <text class="text-sm font-black tracking-[0.18em]">正在整理图鉴样本...</text>
+                </view>
+
+                <view v-else-if="showFavoritesOnly && filteredPokemons.length === 0" class="empty-card mx-auto max-w-[560px] px-8 py-14 text-center">
+                    <view class="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-[32px] bg-[#fff1b8] text-[#c58a17] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72),0_18px_34px_rgba(114,83,27,0.15)]">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-12 w-12">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </view>
+                    <text class="block text-xl font-black tracking-[-0.03em] text-[#27351f]">收藏标本架还是空的</text>
+                    <text class="mt-2 block text-sm font-medium leading-6 text-[#738067]">点击卡片右上角的书签，就能把喜欢的宝可梦收入你的研究手册。</text>
+                    <button class="panel-button mt-6 rounded-full bg-[#27351f] px-6 py-3 text-sm font-black text-[#fff8dc] shadow-[0_14px_30px_rgba(39,53,31,0.24)] active:scale-95" @click="toggleFavoritesView">浏览全部宝可梦</button>
+                </view>
+
+                <view v-else-if="filteredPokemons.length === 0" class="empty-card mx-auto max-w-[560px] px-8 py-14 text-center">
+                    <text class="block text-xl font-black tracking-[-0.03em] text-[#27351f]">没有匹配的宝可梦</text>
+                    <text class="mt-2 block text-sm font-medium leading-6 text-[#738067]">尝试清空搜索词，或者减少属性与世代筛选条件。</text>
+                    <button class="panel-button mt-6 rounded-full bg-[#83b352] px-6 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(88,133,58,0.24)] active:scale-95" @click="clearSearch">清空搜索</button>
+                </view>
+
+                <view v-else class="mx-auto grid max-w-[1400px] grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3 pb-3 sm:grid-cols-[repeat(auto-fill,minmax(310px,1fr))] sm:gap-4 2xl:grid-cols-[repeat(auto-fill,minmax(340px,1fr))]">
+                    <PokemonCard
+                        v-for="pokemon in filteredPokemons"
+                        :key="pokemon.id"
+                        :pokemon="pokemon"
                     />
-                    <view class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-60">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full text-[#666]">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
-                        </svg>
-                    </view>
-                    <view v-if="searchText" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 cursor-pointer" @click="clearSearch">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full text-[#999]">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </view>
                 </view>
 
-                <button
-                    class="toolbar-button w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 relative border-none p-0"
-                    :class="showGenerationPanel ? 'bg-gradient-to-br from-[#5B8CFF] to-[#6D5DF6] shadow-[0_6px_14px_rgba(91,140,255,0.32)]' : 'bg-[#EEF4FF] shadow-[inset_0_0_0_1px_rgba(91,140,255,0.12),0_2px_6px_rgba(35,65,120,0.06)]'"
-                    @click="toggleGenerationPanel(!showGenerationPanel)"
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" :class="showGenerationPanel ? 'text-white' : 'text-[#5B75D6]'">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    <view v-if="selectedGeneration" class="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-white"></view>
-                </button>
-
-                <button
-                    class="toolbar-button w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 relative border-none p-0"
-                    :class="isShow ? 'bg-gradient-to-br from-[#FF7A90] to-[#EE5A6F] shadow-[0_6px_14px_rgba(238,90,111,0.34)]' : 'bg-[#FFF0F3] shadow-[inset_0_0_0_1px_rgba(238,90,111,0.13),0_2px_6px_rgba(120,35,50,0.06)]'"
-                    @click="filterToggle(!isShow)"
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="toolbar-filter-icon w-5 h-5" :class="isShow ? 'text-white' : 'text-[#D94A62]'">
-                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                    </svg>
-                    <view v-if="currentFilterTypes.length > 0" class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white"></view>
-                </button>
-
-                <button
-                    class="toolbar-button w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 relative border-none p-0"
-                    :class="showFavoritesOnly ? 'bg-gradient-to-br from-[#FFD166] to-[#F59E0B] shadow-[0_6px_14px_rgba(245,158,11,0.34)]' : 'bg-[#FFF7DE] shadow-[inset_0_0_0_1px_rgba(245,158,11,0.16),0_2px_6px_rgba(120,80,15,0.06)]'"
-                    @click="toggleFavoritesView"
-                >
-                    <svg viewBox="0 0 24 24" :fill="showFavoritesOnly ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="toolbar-favorite-icon w-5 h-5 transition-colors duration-200" :class="showFavoritesOnly ? 'text-white' : 'text-[#D97706]'">
-                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    <view v-if="pokemonStore.favorites.length > 0" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-white shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
-                        <text class="text-[10px] font-bold text-white">{{ pokemonStore.favorites.length > 99 ? '99+' : pokemonStore.favorites.length }}</text>
-                    </view>
-                </button>
-            </view>
-        </view>
-
-        <!-- 筛选和排序 -->
-        <FilterBar v-show="isShow" @filterToggle="filterToggle" @filterChange="onFilterChange" />
-
-        <!-- 收藏视图提示 -->
-        <view v-if="showFavoritesOnly" class="sticky top-0 z-[996] bg-gradient-to-r from-yellow-400 to-orange-400 shadow-[0_2px_8px_rgba(0,0,0,0.1)] animate-slideDown">
-            <view class="px-5 py-3 flex items-center justify-between">
-                <view class="flex items-center gap-2">
-                    <svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white">
-                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    <text class="text-sm font-semibold text-white">已收藏的宝可梦 ({{ filteredPokemons.length }})</text>
+                <view v-if="loadingMore" class="flex flex-col items-center justify-center py-8 text-[#6b765f]">
+                    <view class="field-loader mb-3"></view>
+                    <text class="text-xs font-black tracking-[0.18em]">继续翻页采样...</text>
                 </view>
-                <button class="px-3 py-1.5 bg-white/20 rounded-full text-xs font-semibold text-white hover:bg-white/30 transition-all active:scale-95" @click="toggleFavoritesView">
-                    查看全部
-                </button>
+                <view v-if="!hasMore && filteredPokemons.length > 0" class="py-8 text-center">
+                    <text class="rounded-full border border-[#38462d]/10 bg-white/55 px-5 py-2 text-xs font-black tracking-[0.16em] text-[#7a856f] shadow-[0_10px_24px_rgba(47,63,40,0.08)]">样本已全部归档</text>
+                </view>
             </view>
         </view>
 
-        <!-- 宝可梦列表 -->
-        <view 
-            class="flex-1 min-h-0 overflow-y-auto p-3 custom-scrollbar" 
-            @scroll="onScroll"
-            @touchstart="handleTouchStart"
-            @touchmove="handleTouchMove"
-            @touchend="handleTouchEnd"
-        >
-            <!-- 空状态提示 -->
-            <view v-if="showFavoritesOnly && filteredPokemons.length === 0" class="flex flex-col items-center justify-center py-20 gap-4">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-20 h-20 text-gray-300">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <text class="text-lg font-semibold text-gray-400">还没有收藏任何宝可梦</text>
-                <text class="text-sm text-gray-400">点击卡片右上角的星标即可收藏</text>
-                <button class="mt-4 px-6 py-2.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-full font-semibold shadow-[0_4px_12px_rgba(255,165,0,0.3)] hover:shadow-[0_6px_16px_rgba(255,165,0,0.4)] transition-all active:scale-95" @click="toggleFavoritesView">
-                    浏览全部宝可梦
-                </button>
-            </view>
-
-            <view v-else class="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-2 max-w-[1400px] mx-auto">
-                <PokemonCard 
-                    v-for="pokemon in filteredPokemons" 
-                    :key="pokemon.id" 
-                    :pokemon="pokemon"
-                    @click="navigateToDetail(pokemon.id)" 
-                />
-            </view>
-            <view v-if="loadingMore" class="flex flex-col items-center justify-center py-8 gap-3 text-[#666] text-sm">
-                <view class="w-8 h-8 border-[3px] border-[rgba(255,107,107,0.2)] border-t-[#FF6B6B] rounded-full animate-spin"></view>
-                <text>加载中...</text>
-            </view>
-            <view v-if="!hasMore && filteredPokemons.length > 0" class="text-center py-8 text-[#999] text-sm">
-                <text>已经到底了~</text>
-            </view>
-        </view>
-        </view>
-
-        <!-- 底部 TabBar（置于 transform 容器外，保持相对视口固定） -->
         <TabBar v-model="currentTab" @change="onTabChange" />
 
-        <!-- 世代筛选面板 -->
-        <view 
-            class="fixed top-0 right-0 h-full w-[280px] bg-white shadow-[-4px_0_20px_rgba(0,0,0,0.1)] z-[999] transition-transform duration-300 ease-out"
+        <view
+            class="generation-drawer fixed right-0 top-0 z-[999] h-full w-[280px] translate-x-full border-l border-white/55 bg-[#fff9e8]/95 shadow-[-24px_0_60px_rgba(29,42,24,0.22)] backdrop-blur-xl transition-transform duration-300 ease-out"
             :class="showGenerationPanel ? 'translate-x-0' : 'translate-x-full'"
             :style="{ paddingTop: 'var(--status-bar-height)' }"
         >
-            <!-- 面板头部 -->
-            <view class="p-5 border-b border-gray-200">
-                <view class="flex items-center justify-between">
-                    <text class="text-lg font-bold text-[#333]">选择世代</text>
-                    <button 
-                        class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors active:scale-95"
-                        @click="showGenerationPanel = false"
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <view class="p-5">
+                <view class="mb-5 flex items-start justify-between gap-3">
+                    <view>
+                        <text class="block text-2xl font-black tracking-[-0.05em] text-[#27351f]">世代索引</text>
+                        <text class="mt-1 block text-xs font-bold uppercase tracking-[0.18em] text-[#89947e]">Generation drawer</text>
+                    </view>
+                    <button class="panel-button flex h-9 w-9 items-center justify-center rounded-full bg-white/70 text-[#66745b] shadow-[0_10px_22px_rgba(54,73,47,0.1)] active:scale-95" @click="showGenerationPanel = false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                     </button>
                 </view>
-            </view>
 
-            <!-- 世代列表 -->
-            <view class="p-4 overflow-y-auto" style="height: calc(100vh - 120px);">
-                <view class="flex flex-col gap-2">
-                    <view 
-                        v-for="gen in generations" 
+                <view class="flex flex-col gap-2 overflow-y-auto pr-1" style="height: calc(100vh - 120px);">
+                    <view
+                        v-for="gen in generations"
                         :key="gen.value"
-                        class="flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all duration-200 border-2"
-                        :class="selectedGeneration === gen.value ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-400 shadow-[0_2px_8px_rgba(59,130,246,0.15)]' : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)]'"
+                        class="generation-item"
+                        :class="selectedGeneration === gen.value ? 'generation-item--active' : ''"
                         @click="selectGeneration(gen.value)"
                     >
                         <view class="flex items-center gap-3">
-                            <view 
-                                class="w-10 h-10 rounded-lg flex items-center justify-center"
-                                :class="selectedGeneration === gen.value ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gray-100'"
-                            >
-                                <text class="text-sm font-bold" :class="selectedGeneration === gen.value ? 'text-white' : 'text-gray-600'">{{ gen.label }}</text>
+                            <view class="generation-item__mark">
+                                <text class="font-serif text-sm font-black">{{ gen.label }}</text>
                             </view>
                             <view>
-                                <text class="text-sm font-semibold text-[#333] block">{{ gen.name }}</text>
-                                <text class="text-xs text-gray-500">{{ gen.range }}</text>
+                                <text class="block text-sm font-black text-[#27351f]">{{ gen.name }}</text>
+                                <text class="block font-mono text-[11px] font-bold text-[#89947e]">{{ gen.range }}</text>
                             </view>
                         </view>
-                        <!-- 选中标记 -->
-                        <svg v-if="selectedGeneration === gen.value" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <svg v-if="selectedGeneration === gen.value" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-[#83a84c]">
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </view>
@@ -190,10 +200,9 @@
             </view>
         </view>
 
-        <!-- 遮罩层 -->
-        <view 
-            v-if="showGenerationPanel" 
-            class="fixed inset-0 bg-black/30 backdrop-blur-sm z-[998] transition-opacity duration-300"
+        <view
+            v-if="showGenerationPanel"
+            class="fixed inset-0 z-[998] bg-[#182113]/35 backdrop-blur-sm transition-opacity duration-300"
             @click="showGenerationPanel = false"
         ></view>
     </view>
@@ -216,13 +225,12 @@ const loadingMore = ref(false);
 const searchText = ref("");
 const searchQuery = ref("");
 const loading = ref(true);
-const transitioning = ref(false); // 控制页面切换动画
+const transitioning = ref(false);
+const isIndexCollapsed = ref(true);
 
-// 监听页面显示事件，添加淡入动画
 onMounted(async () => {
     try {
         await fetchPokemon();
-        // 页面加载完成后执行淡入动画
         setTimeout(() => {
             transitioning.value = false;
         }, 100);
@@ -233,88 +241,14 @@ onMounted(async () => {
     }
 });
 
-// 显示详情
-const showDetail = (pokemon: IPokemonBaseModel) => {
-    // selectedPokemon.value = pokemon;
-};
-
-const navigateToDetail = (id: number) => {
-    uni.navigateTo({
-        url: `/pages/detail/detail?id=${id}`,
-    });
-};
-
-// 新增响应式变量用于存储当前筛选和排序状态
-const currentFilterTypes = ref<string[]>([]); // 选中的类型数组
-const currentSort = ref<string>('id'); // 排序方式
+const currentFilterTypes = ref<string[]>([]);
+const currentSort = ref<string>('id');
 const isShow = ref(false);
-const currentTab = ref(0); // 当前选中的 tab 索引
-const showFavoritesOnly = ref(false); // 是否只显示收藏
-const showGenerationPanel = ref(false); // 是否显示世代面板
-const selectedGeneration = ref<string | null>(null); // 选中的世代
+const currentTab = ref(0);
+const showFavoritesOnly = ref(false);
+const showGenerationPanel = ref(false);
+const selectedGeneration = ref<string | null>(null);
 
-// 处理筛选变化
-const onFilterChange = (filterData: { types: string[], sort: string }) => {
-    currentFilterTypes.value = filterData.types;
-    currentSort.value = filterData.sort;
-};
-
-// 切换收藏视图
-const toggleFavoritesView = () => {
-    showFavoritesOnly.value = !showFavoritesOnly.value;
-    // 如果切换到收藏视图，关闭筛选栏
-    if (showFavoritesOnly.value) {
-        isShow.value = false;
-    }
-};
-
-// 切换世代面板
-const toggleGenerationPanel = (visible: boolean) => {
-    showGenerationPanel.value = visible;
-};
-
-// 选择世代
-const selectGeneration = (generation: string) => {
-    selectedGeneration.value = selectedGeneration.value === generation ? null : generation;
-};
-
-// 搜索处理
-const onSearchInput = () => {
-    searchQuery.value = searchText.value;
-};
-
-const clearSearch = () => {
-    searchText.value = '';
-    searchQuery.value = '';
-};
-
-const filterToggle = (value: boolean) => {
-    // 显示或隐藏筛选和排序
-    // ...
-    // vShow.value = value;
-    console.log('filterToggle', value);
-    isShow.value = value;
-};
-
-// Tab 切换处理
-const onTabChange = (index: number) => {
-    console.log('Tab changed to:', index);
-    
-    // 添加页面切换动画
-    transitioning.value = true;
-    
-    // 延迟切换页面，确保动画完成
-    setTimeout(() => {
-        currentTab.value = index;
-    }, 150);
-};
-
-// 触摸滑动相关变量
-const touchStartX = ref(0);
-const touchStartY = ref(0);
-const touchDeltaX = ref(0);
-
-// 世代数据
 const generations = [
     { value: 'gen1', label: 'I', name: '第一世代', range: '#001 - #151' },
     { value: 'gen2', label: 'II', name: '第二世代', range: '#152 - #251' },
@@ -327,41 +261,82 @@ const generations = [
     { value: 'gen9', label: 'IX', name: '第九世代', range: '#906 - #1010' }
 ];
 
-// 触摸开始
+const selectedGenerationLabel = computed(() => {
+    return generations.find(gen => gen.value === selectedGeneration.value)?.name ?? '世代';
+});
+
+const onFilterChange = (filterData: { types: string[], sort: string }) => {
+    currentFilterTypes.value = filterData.types;
+    currentSort.value = filterData.sort;
+};
+
+const toggleFavoritesView = () => {
+    showFavoritesOnly.value = !showFavoritesOnly.value;
+    if (showFavoritesOnly.value) {
+        isShow.value = false;
+    }
+};
+
+const toggleGenerationPanel = (visible: boolean) => {
+    showGenerationPanel.value = visible;
+};
+
+const selectGeneration = (generation: string) => {
+    selectedGeneration.value = selectedGeneration.value === generation ? null : generation;
+};
+
+const onSearchInput = () => {
+    searchQuery.value = searchText.value;
+};
+
+const clearSearch = () => {
+    searchText.value = '';
+    searchQuery.value = '';
+};
+
+const filterToggle = (value: boolean) => {
+    isShow.value = value;
+};
+
+const onTabChange = (index: number) => {
+    transitioning.value = true;
+    setTimeout(() => {
+        currentTab.value = index;
+    }, 150);
+};
+
+const touchStartX = ref(0);
+const touchStartY = ref(0);
+const touchDeltaX = ref(0);
+
 const handleTouchStart = (e: TouchEvent) => {
     touchStartX.value = e.touches[0].clientX;
     touchStartY.value = e.touches[0].clientY;
     touchDeltaX.value = 0;
 };
 
-// 触摸移动
 const handleTouchMove = (e: TouchEvent) => {
     const deltaX = e.touches[0].clientX - touchStartX.value;
     const deltaY = e.touches[0].clientY - touchStartY.value;
-    
-    // 只处理水平滑动，且向左滑动
+
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
         touchDeltaX.value = deltaX;
         e.preventDefault();
     }
 };
 
-// 触摸结束
 const handleTouchEnd = () => {
-    const threshold = -50; // 向左滑动阈值
-    
+    const threshold = -50;
+
     if (touchDeltaX.value < threshold && !showGenerationPanel.value) {
-        // 向左滑动超过阈值，打开世代面板
         showGenerationPanel.value = true;
     } else if (touchDeltaX.value > 50 && showGenerationPanel.value) {
-        // 向右滑动，关闭世代面板
         showGenerationPanel.value = false;
     }
-    
+
     touchDeltaX.value = 0;
 };
 
-// 更新计算属性 filteredPokemons 以应用筛选和排序
 const onScroll = debounce((e: Event) => {
     const target = e.target as HTMLElement;
     const { scrollHeight, scrollTop, clientHeight } = target;
@@ -381,13 +356,11 @@ const onScroll = debounce((e: Event) => {
 const filteredPokemons = computed(() => {
     let list = [...pokemonList.value];
 
-    // 应用收藏筛选
     if (showFavoritesOnly.value) {
         const favoriteIds = pokemonStore.favorites;
         list = list.filter((p) => favoriteIds.includes(p.id));
     }
 
-    // 应用世代筛选
     if (selectedGeneration.value) {
         const genRanges: { [key: string]: [number, number] } = {
             'gen1': [1, 151],
@@ -406,14 +379,12 @@ const filteredPokemons = computed(() => {
         }
     }
 
-    // 应用类型筛选
     if (currentFilterTypes.value.length > 0) {
-        list = list.filter((p) => 
+        list = list.filter((p) =>
             currentFilterTypes.value.some(type => p.types.includes(type))
         );
     }
 
-    // 应用排序
     if (currentSort.value === 'id') {
         list.sort((a, b) => a.id - b.id);
     } else if (currentSort.value === 'name') {
@@ -438,7 +409,6 @@ const filteredPokemons = computed(() => {
         });
     }
 
-    // 应用搜索筛选
     if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase();
         list = list.filter(
@@ -454,40 +424,289 @@ const filteredPokemons = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-/* 所有样式已迁移至 Tailwind CSS */
+.dex-page {
+    color: #27351f;
+    background:
+        radial-gradient(circle at 12% 10%, rgba(255, 232, 151, 0.56), transparent 28%),
+        radial-gradient(circle at 85% 18%, rgba(131, 179, 82, 0.36), transparent 30%),
+        linear-gradient(145deg, #eef3df 0%, #dfe9d1 42%, #c7d9b6 100%);
+}
 
-.toolbar-button {
+.dex-page::before {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: '';
+    background-image:
+        linear-gradient(rgba(39, 53, 31, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(39, 53, 31, 0.04) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 72%);
+}
+
+.dex-orb {
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(4px);
+    pointer-events: none;
+}
+
+.dex-orb--leaf {
+    right: -80px;
+    top: 110px;
+    width: 230px;
+    height: 230px;
+    background: radial-gradient(circle, rgba(95, 145, 65, 0.28), transparent 68%);
+}
+
+.dex-orb--gold {
+    left: -90px;
+    bottom: 160px;
+    width: 210px;
+    height: 210px;
+    background: radial-gradient(circle, rgba(232, 181, 62, 0.24), transparent 68%);
+}
+
+.stat-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px;
+    border: 1px solid rgba(51, 67, 34, 0.08);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.58);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 10px 24px rgba(46, 62, 35, 0.08);
+}
+
+.stat-tile__label {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    color: #7c8871;
+}
+
+.stat-tile__value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 24px;
+    font-weight: 900;
     line-height: 1;
+    color: #27351f;
 }
 
-.toolbar-filter-icon {
-    transform: translateY(1px);
+.toolbar-pill {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    height: 48px;
+    padding: 0 16px;
+    border: 1px solid rgba(51, 67, 34, 0.09);
+    border-radius: 999px;
+    color: #536146;
+    font-size: 13px;
+    font-weight: 900;
+    background: rgba(255, 255, 255, 0.66);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 12px 24px rgba(46, 62, 35, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.toolbar-favorite-icon {
+.toolbar-pill:active {
+    transform: scale(0.96);
+}
+
+.toolbar-pill--active-green {
+    color: #fff8dc;
+    background: linear-gradient(135deg, #83b352, #3e7d40);
+    box-shadow: 0 16px 30px rgba(65, 123, 61, 0.24);
+}
+
+.toolbar-pill--active-red {
+    color: #fff8dc;
+    background: linear-gradient(135deg, #e8644f, #9b2f23);
+    box-shadow: 0 16px 30px rgba(155, 47, 35, 0.22);
+}
+
+.filter-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.filter-stack__button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    height: 37px;
+    padding: 0 10px;
+    border: 1px solid rgba(51, 67, 34, 0.09);
+    border-radius: 18px;
+    color: #536146;
+    font-size: 11px;
+    font-weight: 900;
+    background: rgba(255, 255, 255, 0.58);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 8px 16px rgba(46, 62, 35, 0.07);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.filter-stack__button:active {
+    transform: scale(0.96);
+}
+
+.filter-stack__button--active-green {
+    color: #fff8dc;
+    background: linear-gradient(135deg, #83b352, #3e7d40);
+    box-shadow: 0 10px 20px rgba(65, 123, 61, 0.2);
+}
+
+.filter-stack__button--active-red {
+    color: #fff8dc;
+    background: linear-gradient(135deg, #e8644f, #9b2f23);
+    box-shadow: 0 10px 20px rgba(155, 47, 35, 0.18);
+}
+
+.filter-stack__icon {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+}
+
+.filter-stack__text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.icon-tool-button {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 40px;
+    padding: 0;
+    margin: 0;
+    color: #536146;
+    line-height: 1;
+    background: transparent;
+    border: 0;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.icon-tool-button:active {
+    transform: scale(0.9);
+}
+
+.icon-tool-button__svg {
     display: block;
     flex-shrink: 0;
+    color: currentColor;
 }
 
-.toolbar-button::after {
+.icon-tool-button__svg--star {
+    width: 21px;
+    height: 21px;
+}
+
+.icon-tool-button__svg--arrow {
+    width: 20px;
+    height: 20px;
+}
+
+.icon-tool-button--favorite-active {
+    color: #e04f47;
+}
+
+.toolbar-pill::after,
+.panel-button::after {
     border: none !important;
+}
+
+.pill-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: currentColor;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22);
+}
+
+.empty-card {
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 34px;
+    background: rgba(255, 249, 232, 0.82);
+    box-shadow: 0 24px 70px rgba(37, 55, 30, 0.15);
+    backdrop-filter: blur(18px);
+}
+
+.generation-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid rgba(51, 67, 34, 0.08);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.56);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 10px 22px rgba(46, 62, 35, 0.07);
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.generation-item:active {
+    transform: scale(0.98);
+}
+
+.generation-item--active {
+    border-color: rgba(131, 179, 82, 0.45);
+    background: linear-gradient(135deg, rgba(235, 248, 210, 0.98), rgba(255, 246, 207, 0.92));
+}
+
+.generation-item__mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 16px;
+    color: #526743;
+    background: #eef4dc;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+}
+
+.generation-item--active .generation-item__mark {
+    color: #fff8dc;
+    background: linear-gradient(135deg, #83b352, #486f37);
+}
+
+.field-loader {
+    width: 34px;
+    height: 34px;
+    border: 3px solid rgba(131, 179, 82, 0.2);
+    border-top-color: #83b352;
+    border-right-color: #e0ae3d;
+    border-radius: 999px;
+    animation: spin 0.8s linear infinite;
 }
 
 .custom-scrollbar {
     &::-webkit-scrollbar {
         width: 6px;
     }
-    
+
     &::-webkit-scrollbar-track {
         background: transparent;
     }
-    
+
     &::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.1);
         border-radius: 3px;
-        
+        background: rgba(67, 83, 58, 0.18);
+
         &:hover {
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(67, 83, 58, 0.3);
         }
     }
 }
@@ -496,9 +715,5 @@ const filteredPokemons = computed(() => {
     to {
         transform: rotate(360deg);
     }
-}
-
-.animate-spin {
-    animation: spin 0.8s linear infinite;
 }
 </style>
