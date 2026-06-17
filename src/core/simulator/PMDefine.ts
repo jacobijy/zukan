@@ -148,3 +148,181 @@ export enum BeforeMoveType {
     Imprison = 8,
     Stall = 9
 }
+
+// === 从数据文件提取的扩展枚举定义 ===
+
+/** 招式目标类型 */
+export enum MoveTarget {
+    NORMAL = 'normal',
+    ALL_ADJACENT_FOES = 'allAdjacentFoes',
+    SELF = 'self',
+    ANY = 'any',
+    ADJACENT_ALLY_OR_SELF = 'adjacentAllyOrSelf',
+    ALLY_TEAM = 'allyTeam',
+    ADJACENT_ALLY = 'adjacentAlly',
+    ALLY_SIDE = 'allySide',
+    ALL_ADJACENT = 'allAdjacent',
+    ALL = 'all',
+    SCRIPTED = 'scripted',
+    ADJACENT_FOE = 'adjacentFoe',
+    ALLIES = 'allies',
+    RANDOM_NORMAL = 'randomNormal',
+    FOE_SIDE = 'foeSide',
+}
+
+/** 招式分类 */
+export enum MoveCategory {
+    SPECIAL = 'Special',
+    PHYSICAL = 'Physical',
+    STATUS = 'Status',
+}
+
+/** 招式标志 */
+export enum MoveFlag {
+    PROTECT = 'protect',
+    MIRROR = 'mirror',
+    HEAL = 'heal',
+    METRONOME = 'metronome',
+    CONTACT = 'contact',
+    SNATCH = 'snatch',
+    BULLET = 'bullet',
+    DISTANCE = 'distance',
+    SLICING = 'slicing',
+    WIND = 'wind',
+    BYPASSSUB = 'bypasssub',
+    ALLYANIM = 'allyanim',
+    SOUND = 'sound',
+    DANCE = 'dance',
+    FAILENCORE = 'failencore',
+    NOSLEEPTALK = 'nosleeptalk',
+    NOASSIST = 'noassist',
+    FAILCOPYCAT = 'failcopycat',
+    FAILMIMIC = 'failmimic',
+    FAILINSTRUCT = 'failinstruct',
+    REFLECTABLE = 'reflectable',
+    PULSE = 'pulse',
+    FAILMEFIRST = 'failmefirst',
+    BITE = 'bite',
+    RECHARGE = 'recharge',
+    NOSKETCH = 'nosketch',
+    CANTUSETWICE = 'cantusetwice',
+    NONSKY = 'nonsky',
+    CHARGE = 'charge',
+    GRAVITY = 'gravity',
+    PUNCH = 'punch',
+    DEFROST = 'defrost',
+    POWDER = 'powder',
+    FUTUREMOVE = 'futuremove',
+    NOPARENTALBOND = 'noparentalbond',
+    PLEDGECOMBO = 'pledgecombo',
+    MUSTPRESSURE = 'mustpressure',
+}
+
+/** 状态条件类型 */
+export enum ConditionType {
+    STATUS = 'Status',
+    MOVE = 'Move',
+    WEATHER = 'Weather',
+    TERRAIN = 'Terrain',
+}
+
+/** 状态名称 */
+export enum StatusName {
+    BRN = 'brn',
+    PAR = 'par',
+    SLP = 'slp',
+    FRZ = 'frz',
+    PSN = 'psn',
+    TOX = 'tox',
+    CONFUSION = 'confusion',
+    FLINCH = 'flinch',
+    TRAPPED = 'trapped',
+    TRAPPER = 'trapper',
+    PARTIALLY_TRAPPED = 'partiallytrapped',
+    LOCKED_MOVE = 'lockedmove',
+    TWO_TURN_MOVE = 'twoturnmove',
+    CHOICE_LOCK = 'choicelock',
+    MUST_RECHARGE = 'mustrecharge',
+    FUTURE_MOVE = 'futuremove',
+    HEAL_REPLACEMENT = 'healreplacement',
+    STALL = 'stall',
+    GEM = 'gem',
+    RAIN_DANCE = 'raindance',
+    PRIMORDIAL_SEA = 'primordialsea',
+    SUNNY_DAY = 'sunnyday',
+    DESOLATE_LAND = 'desolateland',
+    SANDSTORM = 'sandstorm',
+    HAIL = 'hail',
+    SNOWSCAPE = 'snowscape',
+    DELTA_STREAM = 'deltastream',
+    DYNAMAX = 'dynamax',
+    COMMANDED = 'commanded',
+    COMMANDING = 'commanding',
+    ARCEUS = 'arceus',
+    SILVALLY = 'silvally',
+    ROLLOUT_STORAGE = 'rolloutstorage',
+}
+
+/** 天气名称 */
+export enum WeatherName {
+    RAIN_DANCE = 'raindance',
+    PRIMORDIAL_SEA = 'primordialsea',
+    SUNNY_DAY = 'sunnyday',
+    DESOLATE_LAND = 'desolateland',
+    SANDSTORM = 'sandstorm',
+    HAIL = 'hail',
+    SNOWSCAPE = 'snowscape',
+    DELTA_STREAM = 'deltastream',
+}
+
+/** 特性标志 */
+export enum AbilityFlag {
+    BREAKABLE = 'breakable',
+    FAIL_ROLEPLAY = 'failroleplay',
+    NO_RECEIVER = 'noreceiver',
+    NO_ENTRAIN = 'noentrain',
+    NO_TRACE = 'notrace',
+    FAIL_SKILL_SWAP = 'failskillswap',
+    CANT_SUPPRESS = 'cantsuppress',
+    NO_TRANSFORM = 'notransform',
+}
+
+/** 能力统计项 */
+export enum BoostStat {
+    ATK = 'atk',
+    DEF = 'def',
+    SPA = 'spa',
+    SPD = 'spd',
+    SPE = 'spe',
+    ACCURACY = 'accuracy',
+    EVASION = 'evasion',
+}
+
+/** 性格名称 */
+export enum NatureName {
+    ADAMANT = 'adamant',
+    BASHFUL = 'bashful',
+    BOLD = 'bold',
+    BRAVE = 'brave',
+    CALM = 'calm',
+    CAREFUL = 'careful',
+    DOCILE = 'docile',
+    GENTLE = 'gentle',
+    HARDY = 'hardy',
+    HASTY = 'hasty',
+    IMPISH = 'impish',
+    JOLLY = 'jolly',
+    LAX = 'lax',
+    LONELY = 'lonely',
+    MILD = 'mild',
+    MODEST = 'modest',
+    NAIVE = 'naive',
+    NAUGHTY = 'naughty',
+    QUIET = 'quiet',
+    QUIRKY = 'quirky',
+    RASH = 'rash',
+    RELAXED = 'relaxed',
+    SASSY = 'sassy',
+    SERIOUS = 'serious',
+    TIMID = 'timid',
+}
