@@ -1,9 +1,8 @@
 <template>
-  <view class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur-lg rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-white/50 px-3 py-2">
+  <view class="tabbar-shell fixed bottom-6 left-1/2 z-[1000] -translate-x-1/2 rounded-full border border-[#e5e7ee] bg-white px-2.5 py-2 shadow-[0_18px_48px_rgba(48,55,72,0.14)]">
     <view class="tab-bar-track relative flex w-full min-w-[280px]">
-      <!-- 滑动选中底框：等宽四格，仅用 translateX 位移 -->
       <view
-        class="tab-indicator absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-[#FF6B6B] to-[#EE5A6F] shadow-[0_4px_12px_rgba(238,90,111,0.3)] pointer-events-none"
+        class="tab-indicator absolute left-0 top-0 h-full rounded-full bg-[linear-gradient(135deg,#73b7ff,#357df4)] shadow-[0_10px_22px_rgba(53,125,244,0.24)] pointer-events-none"
         :class="{ 'tab-indicator--animated': enableTransition }"
         :style="indicatorStyle"
       />
@@ -11,61 +10,34 @@
       <view
         v-for="(tab, index) in tabs"
         :key="tab.label"
-        class="tab-item relative z-10 flex flex-1 items-center justify-center gap-1.5 px-2 py-1.5 rounded-full"
+        class="tab-item relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-1.5"
         @click="switchTab(index)"
       >
-        <!-- 图鉴 -->
-        <template v-if="index === 0">
-          <svg v-if="currentTab !== 0" width="16" height="16" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="tab-icon">
-            <circle cx="24" cy="24" r="18" stroke="#9CA3AF" stroke-width="2.5" fill="none"/>
-            <path d="M6 24 C6 14.06 14.06 6 24 6 C33.94 6 42 14.06 42 24" stroke="#9CA3AF" stroke-width="2.5" fill="none"/>
-            <line x1="6" y1="24" x2="42" y2="24" stroke="#9CA3AF" stroke-width="2.5"/>
-            <circle cx="24" cy="24" r="5" stroke="#9CA3AF" stroke-width="2.5" fill="white"/>
-            <circle cx="24" cy="24" r="3" fill="#9CA3AF"/>
-          </svg>
-          <svg v-else width="16" height="16" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="tab-icon">
-            <circle cx="24" cy="24" r="18" stroke="white" stroke-width="2.5" fill="none"/>
-            <path d="M6 24 C6 14.06 14.06 6 24 6 C33.94 6 42 14.06 42 24" fill="white"/>
-            <line x1="6" y1="24" x2="42" y2="24" stroke="white" stroke-width="2.5"/>
-            <circle cx="24" cy="24" r="5" stroke="white" stroke-width="2.5" fill="white"/>
-            <circle cx="24" cy="24" r="3" fill="white"/>
-          </svg>
-        </template>
-        <!-- 功能 -->
-        <template v-else-if="index === 1">
-          <svg v-if="currentTab !== 1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-          </svg>
-          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-          </svg>
-        </template>
-        <!-- 资料 -->
-        <template v-else-if="index === 2">
-          <svg v-if="currentTab !== 2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-          </svg>
-          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-          </svg>
-        </template>
-        <!-- 我的 -->
-        <template v-else>
-          <svg v-if="currentTab !== 3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-        </template>
+        <svg v-if="index === 0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon h-4 w-4" :class="currentTab === index ? 'text-white' : 'text-[#8d929c]'">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          <path d="M9 7h6"></path>
+          <path d="M9 11h4"></path>
+        </svg>
+
+        <svg v-else-if="index === 1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon h-4 w-4" :class="currentTab === index ? 'text-white' : 'text-[#8d929c]'">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+
+        <svg v-else-if="index === 2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon h-4 w-4" :class="currentTab === index ? 'text-white' : 'text-[#8d929c]'">
+          <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H19a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18.5z"></path>
+          <path d="M8 8h8"></path>
+          <path d="M8 12h6"></path>
+        </svg>
+
+        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon h-4 w-4" :class="currentTab === index ? 'text-white' : 'text-[#8d929c]'">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
 
         <text
-          class="text-xs font-semibold whitespace-nowrap tab-label"
-          :class="currentTab === index ? 'text-white' : 'text-[#9CA3AF]'"
+          class="tab-label whitespace-nowrap text-xs font-black"
+          :class="currentTab === index ? 'text-white' : 'text-[#8d929c]'"
         >
           {{ tab.label }}
         </text>
@@ -152,6 +124,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.tabbar-shell {
+  overflow: hidden;
+}
+
+.tabbar-shell::before {
+  display: none;
+}
+
 .tab-indicator {
   transition: none;
   will-change: transform;

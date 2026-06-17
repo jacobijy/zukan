@@ -1,30 +1,27 @@
 <template>
     <view class="dex-page h-screen flex flex-col relative overflow-hidden" :style="{ paddingBottom: '100px' }">
-        <view class="dex-orb dex-orb--leaf"></view>
-        <view class="dex-orb dex-orb--gold"></view>
-
         <view
-            class="relative z-10 flex flex-col flex-1 min-h-0 transition-all duration-300"
-            :class="{'opacity-0': transitioning, 'opacity-100': !transitioning}"
+            class="page-switch-panel relative z-10 flex flex-col flex-1 min-h-0"
             :style="{
-                paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))',
-                transform: showGenerationPanel ? 'translateX(-280px) scale(0.95)' : 'translateX(0) scale(1)'
+                '--page-panel-x': showGenerationPanel ? '-280px' : '0px',
+                '--page-panel-scale': showGenerationPanel ? '0.95' : '1',
+                paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))'
             }"
         >
             <NavBar title="宝可梦图鉴" />
 
             <view class="px-3 pt-2 sm:px-5 sm:pt-3">
-                <view class="mx-auto max-w-[1400px] overflow-hidden rounded-[24px] border border-white/65 bg-[#fff9e8]/88 p-2.5 shadow-[0_14px_34px_rgba(37,55,30,0.13)] backdrop-blur-xl sm:rounded-[28px] sm:p-3">
+                <view class="mx-auto max-w-[1400px] overflow-hidden rounded-[24px] border border-[#e5e7ee] bg-white p-2.5 shadow-[0_14px_34px_rgba(48,55,72,0.08)] sm:rounded-[28px] sm:p-3">
                     <view class="flex items-center gap-2 sm:gap-3">
                         <view class="relative h-10 min-w-0 flex-1 sm:h-11">
                             <input
                                 type="text"
                                 placeholder="搜索名称、编号或属性..."
-                                class="h-10 w-full rounded-[20px] border border-[#334322]/10 bg-white/74 pl-10 pr-9 text-sm font-semibold text-[#26351f] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_22px_rgba(46,62,35,0.07)] outline-none placeholder:text-[#8b957f] focus:bg-white focus:shadow-[0_0_0_4px_rgba(131,179,82,0.16),0_12px_24px_rgba(46,62,35,0.09)] sm:h-11 sm:rounded-[22px] sm:pl-11 sm:pr-10"
+                                class="h-10 w-full rounded-[20px] border border-[#e1e4eb] bg-[#f5f6fa] pl-10 pr-9 text-sm font-semibold text-[#24262b] shadow-[inset_0_1px_0_#ffffff] outline-none placeholder:text-[#9da2ad] focus:border-[#357df4] focus:bg-white focus:shadow-[0_0_0_4px_rgba(53,125,244,0.12)] sm:h-11 sm:rounded-[22px] sm:pl-11 sm:pr-10"
                                 v-model="searchText"
                                 @input="onSearchInput"
                             />
-                            <view class="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#6f7b62] sm:left-4 sm:h-5 sm:w-5">
+                            <view class="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#8d929c] sm:left-4 sm:h-5 sm:w-5">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full">
                                     <circle cx="11" cy="11" r="8"></circle>
                                     <path d="m21 21-4.35-4.35"></path>
@@ -90,20 +87,20 @@
 
             <FilterBar v-show="isShow" @filterToggle="filterToggle" @filterChange="onFilterChange" />
 
-            <view v-if="showFavoritesOnly" class="mx-3 mt-3 rounded-[24px] border border-[#e6bd4f]/35 bg-[linear-gradient(135deg,#ffe28a,#f3a93f)] px-4 py-3 shadow-[0_15px_32px_rgba(148,94,14,0.22)] sm:mx-5">
+            <view v-if="showFavoritesOnly" class="mx-3 mt-3 rounded-[24px] border border-[#efd274] bg-[linear-gradient(135deg,#ffe7a8,#f4c849)] px-4 py-3 shadow-[0_15px_32px_rgba(148,94,14,0.16)] sm:mx-5">
                 <view class="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
                     <view class="flex items-center gap-2">
-                        <view class="flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+                        <view class="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#d99b00] shadow-[inset_0_1px_0_#ffffff]">
                             <svg viewBox="0 0 24 24" fill="currentColor" class="icon-tool-button__svg icon-tool-button__svg--arrow">
                                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                             </svg>
                         </view>
                         <view>
-                            <text class="block text-sm font-black text-white">收藏标本架</text>
-                            <text class="block text-xs font-semibold text-white/80">当前显示 {{ filteredPokemons.length }} 只</text>
+                            <text class="block text-sm font-black text-[#4c3506]">收藏标本架</text>
+                            <text class="block text-xs font-semibold text-[#8a6a17]">当前显示 {{ filteredPokemons.length }} 只</text>
                         </view>
                     </view>
-                    <button class="panel-button rounded-full bg-white/24 px-4 py-2 text-xs font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] active:scale-95" @click="toggleFavoritesView">查看全部</button>
+                    <button class="panel-button rounded-full bg-white px-4 py-2 text-xs font-black text-[#4c3506] shadow-[inset_0_1px_0_#ffffff,0_8px_18px_rgba(111,82,9,0.12)] active:scale-95" @click="toggleFavoritesView">查看全部</button>
                 </view>
             </view>
 
@@ -114,7 +111,7 @@
                 @touchmove="handleTouchMove"
                 @touchend="handleTouchEnd"
             >
-                <view v-if="loading" class="mx-auto flex max-w-[1400px] flex-col items-center justify-center py-20 text-[#6b765f]">
+                <view v-if="loading" class="mx-auto flex max-w-[1400px] flex-col items-center justify-center py-20 text-[#8d929c]">
                     <view class="field-loader mb-4"></view>
                     <text class="text-sm font-black tracking-[0.18em]">正在整理图鉴样本...</text>
                 </view>
@@ -125,15 +122,15 @@
                             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                         </svg>
                     </view>
-                    <text class="block text-xl font-black tracking-[-0.03em] text-[#27351f]">收藏标本架还是空的</text>
-                    <text class="mt-2 block text-sm font-medium leading-6 text-[#738067]">点击卡片右上角的书签，就能把喜欢的宝可梦收入你的研究手册。</text>
-                    <button class="panel-button mt-6 rounded-full bg-[#27351f] px-6 py-3 text-sm font-black text-[#fff8dc] shadow-[0_14px_30px_rgba(39,53,31,0.24)] active:scale-95" @click="toggleFavoritesView">浏览全部宝可梦</button>
+                    <text class="block text-xl font-black tracking-[-0.03em] text-[#24262b]">收藏标本架还是空的</text>
+                    <text class="mt-2 block text-sm font-medium leading-6 text-[#8d929c]">点击卡片右上角的书签，就能把喜欢的宝可梦收入你的研究手册。</text>
+                    <button class="panel-button mt-6 rounded-full bg-[#24262b] px-6 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(48,55,72,0.22)] active:scale-95" @click="toggleFavoritesView">浏览全部宝可梦</button>
                 </view>
 
                 <view v-else-if="filteredPokemons.length === 0" class="empty-card mx-auto max-w-[560px] px-8 py-14 text-center">
-                    <text class="block text-xl font-black tracking-[-0.03em] text-[#27351f]">没有匹配的宝可梦</text>
-                    <text class="mt-2 block text-sm font-medium leading-6 text-[#738067]">尝试清空搜索词，或者减少属性与世代筛选条件。</text>
-                    <button class="panel-button mt-6 rounded-full bg-[#83b352] px-6 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(88,133,58,0.24)] active:scale-95" @click="clearSearch">清空搜索</button>
+                    <text class="block text-xl font-black tracking-[-0.03em] text-[#24262b]">没有匹配的宝可梦</text>
+                    <text class="mt-2 block text-sm font-medium leading-6 text-[#8d929c]">尝试清空搜索词，或者减少属性与世代筛选条件。</text>
+                    <button class="panel-button mt-6 rounded-full bg-[#357df4] px-6 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(53,125,244,0.22)] active:scale-95" @click="clearSearch">清空搜索</button>
                 </view>
 
                 <view v-else class="mx-auto grid max-w-[1400px] grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3 pb-3 sm:grid-cols-[repeat(auto-fill,minmax(310px,1fr))] sm:gap-4 2xl:grid-cols-[repeat(auto-fill,minmax(340px,1fr))]">
@@ -144,12 +141,9 @@
                     />
                 </view>
 
-                <view v-if="loadingMore" class="flex flex-col items-center justify-center py-8 text-[#6b765f]">
+                <view v-if="loadingMore" class="flex flex-col items-center justify-center py-8 text-[#8d929c]">
                     <view class="field-loader mb-3"></view>
                     <text class="text-xs font-black tracking-[0.18em]">继续翻页采样...</text>
-                </view>
-                <view v-if="!hasMore && filteredPokemons.length > 0" class="py-8 text-center">
-                    <text class="rounded-full border border-[#38462d]/10 bg-white/55 px-5 py-2 text-xs font-black tracking-[0.16em] text-[#7a856f] shadow-[0_10px_24px_rgba(47,63,40,0.08)]">样本已全部归档</text>
                 </view>
             </view>
         </view>
@@ -157,17 +151,17 @@
         <TabBar v-model="currentTab" @change="onTabChange" />
 
         <view
-            class="generation-drawer fixed right-0 top-0 z-[999] h-full w-[280px] translate-x-full border-l border-white/55 bg-[#fff9e8]/95 shadow-[-24px_0_60px_rgba(29,42,24,0.22)] backdrop-blur-xl transition-transform duration-300 ease-out"
+            class="generation-drawer fixed right-0 top-0 z-[999] h-full w-[280px] translate-x-full border-l border-[#e5e7ee] bg-white shadow-[-24px_0_60px_rgba(48,55,72,0.18)] transition-transform duration-300 ease-out"
             :class="showGenerationPanel ? 'translate-x-0' : 'translate-x-full'"
             :style="{ paddingTop: 'var(--status-bar-height)' }"
         >
             <view class="p-5">
                 <view class="mb-5 flex items-start justify-between gap-3">
                     <view>
-                        <text class="block text-2xl font-black tracking-[-0.05em] text-[#27351f]">世代索引</text>
+                        <text class="block text-2xl font-black tracking-[-0.05em] text-[#24262b]">世代索引</text>
                         <text class="mt-1 block text-xs font-bold uppercase tracking-[0.18em] text-[#89947e]">Generation drawer</text>
                     </view>
-                    <button class="panel-button flex h-9 w-9 items-center justify-center rounded-full bg-white/70 text-[#66745b] shadow-[0_10px_22px_rgba(54,73,47,0.1)] active:scale-95" @click="showGenerationPanel = false">
+                    <button class="panel-button flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f6fa] text-[#8d929c] shadow-[0_10px_22px_rgba(48,55,72,0.08)] active:scale-95" @click="showGenerationPanel = false">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -188,7 +182,7 @@
                                 <text class="font-serif text-sm font-black">{{ gen.label }}</text>
                             </view>
                             <view>
-                                <text class="block text-sm font-black text-[#27351f]">{{ gen.name }}</text>
+                                <text class="block text-sm font-black text-[#24262b]">{{ gen.name }}</text>
                                 <text class="block font-mono text-[11px] font-bold text-[#89947e]">{{ gen.range }}</text>
                             </view>
                         </view>
@@ -202,7 +196,7 @@
 
         <view
             v-if="showGenerationPanel"
-            class="fixed inset-0 z-[998] bg-[#182113]/35 backdrop-blur-sm transition-opacity duration-300"
+            class="fixed inset-0 z-[998] bg-[#24262b]/28 transition-opacity duration-300"
             @click="showGenerationPanel = false"
         ></view>
     </view>
@@ -225,15 +219,11 @@ const loadingMore = ref(false);
 const searchText = ref("");
 const searchQuery = ref("");
 const loading = ref(true);
-const transitioning = ref(false);
 const isIndexCollapsed = ref(true);
 
 onMounted(async () => {
     try {
         await fetchPokemon();
-        setTimeout(() => {
-            transitioning.value = false;
-        }, 100);
     } catch (error) {
         console.error("加载宝可梦数据失败:", error);
     } finally {
@@ -299,10 +289,7 @@ const filterToggle = (value: boolean) => {
 };
 
 const onTabChange = (index: number) => {
-    transitioning.value = true;
-    setTimeout(() => {
-        currentTab.value = index;
-    }, 150);
+    currentTab.value = index;
 };
 
 const touchStartX = ref(0);
@@ -425,11 +412,10 @@ const filteredPokemons = computed(() => {
 
 <style lang="scss" scoped>
 .dex-page {
-    color: #27351f;
+    color: #24262b;
     background:
-        radial-gradient(circle at 12% 10%, rgba(255, 232, 151, 0.56), transparent 28%),
-        radial-gradient(circle at 85% 18%, rgba(131, 179, 82, 0.36), transparent 30%),
-        linear-gradient(145deg, #eef3df 0%, #dfe9d1 42%, #c7d9b6 100%);
+        radial-gradient(circle at 18% -10%, #ffffff 0%, transparent 34%),
+        linear-gradient(180deg, #f7f8fb 0%, #f1f2f6 46%, #eef0f5 100%);
 }
 
 .dex-page::before {
@@ -438,10 +424,10 @@ const filteredPokemons = computed(() => {
     pointer-events: none;
     content: '';
     background-image:
-        linear-gradient(rgba(39, 53, 31, 0.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(39, 53, 31, 0.04) 1px, transparent 1px);
-    background-size: 42px 42px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 72%);
+        linear-gradient(rgba(45, 49, 58, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(45, 49, 58, 0.022) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 58%);
 }
 
 .dex-orb {
@@ -472,17 +458,17 @@ const filteredPokemons = computed(() => {
     flex-direction: column;
     gap: 2px;
     padding: 12px;
-    border: 1px solid rgba(51, 67, 34, 0.08);
+    border: 1px solid #e5e7ee;
     border-radius: 22px;
-    background: rgba(255, 255, 255, 0.58);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 10px 24px rgba(46, 62, 35, 0.08);
+    background: #f5f6fa;
+    box-shadow: inset 0 1px 0 #ffffff, 0 10px 24px rgba(48, 55, 72, 0.06);
 }
 
 .stat-tile__label {
     font-size: 10px;
     font-weight: 900;
     letter-spacing: 0.14em;
-    color: #7c8871;
+    color: #9da2ad;
 }
 
 .stat-tile__value {
@@ -490,7 +476,7 @@ const filteredPokemons = computed(() => {
     font-size: 24px;
     font-weight: 900;
     line-height: 1;
-    color: #27351f;
+    color: #24262b;
 }
 
 .toolbar-pill {
@@ -503,11 +489,11 @@ const filteredPokemons = computed(() => {
     padding: 0 16px;
     border: 1px solid rgba(51, 67, 34, 0.09);
     border-radius: 999px;
-    color: #536146;
+    color: #6f7480;
     font-size: 13px;
     font-weight: 900;
-    background: rgba(255, 255, 255, 0.66);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 12px 24px rgba(46, 62, 35, 0.08);
+    background: #ffffff;
+    box-shadow: inset 0 1px 0 #ffffff, 0 12px 24px rgba(48, 55, 72, 0.06);
     transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
@@ -516,15 +502,15 @@ const filteredPokemons = computed(() => {
 }
 
 .toolbar-pill--active-green {
-    color: #fff8dc;
-    background: linear-gradient(135deg, #83b352, #3e7d40);
-    box-shadow: 0 16px 30px rgba(65, 123, 61, 0.24);
+    color: #fff;
+    background: linear-gradient(135deg, #34b85a, #178f42);
+    box-shadow: 0 16px 30px rgba(52, 184, 90, 0.2);
 }
 
 .toolbar-pill--active-red {
-    color: #fff8dc;
-    background: linear-gradient(135deg, #e8644f, #9b2f23);
-    box-shadow: 0 16px 30px rgba(155, 47, 35, 0.22);
+    color: #fff;
+    background: linear-gradient(135deg, #ff8a76, #f05245);
+    box-shadow: 0 16px 30px rgba(240, 82, 69, 0.2);
 }
 
 .filter-stack {
@@ -542,13 +528,13 @@ const filteredPokemons = computed(() => {
     min-width: 0;
     height: 37px;
     padding: 0 10px;
-    border: 1px solid rgba(51, 67, 34, 0.09);
+    border: 1px solid #e1e4eb;
     border-radius: 18px;
-    color: #536146;
+    color: #6f7480;
     font-size: 11px;
     font-weight: 900;
-    background: rgba(255, 255, 255, 0.58);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 8px 16px rgba(46, 62, 35, 0.07);
+    background: #f5f6fa;
+    box-shadow: inset 0 1px 0 #ffffff, 0 8px 16px rgba(48, 55, 72, 0.06);
     transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
@@ -557,15 +543,15 @@ const filteredPokemons = computed(() => {
 }
 
 .filter-stack__button--active-green {
-    color: #fff8dc;
-    background: linear-gradient(135deg, #83b352, #3e7d40);
-    box-shadow: 0 10px 20px rgba(65, 123, 61, 0.2);
+    color: #fff;
+    background: linear-gradient(135deg, #34b85a, #178f42);
+    box-shadow: 0 10px 20px rgba(52, 184, 90, 0.18);
 }
 
 .filter-stack__button--active-red {
-    color: #fff8dc;
-    background: linear-gradient(135deg, #e8644f, #9b2f23);
-    box-shadow: 0 10px 20px rgba(155, 47, 35, 0.18);
+    color: #fff;
+    background: linear-gradient(135deg, #ff8a76, #f05245);
+    box-shadow: 0 10px 20px rgba(240, 82, 69, 0.18);
 }
 
 .filter-stack__icon {
@@ -591,7 +577,7 @@ const filteredPokemons = computed(() => {
     height: 40px;
     padding: 0;
     margin: 0;
-    color: #536146;
+    color: #6f7480;
     line-height: 1;
     background: transparent;
     border: 0;
@@ -632,15 +618,14 @@ const filteredPokemons = computed(() => {
     height: 7px;
     border-radius: 999px;
     background: currentColor;
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.55);
 }
 
 .empty-card {
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    border: 1px solid #e5e7ee;
     border-radius: 34px;
-    background: rgba(255, 249, 232, 0.82);
-    box-shadow: 0 24px 70px rgba(37, 55, 30, 0.15);
-    backdrop-filter: blur(18px);
+    background: #ffffff;
+    box-shadow: 0 24px 70px rgba(48, 55, 72, 0.12);
 }
 
 .generation-item {
@@ -649,10 +634,10 @@ const filteredPokemons = computed(() => {
     justify-content: space-between;
     gap: 12px;
     padding: 12px;
-    border: 1px solid rgba(51, 67, 34, 0.08);
+    border: 1px solid #e5e7ee;
     border-radius: 22px;
-    background: rgba(255, 255, 255, 0.56);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 10px 22px rgba(46, 62, 35, 0.07);
+    background: #f5f6fa;
+    box-shadow: inset 0 1px 0 #ffffff, 0 10px 22px rgba(48, 55, 72, 0.06);
     transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
@@ -661,8 +646,8 @@ const filteredPokemons = computed(() => {
 }
 
 .generation-item--active {
-    border-color: rgba(131, 179, 82, 0.45);
-    background: linear-gradient(135deg, rgba(235, 248, 210, 0.98), rgba(255, 246, 207, 0.92));
+    border-color: rgba(53, 125, 244, 0.32);
+    background: linear-gradient(135deg, #eef4ff, #fff7dc);
 }
 
 .generation-item__mark {
@@ -672,22 +657,22 @@ const filteredPokemons = computed(() => {
     width: 42px;
     height: 42px;
     border-radius: 16px;
-    color: #526743;
-    background: #eef4dc;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+    color: #6f7480;
+    background: #eef0f5;
+    box-shadow: inset 0 0 0 1px #ffffff;
 }
 
 .generation-item--active .generation-item__mark {
-    color: #fff8dc;
-    background: linear-gradient(135deg, #83b352, #486f37);
+    color: #fff;
+    background: linear-gradient(135deg, #73b7ff, #357df4);
 }
 
 .field-loader {
     width: 34px;
     height: 34px;
     border: 3px solid rgba(131, 179, 82, 0.2);
-    border-top-color: #83b352;
-    border-right-color: #e0ae3d;
+    border-top-color: #357df4;
+    border-right-color: #f4c849;
     border-radius: 999px;
     animation: spin 0.8s linear infinite;
 }
@@ -703,7 +688,7 @@ const filteredPokemons = computed(() => {
 
     &::-webkit-scrollbar-thumb {
         border-radius: 3px;
-        background: rgba(67, 83, 58, 0.18);
+        background: rgba(48, 55, 72, 0.18);
 
         &:hover {
             background: rgba(67, 83, 58, 0.3);
