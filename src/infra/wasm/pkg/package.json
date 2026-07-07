@@ -1,0 +1,15 @@
+{
+  "name": "zukan-wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "zukan_wasm_bg.wasm",
+    "zukan_wasm.js",
+    "zukan_wasm.d.ts"
+  ],
+  "main": "zukan_wasm.js",
+  "types": "zukan_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
