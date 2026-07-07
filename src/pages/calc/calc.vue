@@ -7,11 +7,9 @@
                     <polyline points="12 19 5 12 12 5"></polyline>
                 </svg>
             </button>
-
             <view class="min-w-0 flex-1 px-3 text-center">
                 <text class="block truncate text-lg font-black tracking-[-0.04em] text-[#24262b]">伤害计算器</text>
             </view>
-
             <view class="calc-icon-button calc-icon-button--ghost">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                     <path d="M12 8h.01"></path>
@@ -23,117 +21,48 @@
 
         <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6">
             <view class="mx-auto max-w-[720px] flex flex-col gap-3 pt-3">
+
                 <!-- 攻击方 -->
-                <view class="calc-card">
-                    <view class="calc-head">
-                        <view class="calc-head__icon calc-head__icon--green">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
-                                <circle cx="12" cy="12" r="8"></circle>
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M12 4v3M12 17v3M4 12h3M17 12h3"></path>
-                            </svg>
-                        </view>
-                        <text class="calc-head__title">攻击方</text>
-                    </view>
-                    <view class="calc-row" @click="showPokemonPicker('attacker')">
-                        <view class="calc-row__main">
-                            <text class="calc-row__title">宝可梦</text>
-                            <text class="calc-row__value" :class="attackerPokemon ? '' : 'text-[#9da2ad]'">{{ attackerPokemon?.name ?? '选择攻击方' }}</text>
-                        </view>
-                        <view class="calc-row__level">
-                            <text class="calc-row__level-label">等级</text>
-                            <view class="calc-stepper">
-                                <view class="calc-stepper__btn" @click.stop="adjustLevel('attacker', -1)">−</view>
-                                <text class="calc-stepper__value">{{ attackerLevel }}</text>
-                                <view class="calc-stepper__btn" @click.stop="adjustLevel('attacker', 1)">+</view>
-                            </view>
-                        </view>
-                    </view>
-                    <view class="calc-row">
-                        <text class="calc-row__title">能力值</text>
-                        <text class="calc-row__value text-[12px]" :class="attackerPokemon ? '' : 'text-[#9da2ad]'">{{ attackerPokemon ? getStatsString(attackerPokemon, attackerLevel) : '—' }}</text>
-                    </view>
-                    <view class="calc-row" @click="showAbilityPicker('attacker')">
-                        <text class="calc-row__title">特性</text>
-                        <text class="calc-row__value" :class="attackerAbility !== '无' ? '' : 'text-[#9da2ad]'">{{ attackerAbility }}</text>
-                    </view>
-                    <view class="calc-row calc-row--last">
-                        <text class="calc-row__title">能力等级</text>
-                        <view class="calc-stage-group">
-                            <view class="calc-stage-item">
-                                <text class="calc-stage-label">物攻</text>
-                                <view class="calc-stage-stepper">
-                                    <view class="calc-stage-btn" @click="adjustStage(atkStage, -1)">−</view>
-                                    <text class="calc-stage-val">{{ atkStage >= 0 ? '+' : '' }}{{ atkStage }}</text>
-                                    <view class="calc-stage-btn" @click="adjustStage(atkStage, 1)">+</view>
-                                </view>
-                            </view>
-                            <view class="calc-stage-item">
-                                <text class="calc-stage-label">特攻</text>
-                                <view class="calc-stage-stepper">
-                                    <view class="calc-stage-btn" @click="adjustStage(spaStage, -1)">−</view>
-                                    <text class="calc-stage-val">{{ spaStage >= 0 ? '+' : '' }}{{ spaStage }}</text>
-                                    <view class="calc-stage-btn" @click="adjustStage(spaStage, 1)">+</view>
-                                </view>
-                            </view>
-                        </view>
-                    </view>
-                </view>
+                <PokemonCard
+                    title="攻击方"
+                    iconClass="calc-head__icon--green"
+                    placeholderText="选择攻击方"
+                    :pokemon="attackerPokemon"
+                    :level="attackerLevel"
+                    :ability="attackerAbility"
+                    stage1Label="物攻"
+                    stage2Label="特攻"
+                    :stage1Val="atkStage"
+                    :stage2Val="spaStage"
+                    @select-pokemon="showPokemonPicker('attacker')"
+                    @select-ability="showAbilityPicker('attacker')"
+                    @adjust-level="(d:number) => adjustLevel('attacker', d)"
+                    @dec-stage1="decStage('atk')"
+                    @inc-stage1="incStage('atk')"
+                    @dec-stage2="decStage('spa')"
+                    @inc-stage2="incStage('spa')"
+                />
 
                 <!-- 防御方 -->
-                <view class="calc-card">
-                    <view class="calc-head">
-                        <view class="calc-head__icon calc-head__icon--blue">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                            </svg>
-                        </view>
-                        <text class="calc-head__title">防御方</text>
-                    </view>
-                    <view class="calc-row" @click="showPokemonPicker('defender')">
-                        <view class="calc-row__main">
-                            <text class="calc-row__title">宝可梦</text>
-                            <text class="calc-row__value" :class="defenderPokemon ? '' : 'text-[#9da2ad]'">{{ defenderPokemon?.name ?? '选择防御方' }}</text>
-                        </view>
-                        <view class="calc-row__level">
-                            <text class="calc-row__level-label">等级</text>
-                            <view class="calc-stepper">
-                                <view class="calc-stepper__btn" @click.stop="adjustLevel('defender', -1)">−</view>
-                                <text class="calc-stepper__value">{{ defenderLevel }}</text>
-                                <view class="calc-stepper__btn" @click.stop="adjustLevel('defender', 1)">+</view>
-                            </view>
-                        </view>
-                    </view>
-                    <view class="calc-row">
-                        <text class="calc-row__title">能力值</text>
-                        <text class="calc-row__value text-[12px]" :class="defenderPokemon ? '' : 'text-[#9da2ad]'">{{ defenderPokemon ? getStatsString(defenderPokemon, defenderLevel) : '—' }}</text>
-                    </view>
-                    <view class="calc-row" @click="showAbilityPicker('defender')">
-                        <text class="calc-row__title">特性</text>
-                        <text class="calc-row__value" :class="defenderAbility !== '无' ? '' : 'text-[#9da2ad]'">{{ defenderAbility }}</text>
-                    </view>
-                    <view class="calc-row calc-row--last">
-                        <text class="calc-row__title">能力等级</text>
-                        <view class="calc-stage-group">
-                            <view class="calc-stage-item">
-                                <text class="calc-stage-label">物防</text>
-                                <view class="calc-stage-stepper">
-                                    <view class="calc-stage-btn" @click="adjustStage(defStage, -1)">−</view>
-                                    <text class="calc-stage-val">{{ defStage >= 0 ? '+' : '' }}{{ defStage }}</text>
-                                    <view class="calc-stage-btn" @click="adjustStage(defStage, 1)">+</view>
-                                </view>
-                            </view>
-                            <view class="calc-stage-item">
-                                <text class="calc-stage-label">特防</text>
-                                <view class="calc-stage-stepper">
-                                    <view class="calc-stage-btn" @click="adjustStage(spdStage, -1)">−</view>
-                                    <text class="calc-stage-val">{{ spdStage >= 0 ? '+' : '' }}{{ spdStage }}</text>
-                                    <view class="calc-stage-btn" @click="adjustStage(spdStage, 1)">+</view>
-                                </view>
-                            </view>
-                        </view>
-                    </view>
-                </view>
+                <PokemonCard
+                    title="防御方"
+                    iconClass="calc-head__icon--blue"
+                    placeholderText="选择防御方"
+                    :pokemon="defenderPokemon"
+                    :level="defenderLevel"
+                    :ability="defenderAbility"
+                    stage1Label="物防"
+                    stage2Label="特防"
+                    :stage1Val="defStage"
+                    :stage2Val="spdStage"
+                    @select-pokemon="showPokemonPicker('defender')"
+                    @select-ability="showAbilityPicker('defender')"
+                    @adjust-level="(d:number) => adjustLevel('defender', d)"
+                    @dec-stage1="decStage('def')"
+                    @inc-stage1="incStage('def')"
+                    @dec-stage2="decStage('spd')"
+                    @inc-stage2="incStage('spd')"
+                />
 
                 <!-- 招式 -->
                 <view class="calc-card">
@@ -145,13 +74,24 @@
                         </view>
                         <text class="calc-head__title">招式</text>
                     </view>
-                    <view class="calc-row" @click="showMovePicker">
-                        <text class="calc-row__title">招式</text>
-                        <text class="calc-row__value" :class="selectedMove ? '' : 'text-[#9da2ad]'">{{ selectedMove?.name ?? '选择招式' }}</text>
-                    </view>
-                    <view class="calc-row calc-row--last">
-                        <text class="calc-row__title">威力 / 属性 / 类别</text>
-                        <text class="calc-row__value" :class="selectedMove ? '' : 'text-[#9da2ad]'">{{ selectedMove ? `${selectedMove.power} / ${selectedMove.type} / ${selectedMove.category === 'physical' ? '物理' : '特殊'}` : '—' }}</text>
+                    <view class="calc-row p-3" @click="showMovePicker">
+                        <view v-if="!selectedMove" class="calc-row__main items-center">
+                            <text class="text-[#9da2ad] text-[14px] font-semibold">点击选择招式</text>
+                        </view>
+                        <view v-else class="calc-row__main">
+                            <view class="flex items-center gap-2">
+                                <text class="calc-pkm-name">{{ selectedMove.name }}</text>
+                                <text class="calc-type-badge-mini" :style="{ background: typeColor(selectedMove.type) }">{{ typeLabel(selectedMove.type) }}</text>
+                                <text class="text-[12px] font-bold" :class="selectedMove.category === 'physical' ? 'text-[#e74c3c]' : 'text-[#3498db]'">{{ selectedMove.category === 'physical' ? '物理' : '特殊' }}</text>
+                            </view>
+                            <view class="flex items-center gap-3 mt-1">
+                                <view class="flex items-center gap-1">
+                                    <text class="text-[11px] font-bold text-[#9da2ad]">威力</text>
+                                    <text class="text-[16px] font-black text-[#24262b]">{{ selectedMove.power }}</text>
+                                </view>
+                            </view>
+                        </view>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#c4c7cf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 flex-shrink-0"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </view>
                 </view>
 
@@ -165,66 +105,72 @@
                         </view>
                         <text class="calc-head__title">战场条件</text>
                     </view>
-                    <view class="calc-row">
-                        <text class="calc-row__title">天气</text>
+
+                    <view class="calc-chip-row">
+                        <text class="calc-chip-row__label">天气</text>
                         <view class="calc-chip-group">
                             <view v-for="w in weatherOptions" :key="w.id"
                                 class="calc-chip"
                                 :class="selectedWeather === w.id ? 'calc-chip--active' : ''"
-                                @click="toggleWeather(w.id)">
-                                {{ w.label }}
-                            </view>
+                                @click="toggleWeather(w.id)">{{ w.label }}</view>
                         </view>
                     </view>
-                    <view class="calc-row">
-                        <text class="calc-row__title">场地</text>
+                    <view class="calc-divider"></view>
+                    <view class="calc-chip-row">
+                        <text class="calc-chip-row__label">场地</text>
                         <view class="calc-chip-group">
                             <view v-for="t in terrainOptions" :key="t.id"
                                 class="calc-chip"
                                 :class="selectedTerrain === t.id ? 'calc-chip--active' : ''"
-                                @click="toggleTerrain(t.id)">
-                                {{ t.label }}
-                            </view>
+                                @click="toggleTerrain(t.id)">{{ t.label }}</view>
                         </view>
                     </view>
-                    <view class="calc-row">
-                        <text class="calc-row__title">道具</text>
+                    <view class="calc-divider"></view>
+                    <view class="calc-chip-row">
+                        <text class="calc-chip-row__label">道具</text>
                         <view class="calc-chip-group">
                             <view class="calc-chip" :class="selectedItem.name !== '无' ? 'calc-chip--active' : ''" @click="showItemPicker">{{ selectedItem.name }}</view>
                         </view>
                     </view>
-                    <view class="calc-row" :class="reflectScreen !== 'none' ? '' : 'calc-row--last'">
-                        <text class="calc-row__title">防护</text>
+                    <view class="calc-divider"></view>
+                    <view class="calc-chip-row">
+                        <text class="calc-chip-row__label">防护</text>
                         <view class="calc-chip-group">
                             <view v-for="s in screenOptions" :key="s.id"
                                 class="calc-chip"
                                 :class="reflectScreen === s.id ? 'calc-chip--active' : ''"
-                                @click="toggleScreen(s.id)">
-                                {{ s.label }}
-                            </view>
+                                @click="toggleScreen(s.id)">{{ s.label }}</view>
                         </view>
                     </view>
-                    <view class="calc-row calc-row--last">
-                        <text class="calc-row__title">状态</text>
+                    <view class="calc-divider"></view>
+                    <view class="calc-chip-row calc-chip-row--last">
+                        <text class="calc-chip-row__label">状态</text>
                         <view class="calc-chip-group">
-                            <view class="calc-chip" :class="isBurned ? 'calc-chip--active' : ''" @click="isBurned = !isBurned">烧伤</view>
-                            <view class="calc-chip" :class="isCritical ? 'calc-chip--active' : ''" @click="isCritical = !isCritical">会心</view>
+                            <view class="calc-chip" :class="isBurned ? 'calc-chip--active--orange' : ''" @click="isBurned = !isBurned">烧伤</view>
+                            <view class="calc-chip" :class="isCritical ? 'calc-chip--active--red' : ''" @click="isCritical = !isCritical">会心</view>
                         </view>
                     </view>
                 </view>
 
                 <!-- 结果 -->
                 <view class="result-card">
-                    <view class="result-card__top">
+                    <view class="flex items-center justify-between">
                         <text class="result-card__label">预计伤害</text>
                         <text class="result-card__value">{{ result ? `${result.minDamage} — ${result.maxDamage}` : '—' }}</text>
                     </view>
-                    <view class="result-card__bar">
-                        <view class="result-card__bar-fill" :style="{ width: (result?.percentHP ?? 0) + '%' }"></view>
+                    <view class="result-card__bar-wrap">
+                        <view class="result-card__bar">
+                            <view class="result-card__bar-fill" :style="{ width: ((result?.percentHP ?? 0) > 100 ? 100 : (result?.percentHP ?? 0)) + '%' }"></view>
+                        </view>
+                        <text class="result-card__bar-text" v-if="result">{{ result.percentHP }}%</text>
                     </view>
                     <view class="result-card__meta">
-                        <text>{{ result?.effectivenessLabel ?? '克制 —' }}</text>
-                        <text>{{ result?.hkoLabel ?? '击杀 —' }}</text>
+                        <text class="result-card__meta-item" :class="result && result.typeEffectiveness > 1 ? 'text-[#e74c3c]' : 'text-[#9da2ad]'">
+                            {{ result?.effectivenessLabel ?? '克制 —' }}
+                        </text>
+                        <text class="result-card__meta-item font-black" :class="result && result.hkoLabel === 'OHKO' ? 'text-[#e74c3c]' : 'text-[#9da2ad]'">
+                            {{ result?.hkoLabel ?? '击杀 —' }}
+                        </text>
                     </view>
                 </view>
 
@@ -243,6 +189,7 @@
 import { ref, computed } from 'vue';
 import { calcDamage, calcStat, type CalcResult, type CalcParams, MOVE_FLAG } from './calc-engine';
 import { usePokemonStore } from '@/store/pokemon';
+import PokemonCard from '@/components/calc/PokemonCard.vue';
 
 const pokemonStore = usePokemonStore();
 
@@ -437,9 +384,17 @@ const defStage = ref(0);
 const spaStage = ref(0);
 const spdStage = ref(0);
 
-const adjustStage = (target: ReturnType<typeof ref<number>>, delta: number) => {
-    const next = target.value + delta;
-    if (next >= -6 && next <= 6) target.value = next;
+const decStage = (key: string) => {
+    if (key === 'atk') atkStage.value = Math.max(-6, atkStage.value - 1);
+    else if (key === 'spa') spaStage.value = Math.max(-6, spaStage.value - 1);
+    else if (key === 'def') defStage.value = Math.max(-6, defStage.value - 1);
+    else if (key === 'spd') spdStage.value = Math.max(-6, spdStage.value - 1);
+};
+const incStage = (key: string) => {
+    if (key === 'atk') atkStage.value = Math.min(6, atkStage.value + 1);
+    else if (key === 'spa') spaStage.value = Math.min(6, spaStage.value + 1);
+    else if (key === 'def') defStage.value = Math.min(6, defStage.value + 1);
+    else if (key === 'spd') spdStage.value = Math.min(6, spdStage.value + 1);
 };
 
 // ==============================
@@ -484,16 +439,21 @@ const showItemPicker = () => {
 const result = ref<CalcResult | null>(null);
 const calculating = ref(false);
 
-const getStatsString = (pkm: typeof attackerPokemon.value, level: number): string => {
-    if (!pkm) return '—';
-    const hp = calcStat(getBaseStat(pkm.stats, 'HP'), level, true);
-    const atk = calcStat(getBaseStat(pkm.stats, 'atk'), level, false);
-    const def = calcStat(getBaseStat(pkm.stats, 'def'), level, false);
-    const spa = calcStat(getBaseStat(pkm.stats, 'spa'), level, false);
-    const spd = calcStat(getBaseStat(pkm.stats, 'spd'), level, false);
-    const spe = calcStat(getBaseStat(pkm.stats, 'spe'), level, false);
-    return `HP${hp} 攻${atk} 防${def} 特攻${spa} 特防${spd} 速${spe}`;
+// ─── 属性显示辅助（招式卡用到） ───
+const typeColorMap: Record<string, string> = {
+    normal:'#A8A878', fire:'#F08030', water:'#6890F0', electric:'#F8D030',
+    grass:'#78C850', ice:'#98D8D8', fighting:'#C03028', poison:'#A040A0',
+    ground:'#E0C068', flying:'#A890F0', psychic:'#F85888', bug:'#A8B820',
+    rock:'#B8A038', ghost:'#705898', dragon:'#7038F8', dark:'#705848',
+    steel:'#B8B8D0', fairy:'#EE99AC',
 };
+const typeLabelMap: Record<string, string> = {
+    normal:'普', fire:'火', water:'水', electric:'电', grass:'草', ice:'冰',
+    fighting:'斗', poison:'毒', ground:'地', flying:'飞', psychic:'超',
+    bug:'虫', rock:'岩', ghost:'鬼', dragon:'龙', dark:'恶', steel:'钢', fairy:'妖',
+};
+const typeColor = (t: string) => typeColorMap[t.toLowerCase()] || '#9da2ad';
+const typeLabel = (t: string) => typeLabelMap[t.toLowerCase()] || t;
 
 const doCalculate = async () => {
     if (!attackerPokemon.value || !defenderPokemon.value || !selectedMove.value) {
@@ -627,22 +587,40 @@ const goBack = () => {
 .calc-chip { padding: 5px 11px; border-radius: 999px; border: 1px solid #e1e4eb; background: #f5f6fa; color: #6f7682; font-size: 12px; font-weight: 700; }
 .calc-chip--active { color: #ffffff; background: linear-gradient(135deg, #73b7ff, #357df4); border-color: transparent; }
 
-.calc-stage-group { display: flex; gap: 12px; }
-.calc-stage-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.calc-stage-label { font-size: 10px; font-weight: 700; color: #9da2ad; }
-.calc-stage-stepper { display: flex; align-items: center; gap: 4px; }
-.calc-stage-btn { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; border: 1px solid #e1e4eb; background: #f5f6fa; color: #6f7682; font-size: 13px; font-weight: 700; }
-.calc-stage-val { min-width: 22px; text-align: center; font-family: ui-monospace; font-size: 13px; font-weight: 800; color: #24262b; }
-
 .result-card { border: 1px solid #e5e7ee; border-radius: 20px; background: #ffffff; box-shadow: 0 10px 24px rgba(48, 55, 72, 0.06); padding: 14px; }
-.result-card__top { display: flex; align-items: baseline; justify-content: space-between; }
 .result-card__label { font-size: 12px; font-weight: 800; color: #8d929c; letter-spacing: 0.08em; }
 .result-card__value { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 26px; font-weight: 900; color: #24262b; letter-spacing: -0.04em; }
-.result-card__bar { height: 8px; margin-top: 10px; overflow: hidden; border-radius: 999px; background: #eef0f5; }
-.result-card__bar-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #73b7ff, #357df4); }
-.result-card__meta { display: flex; justify-content: space-between; margin-top: 8px; color: #9da2ad; font-size: 11px; font-weight: 700; }
 
 .calc-action { flex: 1; height: 46px; line-height: 46px; border-radius: 16px; color: #ffffff; font-size: 15px; font-weight: 800; background: linear-gradient(135deg, #73b7ff, #357df4); box-shadow: 0 10px 22px rgba(53, 125, 244, 0.22); }
 .calc-action--reset { flex: 0 0 auto; width: auto; padding: 0 20px; background: #eef0f5; color: #6f7682; box-shadow: none; }
 .calc-action::after { border: none !important; }
+
+/* ─── 新布局 ─── */
+.calc-pkm-name { font-size: 15px; font-weight: 800; color: #24262b; }
+.calc-type-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 18px; padding: 0 5px; border-radius: 4px; color: #fff; font-size: 10px; font-weight: 800; line-height: 1; }
+.calc-type-badge-mini { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 16px; padding: 0 4px; border-radius: 3px; color: #fff; font-size: 9px; font-weight: 800; line-height: 1; }
+.calc-stepper__value--wrap { display: flex; flex-direction: column; align-items: center; min-width: 32px; gap: 0; }
+.calc-stepper__label { font-size: 9px; font-weight: 700; color: #9da2ad; line-height: 1; }
+.calc-stats-row { display: flex; gap: 2px; padding: 6px 12px 8px; border-top: 1px solid #f1f2f6; }
+.calc-stats-row--empty { justify-content: center; min-height: 36px; align-items: center; padding: 6px 14px; }
+.calc-stat-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.calc-stat-label { font-size: 9px; font-weight: 700; color: #9da2ad; letter-spacing: 0.02em; }
+.calc-stat-value { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; font-weight: 900; color: #24262b; }
+.calc-row-line { display: flex; align-items: center; padding: 8px 14px; border-top: 1px solid #f1f2f6; gap: 0; }
+.calc-inline-item { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; justify-content: center; }
+.calc-inline-divider { width: 1px; height: 20px; background: #eef0f5; flex-shrink: 0; }
+.calc-inline-label { font-size: 11px; font-weight: 700; color: #9da2ad; flex-shrink: 0; }
+.calc-inline-value { font-size: 12px; font-weight: 700; color: #9da2ad; }
+.calc-inline-value--set { color: #357df4; }
+.calc-stage-mini { display: flex; align-items: center; gap: 2px; }
+.calc-stage-btn { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; border: 1px solid #e1e4eb; background: #f5f6fa; color: #6f7682; font-size: 14px; font-weight: 700; }
+.calc-stage-val { min-width: 24px; text-align: center; font-family: ui-monospace; font-size: 13px; font-weight: 800; color: #24262b; }
+.calc-chip-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 14px; }
+.calc-chip-row__label { font-size: 13px; font-weight: 600; color: #24262b; flex-shrink: 0; }
+.calc-divider { height: 1px; margin: 0 14px; background: #f1f2f6; }
+.calc-chip--active--orange { color: #fff; background: linear-gradient(135deg, #f4a06f, #d87a1e); border-color: transparent; }
+.calc-chip--active--red { color: #fff; background: linear-gradient(135deg, #e76f6f, #d43a3a); border-color: transparent; }
+.result-card__bar-wrap { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.result-card__bar-text { font-size: 12px; font-weight: 800; font-family: ui-monospace; color: #6f7682; min-width: 36px; text-align: right; }
+.result-card__meta-item { font-size: 12px; font-weight: 700; color: #6f7682; }
 </style>
