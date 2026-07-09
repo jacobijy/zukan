@@ -1,6 +1,6 @@
 <template>
     <view
-        class="mine-page min-h-screen"
+        class="mine-page min-h-screen page-bg"
         :style="{
             paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))',
             paddingBottom: '104px'
@@ -101,25 +101,8 @@ const onTabChange = (index: number) => {
 
 <style lang="scss" scoped>
 .mine-page {
-    position: relative;
-    overflow: hidden;
-    color: #24262b;
-    background:
-        radial-gradient(circle at 18% -10%, rgba(255, 255, 255, 0.95), transparent 34%),
-        linear-gradient(180deg, #f7f8fb 0%, #f1f2f6 46%, #eef0f5 100%);
-}
 
 .mine-page::before {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    content: '';
-    background-image:
-        linear-gradient(rgba(45, 49, 58, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(45, 49, 58, 0.022) 1px, transparent 1px);
-    background-size: 32px 32px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 58%);
-}
 
 .section-label {
     padding: 0 14px 8px;

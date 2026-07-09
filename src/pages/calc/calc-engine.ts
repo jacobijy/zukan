@@ -411,9 +411,9 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
   // 转换参数为枚举 ID
   const moveTypeId = TYPE_IDS[params.moveType.toLowerCase()] || 0;
   const atkType1Id = TYPE_IDS[params.attackerType1?.toLowerCase()] || 0;
-  const atkType2Id = TYPE_IDS[params.attackerType2?.toLowerCase()] || 0;
+  const atkType2Id = TYPE_IDS[(params.attackerType2 || '').toLowerCase()] || 0;
   const defType1Id = TYPE_IDS[params.defenderType1?.toLowerCase()] || 0;
-  const defType2Id = TYPE_IDS[params.defenderType2?.toLowerCase()] || 0;
+  const defType2Id = TYPE_IDS[(params.defenderType2 || '').toLowerCase()] || 0;
 
   const weatherId = params.weather ? (WEATHER_IDS[params.weather.toLowerCase()] || 0) : 0;
   const terrainId = params.terrain ? (TERRAIN_IDS[params.terrain.toLowerCase()] || 0) : 0;

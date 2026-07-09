@@ -1,0 +1,301 @@
+syntax = "proto3";
+
+package pokemon_data;
+
+// ========================================
+// 公共枚举定义
+// ========================================
+
+// 属性类型 (typename.csv)
+enum Type {
+  TYPE_NORMAL = 0;
+  TYPE_FIGHTING = 1;
+  TYPE_FLYING = 2;
+  TYPE_POISON = 3;
+  TYPE_GROUND = 4;
+  TYPE_ROCK = 5;
+  TYPE_BUG = 6;
+  TYPE_GHOST = 7;
+  TYPE_STEEL = 8;
+  // 跳过 9
+  TYPE_FIRE = 10;
+  TYPE_WATER = 11;
+  TYPE_GRASS = 12;
+  TYPE_ELECTRIC = 13;
+  TYPE_PSYCHIC = 14;
+  TYPE_ICE = 15;
+  TYPE_DRAGON = 16;
+  TYPE_DARK = 17;
+  TYPE_FAIRY = 18;
+  // 跳过 19
+  TYPE_STELLAR = 20;
+}
+
+// 技能分类 (category)
+enum MoveCategory {
+  CATEGORY_PHYSICAL = 0;
+  CATEGORY_SPECIAL = 1;
+  CATEGORY_STATUS = 2;
+}
+
+// 技能目标类型 (target)
+enum MoveTarget {
+  TARGET_NORMAL = 0;
+  TARGET_SELF = 1;
+  TARGET_ALL_ADJACENT_FOES = 2;
+  TARGET_ADJACENT_FOE = 3;
+  TARGET_ANY = 4;
+  TARGET_ALL = 5;
+  TARGET_ALL_ADJACENT = 6;
+  TARGET_ALLY_SIDE = 7;
+  TARGET_RANDOM_NORMAL = 8;
+  TARGET_ADJACENT_ALLY = 9;
+  TARGET_SCRIPTED = 10;
+  TARGET_ALLIES = 11;
+  TARGET_FOE_SIDE = 12;
+  TARGET_ALLY_TEAM = 13;
+  TARGET_ADJACENT_ALLY_OR_SELF = 14;
+}
+
+// 华丽大赛类型 (contestType)
+enum ContestType {
+  CONTEST_COOL = 0;
+  CONTEST_BEAUTIFUL = 1;
+  CONTEST_CUTE = 2;
+  CONTEST_SMART = 3;
+  CONTEST_TOUGH = 4;
+}
+
+// 非标准标签
+enum Nonstandard {
+  NONSTANDARD_NONE = 0;
+  NONSTANDARD_PAST = 1;
+  NONSTANDARD_LGPE = 2;
+  NONSTANDARD_UNOBTAINABLE = 3;
+  NONSTANDARD_FUTURE = 4;
+  NONSTANDARD_CAP = 5;
+}
+
+// 状态处理函数类型 (handlers)
+enum HandlerType {
+  HANDLER_NONE = 0;
+  HANDLER_HIT = 1;
+  HANDLER_BASE_POWER_CALLBACK = 2;
+  HANDLER_DAMAGE = 3;
+  // ... 其余 handler 类型
+}
+
+// ========================================
+// 通用子消息定义
+// ========================================
+
+// 能力等级变化（统一 boost 结构）
+message Boost {
+  int32 atk = 1;
+  int32 def = 2;
+  int32 spa = 3;
+  int32 spd = 4;
+  int32 spe = 5;
+  int32 evasion = 6;
+  int32 accuracy = 7;
+}
+
+// 技能附加效果
+message SecondaryEffect {
+  int32 chance = 1;       // 触发概率 (%)
+  Boost boosts = 2;       // 能力变化
+  int32 status = 3;       // 状态 ID
+  string volatile_status = 4;  // 暂留状态名（后续可 ID 化）
+  // 其他效果...
+}
+
+// Z 技能信息
+message ZMoveInfo {
+  int32 base_power = 1;   // 威力
+  Boost boost = 2;        // 使用后的能力变化
+  string effect = 3;      // 效果名（后续可 ID 化）
+}
+
+// 极巨技能信息
+message MaxMoveInfo {
+  int32 base_power = 1;
+}
+
+// ========================================
+// 技能数据（核心优化）
+// ========================================
+
+message MoveData {
+  // 基础字段 (tag 1-15 使用 1 字节编码)
+  int32 id = 1;                        // 技能 ID
+  int32 name_id = 2;                   // 字符串池中的名字 ID
+  Type type = 3;                       // 属性 (enum)
+  MoveCategory category = 4;           // 分类 (enum)
+  MoveTarget target = 5;               // 目标类型 (enum)
+  int32 base_power = 6;                // 威力 (0 = 默认省略)
+  int32 pp = 7;                        // PP
+  int32 priority = 8;                  // 优先级 (0 = 默认省略)
+  int32 accuracy = 9;                  // 命中率 (101 = 必中)
+  ContestType contest_type = 10;       // 华丽大赛类型 (enum)
+
+  // flags 位掩码 (38 个 flags → 64 位足够)
+  fixed64 flags = 11;
+
+  // 效果处理函数索引数组
+  repeated HandlerType handlers = 12 [packed = true];
+
+  // 能力变化
+  Boost boosts = 13;                   // 直接造成的能力变化
+
+  // 附加效果
+  SecondaryEffect secondary = 14;      // 附加效果
+  repeated SecondaryEffect secondaries = 15;  // 多个附加效果
+
+  // 特殊技能信息
+  ZMoveInfo z_move = 16;
+  MaxMoveInfo max_move = 17;
+  int32 z_move_from = 18;              // Z 技能来自原技能 ID
+  int32 placeholder_for = 19;          // 替代的技能 ID
+
+  // 其他字段
+  Nonstandard is_nonstandard = 20;
+  int32 crit_ratio = 21;
+  int32 recoil = 22;      // 反伤
+  int32 drain = 23;       // 吸血
+  int32 heal = 24;        // 回复
+  bool force_switch = 25;
+  bool will_crit = 26;
+  bool ohko = 27;
+  bool breaks_protect = 28;
+  bool thaws_target = 29;
+
+  // ========================================
+  // 稀疏字段扩展（出现 < 10 次）
+  // 使用 oneof 共享 tag，进一步节省空间
+  // ========================================
+  oneof rare_effect {
+    bool multiaccuracy = 50;
+    bool no_pp_boosts = 51;
+    bool stalling_move = 52;
+    bool ignore_ability = 53;
+    bool self_switch = 54;
+    bool calls_move = 55;
+    bool ignore_defensive = 56;
+    bool ignore_evasion = 57;
+    bool has_crash_damage = 58;
+    bool ignore_immunity = 59;
+    string slot_condition = 60;
+    string self_destruct = 61;
+    string weather = 62;
+    string terrain = 63;
+    string pseudo_weather = 64;
+    string volatile_status = 65;
+    // ... 更多稀有字段
+  }
+
+  // 保留字段供未来扩展
+  reserved 100 to 200;
+}
+
+// ========================================
+// 技能数据表
+// ========================================
+
+message MoveTable {
+  // 使用 map 或 repeated，视访问模式而定
+  map<int32, MoveData> moves = 1;
+
+  // 字符串池（节省重复字符串）
+  repeated string string_pool = 2;
+}
+
+// ========================================
+// 道具数据
+// ========================================
+
+message ItemData {
+  int32 id = 1;
+  int32 name_id = 2;
+
+  // 基础属性
+  int32 fling_power = 3;              // 投掷威力
+  Type natural_gift_type = 4;         // 自然恩惠属性
+  int32 natural_gift_power = 5;       // 自然恩惠威力
+
+  // 类型标记位掩码
+  fixed32 flags = 6;                  // is_berry, is_gem, is_pokeball, etc.
+
+  // Mega 进化相关
+  int32 mega_stone = 7;               // 对应宝可梦 ID
+  int32 z_move_type = 8;              // Z 技能属性
+  int32 z_move_from = 9;              // Z 技能来自技能 ID
+
+  // Drive/Memory/Plate 对应属性
+  Type on_drive = 10;
+  Type on_memory = 11;
+  Type on_plate = 12;
+
+  // 世代和非标准标记
+  int32 gen = 13;
+  Nonstandard is_nonstandard = 14;
+
+  // 处理函数索引
+  repeated HandlerType handlers = 15 [packed = true];
+
+  // 稀有字段 oneof
+  oneof rare_item_effect {
+    bool is_choice = 50;
+    bool is_primal_orb = 51;
+    bool ignore_klutz = 52;
+    bool on_negate_immunity = 53;
+  }
+}
+
+message ItemTable {
+  map<int32, ItemData> items = 1;
+}
+
+// ========================================
+// 特性数据
+// ========================================
+
+message AbilityData {
+  int32 id = 1;
+  int32 name_id = 2;
+  int32 rating = 3;
+  repeated HandlerType handlers = 4 [packed = true];
+  Nonstandard is_nonstandard = 5;
+  int32 gen = 6;
+}
+
+message AbilityTable {
+  map<int32, AbilityData> abilities = 1;
+}
+
+// ========================================
+// 克制关系表
+// ========================================
+
+message TypeChartData {
+  // 伤害倍率编码为整数：100 = 1x, 50 = 0.5x, 200 = 2x, 0 = 0x
+  map<int32, int32> damage_taken = 1;  // key: Type, value: 倍率 * 100
+}
+
+message TypeChartTable {
+  map<int32, TypeChartData> types = 1;
+}
+
+// ========================================
+// 根数据文件
+// ========================================
+
+message PokemonData {
+  MoveTable moves = 1;
+  ItemTable items = 2;
+  AbilityTable abilities = 3;
+  TypeChartTable type_chart = 4;
+  // natures, conditions, rulesets, etc.
+
+  // 全局字符串池（所有名字共享）
+  repeated string global_string_pool = 15;
+}

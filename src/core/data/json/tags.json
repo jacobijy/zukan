@@ -1,0 +1,360 @@
+{
+  "physical": {
+    "name": "Physical",
+    "desc": "Move deals damage with the Attack and Defense stats.",
+    "_filters": ["move"]
+  },
+  "special": {
+    "name": "Special",
+    "desc": "Move deals damage with the Special Attack and Special Defense stats.",
+    "_filters": ["move"]
+  },
+  "status": {
+    "name": "Status",
+    "desc": "Move does not deal damage.",
+    "_filters": ["move"]
+  },
+  "mega": {
+    "name": "Mega",
+    "_filters": ["species"]
+  },
+  "gigantamax": {
+    "name": "Gigantamax",
+    "_filters": ["species"]
+  },
+  "mythical": {
+    "name": "Mythical",
+    "desc": "Legendaries usually only obtainable from events. Usually BST 600",
+    "_filters": ["species"]
+  },
+  "sublegendary": {
+    "name": "Sub-Legendary",
+    "desc": "Legendaries that aren't Restricted or Mythical. Usually BST 570 to 580.",
+    "_filters": ["species"]
+  },
+  "restrictedlegendary": {
+    "name": "Restricted Legendary",
+    "desc": "Officially called Special Pokémon. Legendaries restricted from most in-game formats. Usually BST at least 660.",
+    "_filters": ["species"]
+  },
+  "ultrabeast": {
+    "name": "Ultra Beast",
+    "_filters": ["species"]
+  },
+  "paradox": {
+    "name": "Paradox",
+    "_filters": ["species"]
+  },
+  "pokestar": {
+    "name": "Pokestar",
+    "_filters": ["species"]
+  },
+  "zmove": {
+    "name": "Z-Move",
+    "_filters": ["move"]
+  },
+  "maxmove": {
+    "name": "Max Move",
+    "_filters": ["move"]
+  },
+  "contact": {
+    "name": "Contact",
+    "desc": "Affected by a variety of moves, abilities, and items. Moves affected by contact moves include: Spiky Shield, King's Shield. Abilities affected by contact moves include: Iron Barbs, Rough Skin, Gooey, Flame Body, Static, Tough Claws. Items affected by contact moves include: Rocky Helmet, Sticky Barb.",
+    "_filters": ["move"]
+  },
+  "sound": {
+    "name": "Sound",
+    "desc": "Doesn't affect Soundproof Pokémon. (All sound moves also bypass Substitute.)",
+    "_filters": ["move"]
+  },
+  "powder": {
+    "name": "Powder",
+    "desc": "Doesn't affect Grass-type Pokémon, Overcoat Pokémon, or Safety Goggles holders.",
+    "_filters": ["move"]
+  },
+  "fist": {
+    "name": "Fist",
+    "desc": "Boosted 1.2x by Iron Fist.",
+    "_filters": ["move"]
+  },
+  "pulse": {
+    "name": "Pulse",
+    "desc": "Boosted 1.5x by Mega Launcher.",
+    "_filters": ["move"]
+  },
+  "bite": {
+    "name": "Bite",
+    "desc": "Boosted 1.5x by Strong Jaw.",
+    "_filters": ["move"]
+  },
+  "ballistic": {
+    "name": "Ballistic",
+    "desc": "Doesn't affect Bulletproof Pokémon.",
+    "_filters": ["move"]
+  },
+  "bypassprotect": {
+    "name": "Bypass Protect",
+    "desc": "Bypasses Protect, Detect, King's Shield, and Spiky Shield.",
+    "_filters": ["move"]
+  },
+  "nonreflectable": {
+    "name": "Nonreflectable",
+    "desc": "Can't be bounced by Magic Coat or Magic Bounce.",
+    "_filters": ["move"]
+  },
+  "nonmirror": {
+    "name": "Nonmirror",
+    "desc": "Can't be copied by Mirror Move.",
+    "_filters": ["move"]
+  },
+  "nonsnatchable": {
+    "name": "Nonsnatchable",
+    "desc": "Can't be copied by Snatch.",
+    "_filters": ["move"]
+  },
+  "bypasssubstitute": {
+    "name": "Bypass Substitute",
+    "desc": "Bypasses but does not break a Substitute.",
+    "_filters": ["move"]
+  },
+  "gmaxmove": {
+    "name": "G-Max Move",
+    "_filters": ["move"]
+  },
+  "uber": {
+    "name": "Uber",
+    "_filters": ["species"]
+  },
+  "ou": {
+    "name": "OU",
+    "_filters": ["species"]
+  },
+  "uubl": {
+    "name": "UUBL",
+    "_filters": ["species"]
+  },
+  "uu": {
+    "name": "UU",
+    "_filters": ["species"]
+  },
+  "rubl": {
+    "name": "RUBL",
+    "_filters": ["species"]
+  },
+  "ru": {
+    "name": "RU",
+    "_filters": ["species"]
+  },
+  "nubl": {
+    "name": "NUBL",
+    "_filters": ["species"]
+  },
+  "nu": {
+    "name": "NU",
+    "_filters": ["species"]
+  },
+  "publ": {
+    "name": "PUBL",
+    "_filters": ["species"]
+  },
+  "pu": {
+    "name": "PU",
+    "_filters": ["species"]
+  },
+  "zubl": {
+    "name": "ZUBL",
+    "_filters": ["species"]
+  },
+  "zu": {
+    "name": "ZU",
+    "_filters": ["species"]
+  },
+  "nfe": {
+    "name": "NFE",
+    "_filters": ["species"]
+  },
+  "lc": {
+    "name": "LC",
+    "_filters": ["species"]
+  },
+  "captier": {
+    "name": "CAP Tier",
+    "_filters": ["species"]
+  },
+  "caplc": {
+    "name": "CAP LC",
+    "_filters": ["species"]
+  },
+  "capnfe": {
+    "name": "CAP NFE",
+    "_filters": ["species"]
+  },
+  "ag": {
+    "name": "AG",
+    "_filters": ["species"]
+  },
+  "duber": {
+    "name": "DUber",
+    "_filters": ["species"]
+  },
+  "dou": {
+    "name": "DOU",
+    "_filters": ["species"]
+  },
+  "dbl": {
+    "name": "DBL",
+    "_filters": ["species"]
+  },
+  "duu": {
+    "name": "DUU",
+    "_filters": ["species"]
+  },
+  "dnu": {
+    "name": "DNU",
+    "_filters": ["species"]
+  },
+  "ndag": {
+    "name": "ND AG",
+    "_filters": ["species"]
+  },
+  "nduber": {
+    "name": "ND Uber",
+    "_filters": ["species"]
+  },
+  "ndou": {
+    "name": "ND OU",
+    "_filters": ["species"]
+  },
+  "nduubl": {
+    "name": "ND UUBL",
+    "_filters": ["species"]
+  },
+  "nduu": {
+    "name": "ND UU",
+    "_filters": ["species"]
+  },
+  "ndrubl": {
+    "name": "ND RUBL",
+    "_filters": ["species"]
+  },
+  "ndru": {
+    "name": "ND RU",
+    "_filters": ["species"]
+  },
+  "ndnfe": {
+    "name": "ND NFE",
+    "_filters": ["species"]
+  },
+  "ndlc": {
+    "name": "ND LC",
+    "_filters": ["species"]
+  },
+  "past": {
+    "name": "Past",
+    "desc": "Obtainable in a past game, but not in this game.",
+    "_filters": ["generic"]
+  },
+  "truepast": {
+    "name": "True Past",
+    "desc": "Obtainable in a past game, but is not in this game's data at all, not even in Dexit placeholder form.",
+    "_filters": ["generic"]
+  },
+  "pastunobtainable": {
+    "name": "Past Unobtainable",
+    "desc": "Existed in game data in a past game, but was never obtainable.",
+    "_filters": ["generic"]
+  },
+  "future": {
+    "name": "Future",
+    "desc": "Obtainable in a future game, but is not in this game's data at all.",
+    "_filters": ["generic"]
+  },
+  "lgpe": {
+    "name": "LGPE",
+    "desc": "Obtainable in Pokémon: Let's Go, Pikachu! or Let's Go, Eevee!, but not in this game.",
+    "_filters": ["generic"]
+  },
+  "unobtainable": {
+    "name": "Unobtainable",
+    "desc": "Exists in game data but not obtainable without hacking.",
+    "_filters": ["generic"]
+  },
+  "cap": {
+    "name": "CAP",
+    "desc": "Made up for the Smogon Create-A-Pokemon project.",
+    "_filters": ["generic"]
+  },
+  "custom": {
+    "name": "Custom",
+    "desc": "Made up for... something or other. I don't recommend using this, it's not tagged very consistently.",
+    "_filters": ["generic"]
+  },
+  "nonexistent": {
+    "name": "Nonexistent",
+    "desc": "Does not exist in game data. Includes Past, Future, LGPE, CAP, and Custom.",
+    "_filters": ["generic"]
+  },
+  "introducedgen": {
+    "name": "Introduced Gen",
+    "_numCols": ["generic"]
+  },
+  "height": {
+    "name": "Height",
+    "_numCols": ["species"]
+  },
+  "weight": {
+    "name": "Weight",
+    "_numCols": ["species"]
+  },
+  "hp": {
+    "name": "HP",
+    "desc": "Hit Points",
+    "_numCols": ["species"]
+  },
+  "atk": {
+    "name": "Atk",
+    "desc": "Attack",
+    "_numCols": ["species"]
+  },
+  "def": {
+    "name": "Def",
+    "desc": "Defense",
+    "_numCols": ["species"]
+  },
+  "spa": {
+    "name": "SpA",
+    "desc": "Special Attack",
+    "_numCols": ["species"]
+  },
+  "spd": {
+    "name": "SpD",
+    "desc": "Special Defense",
+    "_numCols": ["species"]
+  },
+  "spe": {
+    "name": "Spe",
+    "desc": "Speed",
+    "_numCols": ["species"]
+  },
+  "bst": {
+    "name": "BST",
+    "desc": "Base Stat Total",
+    "_numCols": ["species"]
+  },
+  "basepower": {
+    "name": "Base Power",
+    "_numCols": ["move"]
+  },
+  "priority": {
+    "name": "Priority",
+    "_numCols": ["move"]
+  },
+  "accuracy": {
+    "name": "Accuracy",
+    "_numCols": ["move"]
+  },
+  "maxpp": {
+    "name": "Max PP",
+    "_numCols": ["move"]
+  }
+}

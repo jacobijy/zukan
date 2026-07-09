@@ -1,4 +1,7 @@
 {
     "miniprogram.miniprogramPath": "./dist/dev/mp-weixin",
     "i18n-ally.localesPaths": [],
+    "rust-analyzer.linkedProjects": [
+        "src/infra/wasm/Cargo.toml"
+    ]
 }

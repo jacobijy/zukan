@@ -1,5 +1,5 @@
 <template>
-    <view class="detail-page min-h-screen" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '100px' }">
+    <view class="detail-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '100px' }">
         <DetailNavbar :title="pokemon.name || '宝可梦详情'" @back="goBack">
             <template #right>
                 <button class="detail-icon-button" :class="isFavorite ? 'detail-icon-button--active' : ''" @click="toggleFavorite">
@@ -228,25 +228,8 @@ const getTypeClass = (type: string) => {
 
 <style scoped>
 .detail-page {
-    position: relative;
-    overflow: hidden;
-    color: #24262b;
-    background:
-        radial-gradient(circle at 18% -10%, #ffffff 0%, transparent 34%),
-        linear-gradient(180deg, #f7f8fb 0%, #f1f2f6 46%, #eef0f5 100%);
-}
 
 .detail-page::before {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    content: '';
-    background-image:
-        linear-gradient(rgba(45, 49, 58, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(45, 49, 58, 0.022) 1px, transparent 1px);
-    background-size: 32px 32px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 58%);
-}
 
 .detail-navbar {
     background: #ffffff;

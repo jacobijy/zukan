@@ -15,7 +15,23 @@ export const statColor = (value: number) => {
     return '#4d7cd8';
 };
 
-// 属性类型颜色映射
+// ─── 属性颜色（字符串键名）───
+export const typeColorStrs: Record<string, string> = {
+    normal: '#A8A878', fire: '#F08030', water: '#6890F0', electric: '#F8D030',
+    grass: '#78C850', ice: '#98D8D8', fighting: '#C03028', poison: '#A040A0',
+    ground: '#E0C068', flying: '#A890F0', psychic: '#F85888', bug: '#A8B820',
+    rock: '#B8A038', ghost: '#705898', dragon: '#7038F8', dark: '#705848',
+    steel: '#B8B8D0', fairy: '#EE99AC',
+};
+export const typeLabelStrs: Record<string, string> = {
+    normal: '普', fire: '火', water: '水', electric: '电', grass: '草', ice: '冰',
+    fighting: '斗', poison: '毒', ground: '地', flying: '飞', psychic: '超',
+    bug: '虫', rock: '岩', ghost: '鬼', dragon: '龙', dark: '恶', steel: '钢', fairy: '妖',
+};
+export const getTypeColor = (t: string) => typeColorStrs[t.toLowerCase()] || '#9da2ad';
+export const getTypeLabel = (t: string) => typeLabelStrs[t.toLowerCase()] || t;
+
+// ─── 属性颜色（数字枚举键名）───
 export const typeColors: { [type: number]: string } = {
     [Types.Normal]: '#A8A878',
     [Types.Fire]: '#F08030',
@@ -41,7 +57,7 @@ export const str2Types: { [str: string]: number } = {
     'normal': Types.Normal,
     'fire': Types.Fire,
     'water': Types.Water,
-    'ectric': Types.Electric,
+    'electric': Types.Electric,
     'grass': Types.Grass,
     'ice': Types.Ice,
     'fighting': Types.Fighting,

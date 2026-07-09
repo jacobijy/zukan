@@ -36,6 +36,20 @@
         "navigationBarTitleText": "个人中心",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/calc/calc",
+      "style": {
+        "navigationBarTitleText": "伤害计算器",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/simulate/simulate",
+      "style": {
+        "navigationBarTitleText": "对战模拟器",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

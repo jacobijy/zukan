@@ -20,3 +20,9 @@ dist
 *.sln
 *.sw?
 src/core/simulator/data-json
+.claude
+
+# WASM build artifacts
+src/infra/wasm/pkg
+src/infra/wasm/pkg-node
+src/infra/wasm/target

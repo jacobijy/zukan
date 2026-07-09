@@ -1,0 +1,117 @@
+{
+  "adamant": {
+    "plus": "atk",
+    "minus": "spa",
+    "id": 0
+  },
+  "bashful": {
+    "id": 1
+  },
+  "bold": {
+    "plus": "def",
+    "minus": "atk",
+    "id": 2
+  },
+  "brave": {
+    "plus": "atk",
+    "minus": "spe",
+    "id": 3
+  },
+  "calm": {
+    "plus": "spd",
+    "minus": "atk",
+    "id": 4
+  },
+  "careful": {
+    "plus": "spd",
+    "minus": "spa",
+    "id": 5
+  },
+  "docile": {
+    "id": 6
+  },
+  "gentle": {
+    "plus": "spd",
+    "minus": "def",
+    "id": 7
+  },
+  "hardy": {
+    "id": 8
+  },
+  "hasty": {
+    "plus": "spe",
+    "minus": "def",
+    "id": 9
+  },
+  "impish": {
+    "plus": "def",
+    "minus": "spa",
+    "id": 10
+  },
+  "jolly": {
+    "plus": "spe",
+    "minus": "spa",
+    "id": 11
+  },
+  "lax": {
+    "plus": "def",
+    "minus": "spd",
+    "id": 12
+  },
+  "lonely": {
+    "plus": "atk",
+    "minus": "def",
+    "id": 13
+  },
+  "mild": {
+    "plus": "spa",
+    "minus": "def",
+    "id": 14
+  },
+  "modest": {
+    "plus": "spa",
+    "minus": "atk",
+    "id": 15
+  },
+  "naive": {
+    "plus": "spe",
+    "minus": "spd",
+    "id": 16
+  },
+  "naughty": {
+    "plus": "atk",
+    "minus": "spd",
+    "id": 17
+  },
+  "quiet": {
+    "plus": "spa",
+    "minus": "spe",
+    "id": 18
+  },
+  "quirky": {
+    "id": 19
+  },
+  "rash": {
+    "plus": "spa",
+    "minus": "spd",
+    "id": 20
+  },
+  "relaxed": {
+    "plus": "def",
+    "minus": "spe",
+    "id": 21
+  },
+  "sassy": {
+    "plus": "spd",
+    "minus": "spe",
+    "id": 22
+  },
+  "serious": {
+    "id": 23
+  },
+  "timid": {
+    "plus": "spe",
+    "minus": "atk",
+    "id": 24
+  }
+}

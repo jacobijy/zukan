@@ -1,0 +1,362 @@
+{
+  "brn": {
+    "effectType": "Status",
+    "onResidualOrder": 10,
+    "_handlers": [
+      "start",
+      "residual"
+    ],
+    "id": 1
+  },
+  "par": {
+    "effectType": "Status",
+    "onModifySpePriority": -101,
+    "onBeforeMovePriority": 1,
+    "_handlers": [
+      "start",
+      "modifySpe",
+      "beforeMove"
+    ],
+    "id": 2
+  },
+  "slp": {
+    "effectType": "Status",
+    "onBeforeMovePriority": 10,
+    "_handlers": [
+      "start",
+      "beforeMove"
+    ],
+    "id": 3
+  },
+  "frz": {
+    "effectType": "Status",
+    "onBeforeMovePriority": 10,
+    "_handlers": [
+      "start",
+      "beforeMove",
+      "modifyMove",
+      "afterMoveSecondary",
+      "damagingHit"
+    ],
+    "id": 4
+  },
+  "psn": {
+    "effectType": "Status",
+    "onResidualOrder": 9,
+    "_handlers": [
+      "start",
+      "residual"
+    ],
+    "id": 5
+  },
+  "tox": {
+    "effectType": "Status",
+    "onResidualOrder": 9,
+    "_handlers": [
+      "start",
+      "switchIn",
+      "residual"
+    ],
+    "id": 6
+  },
+  "confusion": {
+    "onBeforeMovePriority": 3,
+    "_handlers": [
+      "start",
+      "end",
+      "beforeMove"
+    ],
+    "id": 7
+  },
+  "flinch": {
+    "duration": 1,
+    "onBeforeMovePriority": 8,
+    "_handlers": [
+      "beforeMove"
+    ],
+    "id": 8
+  },
+  "trapped": {
+    "noCopy": true,
+    "_handlers": [
+      "trapPokemon",
+      "start"
+    ],
+    "id": 9
+  },
+  "trapper": {
+    "noCopy": true,
+    "id": 10
+  },
+  "partiallytrapped": {
+    "duration": 5,
+    "onResidualOrder": 13,
+    "_handlers": [
+      "durationCallback",
+      "start",
+      "residual",
+      "end",
+      "trapPokemon"
+    ],
+    "id": 11
+  },
+  "lockedmove": {
+    "duration": 2,
+    "_handlers": [
+      "residual",
+      "start",
+      "restart",
+      "afterMove",
+      "end",
+      "lockMove"
+    ],
+    "id": 12
+  },
+  "twoturnmove": {
+    "duration": 2,
+    "_handlers": [
+      "start",
+      "end",
+      "lockMove",
+      "moveAborted"
+    ],
+    "id": 13
+  },
+  "choicelock": {
+    "noCopy": true,
+    "_handlers": [
+      "start",
+      "beforeMove",
+      "disableMove"
+    ],
+    "id": 14
+  },
+  "mustrecharge": {
+    "duration": 2,
+    "onBeforeMovePriority": 11,
+    "onLockMove": "recharge",
+    "_handlers": [
+      "beforeMove",
+      "start"
+    ],
+    "id": 15
+  },
+  "futuremove": {
+    "onResidualOrder": 3,
+    "_handlers": [
+      "start",
+      "residual",
+      "end"
+    ],
+    "id": 16
+  },
+  "healreplacement": {
+    "_handlers": [
+      "start",
+      "switchIn"
+    ],
+    "id": 17
+  },
+  "stall": {
+    "duration": 2,
+    "counterMax": 729,
+    "_handlers": [
+      "start",
+      "stallMove",
+      "restart"
+    ],
+    "id": 18
+  },
+  "gem": {
+    "duration": 1,
+    "affectsFainted": true,
+    "onBasePowerPriority": 14,
+    "_handlers": [
+      "basePower"
+    ],
+    "id": 19
+  },
+  "raindance": {
+    "effectType": "Weather",
+    "duration": 5,
+    "onFieldResidualOrder": 1,
+    "_handlers": [
+      "durationCallback",
+      "weatherModifyDamage",
+      "fieldStart",
+      "fieldResidual",
+      "fieldEnd"
+    ],
+    "id": 20
+  },
+  "primordialsea": {
+    "effectType": "Weather",
+    "duration": 0,
+    "onTryMovePriority": 1,
+    "onFieldResidualOrder": 1,
+    "_handlers": [
+      "tryMove",
+      "weatherModifyDamage",
+      "fieldStart",
+      "fieldResidual",
+      "fieldEnd"
+    ],
+    "id": 21
+  },
+  "sunnyday": {
+    "effectType": "Weather",
+    "duration": 5,
+    "onFieldResidualOrder": 1,
+    "_handlers": [
+      "durationCallback",
+      "weatherModifyDamage",
+      "fieldStart",
+      "immunity",
+      "fieldResidual",
+      "fieldEnd"
+    ],
+    "id": 22
+  },
+  "desolateland": {
+    "effectType": "Weather",
+    "duration": 0,
+    "onTryMovePriority": 1,
+    "onFieldResidualOrder": 1,
+    "_handlers": [
+      "tryMove",
+      "weatherModifyDamage",
+      "fieldStart",
+      "immunity",
+      "fieldResidual",
+      "fieldEnd"
+    ],
+    "id": 23
+  },
+  "sandstorm": {
+    "effectType": "Weather",
+    "duration": 5,
+    "onModifySpDPriority": 10,
+    "onFieldResidualOrder": 1,
+    "_handlers": [
+      "durationCallback",
+      "modifySpD",
+      "fieldStart",
+      "fieldResidual",
+      "weather",
+      "fieldEnd"
+    ],
+    "id": 24
+  },
+  "hail": {
+    "effectType": "Weather",
+    "duration": 5,
+    "onFieldResidualOrder": 1,
+    "_handlers": [
+      "durationCallback",
+      "fieldStart",
+      "fieldResidual",
+      "weather",
+      "fieldEnd"
+    ],
+    "id": 25
+  },
+  "snowscape": {
+    "effectType": "Weather",
+    "duration": 5,
+    "onModifyDefPriority": 10,
+    "onFieldResidualOrder": 1,
+    "_handlers": [
+      "durationCallback",
+      "modifyDef",
+      "fieldStart",
+      "fieldResidual",
+      "fieldEnd"
+    ],
+    "id": 26
+  },
+  "deltastream": {
+    "effectType": "Weather",
+    "duration": 0,
+    "onEffectivenessPriority": -1,
+    "onFieldResidualOrder": 1,
+    "_handlers": [
+      "effectiveness",
+      "fieldStart",
+      "fieldResidual",
+      "fieldEnd"
+    ],
+    "id": 27
+  },
+  "dynamax": {
+    "noCopy": true,
+    "onBeforeSwitchOutPriority": -1,
+    "onDragOutPriority": 2,
+    "onResidualPriority": -100,
+    "_handlers": [
+      "start",
+      "tryAddVolatile",
+      "beforeSwitchOut",
+      "sourceModifyDamage",
+      "dragOut",
+      "residual",
+      "end"
+    ],
+    "id": 28
+  },
+  "commanded": {
+    "noCopy": true,
+    "onDragOutPriority": 2,
+    "onTrapPokemonPriority": -11,
+    "_handlers": [
+      "start",
+      "dragOut",
+      "trapPokemon"
+    ],
+    "id": 29
+  },
+  "commanding": {
+    "noCopy": true,
+    "onDragOutPriority": 2,
+    "onTrapPokemonPriority": -11,
+    "onInvulnerability": false,
+    "_handlers": [
+      "dragOut",
+      "trapPokemon",
+      "beforeTurn"
+    ],
+    "id": 30
+  },
+  "arceus": {
+    "onTypePriority": 1,
+    "_handlers": [
+      "type"
+    ],
+    "id": 31
+  },
+  "silvally": {
+    "onTypePriority": 1,
+    "_handlers": [
+      "type"
+    ],
+    "id": 32
+  },
+  "zacian": {
+    "_handlers": [
+      "battleStart"
+    ],
+    "id": 33
+  },
+  "zamazenta": {
+    "_handlers": [
+      "battleStart"
+    ],
+    "id": 34
+  },
+  "rolloutstorage": {
+    "duration": 2,
+    "_handlers": [
+      "basePower"
+    ],
+    "id": 35
+  }
+}

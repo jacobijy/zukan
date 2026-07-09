@@ -37,36 +37,58 @@ export function isWasmReady(): boolean {
   return wasmModule !== null;
 }
 
-// ============== 加密解密 API ==============
+// ============== 图鉴二进制文件加解密 API ==============
 
 /**
- * 生成 AES-256-GCM 随机密钥 (Base64 编码)
+ * 解密图鉴加密二进制数据
+ * 文件格式：[magic(4B)="ZKDX"] [version(1B)] [nonce(12B)] [ciphertext(...)] [tag(16B)]
+ *
+ * @param encryptedData 加密的二进制数据
+ * @param dekHex 32 字节 DEK 密钥的 hex 字符串
+ * @returns 解密后的明文数据
+ */
+export function decryptZukan(encryptedData: Uint8Array, dekHex: string): Uint8Array {
+  assertWasmReady();
+  return wasmModule!.decrypt_zukan(encryptedData, dekHex);
+}
+
+/**
+ * 加密图鉴数据
+ *
+ * @param plaintext 明文数据
+ * @param dekHex 32 字节 DEK 密钥的 hex 字符串
+ * @param version 密钥版本号
+ * @returns 完整的加密二进制数据（含文件头）
+ */
+export function encryptZukan(plaintext: Uint8Array, dekHex: string, version: number): Uint8Array {
+  assertWasmReady();
+  return wasmModule!.encrypt_zukan(plaintext, dekHex, version);
+}
+
+/**
+ * 校验文件是否为合法的图鉴加密文件格式
+ */
+export function isValidZukanFile(data: Uint8Array): boolean {
+  assertWasmReady();
+  return wasmModule!.is_valid_zukan_file(data);
+}
+
+/**
+ * 获取文件的密钥版本号
+ */
+export function getZukanVersion(data: Uint8Array): number {
+  assertWasmReady();
+  return wasmModule!.get_zukan_version(data);
+}
+
+// ============== 通用密码学工具 API ==============
+
+/**
+ * 生成 AES-256-GCM 随机密钥 (Hex 编码)
  */
 export function generateKey(): string {
   assertWasmReady();
   return wasmModule!.generate_key();
-}
-
-/**
- * AES-256-GCM 加密
- * @param key Base64 编码的密钥
- * @param plaintext 明文
- * @returns Base64 编码的密文 (nonce + ciphertext)
- */
-export function encrypt(key: string, plaintext: string): string {
-  assertWasmReady();
-  return wasmModule!.encrypt(key, plaintext);
-}
-
-/**
- * AES-256-GCM 解密
- * @param key Base64 编码的密钥
- * @param ciphertext Base64 编码的密文
- * @returns 明文
- */
-export function decrypt(key: string, ciphertext: string): string {
-  assertWasmReady();
-  return wasmModule!.decrypt(key, ciphertext);
 }
 
 /**
@@ -93,7 +115,7 @@ export function hmacVerify(key: string, data: string, signature: string): boolea
   return wasmModule!.hmac_verify(key, data, signature);
 }
 
-// ============== 战斗模拟器 API ==============
+// ============== 伤害计算器 API ==============
 
 /** 招式标志位常量（位掩码） */
 export const MOVE_FLAG = {

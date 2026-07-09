@@ -1,59 +1,43 @@
 <template>
-  <view class="bg-white rounded-xl shadow-md p-6 mb-6">
-    <view class="flex justify-between items-center mb-4">
-      <text class="text-xl font-bold text-gray-800">招式列表</text>
+  <view class="archive-section mb-3 p-4">
+    <view class="mb-3 flex items-center justify-between gap-3">
+      <text class="text-lg font-black tracking-[-0.03em] text-[#24262b]">招式列表</text>
       <picker mode="selector" :range="['全部', '升级', '技能机器', '遗传', '教授招式']" @change="onMoveTypeChange">
-        <view class="px-3 py-1 border border-gray-300 rounded-lg text-sm flex items-center gap-1">
+        <view class="move-picker">
           <text>{{ moveTypeFilterText }}</text>
-          <!-- 下拉箭头图标 -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-[#666]">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </view>
       </picker>
     </view>
 
-    <view class="overflow-x-auto">
-      <view class="moves-table min-w-full divide-y divide-gray-200">
-        <view
-          class="moves-header grid grid-cols-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          <view class="px-3">招式名称</view>
-          <view class="px-3">类型</view>
-          <view class="px-3">分类</view>
-          <view class="px-3">威力</view>
-          <view class="px-3">命中率</view>
+    <view class="flex flex-col gap-2">
+      <view v-for="(move, index) in filteredMoves" :key="index" class="move-card">
+        <view class="min-w-0 flex-1">
+          <text class="block truncate text-sm font-black text-[#24262b]">{{ getMoveName(move) }}</text>
+          <text class="mt-0.5 block text-[10px] font-black tracking-[0.12em] text-[#8d929c]">{{ getMoveCategory(move) }}</text>
         </view>
-
-        <view v-for="(move, index) in filteredMoves" :key="index"
-          class="moves-row grid grid-cols-5 py-3 text-sm hover:bg-gray-50">
-          <view class="px-3 font-medium text-gray-900">{{ move.name }}</view>
-          <view class="px-3"><text :class="getTypeBadgeClass(move.type)">{{ getTypeName(move.type) }}</text></view>
-          <view class="px-3">{{ move.category || '-' }}</view>
-          <view class="px-3">{{ move.power || '-' }}</view>
-          <view class="px-3">{{ move.accuracy || '-' }}</view>
+        <text :class="getTypeBadgeClass(getMoveType(move))">{{ getTypeName(getMoveType(move)) }}</text>
+        <view class="move-card__stats">
+          <text>{{ getMovePower(move) }}</text>
+          <text>{{ getMoveAccuracy(move) }}</text>
         </view>
       </view>
     </view>
 
-    <!-- 分页控件 -->
-    <view class="mt-4 flex justify-center">
-      <nav class="flex items-center space-x-1">
-        <button
-          class="px-2 py-1 rounded border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50"
-          @click="prevPage" :disabled="currentPage <= 1">
-          上一页
-        </button>
-        <button v-for="page in totalPages" :key="page"
-          :class="{ 'px-2 py-1 rounded border border-gray-300 bg-red-500 text-xs font-medium text-white': page === currentPage, 'px-2 py-1 rounded border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50': page !== currentPage }"
-          @click="goToPage(page)">
-          {{ page }}
-        </button>
-        <button
-          class="px-2 py-1 rounded border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50"
-          @click="nextPage" :disabled="currentPage >= totalPages">
-          下一页
-        </button>
-      </nav>
+    <view v-if="totalPages > 1" class="mt-4 flex justify-center gap-2">
+      <button class="page-button" @click="prevPage" :disabled="currentPage <= 1">上一页</button>
+      <button
+        v-for="page in totalPages"
+        :key="page"
+        class="page-button"
+        :class="page === currentPage ? 'page-button--active' : ''"
+        @click="goToPage(page)"
+      >
+        {{ page }}
+      </button>
+      <button class="page-button" @click="nextPage" :disabled="currentPage >= totalPages">下一页</button>
     </view>
   </view>
 </template>
@@ -68,35 +52,39 @@ export default {
   },
   data() {
     return {
-      moveTypeFilter: -1, // -1表示全部，0-4对应不同获取方式
+      moveTypeFilter: -1,
       movesPerPage: 10,
       currentPage: 1
     }
   },
   computed: {
+    normalizedMoves() {
+      if (!this.moves.length) {
+        return [];
+      }
+      return this.moves.map(move => typeof move === 'string' ? { name: move } : move);
+    },
     filteredMoves() {
-      // 根据筛选条件过滤招式
-      let filtered = this.moves;
+      let filtered = this.normalizedMoves;
 
       if (this.moveTypeFilter >= 0) {
         const moveTypes = ['level-up', 'machine', 'egg', 'tutor'];
-        filtered = this.moves.filter(move => move.learnMethod === moveTypes[this.moveTypeFilter]);
+        filtered = this.normalizedMoves.filter(move => move.learnMethod === moveTypes[this.moveTypeFilter]);
       }
 
-      // 分页
       const start = (this.currentPage - 1) * this.movesPerPage;
       const end = start + this.movesPerPage;
       return filtered.slice(start, end);
     },
     totalPages() {
-      let filteredCount = this.moves.length;
+      let filteredCount = this.normalizedMoves.length;
 
       if (this.moveTypeFilter >= 0) {
         const moveTypes = ['level-up', 'machine', 'egg', 'tutor'];
-        filteredCount = this.moves.filter(move => move.learnMethod === moveTypes[this.moveTypeFilter]).length;
+        filteredCount = this.normalizedMoves.filter(move => move.learnMethod === moveTypes[this.moveTypeFilter]).length;
       }
 
-      return Math.ceil(filteredCount / this.movesPerPage);
+      return Math.max(1, Math.ceil(filteredCount / this.movesPerPage));
     },
     moveTypeFilterText() {
       const filterTexts = ['全部', '升级', '技能机器', '遗传', '教授招式'];
@@ -126,35 +114,38 @@ export default {
     }
   },
   methods: {
+    getMoveName(move) {
+      return move.name || '未知招式';
+    },
+    getMoveType(move) {
+      return move.type || 'normal';
+    },
+    getMoveCategory(move) {
+      return move.category || '记录';
+    },
+    getMovePower(move) {
+      return move.power || '—';
+    },
+    getMoveAccuracy(move) {
+      return move.accuracy || '—';
+    },
     getTypeName(type) {
       return this.typeNames[type] || type;
     },
     getTypeBadgeClass(type) {
       const typeColors = {
-        normal: 'bg-normal',
-        fire: 'bg-fire',
-        water: 'bg-water',
-        electric: 'bg-electric',
-        grass: 'bg-grass',
-        ice: 'bg-ice',
-        fighting: 'bg-fighting',
-        poison: 'bg-poison',
-        ground: 'bg-ground',
-        flying: 'bg-flying',
-        psychic: 'bg-psychic',
-        bug: 'bg-bug',
-        rock: 'bg-rock',
-        ghost: 'bg-ghost',
-        dragon: 'bg-dragon',
-        dark: 'bg-dark',
-        steel: 'bg-steel',
-        fairy: 'bg-fairy'
+        normal: 'bg-gradient-to-br from-[#A8A77A] to-[#72714d]',
+        fire: 'bg-gradient-to-br from-[#f58b38] to-[#c84b22]',
+        water: 'bg-gradient-to-br from-[#5b95f0] to-[#2763c8]',
+        electric: 'bg-gradient-to-br from-[#ffd84a] to-[#d99b00] text-[#2f2a12]',
+        grass: 'bg-gradient-to-br from-[#83c85a] to-[#3f8f3d]',
+        poison: 'bg-gradient-to-br from-[#a44ab0] to-[#682672]'
       };
-      return `type-badge ${typeColors[type] || 'bg-gray-500'}`;
+      return `type-badge ${typeColors[type] || 'bg-gradient-to-br from-[#78906a] to-[#43543a]'}`;
     },
     onMoveTypeChange(e) {
       this.moveTypeFilter = e.detail.value - 1;
-      this.currentPage = 1; // 重置页码
+      this.currentPage = 1;
     },
     prevPage() {
       if (this.currentPage > 1) {
@@ -174,20 +165,78 @@ export default {
 </script>
 
 <style scoped>
+.archive-section {
+  border: 1px solid #e5e7ee;
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(48, 55, 72, 0.08);
+}
+
+.move-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid #e1e4eb;
+  border-radius: 999px;
+  color: #6f7682;
+  font-size: 12px;
+  font-weight: 900;
+  background: #f5f6fa;
+}
+
+.move-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid #e5e7ee;
+  border-radius: 18px;
+  background: #f5f6fa;
+}
+
 .type-badge {
-  @apply px-2 py-0.5 rounded-full text-xs font-bold text-white inline-block;
+  display: inline-block;
+  flex-shrink: 0;
+  min-width: 44px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  text-align: center;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
 }
 
-.moves-header,
-.moves-row {
-  @apply grid grid-cols-5 py-2 text-left text-sm;
+.move-card__stats {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 28px;
+  color: #6f7682;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: right;
 }
 
-.moves-header {
-  @apply font-medium text-gray-500 border-b;
+.page-button {
+  padding: 6px 10px;
+  border: 1px solid #e1e4eb;
+  border-radius: 999px;
+  color: #6f7682;
+  font-size: 12px;
+  font-weight: 900;
+  background: #f5f6fa;
 }
 
-.moves-row {
-  @apply border-b border-gray-100 hover:bg-gray-50 transition-colors;
+.page-button--active {
+  color: #ffffff;
+  background: linear-gradient(135deg, #73b7ff, #357df4);
+}
+
+.page-button::after {
+  border: none !important;
 }
 </style>

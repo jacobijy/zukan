@@ -1,6 +1,6 @@
 <template>
     <view
-        class="more-page min-h-screen"
+        class="more-page min-h-screen page-bg"
         :style="{
             paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))',
             paddingBottom: '104px'
@@ -42,11 +42,7 @@
                 </view>
 
                 <view class="section-label mt-6">图鉴实验室</view>
-                <view class="note-card">
-                    <view class="note-card__shine"></view>
-                    <text class="relative z-10 block text-[13px] font-bold text-[#3b3f48]">这些入口会保持轻量。</text>
-                    <text class="relative z-10 mt-1 block text-[12px] font-medium leading-5 text-[#8a8f99]">像系统设置一样快速扫描，点开后再进入更完整的研究视图。</text>
-                </view>
+                <NoteCard title="这些入口会保持轻量。" desc="像系统设置一样快速扫描，点开后再进入更完整的研究视图。" />
             </view>
         </view>
 
@@ -58,6 +54,7 @@
 import NavBar from "@/components/NavBar.vue";
 import TabBar from "@/components/TabBar.vue";
 import ListRow from "@/components/shared/ListRow.vue";
+import NoteCard from "@/components/shared/NoteCard.vue";
 import { ref } from "vue";
 
 const currentTab = ref(1);
@@ -66,7 +63,6 @@ const featureItems = [
     { title: '伤害计算器', desc: '计算技能伤害、克制关系与实战收益。', meta: '对战', url: '/pages/calc/calc', icon: 'target', iconClass: 'feature-row__icon--green' },
     { title: '对战模拟器', desc: '用研究记录的方式复盘宝可梦对战场景。', meta: '沙盘', url: '/pages/simulate/simulate', icon: 'grid', iconClass: 'feature-row__icon--blue' },
     { title: '数据统计', desc: '查看属性、能力值和收集进度的统计摘要。', meta: '资料', url: '/pages/data/data', icon: 'chart', iconClass: 'feature-row__icon--violet' },
-    { title: '联系我们', desc: '提交问题反馈，让这本图鉴继续完善。', meta: '反馈', url: '/pages/contact/contact', icon: 'mail', iconClass: 'feature-row__icon--gold' }
 ];
 
 const goToPage = (url: string) => {
@@ -123,12 +119,6 @@ const onTabChange = (index: number) => {
     background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 18px 42px rgba(48, 55, 72, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88);
     backdrop-filter: blur(18px);
-}
-
-.note-card {
-    position: relative;
-    padding: 16px;
-    overflow: hidden;
 }
 
 .note-card__shine {

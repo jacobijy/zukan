@@ -1,4 +1,4 @@
-//! 战斗模拟器模块
+//! 伤害计算器模块
 //! 高性能伤害计算，集成类型克制、天气、场地、特性等所有修正因子。
 
 use wasm_bindgen::prelude::*;
@@ -61,6 +61,55 @@ pub const MOVE_FLAG_PULSE: u16 = 1 << 4;    // 波动类 (Mega Launcher 检查)
 pub const MOVE_FLAG_POWDER: u16 = 1 << 5;   // 粉末类
 pub const MOVE_FLAG_BULLET: u16 = 1 << 6;   // 子弹类
 pub const MOVE_FLAG_HEAL: u16 = 1 << 7;     // 回复类
+
+// ============================================================
+// 特性 ID (来自 AbilityId.ts)
+// ============================================================
+
+// ── 攻击方特性 ──
+pub const ABILITY_HUGE_POWER: u16 = 37;         // 大力士
+pub const ABILITY_PURE_POWER: u16 = 74;         // 瑜伽之力
+pub const ABILITY_HUSTLE: u16 = 55;             // 活力
+pub const ABILITY_GUTS: u16 = 62;               // 毅力
+pub const ABILITY_OVERGROW: u16 = 65;           // 茂盛
+pub const ABILITY_BLAZE: u16 = 66;              // 猛火
+pub const ABILITY_TORRENT: u16 = 67;            // 激流
+pub const ABILITY_SWARM: u16 = 68;              // 虫之预感
+pub const ABILITY_IRON_FIST: u16 = 89;          // 铁拳
+pub const ABILITY_STRONG_JAW: u16 = 173;        // 强壮之颚
+pub const ABILITY_MEGA_LAUNCHER: u16 = 178;     // Mega Launcher
+pub const ABILITY_TOUGH_CLAWS: u16 = 181;       // 硬爪
+pub const ABILITY_DRAGONS_MAW: u16 = 263;       // 龙颚
+pub const ABILITY_ANALYTIC: u16 = 148;          // 分析
+pub const ABILITY_DEFEATIST: u16 = 129;         // 颓废
+pub const ABILITY_SLOW_START: u16 = 112;        // 慢启动
+pub const ABILITY_TECHNICIAN: u16 = 101;        // 技术高手
+pub const ABILITY_REFRIGERATE: u16 = 174;       // 冰冻皮肤
+pub const ABILITY_PIXILATE: u16 = 182;          // 妖精皮肤
+pub const ABILITY_AERILATE: u16 = 184;          // 飞行皮肤
+pub const ABILITY_GALVANIZE: u16 = 206;         // 电气皮肤
+pub const ABILITY_ADAPTABILITY: u16 = 91;       // 适应力
+
+// ── 防御方特性 ──
+pub const ABILITY_THICK_FAT: u16 = 47;          // 厚脂肪
+pub const ABILITY_FILTER: u16 = 111;            // 过滤
+pub const ABILITY_SOLID_ROCK: u16 = 116;        // 坚石
+pub const ABILITY_PRISM_ARMOR: u16 = 232;       // 棱镜装甲
+pub const ABILITY_MULTISCALE: u16 = 136;        // 多重鳞片
+pub const ABILITY_SHADOW_SHIELD: u16 = 231;     // 暗影护盾
+pub const ABILITY_FUR_COAT: u16 = 169;          // 毛皮大衣
+pub const ABILITY_ICE_SCALES: u16 = 246;        // 冰鳞粉
+pub const ABILITY_FLUFFY: u16 = 218;            // 毛茸茸
+pub const ABILITY_HEATPROOF: u16 = 85;          // 耐火
+
+// ── 交互/规则类 ──
+pub const ABILITY_MOLD_BREAKER: u16 = 104;      // 破格
+pub const ABILITY_TURBOBLAZE: u16 = 163;        // 涡轮火焰
+pub const ABILITY_TERAVOLT: u16 = 164;          // 兆级电压
+pub const ABILITY_NEUTRALIZING_GAS: u16 = 256;  // 化学变化气体
+pub const ABILITY_CLOUD_NINE: u16 = 13;         // 无关天气
+pub const ABILITY_AIR_LOCK: u16 = 76;           // 气闸
+pub const ABILITY_UNAWARE: u16 = 109;           // 纯朴
 
 // ============================================================
 // 属性克制表
@@ -326,8 +375,8 @@ fn calc_stab(move_type: u8, atk_type1: u8, atk_type2: u8, ability: u16) -> u16 {
                    (atk_type2 > 0 && atk_type2 == move_type);
     if !has_type { return 100; }
 
-    // 适应力 (AbilityId=91)
-    if ability == 91 { return 200; }
+    // 适应力
+    if ability == ABILITY_ADAPTABILITY { return 200; }
     150 // 1.5x
 }
 
@@ -364,49 +413,48 @@ fn calc_terrain_mod(terrain: u8, move_type: u8, _move_category: u8) -> u16 {
 fn lookup_attacker_ability(ability: u16, move_type: u8, base_power: u8, move_flags: u16) -> u16 {
     match ability {
         // ── 直接倍率类 ──
-        37 => 200,  // Huge Power: 物攻×2
-        74 => 200,  // Pure Power: 物攻×2
-        55 => 150,  // Hustle: 物攻×1.5
-        62 => 150,  // Guts: 异常时物攻×1.5
+        ABILITY_HUGE_POWER | ABILITY_PURE_POWER => 200,
+        ABILITY_HUSTLE => 150,
+        ABILITY_GUTS => 150,
 
-        // ── 属性增伤类（HP<1/3时×1.5） ──
-        65 if move_type == TYPE_GRASS => 150,   // Overgrow
-        66 if move_type == TYPE_FIRE => 150,    // Blaze
-        67 if move_type == TYPE_WATER => 150,   // Torrent
-        68 if move_type == TYPE_BUG => 150,     // Swarm
+        // ── 属性增伤类（HP<1/3时×1.5，简化直接生效） ──
+        ABILITY_OVERGROW if move_type == TYPE_GRASS => 150,
+        ABILITY_BLAZE if move_type == TYPE_FIRE => 150,
+        ABILITY_TORRENT if move_type == TYPE_WATER => 150,
+        ABILITY_SWARM if move_type == TYPE_BUG => 150,
 
         // ── 铁拳：拳类招式×1.2 ──
-        89 if (move_flags & MOVE_FLAG_PUNCH) != 0 => 120,
+        ABILITY_IRON_FIST if (move_flags & MOVE_FLAG_PUNCH) != 0 => 120,
 
         // ── 强壮之颚：啃咬类×1.5 ──
-        173 if (move_flags & MOVE_FLAG_BITE) != 0 => 150,
+        ABILITY_STRONG_JAW if (move_flags & MOVE_FLAG_BITE) != 0 => 150,
 
         // ── Mega Launcher：波动类×1.5 ──
-        178 if (move_flags & MOVE_FLAG_PULSE) != 0 => 150,
+        ABILITY_MEGA_LAUNCHER if (move_flags & MOVE_FLAG_PULSE) != 0 => 150,
 
         // ── 硬爪：接触招式×1.3 ──
-        181 if (move_flags & MOVE_FLAG_CONTACT) != 0 => 130,
+        ABILITY_TOUGH_CLAWS if (move_flags & MOVE_FLAG_CONTACT) != 0 => 130,
 
         // ── 龙颚：龙系×1.5 ──
-        263 if move_type == TYPE_DRAGON => 150,
+        ABILITY_DRAGONS_MAW if move_type == TYPE_DRAGON => 150,
 
         // ── 分析：最后行动时×1.3（简化直接生效） ──
-        148 => 130,
+        ABILITY_ANALYTIC => 130,
 
-        // ── 颓废：HP<50%时×0.5 ──
-        129 => 50,
+        // ── 颓废：HP<50%时×0.5（简化直接生效） ──
+        ABILITY_DEFEATIST => 50,
 
-        // ── 慢启动：×0.5 ──
-        112 => 50,
+        // ── 慢启动：×0.5（简化直接生效） ──
+        ABILITY_SLOW_START => 50,
 
         // ── 技术高手：威力≤60时×1.5 ──
-        101 if base_power <= 60 => 150,
+        ABILITY_TECHNICIAN if base_power <= 60 => 150,
 
         // ── 皮肤类（变属性+×1.2，STAB已在外部处理属性变更） ──
-        174 if move_type == TYPE_ICE => 120,    // Refrigerate
-        182 if move_type == TYPE_FAIRY => 120,  // Pixilate
-        184 if move_type == TYPE_FLYING => 120, // Aerilate
-        206 if move_type == TYPE_ELECTRIC => 120, // Galvanize
+        ABILITY_REFRIGERATE if move_type == TYPE_ICE => 120,
+        ABILITY_PIXILATE if move_type == TYPE_FAIRY => 120,
+        ABILITY_AERILATE if move_type == TYPE_FLYING => 120,
+        ABILITY_GALVANIZE if move_type == TYPE_ELECTRIC => 120,
 
         _ => 100,
     }
@@ -421,27 +469,27 @@ fn calc_defender_ability_mod(
     is_super_effective: bool,
 ) -> u16 {
     match ability {
-        // 厚脂肪 (47): 火/冰 ×0.5
-        47 if move_type == TYPE_FIRE || move_type == TYPE_ICE => 50,
+        // 厚脂肪: 火/冰 ×0.5
+        ABILITY_THICK_FAT if move_type == TYPE_FIRE || move_type == TYPE_ICE => 50,
 
-        // 过滤 (111) / 坚石 (116) / 棱镜装甲 (232): 效果绝佳时 ×0.75
-        111 | 116 | 232 if is_super_effective => 75,
+        // 过滤 / 坚石 / 棱镜装甲: 效果绝佳时 ×0.75
+        ABILITY_FILTER | ABILITY_SOLID_ROCK | ABILITY_PRISM_ARMOR if is_super_effective => 75,
 
-        // 多重鳞片 (136) / 暗影护盾 (231): ×0.5
-        136 | 231 => 50,
+        // 多重鳞片 / 暗影护盾: ×0.5
+        ABILITY_MULTISCALE | ABILITY_SHADOW_SHIELD => 50,
 
-        // 毛皮大衣 (169): 物攻 ×0.5
-        169 if move_category == 0 => 50,
+        // 毛皮大衣: 物攻 ×0.5
+        ABILITY_FUR_COAT if move_category == 0 => 50,
 
-        // 冰鳞粉 (246): 特攻 ×0.5
-        246 if move_category == 1 => 50,
+        // 冰鳞粉: 特攻 ×0.5
+        ABILITY_ICE_SCALES if move_category == 1 => 50,
 
-        // 毛茸茸 (218): 接触物攻 ×0.5, 火 ×2
-        218 if move_type == TYPE_FIRE => 200,
-        218 if move_category == 0 && (move_flags & MOVE_FLAG_CONTACT) != 0 => 50,
+        // 毛茸茸: 接触物攻 ×0.5, 火 ×2
+        ABILITY_FLUFFY if move_type == TYPE_FIRE => 200,
+        ABILITY_FLUFFY if move_category == 0 && (move_flags & MOVE_FLAG_CONTACT) != 0 => 50,
 
-        // 肥脂 (85): 火 ×0.5
-        85 if move_type == TYPE_FIRE => 50,
+        // 耐火: 火 ×0.5
+        ABILITY_HEATPROOF if move_type == TYPE_FIRE => 50,
 
         _ => 100,
     }
@@ -457,12 +505,12 @@ pub fn calculate_damage(input: &DamageInput) -> u16 {
     let l = u32::from(input.level);
 
     // ─── 特性交互预处理 ───
-    // 破格类 (Mold Breaker=104, Turboblaze=163, Teravolt=164): 无视防御方特性
-    let ignore_def_ability = matches!(input.attacker_ability, 104 | 163 | 164);
-    // 化学变化气体 (256): 压制所有特性
-    let ngas_active = input.attacker_ability == 256 || input.defender_ability == 256;
-    // 无关天气 (13) / 气闸 (76): 压制天气
-    let ignore_weather = (input.attacker_ability == 13 || input.attacker_ability == 76) &&
+    // 破格类: 无视防御方特性
+    let ignore_def_ability = matches!(input.attacker_ability, ABILITY_MOLD_BREAKER | ABILITY_TURBOBLAZE | ABILITY_TERAVOLT);
+    // 化学变化气体: 压制所有特性
+    let ngas_active = input.attacker_ability == ABILITY_NEUTRALIZING_GAS || input.defender_ability == ABILITY_NEUTRALIZING_GAS;
+    // 无关天气 / 气闸: 压制天气
+    let ignore_weather = (input.attacker_ability == ABILITY_CLOUD_NINE || input.attacker_ability == ABILITY_AIR_LOCK) &&
                          !ngas_active;
 
     // 有效防御方特性（被破格或化学气体压制时为 0）
@@ -470,10 +518,10 @@ pub fn calculate_damage(input: &DamageInput) -> u16 {
     // 有效攻击方特性（被化学气体压制时为 0）
     let effective_atk_ability = if ngas_active { 0 } else { input.attacker_ability };
 
-    // 纯朴 (109) 攻击方: 无视防御方能力等级
-    let ignore_def_stages = effective_atk_ability == 109 && !ngas_active;
-    // 纯朴 (109) 防御方: 无视攻击方能力等级
-    let ignore_atk_stages = effective_def_ability == 109 && !ngas_active;
+    // 纯朴 攻击方: 无视防御方能力等级
+    let ignore_def_stages = effective_atk_ability == ABILITY_UNAWARE && !ngas_active;
+    // 纯朴 防御方: 无视攻击方能力等级
+    let ignore_atk_stages = effective_def_ability == ABILITY_UNAWARE && !ngas_active;
 
     // 选择对应能力等级
     let (raw_atk_stage, raw_def_stage) = if input.move_category == 0 {
@@ -542,8 +590,8 @@ pub fn calculate_damage(input: &DamageInput) -> u16 {
     }
 
     // ─── 烧伤修正 (物攻×0.5) ───
-    // 毅力(Guts=62) 覆盖烧伤: 不受烧伤减攻，反而获得 ×1.5 加成（已在 lookup_attacker_ability 中处理）
-    let has_guts = effective_atk_ability == 62;
+    // 毅力覆盖烧伤: 不受烧伤减攻，反而获得 ×1.5 加成（已在 lookup_attacker_ability 中处理）
+    let has_guts = effective_atk_ability == ABILITY_GUTS;
     if input.is_burned != 0 && input.move_category == 0 && !has_guts {
         damage = damage * 50 / 100;
     }

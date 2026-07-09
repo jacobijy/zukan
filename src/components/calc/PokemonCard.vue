@@ -19,7 +19,7 @@
                 <view class="flex items-center gap-2 mt-1">
                     <text class="calc-pkm-name">{{ pokemon?.name ?? placeholderText }}</text>
                     <view v-if="pokemon" class="flex gap-1">
-                        <text v-for="t in pokemon.types" :key="t" class="calc-type-badge" :style="{ background: typeColor(t) }">{{ typeLabel(t) }}</text>
+                        <text v-for="t in pokemon.types" :key="t" class="calc-type-badge" :style="{ background: getTypeColor(t) }">{{ getTypeLabel(t) }}</text>
                     </view>
                 </view>
             </view>
@@ -75,6 +75,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { calcStat } from '@/pages/calc/calc-engine';
+import { getTypeColor, getTypeLabel } from '@/utils/helpers';
 
 interface PokemonData {
     name: string;
@@ -105,21 +106,6 @@ const emit = defineEmits<{
     'inc-stage2': [];
 }>();
 
-const typeColorMap: Record<string, string> = {
-    normal:'#A8A878', fire:'#F08030', water:'#6890F0', electric:'#F8D030',
-    grass:'#78C850', ice:'#98D8D8', fighting:'#C03028', poison:'#A040A0',
-    ground:'#E0C068', flying:'#A890F0', psychic:'#F85888', bug:'#A8B820',
-    rock:'#B8A038', ghost:'#705898', dragon:'#7038F8', dark:'#705848',
-    steel:'#B8B8D0', fairy:'#EE99AC',
-};
-const typeLabelMap: Record<string, string> = {
-    normal:'普', fire:'火', water:'水', electric:'电', grass:'草', ice:'冰',
-    fighting:'斗', poison:'毒', ground:'地', flying:'飞', psychic:'超',
-    bug:'虫', rock:'岩', ghost:'鬼', dragon:'龙', dark:'恶', steel:'钢', fairy:'妖',
-};
-
-const typeColor = (t: string) => typeColorMap[t.toLowerCase()] || '#9da2ad';
-const typeLabel = (t: string) => typeLabelMap[t.toLowerCase()] || t;
 
 /** 从 stats 数组中取某个属性的种族值 */
 const getBaseStat = (stats: { name: string; value: number }[], key: string): number => {

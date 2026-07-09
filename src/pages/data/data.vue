@@ -1,6 +1,6 @@
 <template>
     <view
-        class="data-page min-h-screen"
+        class="data-page min-h-screen page-bg"
         :style="{
             paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))',
             paddingBottom: '104px'
@@ -81,6 +81,7 @@
 
 <script lang="ts" setup>
 import NavBar from "@/components/NavBar.vue";
+import NoteCard from "@/components/shared/NoteCard.vue";
 import TabBar from "@/components/TabBar.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 import { ref } from "vue";
@@ -113,25 +114,8 @@ const onTabChange = (index: number) => {
 
 <style lang="scss" scoped>
 .data-page {
-    position: relative;
-    overflow: hidden;
-    color: #24262b;
-    background:
-        radial-gradient(circle at 18% -10%, rgba(255, 255, 255, 0.95), transparent 34%),
-        linear-gradient(180deg, #f7f8fb 0%, #f1f2f6 46%, #eef0f5 100%);
-}
 
 .data-page::before {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    content: '';
-    background-image:
-        linear-gradient(rgba(45, 49, 58, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(45, 49, 58, 0.022) 1px, transparent 1px);
-    background-size: 32px 32px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 58%);
-}
 
 .section-label {
     padding: 0 14px 8px;
@@ -141,8 +125,7 @@ const onTabChange = (index: number) => {
     letter-spacing: 0.12em;
 }
 
-.data-list,
-.note-card {
+.data-list {
     border: 1px solid rgba(255, 255, 255, 0.78);
     border-radius: 24px;
     background: rgba(255, 255, 255, 0.92);
@@ -251,19 +234,7 @@ const onTabChange = (index: number) => {
     background: linear-gradient(135deg, #73b7ff 0%, #357df4 58%, #275bd8 100%);
 }
 
-.note-card {
-    position: relative;
-    padding: 16px;
-    overflow: hidden;
-}
 
-.note-card__shine {
-    position: absolute;
-    right: -32px;
-    top: -48px;
-    width: 130px;
-    height: 130px;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(83, 144, 244, 0.14), transparent 67%);
-}
+
+
 </style>

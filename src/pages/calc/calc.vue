@@ -1,5 +1,5 @@
 <template>
-    <view class="calc-page min-h-screen" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
+    <view class="calc-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
         <DetailNavbar title="伤害计算器" @back="goBack" />
 
         <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6">
@@ -64,7 +64,7 @@
                         <view v-else class="calc-row__main">
                             <view class="flex items-center gap-2">
                                 <text class="calc-pkm-name">{{ selectedMove.name }}</text>
-                                <text class="calc-type-badge-mini" :style="{ background: typeColor(selectedMove.type) }">{{ typeLabel(selectedMove.type) }}</text>
+                                <text class="calc-type-badge-mini" :style="{ background: getTypeColor(selectedMove.type) }">{{ getTypeLabel(selectedMove.type) }}</text>
                                 <text class="text-[12px] font-bold" :class="selectedMove.category === 'physical' ? 'text-[#e74c3c]' : 'text-[#3498db]'">{{ selectedMove.category === 'physical' ? '物理' : '特殊' }}</text>
                             </view>
                             <view class="flex items-center gap-3 mt-1">
@@ -174,6 +174,7 @@ import { calcDamage, calcStat, type CalcResult, type CalcParams, MOVE_FLAG } fro
 import { usePokemonStore } from '@/store/pokemon';
 import PokemonCard from '@/components/calc/PokemonCard.vue';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
+import { getTypeColor, getTypeLabel } from '@/utils/helpers';
 
 const pokemonStore = usePokemonStore();
 
@@ -424,20 +425,6 @@ const result = ref<CalcResult | null>(null);
 const calculating = ref(false);
 
 // ─── 属性显示辅助（招式卡用到） ───
-const typeColorMap: Record<string, string> = {
-    normal:'#A8A878', fire:'#F08030', water:'#6890F0', electric:'#F8D030',
-    grass:'#78C850', ice:'#98D8D8', fighting:'#C03028', poison:'#A040A0',
-    ground:'#E0C068', flying:'#A890F0', psychic:'#F85888', bug:'#A8B820',
-    rock:'#B8A038', ghost:'#705898', dragon:'#7038F8', dark:'#705848',
-    steel:'#B8B8D0', fairy:'#EE99AC',
-};
-const typeLabelMap: Record<string, string> = {
-    normal:'普', fire:'火', water:'水', electric:'电', grass:'草', ice:'冰',
-    fighting:'斗', poison:'毒', ground:'地', flying:'飞', psychic:'超',
-    bug:'虫', rock:'岩', ghost:'鬼', dragon:'龙', dark:'恶', steel:'钢', fairy:'妖',
-};
-const typeColor = (t: string) => typeColorMap[t.toLowerCase()] || '#9da2ad';
-const typeLabel = (t: string) => typeLabelMap[t.toLowerCase()] || t;
 
 const doCalculate = async () => {
     if (!attackerPokemon.value || !defenderPokemon.value || !selectedMove.value) {
@@ -515,25 +502,8 @@ const goBack = () => {
 
 <style scoped>
 .calc-page {
-    position: relative;
-    overflow: hidden;
-    color: #24262b;
-    background:
-        radial-gradient(circle at 18% -10%, #ffffff 0%, transparent 34%),
-        linear-gradient(180deg, #f7f8fb 0%, #f1f2f6 46%, #eef0f5 100%);
-}
 
 .calc-page::before {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    content: '';
-    background-image:
-        linear-gradient(rgba(45, 49, 58, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(45, 49, 58, 0.022) 1px, transparent 1px);
-    background-size: 32px 32px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 58%);
-}
 
 .calc-navbar {
     background: #ffffff;

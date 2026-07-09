@@ -1,5 +1,5 @@
 <template>
-    <view class="sim-page min-h-screen" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
+    <view class="sim-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
         <DetailNavbar title="对战模拟器" @back="goBack" />
 
         <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6">
@@ -80,6 +80,7 @@ import { ref } from 'vue';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 
 const rules = ref(['单打', '双打']);
+const noop = () => {};
 
 const goBack = () => {
     // DetailNavbar 已处理返回导航

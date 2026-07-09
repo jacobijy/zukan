@@ -1,14 +1,14 @@
 //! 图鉴 WASM 模块
-//! 提供加密解密和高性能模拟计算
+//! 提供图鉴二进制文件加解密（AES-256-GCM）、通用密码学工具和伤害计算
 
 use wasm_bindgen::prelude::*;
 
 // 加密解密模块
 pub mod crypto;
-// 模拟计算模块
-pub mod simulator;
+// 伤害计算模块
+pub mod calculator;
 
-use simulator::{DamageInput, BatchDamageResult};
+use calculator::{DamageInput, BatchDamageResult};
 
 // WASM 初始化
 #[wasm_bindgen(start)]
@@ -18,24 +18,38 @@ pub fn init() {
     console_error_panic_hook::set_once();
 }
 
-// ============== 加密解密 API ==============
+// ============== 图鉴二进制文件加解密 API ==============
 
-/// 生成 256 位随机密钥（Base64 编码）
+/// 解密图鉴加密二进制数据
+#[wasm_bindgen]
+pub fn decrypt_zukan(encrypted_data: &[u8], dek_hex: &str) -> Result<Vec<u8>, JsValue> {
+    crypto::decrypt_zukan(encrypted_data, dek_hex)
+}
+
+/// 加密图鉴数据
+#[wasm_bindgen]
+pub fn encrypt_zukan(plaintext: &[u8], dek_hex: &str, version: u8) -> Result<Vec<u8>, JsValue> {
+    crypto::encrypt_zukan(plaintext, dek_hex, version)
+}
+
+/// 校验文件是否为合法的图鉴加密文件格式
+#[wasm_bindgen]
+pub fn is_valid_zukan_file(data: &[u8]) -> bool {
+    crypto::is_valid_zukan_file(data)
+}
+
+/// 获取文件的密钥版本号
+#[wasm_bindgen]
+pub fn get_zukan_version(data: &[u8]) -> u8 {
+    crypto::get_zukan_version(data)
+}
+
+// ============== 通用密码学工具 API ==============
+
+/// 生成 256 位随机密钥（Hex 编码）
 #[wasm_bindgen]
 pub fn generate_key() -> String {
     crypto::generate_key()
-}
-
-/// AES-256-GCM 加密
-#[wasm_bindgen]
-pub fn encrypt(key_base64: &str, plaintext: &str) -> Result<String, JsValue> {
-    crypto::encrypt(key_base64, plaintext)
-}
-
-/// AES-256-GCM 解密
-#[wasm_bindgen]
-pub fn decrypt(key_base64: &str, ciphertext_base64: &str) -> Result<String, JsValue> {
-    crypto::decrypt(key_base64, ciphertext_base64)
 }
 
 /// SHA-256 哈希
@@ -56,38 +70,38 @@ pub fn hmac_verify(key: &str, data: &str, signature: &str) -> bool {
     crypto::hmac_verify(key, data, signature)
 }
 
-// ============== 战斗模拟器 API ==============
-// 类型在 simulator.rs 中已标注 #[wasm_bindgen]，无需再导出
+// ============== 伤害计算器 API ==============
+// 类型在 calculator.rs 中已标注 #[wasm_bindgen]，无需再导出
 
 /// 单次伤害计算
 #[wasm_bindgen]
 pub fn calculate_damage(input: &DamageInput) -> u16 {
-    simulator::calculate_damage(input)
+    calculator::calculate_damage(input)
 }
 
 /// 批量计算所有随机值的伤害范围
 #[wasm_bindgen]
 pub fn calculate_damage_batch(input: &DamageInput) -> BatchDamageResult {
-    simulator::calculate_damage_batch(input)
+    calculator::calculate_damage_batch(input)
 }
 
 /// 计算能力值
 #[wasm_bindgen]
 pub fn calculate_stat(level: u8, base: u16, iv: u8, ev: u8, nature_mod: u8) -> u16 {
-    simulator::calculate_stat(level, base, iv, ev, nature_mod)
+    calculator::calculate_stat(level, base, iv, ev, nature_mod)
 }
 
 /// 计算 HP 能力值
 #[wasm_bindgen]
 pub fn calculate_hp(level: u8, base: u16, iv: u8, ev: u8) -> u16 {
-    simulator::calculate_hp(level, base, iv, ev)
+    calculator::calculate_hp(level, base, iv, ev)
 }
 
 /// 获取性格修正
 /// 返回 [atk, def, spa, spd, spe] 修正值 (90/100/110)
 #[wasm_bindgen]
 pub fn calculate_nature_mod(nature_id: u8) -> Vec<u8> {
-    simulator::calculate_nature_mod(nature_id).to_vec()
+    calculator::calculate_nature_mod(nature_id).to_vec()
 }
 
 // ============== 批量计算包装（与新版 DamageInput 兼容） ==============

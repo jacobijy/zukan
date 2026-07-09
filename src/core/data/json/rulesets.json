@@ -1,0 +1,1596 @@
+{
+  "standardag": {
+    "effectType": "ValidatorRule",
+    "name": 1209,
+    "desc": "The minimal ruleset for Anything Goes",
+    "ruleset": [
+      "Obtainable",
+      "Team Preview",
+      "HP Percentage Mod",
+      "Cancel Mod",
+      "Endless Battle Clause"
+    ]
+  },
+  "standard": {
+    "effectType": "ValidatorRule",
+    "name": 1208,
+    "desc": "The standard ruleset for all official Smogon singles tiers (Ubers, OU, etc.)",
+    "ruleset": [
+      "Standard AG",
+      "Sleep Clause Mod",
+      "Species Clause",
+      "Nickname Clause",
+      "OHKO Clause",
+      "Evasion Items Clause",
+      "Evasion Moves Clause"
+    ]
+  },
+  "standardnext": {
+    "effectType": "ValidatorRule",
+    "name": 1212,
+    "desc": "The standard ruleset for the NEXT mod",
+    "ruleset": [
+      "+Unreleased",
+      "Sleep Clause Mod",
+      "Species Clause",
+      "Nickname Clause",
+      "OHKO Clause",
+      "HP Percentage Mod",
+      "Cancel Mod"
+    ],
+    "banlist": [
+      225
+    ]
+  },
+  "flatrules": {
+    "effectType": "ValidatorRule",
+    "name": 405,
+    "desc": "The in-game Flat Rules: Adjust Level Down 50, Species Clause, Item Clause = 1, -Mythical, -Restricted Legendary, Bring 6 Pick 3-6 depending on game type.",
+    "ruleset": [
+      "Obtainable",
+      "Team Preview",
+      "Species Clause",
+      "Nickname Clause",
+      "Item Clause = 1",
+      "Adjust Level Down = 50",
+      "Picked Team Size = Auto",
+      "Cancel Mod"
+    ],
+    "banlist": [
+      851,
+      1042,
+      552
+    ]
+  },
+  "limittworestricted": {
+    "effectType": "ValidatorRule",
+    "name": 722,
+    "desc": "Limit two restricted Pokémon (flagged with * in the rules list)",
+    "_handlers": [
+      "validateTeam"
+    ]
+  },
+  "limitonerestricted": {
+    "effectType": "ValidatorRule",
+    "name": 721,
+    "desc": "Limit one restricted Pokémon (flagged with * in the rules list)",
+    "_handlers": [
+      "validateTeam"
+    ]
+  },
+  "standarddoubles": {
+    "effectType": "ValidatorRule",
+    "name": 1210,
+    "desc": "The standard ruleset for all official Smogon doubles tiers",
+    "ruleset": [
+      "Standard AG",
+      "Species Clause",
+      "Nickname Clause",
+      "OHKO Clause",
+      "Evasion Moves Clause",
+      "Gravity Sleep Clause"
+    ]
+  },
+  "standardoms": {
+    "effectType": "ValidatorRule",
+    "name": 1214,
+    "desc": "The standard ruleset for all Smogon OMs (Almost Any Ability, STABmons, etc.)",
+    "ruleset": [
+      "Standard AG",
+      "Species Clause",
+      "Nickname Clause",
+      "OHKO Clause",
+      "Evasion Moves Clause",
+      "Overflow Stat Mod"
+    ]
+  },
+  "standardnatdex": {
+    "effectType": "ValidatorRule",
+    "name": 1213,
+    "desc": "The standard ruleset for all National Dex tiers",
+    "ruleset": [
+      "Standard AG",
+      "NatDex Mod",
+      "Species Clause",
+      "Nickname Clause",
+      "OHKO Clause",
+      "Evasion Clause",
+      "Sleep Clause Mod"
+    ]
+  },
+  "natdexmod": {
+    "effectType": "ValidatorRule",
+    "name": 858,
+    "desc": "Mechanics for National Dex formats",
+    "ruleset": [
+      "+Unobtainable",
+      "+Past",
+      "Sketch Post-Gen 7 Moves"
+    ],
+    "_handlers": [
+      "validateSet",
+      "begin"
+    ]
+  },
+  "standarddraft": {
+    "effectType": "ValidatorRule",
+    "name": 1211,
+    "desc": "The custom Draft League ruleset",
+    "ruleset": [
+      "Obtainable",
+      "Nickname Clause",
+      "Beat Up Nicknames Mod",
+      "+Unreleased",
+      "+CAP",
+      "Sketch Post-Gen 7 Moves",
+      "Team Preview",
+      "Sleep Clause Mod",
+      "OHKO Clause",
+      "Evasion Clause",
+      "Endless Battle Clause",
+      "HP Percentage Mod",
+      "Cancel Mod"
+    ]
+  },
+  "obtainable": {
+    "effectType": "ValidatorRule",
+    "name": 896,
+    "desc": "Makes sure the team is possible to obtain in-game.",
+    "ruleset": [
+      "Obtainable Moves",
+      "Obtainable Abilities",
+      "Obtainable Formes",
+      "EV Limit = Auto",
+      "Obtainable Misc"
+    ],
+    "banlist": [
+      1334,
+      1332,
+      887
+    ]
+  },
+  "obtainablemoves": {
+    "effectType": "ValidatorRule",
+    "name": 900,
+    "desc": "Makes sure moves are learnable by the species."
+  },
+  "obtainableabilities": {
+    "effectType": "ValidatorRule",
+    "name": 897,
+    "desc": "Makes sure abilities match the species."
+  },
+  "obtainableformes": {
+    "effectType": "ValidatorRule",
+    "name": 898,
+    "desc": "Makes sure in-battle formes only appear in-battle."
+  },
+  "obtainablemisc": {
+    "effectType": "ValidatorRule",
+    "name": 899,
+    "desc": "Validate all obtainability things that aren't moves/abilities (Hidden Power type, gender, IVs, events, duplicate moves)."
+  },
+  "hoennpokedex": {
+    "effectType": "ValidatorRule",
+    "name": 614,
+    "desc": "Only allows Pok&eacute;mon native to the Hoenn region (OR/AS)",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "sinnohpokedex": {
+    "effectType": "ValidatorRule",
+    "name": 1137,
+    "desc": "Only allows Pok&eacute;mon native to the Sinnoh region (Platinum)",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "oldunovapokedex": {
+    "effectType": "ValidatorRule",
+    "name": 907,
+    "desc": "Only allows Pok&eacute;mon native to the Unova region as of the original Black/White games",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "newunovapokedex": {
+    "effectType": "ValidatorRule",
+    "name": 865,
+    "desc": "Only allows Pok&eacute;mon native to the Unova region as of the Black 2/White 2 games",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "kalospokedex": {
+    "effectType": "ValidatorRule",
+    "name": 665,
+    "desc": "Only allows Pok&eacute;mon native to the Kalos region (XY)",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "oldalolapokedex": {
+    "effectType": "ValidatorRule",
+    "name": 906,
+    "desc": "Only allows Pok&eacute;mon native to the Alola region (SUMO)",
+    "banlist": [
+      964,
+      776,
+      1050,
+      37,
+      745,
+      863,
+      862
+    ],
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "newalolapokedex": {
+    "effectType": "ValidatorRule",
+    "name": 864,
+    "desc": "Only allows Pok&eacute;mon native to the Alola region (US/UM)",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "galarpokedex": {
+    "effectType": "ValidatorRule",
+    "name": 478,
+    "desc": "Only allows Pok&eacute;mon native to the Galar region (Sw/Sh)",
+    "banlist": [
+      1018,
+      1384
+    ],
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "isleofarmorpokedex": {
+    "effectType": "ValidatorRule",
+    "name": 650,
+    "desc": "Only allows Pok&eacute;mon native to the Isle of Armor in the Galar Region (Sw/Sh DLC1)",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "crowntundrapokedex": {
+    "effectType": "ValidatorRule",
+    "name": 241,
+    "desc": "Only allows Pok&eacute;mon native to the Crown Tundra in the Galar Region (Sw/Sh DLC2)",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "galarexpansionpokedex": {
+    "effectType": "ValidatorRule",
+    "name": 477,
+    "desc": "Only allows Pok&eacute;mon native to the Galar region, Isle of Armor, or Crown Tundra (Sw/Sh + Expansion Pass)",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "paldeapokedex": {
+    "effectType": "ValidatorRule",
+    "name": 926,
+    "desc": "Only allows Pok&eacute;mon native to the Paldea region (SV)",
+    "banlist": [
+      41,
+      61,
+      78,
+      133,
+      284,
+      323,
+      351,
+      498,
+      526,
+      555,
+      563,
+      719,
+      800,
+      801,
+      843,
+      948,
+      1013,
+      1018,
+      1157,
+      1161,
+      1164,
+      1167,
+      1174,
+      1368,
+      1262,
+      1400,
+      1430,
+      1428
+    ],
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "kitakamipokedex": {
+    "effectType": "ValidatorRule",
+    "name": 678,
+    "desc": "Only allows Pok&eacute;mon native to the Kitakami region (SV DLC1)",
+    "banlist": [
+      1401,
+      1018,
+      1371,
+      878,
+      563,
+      41,
+      492,
+      539,
+      518,
+      1077,
+      1080,
+      1385,
+      1174,
+      1157,
+      526,
+      77,
+      76,
+      1337
+    ],
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "blueberrypokedex": {
+    "effectType": "ValidatorRule",
+    "name": 121,
+    "desc": "Only allows Pok&eacute;mon native to the Blueberry Academy (SV DLC2)",
+    "banlist": [
+      285,
+      324,
+      556,
+      844,
+      1166,
+      1160,
+      1163,
+      493,
+      540,
+      519,
+      1012,
+      1078,
+      1081,
+      1372,
+      879,
+      1324,
+      1073,
+      552,
+      262
+    ],
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "potd": {
+    "effectType": "Rule",
+    "name": 990,
+    "desc": "Forces the Pokemon of the Day onto every random team.",
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "forcemonotype": {
+    "effectType": "ValidatorRule",
+    "name": 420,
+    "hasValue": true,
+    "_handlers": [
+      "validateRule",
+      "validateSet"
+    ]
+  },
+  "forcemonocolor": {
+    "effectType": "ValidatorRule",
+    "name": 419,
+    "hasValue": true,
+    "_handlers": [
+      "validateRule",
+      "validateSet"
+    ]
+  },
+  "forceteratype": {
+    "effectType": "ValidatorRule",
+    "name": 423,
+    "hasValue": true,
+    "_handlers": [
+      "validateRule",
+      "validateSet"
+    ]
+  },
+  "forceselect": {
+    "effectType": "ValidatorRule",
+    "name": 422,
+    "hasValue": true,
+    "_handlers": [
+      "validateRule",
+      "validateTeam",
+      "chooseTeam"
+    ]
+  },
+  "evlimits": {
+    "effectType": "ValidatorRule",
+    "name": 337,
+    "desc": "Require EVs to be in specific ranges, such as: \"EV Limits = Atk 0-124 / Def 100-252\"",
+    "hasValue": true,
+    "_handlers": [
+      "validateRule",
+      "validateSet"
+    ]
+  },
+  "teampreview": {
+    "effectType": "Rule",
+    "name": 1263,
+    "desc": "Allows each player to see the Pok&eacute;mon on their opponent's team before they choose their lead Pok&eacute;mon",
+    "_handlers": [
+      "begin",
+      "teamPreview"
+    ]
+  },
+  "teratypepreview": {
+    "effectType": "Rule",
+    "name": 1269,
+    "desc": "Allows each player to see the Tera Type of the Pok&eacute;mon on their opponent's team before they choose their lead Pok&eacute;mon",
+    "_handlers": [
+      "validateRule"
+    ]
+  },
+  "onevsone": {
+    "effectType": "Rule",
+    "name": 912,
+    "desc": "Only allows one Pok&eacute;mon in battle",
+    "ruleset": [
+      "Picked Team Size = 1"
+    ]
+  },
+  "twovstwo": {
+    "effectType": "Rule",
+    "name": 1319,
+    "desc": "Only allows two Pok&eacute;mon in battle",
+    "ruleset": [
+      "Picked Team Size = 2"
+    ]
+  },
+  "littlecup": {
+    "effectType": "ValidatorRule",
+    "name": 726,
+    "desc": "Only allows Pok&eacute;mon that can evolve and don't have any prior evolutions",
+    "ruleset": [
+      "Max Level = 5"
+    ],
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "timerstarting": {
+    "effectType": "Rule",
+    "name": 1285,
+    "desc": "Amount of time given at the start of the battle in seconds",
+    "hasValue": "positive-integer"
+  },
+  "dctimer": {
+    "effectType": "Rule",
+    "name": 252,
+    "desc": "Enables or disables the disconnection timer"
+  },
+  "dctimerbank": {
+    "effectType": "Rule",
+    "name": 253,
+    "desc": "Enables or disables the disconnection timer bank"
+  },
+  "timergrace": {
+    "effectType": "Rule",
+    "name": 1282,
+    "desc": "Grace period between timer activation and when total time starts ticking down.",
+    "hasValue": "positive-integer"
+  },
+  "timeraddperturn": {
+    "effectType": "Rule",
+    "name": 1281,
+    "desc": "Amount of additional time given per turn in seconds",
+    "hasValue": "integer"
+  },
+  "timermaxperturn": {
+    "effectType": "Rule",
+    "name": 1284,
+    "desc": "Maximum amount of time allowed per turn in seconds",
+    "hasValue": "positive-integer"
+  },
+  "timermaxfirstturn": {
+    "effectType": "Rule",
+    "name": 1283,
+    "desc": "Maximum amount of time allowed for the first turn in seconds",
+    "hasValue": "positive-integer"
+  },
+  "timeoutautochoose": {
+    "effectType": "Rule",
+    "name": 1279,
+    "desc": "Enables or disables automatic selection of moves when a player times out"
+  },
+  "timeraccelerate": {
+    "effectType": "Rule",
+    "name": 1280,
+    "desc": "Enables or disables timer acceleration"
+  },
+  "blitz": {
+    "effectType": "Rule",
+    "name": 119,
+    "desc": "Super-fast 'Blitz' timer giving 30 second Team Preview and 10 seconds per turn.",
+    "ruleset": [
+      "Timer Starting = 15",
+      "Timer Grace = 30",
+      "Timer Add Per Turn = 5",
+      "Timer Max Per Turn = 15",
+      "Timer Max First Turn = 40"
+    ],
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "vgctimer": {
+    "effectType": "Rule",
+    "name": 1341,
+    "desc": "VGC's timer: 90 second Team Preview, 7 minutes Your Time, 1 minute per turn",
+    "ruleset": [
+      "Timer Starting = 420",
+      "Timer Grace = 90",
+      "Timer Add Per Turn = 0",
+      "Timer Max Per Turn = 55",
+      "Timer Max First Turn = 90",
+      "Timeout Auto Choose",
+      "DC Timer Bank"
+    ]
+  },
+  "speciesclause": {
+    "effectType": "ValidatorRule",
+    "name": 1188,
+    "desc": "Prevents teams from having more than one Pok&eacute;mon from the same species",
+    "_handlers": [
+      "begin",
+      "validateTeam"
+    ]
+  },
+  "nicknameclause": {
+    "effectType": "ValidatorRule",
+    "name": 867,
+    "desc": "Prevents teams from having more than one Pok&eacute;mon with the same nickname",
+    "_handlers": [
+      "validateTeam"
+    ]
+  },
+  "beatupnicknamesmod": {
+    "effectType": "Rule",
+    "name": 96,
+    "desc": "Prevents Beat Up from revealing any party members, enforcing gameplay that assumes optimal Pok&eacute;mon nicknaming strategies.",
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "itemclause": {
+    "effectType": "ValidatorRule",
+    "name": 651,
+    "desc": "Prevents teams from having more than one Pok&eacute;mon with the same item",
+    "hasValue": "positive-integer",
+    "_handlers": [
+      "begin",
+      "validateRule",
+      "validateTeam"
+    ]
+  },
+  "abilityclause": {
+    "effectType": "ValidatorRule",
+    "name": 3,
+    "desc": "Prevents teams from having Pok&eacute;mon with the same ability than allowed",
+    "hasValue": "positive-integer",
+    "_handlers": [
+      "begin",
+      "validateRule",
+      "validateTeam"
+    ]
+  },
+  "ohkoclause": {
+    "effectType": "ValidatorRule",
+    "name": 893,
+    "desc": "Bans all OHKO moves, such as Fissure",
+    "_handlers": [
+      "begin",
+      "validateSet"
+    ]
+  },
+  "evasionclause": {
+    "effectType": "ValidatorRule",
+    "name": 372,
+    "desc": "Bans abilities, items, and moves that boost Evasion",
+    "ruleset": [
+      "Evasion Abilities Clause",
+      "Evasion Items Clause",
+      "Evasion Moves Clause"
+    ],
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "evasionabilitiesclause": {
+    "effectType": "ValidatorRule",
+    "name": 371,
+    "desc": "Bans abilities that boost Evasion under certain weather conditions",
+    "banlist": [
+      8,
+      81
+    ],
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "evasionitemsclause": {
+    "effectType": "ValidatorRule",
+    "name": 373,
+    "desc": "Bans items that lower the accuracy of moves used against the user",
+    "banlist": [
+      213,
+      255
+    ],
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "evasionmovesclause": {
+    "effectType": "ValidatorRule",
+    "name": 374,
+    "desc": "Bans moves that consistently raise the user's evasion when used",
+    "banlist": [
+      367,
+      107,
+      104
+    ],
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "accuracymovesclause": {
+    "effectType": "ValidatorRule",
+    "name": 9,
+    "desc": "Bans moves that have a chance to lower the target's accuracy when used",
+    "banlist": [
+      148,
+      134,
+      536,
+      429,
+      426,
+      189,
+      330,
+      539,
+      190,
+      28,
+      108
+    ],
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "accuracytrapclause": {
+    "effectType": "ValidatorRule",
+    "name": 10,
+    "desc": "Bans guaranteed accuracy-dropping moves when used with a trapping move/ability on the same Pok&eacute;mon",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "sleepmovesclause": {
+    "effectType": "ValidatorRule",
+    "name": 1155,
+    "desc": "Bans all moves that induce sleep, such as Hypnosis",
+    "banlist": [
+      281
+    ],
+    "_handlers": [
+      "begin",
+      "validateSet"
+    ]
+  },
+  "gravitysleepclause": {
+    "effectType": "ValidatorRule",
+    "name": 547,
+    "desc": "Bans sleep moves below 100% accuracy, in conjunction with Gravity or Gigantamax Orbeetle",
+    "banlist": [
+      541,
+      542,
+      543,
+      544,
+      545,
+      546
+    ],
+    "_handlers": [
+      "validateTeam",
+      "begin"
+    ]
+  },
+  "endlessbattleclause": {
+    "effectType": "Rule",
+    "name": 363,
+    "desc": "Prevents players from forcing a battle which their opponent cannot end except by forfeit"
+  },
+  "drypassclause": {
+    "effectType": "ValidatorRule",
+    "name": 318,
+    "desc": "Stops teams from bringing Pok&eacute;mon with Baton Pass + any form of trapping, residual recovery, boosting, or Substitute.",
+    "ruleset": [
+      "Baton Pass Stat Clause",
+      "Baton Pass Stat Trap Clause"
+    ],
+    "banlist": [
+      86,
+      82,
+      80,
+      81,
+      84,
+      85,
+      83
+    ]
+  },
+  "batonpassclause": {
+    "effectType": "ValidatorRule",
+    "name": 88,
+    "desc": "Stops teams from having more than one Pok&eacute;mon with Baton Pass, and no Pok&eacute;mon may be capable of passing boosts to both Speed and another stat",
+    "banlist": [
+      87
+    ],
+    "_handlers": [
+      "begin",
+      "validateSet"
+    ]
+  },
+  "onebatonpassclause": {
+    "effectType": "ValidatorRule",
+    "name": 910,
+    "desc": "Stops teams from having more than one Pok&eacute;mon with Baton Pass",
+    "banlist": [
+      87
+    ],
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "oneboostpasserclause": {
+    "effectType": "ValidatorRule",
+    "name": 911,
+    "desc": "Stops teams from having a Pok&eacute;mon with Baton Pass that has multiple ways to boost its stats, and no more than one Baton Passer may be able to boost its stats",
+    "_handlers": [
+      "begin",
+      "validateTeam"
+    ]
+  },
+  "batonpassstatclause": {
+    "effectType": "ValidatorRule",
+    "name": 89,
+    "desc": "Stops teams from having a Pok&eacute;mon with Baton Pass that has any way to boost its stats",
+    "_handlers": [
+      "begin",
+      "validateTeam"
+    ]
+  },
+  "speedpassclause": {
+    "effectType": "ValidatorRule",
+    "name": 1191,
+    "desc": "Stops teams from having a Pok&eacute;mon with Baton Pass that can boost its Speed",
+    "_handlers": [
+      "begin",
+      "validateTeam"
+    ]
+  },
+  "batonpasstrapclause": {
+    "effectType": "ValidatorRule",
+    "name": 91,
+    "desc": "Stops teams from having a Pok&eacute;mon with Baton Pass that has any way to trap Pok&eacute;mon.",
+    "_handlers": [
+      "validateTeam"
+    ]
+  },
+  "batonpassstattrapclause": {
+    "effectType": "ValidatorRule",
+    "name": 90,
+    "desc": "Stops teams from having a Pok&eacute;mon with Baton Pass that has any way to boost its stats or trap Pok&eacute;mon.",
+    "_handlers": [
+      "begin",
+      "validateTeam"
+    ]
+  },
+  "cfzclause": {
+    "effectType": "ValidatorRule",
+    "name": 151,
+    "desc": "Bans the use of crystal-free Z-Moves",
+    "banlist": [
+      719,
+      629,
+      625,
+      655,
+      645,
+      623,
+      658,
+      728,
+      633,
+      639,
+      653,
+      702,
+      703,
+      647,
+      698,
+      643,
+      641,
+      713,
+      723,
+      696,
+      725,
+      637,
+      697,
+      701,
+      635,
+      724,
+      649,
+      695,
+      699,
+      727,
+      700,
+      651,
+      627,
+      631,
+      657
+    ],
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "zmoveclause": {
+    "effectType": "ValidatorRule",
+    "name": 1416,
+    "desc": "Bans Pok&eacute;mon from holding Z-Crystals",
+    "_handlers": [
+      "validateSet",
+      "begin"
+    ]
+  },
+  "notfullyevolved": {
+    "effectType": "ValidatorRule",
+    "name": 889,
+    "desc": "Bans Pok&eacute;mon that are fully evolved or can't evolve",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "hppercentagemod": {
+    "effectType": "Rule",
+    "name": 572,
+    "desc": "Shows the HP of Pok&eacute;mon in percentages",
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "exacthpmod": {
+    "effectType": "Rule",
+    "name": 376,
+    "desc": "Shows the exact HP of all Pok&eacute;mon",
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "cancelmod": {
+    "effectType": "Rule",
+    "name": 157,
+    "desc": "Allows players to change their own choices before their opponents make one",
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "sleepclausemod": {
+    "effectType": "Rule",
+    "name": 1154,
+    "desc": "Prevents players from putting more than one of their opponent's Pok&eacute;mon to sleep at a time, and bans Mega Gengar from using Hypnosis",
+    "banlist": [
+      628
+    ],
+    "_handlers": [
+      "begin",
+      "setStatus"
+    ]
+  },
+  "stadiumsleepclause": {
+    "effectType": "Rule",
+    "name": 1206,
+    "desc": "Prevents players from putting one of their opponent's Pokémon to sleep if any of the opponent's other Pokémon are asleep (different from Sleep Clause Mod because putting your own Pokémon to sleep is enough to prevent opponents from putting your others to sleep).",
+    "_handlers": [
+      "begin",
+      "setStatus"
+    ]
+  },
+  "switchpriorityclausemod": {
+    "effectType": "Rule",
+    "name": 1245,
+    "desc": "Makes a faster Pokémon switch first when double-switching, unlike in Emerald link battles, where player 1's Pokémon would switch first",
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "desyncclausemod": {
+    "effectType": "Rule",
+    "name": 275,
+    "desc": "If a desync would happen, the move fails instead. This rule currently covers Bide, Counter, and Psywave.",
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "deoxyscamouflageclausemod": {
+    "effectType": "Rule",
+    "name": 273,
+    "desc": "Reveals the Deoxys forme when it is sent in battle."
+  },
+  "freezeclausemod": {
+    "effectType": "Rule",
+    "name": 430,
+    "desc": "Prevents players from freezing more than one of their opponent's Pok&eacute;mon at a time",
+    "_handlers": [
+      "begin",
+      "setStatus"
+    ]
+  },
+  "nofreezemod": {
+    "effectType": "Rule",
+    "name": 882,
+    "desc": "Prevents moves from freezing Pok&eacute;mon",
+    "_handlers": [
+      "begin",
+      "setStatus"
+    ]
+  },
+  "sametypeclause": {
+    "effectType": "ValidatorRule",
+    "name": 1071,
+    "desc": "Forces all Pok&eacute;mon on a team to share a type with each other",
+    "_handlers": [
+      "begin",
+      "validateTeam"
+    ]
+  },
+  "enforcesameteratype": {
+    "effectType": "ValidatorRule",
+    "name": 364,
+    "desc": "Forces Pok&eacute;mon to have a Tera Type matching one of their original types."
+  },
+  "samecolorclause": {
+    "effectType": "ValidatorRule",
+    "name": 1069,
+    "desc": "Forces all Pok&eacute;mon on a team to share a color",
+    "_handlers": [
+      "begin",
+      "validateTeam"
+    ]
+  },
+  "sameletterclause": {
+    "effectType": "ValidatorRule",
+    "name": 1070,
+    "desc": "Forces all Pok&eacute;mon species on a team to start with the same letter",
+    "_handlers": [
+      "validateTeam"
+    ]
+  },
+  "megarayquazaclause": {
+    "effectType": "Rule",
+    "name": 789,
+    "desc": "Prevents Rayquaza from mega evolving",
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "dynamaxclause": {
+    "effectType": "Rule",
+    "name": 335,
+    "desc": "Prevents Pok&eacute;mon from Dynamaxing",
+    "_handlers": [
+      "validateSet",
+      "begin"
+    ]
+  },
+  "terastalclause": {
+    "effectType": "Rule",
+    "name": 1271,
+    "desc": "Prevents Pok&eacute;mon from Terastallizing",
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "fullarceusclause": {
+    "effectType": "ValidatorRule",
+    "name": 439,
+    "desc": "Allows Level 80 Arceus from Hall of Origin"
+  },
+  "inversemod": {
+    "effectType": "Rule",
+    "name": 639,
+    "desc": "The mod for Inverse Battle which inverts the type effectiveness chart; weaknesses become resistances, while resistances and immunities become weaknesses",
+    "onNegateImmunity": false,
+    "_handlers": [
+      "begin",
+      "effectiveness"
+    ]
+  },
+  "minsourcegen": {
+    "effectType": "ValidatorRule",
+    "name": 818,
+    "desc": "Pokemon must be obtained from this generation or later.",
+    "hasValue": "positive-integer",
+    "_handlers": [
+      "validateRule"
+    ]
+  },
+  "omunobtainablemoves": {
+    "effectType": "ValidatorRule",
+    "name": 894,
+    "desc": "Allows special move legality rules to allow moves which are otherwise unobtainable without hacking or glitches"
+  },
+  "stabmonsmovelegality": {
+    "effectType": "ValidatorRule",
+    "name": 1064,
+    "desc": "Allows Pok&eacute;mon to use any move that they or a previous evolution/out-of-battle forme share a type with",
+    "ruleset": [
+      "OM Unobtainable Moves"
+    ],
+    "_handlers": [
+      "checkCanLearn"
+    ]
+  },
+  "alphabetcupmovelegality": {
+    "effectType": "ValidatorRule",
+    "name": 26,
+    "desc": "Allows Pok&eacute;mon to use any move that shares the same first letter as their name or a previous evolution's name.",
+    "ruleset": [
+      "OM Unobtainable Moves"
+    ],
+    "_handlers": [
+      "checkCanLearn"
+    ]
+  },
+  "sketchmonsmovelegality": {
+    "effectType": "ValidatorRule",
+    "name": 1144,
+    "desc": "Pok&eacute;mon can learn one of any move they don't normally learn.",
+    "ruleset": [
+      "OM Unobtainable Moves"
+    ],
+    "_handlers": [
+      "checkCanLearn",
+      "validateTeam"
+    ]
+  },
+  "camomonsmod": {
+    "effectType": "Rule",
+    "name": 156,
+    "_handlers": [
+      "begin",
+      "modifySpecies",
+      "switchIn",
+      "afterMega"
+    ]
+  },
+  "allowtradeback": {
+    "effectType": "ValidatorRule",
+    "name": 23,
+    "desc": "Allows Gen 1 pokemon to have moves from their Gen 2 learnsets"
+  },
+  "lgpenormalrules": {
+    "effectType": "ValidatorRule",
+    "name": 697,
+    "desc": "Tells formats with the 'gen7letsgo' mod to set the level to 50 and all Awakening Values to 0",
+    "ruleset": [
+      "Adjust Level = 50"
+    ]
+  },
+  "nfeclause": {
+    "effectType": "ValidatorRule",
+    "name": 854,
+    "desc": "Bans all NFE Pokemon",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "gemsclause": {
+    "effectType": "ValidatorRule",
+    "name": 488,
+    "desc": "Bans all Gems",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "sketchpostgen7moves": {
+    "effectType": "ValidatorRule",
+    "name": 1143,
+    "desc": "Allows Pokémon who learn Sketch to learn any Gen 8+ move (normally, Sketch is not usable in Gen 8 or Gen 9 Pre-DLC2)."
+  },
+  "mimicglitchclause": {
+    "effectType": "ValidatorRule",
+    "name": 815,
+    "desc": "Allows any Pokemon with access to Assist, Copycat, Metronome, Mimic, or Transform to gain access to almost any other move."
+  },
+  "pomegglitchclause": {
+    "effectType": "ValidatorRule",
+    "name": 983,
+    "desc": "Allows any Pokémon from Generation 3 at level 5 or higher to have any of its level-up moves. This implementation is allowed only to enable an otherwise legal Pokémon to obtain moves it would not normally have access to at an earlier level."
+  },
+  "overflowstatmod": {
+    "effectType": "Rule",
+    "name": 920,
+    "desc": "Caps stats at 654 after a positive nature, or 655 after a negative nature"
+  },
+  "formeclause": {
+    "effectType": "ValidatorRule",
+    "name": 426,
+    "desc": "Prevents teams from having more than one Pok&eacute;mon of the same forme",
+    "_handlers": [
+      "begin",
+      "validateTeam"
+    ]
+  },
+  "350cupmod": {
+    "effectType": "Rule",
+    "name": 0,
+    "desc": "If a Pok&eacute;mon's BST is 350 or lower, all of its stats get doubled.",
+    "_handlers": [
+      "begin",
+      "modifySpecies"
+    ]
+  },
+  "flippedmod": {
+    "effectType": "Rule",
+    "name": 408,
+    "desc": "Every Pok&eacute;mon's stats are reversed. HP becomes Spe, Atk becomes Sp. Def, Def becomes Sp. Atk, and vice versa.",
+    "_handlers": [
+      "begin",
+      "modifySpecies"
+    ]
+  },
+  "scalemonsmod": {
+    "effectType": "Rule",
+    "name": 1087,
+    "desc": "Every Pok&eacute;mon's stats, barring HP, are scaled to give them a BST as close to 600 as possible",
+    "_handlers": [
+      "begin",
+      "modifySpecies"
+    ]
+  },
+  "teamtypepreview": {
+    "effectType": "Rule",
+    "name": 1264,
+    "desc": "Allows each player to see the Pok&eacute;mon on their opponent's team and those Pok&eacute;mon's types before they choose their lead Pok&eacute;mon",
+    "_handlers": [
+      "teamPreview"
+    ]
+  },
+  "openteamsheets": {
+    "effectType": "Rule",
+    "name": 914,
+    "desc": "Allows each player to see the Pok&eacute;mon and all non-stat information about them, before they choose their lead Pok&eacute;mon",
+    "mutuallyExclusiveWith": "forceopenteamsheets",
+    "_handlers": [
+      "validateRule",
+      "teamPreview",
+      "battleStart"
+    ]
+  },
+  "forceopenteamsheets": {
+    "effectType": "Rule",
+    "name": 421,
+    "desc": "Allows each player to see the Pok&eacute;mon and all non-stat information about them, before they choose their lead Pok&eacute;mon",
+    "mutuallyExclusiveWith": "openteamsheets",
+    "_handlers": [
+      "validateRule",
+      "teamPreview"
+    ]
+  },
+  "aaarestrictedabilities": {
+    "effectType": "ValidatorRule",
+    "name": 1,
+    "desc": "Allows validation for AAA formats to use restricted abilities instead of banned ones.",
+    "_handlers": [
+      "validateSet"
+    ]
+  },
+  "eventmovesclause": {
+    "effectType": "ValidatorRule",
+    "name": 375,
+    "desc": "Bans moves only obtainable through events.",
+    "_handlers": [
+      "begin",
+      "validateSet"
+    ]
+  },
+  "pickedteamsize": {
+    "effectType": "Rule",
+    "name": 956,
+    "desc": "Team size (number of pokemon) that can be brought out of Team Preview",
+    "hasValue": "positive-integer"
+  },
+  "minteamsize": {
+    "effectType": "ValidatorRule",
+    "name": 819,
+    "desc": "Minimum team size (number of pokemon) that can be brought into Team Preview (or into the battle, in formats without Team Preview)",
+    "hasValue": "positive-integer"
+  },
+  "evlimit": {
+    "effectType": "ValidatorRule",
+    "name": 336,
+    "desc": "Maximum total EVs on each pokemon.",
+    "hasValue": "integer"
+  },
+  "maxteamsize": {
+    "effectType": "ValidatorRule",
+    "name": 785,
+    "desc": "Maximum team size (number of pokemon) that can be brought into Team Preview (or into the battle, in formats without Team Preview)",
+    "hasValue": "positive-integer"
+  },
+  "maxmovecount": {
+    "effectType": "ValidatorRule",
+    "name": 784,
+    "desc": "Max number of moves allowed on a single pokemon (defaults to 4 in a normal game)",
+    "hasValue": "positive-integer"
+  },
+  "maxtotallevel": {
+    "effectType": "Rule",
+    "name": 786,
+    "desc": "Teams are restricted to a total maximum Level limit and Pokemon are restricted to a set range of Levels",
+    "hasValue": "positive-integer",
+    "_handlers": [
+      "validateTeam",
+      "validateRule",
+      "chooseTeam"
+    ]
+  },
+  "minlevel": {
+    "effectType": "ValidatorRule",
+    "name": 817,
+    "desc": "Minimum level of brought Pokémon",
+    "hasValue": "positive-integer"
+  },
+  "maxlevel": {
+    "effectType": "ValidatorRule",
+    "name": 783,
+    "desc": "Maximum level of brought Pokémon (if you're using both this and Adjust Level, this will control what level moves you have access to)",
+    "hasValue": "positive-integer"
+  },
+  "defaultlevel": {
+    "effectType": "ValidatorRule",
+    "name": 265,
+    "desc": "Default level of brought Pokémon (normally should be equal to Max Level, except Custom Games have a very high max level but still default to 100)",
+    "hasValue": "positive-integer"
+  },
+  "adjustlevel": {
+    "effectType": "ValidatorRule",
+    "name": 11,
+    "desc": "All Pokémon will be set to exactly this level (but unlike Max Level and Min Level, it will still be able to learn moves from above this level) (when using this, Max Level is the level of the pokemon before it's level-adjusted down)",
+    "hasValue": "positive-integer",
+    "mutuallyExclusiveWith": "adjustleveldown"
+  },
+  "adjustleveldown": {
+    "effectType": "ValidatorRule",
+    "name": 12,
+    "desc": "Any Pokémon above this level will be set to this level (but unlike Max Level, it will still be able to learn moves from above this level)",
+    "hasValue": "positive-integer",
+    "mutuallyExclusiveWith": "adjustlevel"
+  },
+  "stadiumitemsclause": {
+    "effectType": "ValidatorRule",
+    "name": 1204,
+    "desc": "Bans items that are not usable in Pokemon Stadium 2.",
+    "banlist": [
+      492,
+      497,
+      1711,
+      1753,
+      493,
+      496,
+      494,
+      1,
+      498,
+      500,
+      974,
+      5,
+      1712,
+      82,
+      85,
+      81,
+      80,
+      83,
+      252,
+      84,
+      760
+    ]
+  },
+  "nc2000movelegality": {
+    "effectType": "ValidatorRule",
+    "name": 853,
+    "desc": "Prevents Pokémon from having moves that would only be obtainable in Pokémon Crystal."
+  },
+  "aptclause": {
+    "effectType": "ValidatorRule",
+    "name": 2,
+    "desc": "Bans the combination of Agility and partial trapping moves like Wrap.",
+    "banlist": [
+      19,
+      18,
+      16,
+      17
+    ]
+  },
+  "nc1997movelegality": {
+    "effectType": "ValidatorRule",
+    "name": 852,
+    "desc": "Bans move combinations on Pokémon that weren't legal in NC 1997."
+  },
+  "stadiumpokecuprentals": {
+    "effectType": "ValidatorRule",
+    "name": 1205
+  },
+  "noswitching": {
+    "effectType": "Rule",
+    "name": 883,
+    "desc": "All Pokémon are trapped (cannot switch naturally, but can as the effect of an item, move, or Ability).",
+    "_handlers": [
+      "begin",
+      "trapPokemon"
+    ]
+  },
+  "guaranteedsecondarymod": {
+    "effectType": "Rule",
+    "name": 566,
+    "desc": "All moves' secondary effect chances are set to 100% (Tri Attack and Dire Claw set a random status; Poison Touch is not a real secondary and remains at 30%).",
+    "_handlers": [
+      "modifyMove"
+    ]
+  },
+  "chimera1v1rule": {
+    "effectType": "Rule",
+    "name": 195,
+    "desc": "Merges a team of six into a single Pokémon depending on the order chosen at team preview: It gains the typing of the first, item of the second, ability of the third, stats of the fourth, the first two moves of the fifth, and the last two moves of the sixth.",
+    "ruleset": [
+      "Team Preview",
+      "Picked Team Size = 6"
+    ],
+    "_handlers": [
+      "validateSet",
+      "validateRule",
+      "beforeSwitchIn"
+    ]
+  },
+  "bonustypemod": {
+    "name": 126,
+    "effectType": "Rule",
+    "_handlers": [
+      "begin",
+      "modifySpecies",
+      "switchIn",
+      "afterMega"
+    ]
+  },
+  "firstbloodrule": {
+    "effectType": "Rule",
+    "name": 399,
+    "_handlers": [
+      "begin",
+      "faint"
+    ]
+  },
+  "tiershiftmod": {
+    "effectType": "Rule",
+    "name": 1277,
+    "ruleset": [
+      "Overflow Stat Mod"
+    ],
+    "_handlers": [
+      "begin",
+      "modifySpecies"
+    ]
+  },
+  "revelationmonsmod": {
+    "effectType": "Rule",
+    "name": 1045,
+    "_handlers": [
+      "begin",
+      "validateSet",
+      "modifyMove"
+    ]
+  },
+  "reevolutionmod": {
+    "effectType": "Rule",
+    "name": 1029,
+    "desc": "Pok&eacute;mon gain the stat changes they would gain from evolving again.",
+    "_handlers": [
+      "begin",
+      "modifySpecies"
+    ]
+  },
+  "brokenrecordmod": {
+    "effectType": "Rule",
+    "name": 136,
+    "_handlers": [
+      "validateSet",
+      "validateTeam",
+      "takeItem",
+      "modifyMove",
+      "begin"
+    ]
+  },
+  "forceofthefallenmod": {
+    "effectType": "Rule",
+    "name": 424,
+    "_handlers": [
+      "validateSet",
+      "begin",
+      "faint"
+    ]
+  },
+  "categoryswapmod": {
+    "effectType": "Rule",
+    "name": 166,
+    "_handlers": [
+      "begin",
+      "modifyMove"
+    ]
+  },
+  "godlygiftmod": {
+    "effectType": "Rule",
+    "name": 511,
+    "_handlers": [
+      "validateTeam",
+      "modifySpecies"
+    ]
+  },
+  "voltturnmayhemmod": {
+    "effectType": "Rule",
+    "name": 1366,
+    "_handlers": [
+      "begin",
+      "modifyMove"
+    ]
+  },
+  "convergencelegality": {
+    "effectType": "ValidatorRule",
+    "name": 220,
+    "_handlers": [
+      "validateSet",
+      "checkCanLearn"
+    ]
+  },
+  "hackmonsformelegality": {
+    "effectType": "ValidatorRule",
+    "name": 573,
+    "banlist": [
+      150,
+      442
+    ],
+    "_handlers": [
+      "changeSet"
+    ]
+  },
+  "speciesrevealclause": {
+    "effectType": "Rule",
+    "name": 1189,
+    "desc": "Reveals a Pok&eacute;mon's true species in hackmons-based metagames."
+  },
+  "franticfusionsmod": {
+    "effectType": "Rule",
+    "name": 428,
+    "_handlers": [
+      "begin",
+      "validateSet",
+      "validateTeam",
+      "modifySpecies"
+    ]
+  },
+  "proteanpalacemod": {
+    "effectType": "Rule",
+    "name": 996,
+    "_handlers": [
+      "begin",
+      "prepareHit"
+    ]
+  },
+  "bestof": {
+    "effectType": "ValidatorRule",
+    "name": 107,
+    "desc": "Allows players to define a best-of series where the winner of the series is the winner of the majority of games.",
+    "hasValue": "positive-integer",
+    "_handlers": [
+      "validateRule"
+    ]
+  },
+  "illusionlevelmod": {
+    "effectType": "Rule",
+    "name": 632,
+    "_handlers": [
+      "begin"
+    ]
+  },
+  "allowedpokemoves": {
+    "effectType": "ValidatorRule",
+    "name": 24,
+    "desc": "Allows players to define the amount of Pokemoves allowed per set.",
+    "hasValue": "positive-integer",
+    "_handlers": [
+      "validateRule"
+    ]
+  },
+  "uniquepokemoves": {
+    "effectType": "ValidatorRule",
+    "name": 1331,
+    "desc": "Allows players to define how many times a Pokemon can be used as a Pokemove per team.",
+    "hasValue": "positive-integer",
+    "_handlers": [
+      "validateRule",
+      "validateTeam"
+    ]
+  },
+  "ferventimpersonationmod": {
+    "effectType": "Rule",
+    "name": 393,
+    "_handlers": [
+      "validateTeam",
+      "validateSet",
+      "checkCanLearn",
+      "residual"
+    ]
+  },
+  "twisteddimensionmod": {
+    "effectType": "Rule",
+    "name": 1318
+  },
+  "mixandmegaoldaggronite": {
+    "effectType": "Rule",
+    "name": 829
+  },
+  "badnboostedmod": {
+    "effectType": "Rule",
+    "name": 66,
+    "desc": "All of a Pok&eacute;mon's base stats below 70 are doubled.",
+    "_handlers": [
+      "begin",
+      "modifySpecies"
+    ]
+  },
+  "datapreview": {
+    "effectType": "Rule",
+    "name": 260,
+    "desc": "When a new Pokémon switches in for the first time, information about its types, stats and Abilities is displayed to both players.",
+    "_handlers": [
+      "switchIn",
+      "damagingHit"
+    ]
+  },
+  "rebalancelevels": {
+    "effectType": "Rule",
+    "name": 1030,
+    "desc": "Automatically rebalances each Pokemon's level if an added rule modifies its base stats in a way that only depends on its species",
+    "_handlers": [
+      "begin",
+      "validateRule"
+    ]
+  }
+}
