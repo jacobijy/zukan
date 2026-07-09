@@ -12,17 +12,19 @@
             <view class="mx-auto max-w-[720px]">
                 <view class="section-label">图鉴概览</view>
                 <view class="data-list">
-                    <view
+                    <ListRow
                         v-for="(item, index) in overviewItems"
                         :key="item.label"
-                        class="data-row"
-                        :class="{ 'data-row--last': index === overviewItems.length - 1 }"
+                        :title="item.label"
+                        :desc="item.desc"
+                        :meta="item.value"
+                        :iconClass="item.iconClass"
+                        :last="index === overviewItems.length - 1"
+                        @click="() => {}"
                     >
-                        <view class="data-row__icon" :class="item.iconClass">
+                        <template #icon>
                             <svg v-if="item.icon === 'book'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                <path d="M6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z"></path>
-                                <path d="M9 8h6"></path>
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z"></path><path d="M9 8h6"></path>
                             </svg>
                             <svg v-else-if="item.icon === 'spark'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                                 <path d="m12 2 2.6 6.5L21 11l-6.4 2.5L12 20l-2.6-6.5L3 11l6.4-2.5L12 2z"></path>
@@ -31,19 +33,10 @@
                                 <polygon points="13 2.5 4 14 12 14 11 21.5 20 10 12 10 13 2.5"></polygon>
                             </svg>
                             <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                                <path d="M12 3.5 19.5 8v8L12 20.5 4.5 16V8L12 3.5z"></path>
-                                <path d="M12 12 19.5 8M12 12v8.5M12 12 4.5 8"></path>
+                                <path d="M12 3.5 19.5 8v8L12 20.5 4.5 16V8L12 3.5z"></path><path d="M12 12 19.5 8M12 12v8.5M12 12 4.5 8"></path>
                             </svg>
-                        </view>
-
-                        <view class="data-row__body">
-                            <view class="min-w-0 flex-1 py-3.5">
-                                <text class="block text-[16px] font-semibold leading-5 tracking-[-0.01em] text-[#24262b]">{{ item.label }}</text>
-                                <text class="mt-1 block text-[12px] font-medium leading-4 text-[#8d929c]">{{ item.desc }}</text>
-                            </view>
-                            <text class="data-row__value" :class="item.valueClass">{{ item.value }}</text>
-                        </view>
-                    </view>
+                        </template>
+                    </ListRow>
                 </view>
 
                 <view class="section-label mt-6">热门样本</view>
@@ -89,6 +82,7 @@
 <script lang="ts" setup>
 import NavBar from "@/components/NavBar.vue";
 import TabBar from "@/components/TabBar.vue";
+import ListRow from "@/components/shared/ListRow.vue";
 import { ref } from "vue";
 
 const currentTab = ref(2);

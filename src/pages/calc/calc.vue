@@ -1,23 +1,6 @@
 <template>
     <view class="calc-page min-h-screen" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
-        <view class="calc-navbar fixed left-0 right-0 top-0 z-[1000] flex items-center justify-between px-4 pb-3" :style="{ paddingTop: 'var(--status-bar-height)' }">
-            <button class="calc-icon-button" @click="goBack">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                    <path d="M19 12H5"></path>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-            </button>
-            <view class="min-w-0 flex-1 px-3 text-center">
-                <text class="block truncate text-lg font-black tracking-[-0.04em] text-[#24262b]">伤害计算器</text>
-            </view>
-            <view class="calc-icon-button calc-icon-button--ghost">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                    <path d="M12 8h.01"></path>
-                    <path d="M11 12h1v4h1"></path>
-                    <circle cx="12" cy="12" r="9"></circle>
-                </svg>
-            </view>
-        </view>
+        <DetailNavbar title="伤害计算器" @back="goBack" />
 
         <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6">
             <view class="mx-auto max-w-[720px] flex flex-col gap-3 pt-3">
@@ -190,6 +173,7 @@ import { ref, computed } from 'vue';
 import { calcDamage, calcStat, type CalcResult, type CalcParams, MOVE_FLAG } from './calc-engine';
 import { usePokemonStore } from '@/store/pokemon';
 import PokemonCard from '@/components/calc/PokemonCard.vue';
+import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 
 const pokemonStore = usePokemonStore();
 
@@ -525,9 +509,7 @@ const resetAll = () => {
 };
 
 const goBack = () => {
-    uni.navigateBack({
-        fail: () => { uni.reLaunch({ url: '/pages/features/features' }); }
-    });
+    // DetailNavbar 已处理返回导航
 };
 </script>
 
