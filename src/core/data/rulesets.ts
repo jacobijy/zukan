@@ -333,11 +333,11 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		desc: "Only allows Pok&eacute;mon native to the Alola region (SUMO)",
 		banlist: ['Pikachu-Partner', 'Marowak-Alola-Totem', 'Ribombee-Totem', 'Araquanid-Totem', 'Lycanroc-Dusk', 'Necrozma-Dusk-Mane', 'Necrozma-Dawn-Wings'],
 		onValidateSet(set, format) {
-			const alolaDex = [
+			const alolaDex = new Set([
 				"Rowlet", "Dartrix", "Decidueye", "Litten", "Torracat", "Incineroar", "Popplio", "Brionne", "Primarina", "Pikipek", "Trumbeak", "Toucannon", "Yungoos", "Gumshoos", "Rattata-Alola", "Raticate-Alola", "Caterpie", "Metapod", "Butterfree", "Ledyba", "Ledian", "Spinarak", "Ariados", "Pichu", "Pikachu", "Raichu-Alola", "Grubbin", "Charjabug", "Vikavolt", "Bonsly", "Sudowoodo", "Happiny", "Chansey", "Blissey", "Munchlax", "Snorlax", "Slowpoke", "Slowbro", "Slowking", "Wingull", "Pelipper", "Abra", "Kadabra", "Alakazam", "Meowth-Alola", "Persian-Alola", "Magnemite", "Magneton", "Magnezone", "Grimer-Alola", "Muk-Alola", "Growlithe", "Arcanine", "Drowzee", "Hypno", "Makuhita", "Hariyama", "Smeargle", "Crabrawler", "Crabominable", "Gastly", "Haunter", "Gengar", "Drifloon", "Drifblim", "Misdreavus", "Mismagius", "Zubat", "Golbat", "Crobat", "Diglett-Alola", "Dugtrio-Alola", "Spearow", "Fearow", "Rufflet", "Braviary", "Vullaby", "Mandibuzz", "Mankey", "Primeape", "Delibird", "Oricorio", "Cutiefly", "Ribombee", "Petilil", "Lilligant", "Cottonee", "Whimsicott", "Psyduck", "Golduck", "Magikarp", "Gyarados", "Barboach", "Whiscash", "Machop", "Machoke", "Machamp", "Roggenrola", "Boldore", "Gigalith", "Carbink", "Sableye", "Rockruff", "Lycanroc", "Spinda", "Tentacool", "Tentacruel", "Finneon", "Lumineon", "Wishiwashi", "Luvdisc", "Corsola", "Mareanie", "Toxapex", "Shellder", "Cloyster", "Bagon", "Shelgon", "Salamence", "Lillipup", "Herdier", "Stoutland", "Eevee", "Vaporeon", "Jolteon", "Flareon", "Espeon", "Umbreon", "Leafeon", "Glaceon", "Sylveon", "Mudbray", "Mudsdale", "Igglybuff", "Jigglypuff", "Wigglytuff", "Tauros", "Miltank", "Surskit", "Masquerain", "Dewpider", "Araquanid", "Fomantis", "Lurantis", "Morelull", "Shiinotic", "Paras", "Parasect", "Poliwag", "Poliwhirl", "Poliwrath", "Politoed", "Goldeen", "Seaking", "Feebas", "Milotic", "Alomomola", "Fletchling", "Fletchinder", "Talonflame", "Salandit", "Salazzle", "Cubone", "Marowak-Alola", "Kangaskhan", "Magby", "Magmar", "Magmortar", "Stufful", "Bewear", "Bounsweet", "Steenee", "Tsareena", "Comfey", "Pinsir", "Oranguru", "Passimian", "Goomy", "Sliggoo", "Goodra", "Castform", "Wimpod", "Golisopod", "Staryu", "Starmie", "Sandygast", "Palossand", "Cranidos", "Rampardos", "Shieldon", "Bastiodon", "Archen", "Archeops", "Tirtouga", "Carracosta", "Phantump", "Trevenant", "Nosepass", "Probopass", "Pyukumuku", "Chinchou", "Lanturn", "Type: Null", "Silvally", "Zygarde", "Trubbish", "Garbodor", "Skarmory", "Ditto", "Cleffa", "Clefairy", "Clefable", "Minior", "Beldum", "Metang", "Metagross", "Porygon", "Porygon2", "Porygon-Z", "Pancham", "Pangoro", "Komala", "Torkoal", "Turtonator", "Togedemaru", "Elekid", "Electabuzz", "Electivire", "Geodude-Alola", "Graveler-Alola", "Golem-Alola", "Sandile", "Krokorok", "Krookodile", "Trapinch", "Vibrava", "Flygon", "Gible", "Gabite", "Garchomp", "Klefki", "Mimikyu", "Bruxish", "Drampa", "Absol", "Snorunt", "Glalie", "Froslass", "Sneasel", "Weavile", "Sandshrew-Alola", "Sandslash-Alola", "Vulpix-Alola", "Ninetales-Alola", "Vanillite", "Vanillish", "Vanilluxe", "Snubbull", "Granbull", "Shellos", "Gastrodon", "Relicanth", "Dhelmise", "Carvanha", "Sharpedo", "Wailmer", "Wailord", "Lapras", "Exeggcute", "Exeggutor-Alola", "Jangmo-o", "Hakamo-o", "Kommo-o", "Emolga", "Scyther", "Scizor", "Murkrow", "Honchkrow", "Riolu", "Lucario", "Dratini", "Dragonair", "Dragonite", "Aerodactyl", "Tapu Koko", "Tapu Lele", "Tapu Bulu", "Tapu Fini", "Cosmog", "Cosmoem", "Solgaleo", "Lunala", "Nihilego", "Buzzwole", "Pheromosa", "Xurkitree", "Celesteela", "Kartana", "Guzzlord", "Necrozma", "Magearna", "Marshadow",
-			];
+			]);
 			const species = this.dex.species.get(set.species || set.name);
-			if (!alolaDex.includes(species.baseSpecies) && !alolaDex.includes(species.name) &&
+			if (!alolaDex.has(species.baseSpecies) && !alolaDex.has(species.name) &&
 				!this.ruleTable.has('+' + species.id)) {
 				return [`${species.baseSpecies} is not in the Old Alola Pokédex.`];
 			}
@@ -348,11 +348,11 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		name: 'New Alola Pokedex',
 		desc: "Only allows Pok&eacute;mon native to the Alola region (US/UM)",
 		onValidateSet(set, format) {
-			const alolaDex = [
+			const alolaDex = new Set([
 				"Rowlet", "Dartrix", "Decidueye", "Litten", "Torracat", "Incineroar", "Popplio", "Brionne", "Primarina", "Pikipek", "Trumbeak", "Toucannon", "Yungoos", "Gumshoos", "Rattata-Alola", "Raticate-Alola", "Caterpie", "Metapod", "Butterfree", "Ledyba", "Ledian", "Spinarak", "Ariados", "Buneary", "Lopunny", "Inkay", "Malamar", "Zorua", "Zoroark", "Furfrou", "Pichu", "Pikachu", "Raichu-Alola", "Grubbin", "Charjabug", "Vikavolt", "Bonsly", "Sudowoodo", "Happiny", "Chansey", "Blissey", "Munchlax", "Snorlax", "Slowpoke", "Slowbro", "Slowking", "Wingull", "Pelipper", "Abra", "Kadabra", "Alakazam", "Meowth-Alola", "Persian-Alola", "Magnemite", "Magneton", "Magnezone", "Grimer-Alola", "Muk-Alola", "Mime Jr.", "Mr. Mime", "Ekans", "Arbok", "Dunsparce", "Growlithe", "Arcanine", "Drowzee", "Hypno", "Makuhita", "Hariyama", "Smeargle", "Crabrawler", "Crabominable", "Gastly", "Haunter", "Gengar", "Drifloon", "Drifblim", "Murkrow", "Honchkrow", "Zubat", "Golbat", "Crobat", "Noibat", "Noivern", "Diglett-Alola", "Dugtrio-Alola", "Spearow", "Fearow", "Rufflet", "Braviary", "Vullaby", "Mandibuzz", "Mankey", "Primeape", "Delibird", "Hawlucha", "Oricorio", "Cutiefly", "Ribombee", "Flabe\u0301be\u0301", "Floette", "Florges", "Petilil", "Lilligant", "Cottonee", "Whimsicott", "Psyduck", "Golduck", "Smoochum", "Jynx", "Magikarp", "Gyarados", "Barboach", "Whiscash", "Seel", "Dewgong", "Machop", "Machoke", "Machamp", "Roggenrola", "Boldore", "Gigalith", "Carbink", "Sableye", "Mawile", "Rockruff", "Lycanroc", "Spinda", "Tentacool", "Tentacruel", "Finneon", "Lumineon", "Wishiwashi", "Luvdisc", "Corsola", "Mareanie", "Toxapex", "Shellder", "Cloyster", "Clamperl", "Huntail", "Gorebyss", "Remoraid", "Octillery", "Mantyke", "Mantine", "Bagon", "Shelgon", "Salamence", "Lillipup", "Herdier", "Stoutland", "Eevee", "Vaporeon", "Jolteon", "Flareon", "Espeon", "Umbreon", "Leafeon", "Glaceon", "Sylveon", "Mareep", "Flaaffy", "Ampharos", "Mudbray", "Mudsdale", "Igglybuff", "Jigglypuff", "Wigglytuff", "Tauros", "Miltank", "Surskit", "Masquerain", "Dewpider", "Araquanid", "Fomantis", "Lurantis", "Morelull", "Shiinotic", "Paras", "Parasect", "Poliwag", "Poliwhirl", "Poliwrath", "Politoed", "Goldeen", "Seaking", "Basculin", "Feebas", "Milotic", "Alomomola", "Fletchling", "Fletchinder", "Talonflame", "Salandit", "Salazzle", "Cubone", "Marowak-Alola", "Kangaskhan", "Magby", "Magmar", "Magmortar", "Larvesta", "Volcarona", "Stufful", "Bewear", "Bounsweet", "Steenee", "Tsareena", "Comfey", "Pinsir", "Hoothoot", "Noctowl", "Kecleon", "Oranguru", "Passimian", "Goomy", "Sliggoo", "Goodra", "Castform", "Wimpod", "Golisopod", "Staryu", "Starmie", "Sandygast", "Palossand", "Omanyte", "Omastar", "Kabuto", "Kabutops", "Lileep", "Cradily", "Anorith", "Armaldo", "Cranidos", "Rampardos", "Shieldon", "Bastiodon", "Tirtouga", "Carracosta", "Archen", "Archeops", "Tyrunt", "Tyrantrum", "Amaura", "Aurorus", "Pupitar", "Larvitar", "Tyranitar", "Phantump", "Trevenant", "Natu", "Xatu", "Nosepass", "Probopass", "Pyukumuku", "Chinchou", "Lanturn", "Type: Null", "Silvally", "Poipole", "Naganadel", "Zygarde", "Trubbish", "Garbodor", "Minccino", "Cinccino", "Pineco", "Forretress", "Skarmory", "Ditto", "Cleffa", "Clefairy", "Clefable", "Elgyem", "Beheeyem", "Minior", "Beldum", "Metang", "Metagross", "Porygon", "Porygon2", "Porygon-Z", "Pancham", "Pangoro", "Komala", "Torkoal", "Turtonator", "Houndour", "Houndoom", "Dedenne", "Togedemaru", "Electrike", "Manectric", "Elekid", "Electabuzz", "Electivire", "Geodude-Alola", "Graveler-Alola", "Golem-Alola", "Sandile", "Krokorok", "Krookodile", "Trapinch", "Vibrava", "Flygon", "Gible", "Gabite", "Garchomp", "Baltoy", "Claydol", "Golett", "Golurk", "Klefki", "Mimikyu", "Shuppet", "Banette", "Frillish", "Jellicent", "Bruxish", "Drampa", "Absol", "Snorunt", "Glalie", "Froslass", "Sneasel", "Weavile", "Sandshrew-Alola", "Sandslash-Alola", "Vulpix-Alola", "Ninetales-Alola", "Vanillite", "Vanillish", "Vanilluxe", "Scraggy", "Scrafty", "Pawniard", "Bisharp", "Snubbull", "Granbull", "Shellos", "Gastrodon", "Relicanth", "Dhelmise", "Carvanha", "Sharpedo", "Skrelp", "Dragalge", "Clauncher", "Clawitzer", "Wailmer", "Wailord", "Lapras", "Tropius", "Exeggcute", "Exeggutor-Alola", "Corphish", "Crawdaunt", "Mienfoo", "Mienshao", "Jangmo-o", "Hakamo-o", "Kommo-o", "Emolga", "Scyther", "Scizor", "Heracross", "Aipom", "Ambipom", "Litleo", "Pyroar", "Misdreavus", "Mismagius", "Druddigon", "Lickitung", "Lickilicky", "Riolu", "Lucario", "Dratini", "Dragonair", "Dragonite", "Aerodactyl", "Tapu Koko", "Tapu Lele", "Tapu Bulu", "Tapu Fini", "Cosmog", "Cosmoem", "Solgaleo", "Lunala", "Nihilego", "Stakataka", "Blacephalon", "Buzzwole", "Pheromosa", "Xurkitree", "Celesteela", "Kartana", "Guzzlord", "Necrozma", "Magearna", "Marshadow", "Zeraora",
-			];
+			]);
 			const species = this.dex.species.get(set.species || set.name);
-			if (!alolaDex.includes(species.baseSpecies) && !alolaDex.includes(species.name) &&
+			if (!alolaDex.has(species.baseSpecies) && !alolaDex.has(species.name) &&
 				!this.ruleTable.has('+' + species.id)) {
 				return [`${species.baseSpecies} is not in the New Alola Pokédex.`];
 			}
@@ -364,11 +364,11 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		desc: "Only allows Pok&eacute;mon native to the Galar region (Sw/Sh)",
 		banlist: ['Raichu-Alola', 'Weezing-Base'],
 		onValidateSet(set, format) {
-			const galarDex = [
+			const galarDex = new Set([
 				"Grookey", "Thwackey", "Rillaboom", "Scorbunny", "Raboot", "Cinderace", "Sobble", "Drizzile", "Inteleon", "Blipbug", "Dottler", "Orbeetle", "Caterpie", "Metapod", "Butterfree", "Grubbin", "Charjabug", "Vikavolt", "Hoothoot", "Noctowl", "Rookidee", "Corvisquire", "Corviknight", "Skwovet", "Greedent", "Pidove", "Tranquill", "Unfezant", "Nickit", "Thievul", "Zigzagoon", "Linoone", "Obstagoon", "Wooloo", "Dubwool", "Lotad", "Lombre", "Ludicolo", "Seedot", "Nuzleaf", "Shiftry", "Chewtle", "Drednaw", "Purrloin", "Liepard", "Yamper", "Boltund", "Bunnelby", "Diggersby", "Minccino", "Cinccino", "Bounsweet", "Steenee", "Tsareena", "Oddish", "Gloom", "Vileplume", "Bellossom", "Budew", "Roselia", "Roserade", "Wingull", "Pelipper", "Joltik", "Galvantula", "Electrike", "Manectric", "Vulpix", "Ninetales", "Growlithe", "Arcanine", "Vanillite", "Vanillish", "Vanilluxe", "Swinub", "Piloswine", "Mamoswine", "Delibird", "Snorunt", "Glalie", "Froslass", "Baltoy", "Claydol", "Mudbray", "Mudsdale", "Dwebble", "Crustle", "Golett", "Golurk", "Munna", "Musharna", "Natu", "Xatu", "Stufful", "Bewear", "Snover", "Abomasnow", "Krabby", "Kingler", "Wooper", "Quagsire", "Corphish", "Crawdaunt", "Nincada", "Ninjask", "Shedinja", "Tyrogue", "Hitmonlee", "Hitmonchan", "Hitmontop", "Pancham", "Pangoro", "Klink", "Klang", "Klinklang", "Combee", "Vespiquen", "Bronzor", "Bronzong", "Ralts", "Kirlia", "Gardevoir", "Gallade", "Drifloon", "Drifblim", "Gossifleur", "Eldegoss", "Cherubi", "Cherrim", "Stunky", "Skuntank", "Tympole", "Palpitoad", "Seismitoad", "Duskull", "Dusclops", "Dusknoir", "Machop", "Machoke", "Machamp", "Gastly", "Haunter", "Gengar", "Magikarp", "Gyarados", "Goldeen", "Seaking", "Remoraid", "Octillery", "Shellder", "Cloyster", "Feebas", "Milotic", "Basculin", "Wishiwashi", "Pyukumuku", "Trubbish", "Garbodor", "Sizzlipede", "Centiskorch", "Rolycoly", "Carkol", "Coalossal", "Diglett", "Dugtrio", "Drilbur", "Excadrill", "Roggenrola", "Boldore", "Gigalith", "Timburr", "Gurdurr", "Conkeldurr", "Woobat", "Swoobat", "Noibat", "Noivern", "Onix", "Steelix", "Arrokuda", "Barraskewda", "Meowth", "Perrserker", "Persian", "Milcery", "Alcremie", "Cutiefly", "Ribombee", "Ferroseed", "Ferrothorn", "Pumpkaboo", "Gourgeist", "Pichu", "Pikachu", "Raichu", "Eevee", "Vaporeon", "Jolteon", "Flareon", "Espeon", "Umbreon", "Leafeon", "Glaceon", "Sylveon", "Applin", "Flapple", "Appletun", "Espurr", "Meowstic", "Swirlix", "Slurpuff", "Spritzee", "Aromatisse", "Dewpider", "Araquanid", "Wynaut", "Wobbuffet", "Farfetch\u2019d", "Sirfetch\u2019d", "Chinchou", "Lanturn", "Croagunk", "Toxicroak", "Scraggy", "Scrafty", "Stunfisk", "Shuckle", "Barboach", "Whiscash", "Shellos", "Gastrodon", "Wimpod", "Golisopod", "Binacle", "Barbaracle", "Corsola", "Cursola", "Impidimp", "Morgrem", "Grimmsnarl", "Hatenna", "Hattrem", "Hatterene", "Salandit", "Salazzle", "Pawniard", "Bisharp", "Throh", "Sawk", "Koffing", "Weezing", "Bonsly", "Sudowoodo", "Cleffa", "Clefairy", "Clefable", "Togepi", "Togetic", "Togekiss", "Munchlax", "Snorlax", "Cottonee", "Whimsicott", "Rhyhorn", "Rhydon", "Rhyperior", "Gothita", "Gothorita", "Gothitelle", "Solosis", "Duosion", "Reuniclus", "Karrablast", "Escavalier", "Shelmet", "Accelgor", "Elgyem", "Beheeyem", "Cubchoo", "Beartic", "Rufflet", "Braviary", "Vullaby", "Mandibuzz", "Skorupi", "Drapion", "Litwick", "Lampent", "Chandelure", "Inkay", "Malamar", "Sneasel", "Weavile", "Sableye", "Mawile", "Maractus", "Sigilyph", "Riolu", "Lucario", "Torkoal", "Mimikyu", "Cufant", "Copperajah", "Qwilfish", "Frillish", "Jellicent", "Mareanie", "Toxapex", "Cramorant", "Toxel", "Toxtricity", "Toxtricity-Low-Key", "Silicobra", "Sandaconda", "Hippopotas", "Hippowdon", "Durant", "Heatmor", "Helioptile", "Heliolisk", "Hawlucha", "Trapinch", "Vibrava", "Flygon", "Axew", "Fraxure", "Haxorus", "Yamask", "Runerigus", "Cofagrigus", "Honedge", "Doublade", "Aegislash", "Ponyta", "Rapidash", "Sinistea", "Polteageist", "Indeedee", "Phantump", "Trevenant", "Morelull", "Shiinotic", "Oranguru", "Passimian", "Morpeko", "Falinks", "Drampa", "Turtonator", "Togedemaru", "Snom", "Frosmoth", "Clobbopus", "Grapploct", "Pincurchin", "Mantyke", "Mantine", "Wailmer", "Wailord", "Bergmite", "Avalugg", "Dhelmise", "Lapras", "Lunatone", "Solrock", "Mime Jr.", "Mr. Mime", "Mr. Rime", "Darumaka", "Darmanitan", "Stonjourner", "Eiscue", "Duraludon", "Rotom", "Ditto", "Dracozolt", "Arctozolt", "Dracovish", "Arctovish", "Charmander", "Charmeleon", "Charizard", "Type: Null", "Silvally", "Larvitar", "Pupitar", "Tyranitar", "Deino", "Zweilous", "Hydreigon", "Goomy", "Sliggoo", "Goodra", "Jangmo-o", "Hakamo-o", "Kommo-o", "Dreepy", "Drakloak", "Dragapult",
-			];
+			]);
 			const species = this.dex.species.get(set.species || set.name);
-			if (!galarDex.includes(species.baseSpecies) && !galarDex.includes(species.name) &&
+			if (!galarDex.has(species.baseSpecies) && !galarDex.has(species.name) &&
 				!this.ruleTable.has('+' + species.id)) {
 				return [`${species.baseSpecies} is not in the Galar Pokédex.`];
 			}
@@ -379,11 +379,11 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		name: 'Isle of Armor Pokedex',
 		desc: "Only allows Pok&eacute;mon native to the Isle of Armor in the Galar Region (Sw/Sh DLC1)",
 		onValidateSet(set, format) {
-			const ioaDex = [
+			const ioaDex = new Set([
 				"Slowpoke", "Slowbro", "Slowking", "Buneary", "Lopunny", "Happiny", "Chansey", "Blissey", "Skwovet", "Greedent", "Igglybuff", "Jigglypuff", "Wigglytuff", "Blipbug", "Dottler", "Fomantis", "Lurantis", "Applin", "Flapple", "Appletun", "Fletchling", "Fletchinder", "Talonflame", "Shinx", "Luxio", "Luxray", "Klefki", "Pawniard", "Bisharp", "Abra", "Kadabra", "Alakazam", "Ralts", "Kirlia", "Gardevoir", "Gallade", "Krabby", "Kingler", "Tentacool", "Tentacruel", "Magikarp", "Gyarados", "Remoraid", "Octillery", "Mantyke", "Mantine", "Wingull", "Pelipper", "Skorupi", "Drapion", "Dunsparce", "Bouffalant", "Lickitung", "Lickilicky", "Chewtle", "Drednaw", "Wooper", "Quagsire", "Goomy", "Sliggoo", "Goodra", "Druddigon", "Shelmet", "Accelgor", "Karrablast", "Escavalier", "Bulbasaur", "Ivysaur", "Venusaur", "Squirtle", "Wartortle", "Blastoise", "Venipede", "Whirlipede", "Scolipede", "Foongus", "Amoonguss", "Comfey", "Tangela", "Tangrowth", "Croagunk", "Toxicroak", "Pichu", "Pikachu", "Raichu", "Zorua", "Zoroark", "Oranguru", "Passimian", "Corphish", "Crawdaunt", "Cramorant", "Goldeen", "Seaking", "Arrokuda", "Barraskewda", "Staryu", "Starmie", "Kubfu", "Urshifu", "Emolga", "Dedenne", "Morpeko", "Magnemite", "Magneton", "Magnezone", "Inkay", "Malamar", "Wishiwashi", "Carvanha", "Sharpedo", "Lillipup", "Herdier", "Stoutland", "Tauros", "Miltank", "Scyther", "Scizor", "Pinsir", "Heracross", "Dwebble", "Crustle", "Wimpod", "Golisopod", "Pincurchin", "Mareanie", "Toxapex", "Clobbopus", "Grapploct", "Shellder", "Cloyster", "Sandygast", "Palossand", "Drifloon", "Drifblim", "Barboach", "Whiscash", "Azurill", "Marill", "Azumarill", "Poliwag", "Poliwhirl", "Poliwrath", "Politoed", "Psyduck", "Golduck", "Whismur", "Loudred", "Exploud", "Woobat", "Swoobat", "Skarmory", "Roggenrola", "Boldore", "Gigalith", "Rockruff", "Lycanroc", "Salandit", "Salazzle", "Scraggy", "Scrafty", "Mienfoo", "Mienshao", "Jangmo-o", "Hakamo-o", "Kommo-o", "Sandshrew", "Sandslash", "Cubone", "Marowak", "Kangaskhan", "Torkoal", "Silicobra", "Sandaconda", "Sandile", "Krokorok", "Krookodile", "Rufflet", "Braviary", "Vullaby", "Mandibuzz", "Rhyhorn", "Rhydon", "Rhyperior", "Larvesta", "Volcarona", "Chinchou", "Lanturn", "Wailmer", "Wailord", "Frillish", "Jellicent", "Skrelp", "Dragalge", "Clauncher", "Clawitzer", "Horsea", "Seadra", "Kingdra", "Petilil", "Lilligant", "Combee", "Vespiquen", "Exeggcute", "Exeggutor", "Ditto", "Porygon", "Porygon2", "Porygon-Z",
-			];
+			]);
 			const species = this.dex.species.get(set.species || set.name);
-			if (!ioaDex.includes(species.baseSpecies) && !ioaDex.includes(species.name) &&
+			if (!ioaDex.has(species.baseSpecies) && !ioaDex.has(species.name) &&
 				!this.ruleTable.has('+' + species.id)) {
 				return [`${species.baseSpecies} is not in the Isle of Armor Pokédex.`];
 			}
@@ -394,11 +394,11 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		name: 'Crown Tundra Pokedex',
 		desc: "Only allows Pok&eacute;mon native to the Crown Tundra in the Galar Region (Sw/Sh DLC2)",
 		onValidateSet(set, format) {
-			const tundraDex = [
+			const tundraDex = new Set([
 				"Nidoran-F", "Nidorina", "Nidoqueen", "Nidoran-M", "Nidorino", "Nidoking", "Clefairy", "Clefable", "Zubat", "Golbat", "Ponyta", "Rapidash", "Mr. Mime", "Jynx", "Electabuzz", "Magmar", "Magikarp", "Gyarados", "Lapras", "Eevee", "Vaporeon", "Jolteon", "Flareon", "Omanyte", "Omastar", "Kabuto", "Kabutops", "Aerodactyl", "Snorlax", "Articuno", "Zapdos", "Moltres", "Dratini", "Dragonair", "Dragonite", "Crobat", "Cleffa", "Espeon", "Umbreon", "Shuckle", "Sneasel", "Swinub", "Piloswine", "Delibird", "Smoochum", "Elekid", "Magby", "Larvitar", "Pupitar", "Tyranitar", "Zigzagoon", "Linoone", "Sableye", "Mawile", "Aron", "Lairon", "Aggron", "Swablu", "Altaria", "Barboach", "Whiscash", "Baltoy", "Claydol", "Lileep", "Cradily", "Anorith", "Armaldo", "Feebas", "Milotic", "Absol", "Snorunt", "Glalie", "Spheal", "Sealeo", "Walrein", "Relicanth", "Bagon", "Shelgon", "Salamence", "Beldum", "Metang", "Metagross", "Regirock", "Regice", "Registeel", "Bronzor", "Bronzong", "Spiritomb", "Gible", "Gabite", "Garchomp", "Munchlax", "Riolu", "Lucario", "Snover", "Abomasnow", "Weavile", "Electivire", "Magmortar", "Leafeon", "Glaceon", "Mamoswine", "Froslass", "Audino", "Timburr", "Gurdurr", "Conkeldurr", "Cottonee", "Whimsicott", "Basculin", "Darumaka", "Darmanitan", "Tirtouga", "Carracosta", "Archen", "Archeops", "Gothita", "Gothorita", "Gothitelle", "Solosis", "Duosion", "Reuniclus", "Vanillite", "Vanillish", "Vanilluxe", "Karrablast", "Escavalier", "Joltik", "Galvantula", "Ferroseed", "Ferrothorn", "Litwick", "Lampent", "Chandelure", "Cubchoo", "Beartic", "Cryogonal", "Shelmet", "Accelgor", "Druddigon", "Golett", "Golurk", "Heatmor", "Durant", "Deino", "Zweilous", "Hydreigon", "Cobalion", "Terrakion", "Virizion", "Tyrunt", "Tyrantrum", "Amaura", "Aurorus", "Sylveon", "Carbink", "Phantump", "Trevenant", "Bergmite", "Avalugg", "Noibat", "Noivern", "Dewpider", "Araquanid", "Mimikyu", "Dhelmise", "Skwovet", "Greedent", "Rookidee", "Corvisquire", "Corviknight", "Gossifleur", "Eldegoss", "Wooloo", "Dubwool", "Yamper", "Boltund", "Rolycoly", "Carkol", "Coalossal", "Sizzlipede", "Centiskorch", "Sinistea", "Polteageist", "Hatenna", "Hattrem", "Hatterene", "Impidimp", "Morgrem", "Grimmsnarl", "Obstagoon", "Mr. Rime", "Pincurchin", "Snom", "Frosmoth", "Stonjourner", "Eiscue", "Indeedee", "Morpeko", "Cufant", "Copperajah", "Dreepy", "Drakloak", "Dragapult", "Regieleki", "Regidrago", "Glastrier", "Spectrier",
-			];
+			]);
 			const species = this.dex.species.get(set.species || set.name);
-			if (!tundraDex.includes(species.baseSpecies) && !tundraDex.includes(species.name)) {
+			if (!tundraDex.has(species.baseSpecies) && !tundraDex.has(species.name)) {
 				return [`${species.baseSpecies} is not in the Crown Tundra Pokédex.`];
 			}
 		},
@@ -408,13 +408,13 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		name: 'Galar Expansion Pokedex',
 		desc: "Only allows Pok&eacute;mon native to the Galar region, Isle of Armor, or Crown Tundra (Sw/Sh + Expansion Pass)",
 		onValidateSet(set, format) {
-			const galarDex = [
+			const galarDex = new Set([
 				"Grookey", "Thwackey", "Rillaboom", "Scorbunny", "Raboot", "Cinderace", "Sobble", "Drizzile", "Inteleon", "Blipbug", "Dottler", "Orbeetle", "Caterpie", "Metapod", "Butterfree", "Grubbin", "Charjabug", "Vikavolt", "Hoothoot", "Noctowl", "Rookidee", "Corvisquire", "Corviknight", "Skwovet", "Greedent", "Pidove", "Tranquill", "Unfezant", "Nickit", "Thievul", "Zigzagoon", "Linoone", "Obstagoon", "Wooloo", "Dubwool", "Lotad", "Lombre", "Ludicolo", "Seedot", "Nuzleaf", "Shiftry", "Chewtle", "Drednaw", "Purrloin", "Liepard", "Yamper", "Boltund", "Bunnelby", "Diggersby", "Minccino", "Cinccino", "Bounsweet", "Steenee", "Tsareena", "Oddish", "Gloom", "Vileplume", "Bellossom", "Budew", "Roselia", "Roserade", "Wingull", "Pelipper", "Joltik", "Galvantula", "Electrike", "Manectric", "Vulpix", "Ninetales", "Growlithe", "Arcanine", "Vanillite", "Vanillish", "Vanilluxe", "Swinub", "Piloswine", "Mamoswine", "Delibird", "Snorunt", "Glalie", "Froslass", "Baltoy", "Claydol", "Mudbray", "Mudsdale", "Dwebble", "Crustle", "Golett", "Golurk", "Munna", "Musharna", "Natu", "Xatu", "Stufful", "Bewear", "Snover", "Abomasnow", "Krabby", "Kingler", "Wooper", "Quagsire", "Corphish", "Crawdaunt", "Nincada", "Ninjask", "Shedinja", "Tyrogue", "Hitmonlee", "Hitmonchan", "Hitmontop", "Pancham", "Pangoro", "Klink", "Klang", "Klinklang", "Combee", "Vespiquen", "Bronzor", "Bronzong", "Ralts", "Kirlia", "Gardevoir", "Gallade", "Drifloon", "Drifblim", "Gossifleur", "Eldegoss", "Cherubi", "Cherrim", "Stunky", "Skuntank", "Tympole", "Palpitoad", "Seismitoad", "Duskull", "Dusclops", "Dusknoir", "Machop", "Machoke", "Machamp", "Gastly", "Haunter", "Gengar", "Magikarp", "Gyarados", "Goldeen", "Seaking", "Remoraid", "Octillery", "Shellder", "Cloyster", "Feebas", "Milotic", "Basculin", "Wishiwashi", "Pyukumuku", "Trubbish", "Garbodor", "Sizzlipede", "Centiskorch", "Rolycoly", "Carkol", "Coalossal", "Diglett", "Dugtrio", "Drilbur", "Excadrill", "Roggenrola", "Boldore", "Gigalith", "Timburr", "Gurdurr", "Conkeldurr", "Woobat", "Swoobat", "Noibat", "Noivern", "Onix", "Steelix", "Arrokuda", "Barraskewda", "Meowth", "Perrserker", "Persian", "Milcery", "Alcremie", "Cutiefly", "Ribombee", "Ferroseed", "Ferrothorn", "Pumpkaboo", "Gourgeist", "Pichu", "Pikachu", "Raichu", "Eevee", "Vaporeon", "Jolteon", "Flareon", "Espeon", "Umbreon", "Leafeon", "Glaceon", "Sylveon", "Applin", "Flapple", "Appletun", "Espurr", "Meowstic", "Swirlix", "Slurpuff", "Spritzee", "Aromatisse", "Dewpider", "Araquanid", "Wynaut", "Wobbuffet", "Farfetch\u2019d", "Sirfetch\u2019d", "Chinchou", "Lanturn", "Croagunk", "Toxicroak", "Scraggy", "Scrafty", "Stunfisk", "Shuckle", "Barboach", "Whiscash", "Shellos", "Gastrodon", "Wimpod", "Golisopod", "Binacle", "Barbaracle", "Corsola", "Cursola", "Impidimp", "Morgrem", "Grimmsnarl", "Hatenna", "Hattrem", "Hatterene", "Salandit", "Salazzle", "Pawniard", "Bisharp", "Throh", "Sawk", "Koffing", "Weezing", "Bonsly", "Sudowoodo", "Cleffa", "Clefairy", "Clefable", "Togepi", "Togetic", "Togekiss", "Munchlax", "Snorlax", "Cottonee", "Whimsicott", "Rhyhorn", "Rhydon", "Rhyperior", "Gothita", "Gothorita", "Gothitelle", "Solosis", "Duosion", "Reuniclus", "Karrablast", "Escavalier", "Shelmet", "Accelgor", "Elgyem", "Beheeyem", "Cubchoo", "Beartic", "Rufflet", "Braviary", "Vullaby", "Mandibuzz", "Skorupi", "Drapion", "Litwick", "Lampent", "Chandelure", "Inkay", "Malamar", "Sneasel", "Weavile", "Sableye", "Mawile", "Maractus", "Sigilyph", "Riolu", "Lucario", "Torkoal", "Mimikyu", "Cufant", "Copperajah", "Qwilfish", "Frillish", "Jellicent", "Mareanie", "Toxapex", "Cramorant", "Toxel", "Toxtricity", "Toxtricity-Low-Key", "Silicobra", "Sandaconda", "Hippopotas", "Hippowdon", "Durant", "Heatmor", "Helioptile", "Heliolisk", "Hawlucha", "Trapinch", "Vibrava", "Flygon", "Axew", "Fraxure", "Haxorus", "Yamask", "Runerigus", "Cofagrigus", "Honedge", "Doublade", "Aegislash", "Ponyta", "Rapidash", "Sinistea", "Polteageist", "Indeedee", "Phantump", "Trevenant", "Morelull", "Shiinotic", "Oranguru", "Passimian", "Morpeko", "Falinks", "Drampa", "Turtonator", "Togedemaru", "Snom", "Frosmoth", "Clobbopus", "Grapploct", "Pincurchin", "Mantyke", "Mantine", "Wailmer", "Wailord", "Bergmite", "Avalugg", "Dhelmise", "Lapras", "Lunatone", "Solrock", "Mime Jr.", "Mr. Mime", "Mr. Rime", "Darumaka", "Darmanitan", "Stonjourner", "Eiscue", "Duraludon", "Rotom", "Ditto", "Dracozolt", "Arctozolt", "Dracovish", "Arctovish", "Charmander", "Charmeleon", "Charizard", "Type: Null", "Silvally", "Larvitar", "Pupitar", "Tyranitar", "Deino", "Zweilous", "Hydreigon", "Goomy", "Sliggoo", "Goodra", "Jangmo-o", "Hakamo-o", "Kommo-o", "Dreepy", "Drakloak", "Dragapult",
 				"Slowpoke", "Slowbro", "Slowking", "Buneary", "Lopunny", "Happiny", "Chansey", "Blissey", "Skwovet", "Greedent", "Igglybuff", "Jigglypuff", "Wigglytuff", "Blipbug", "Dottler", "Fomantis", "Lurantis", "Applin", "Flapple", "Appletun", "Fletchling", "Fletchinder", "Talonflame", "Shinx", "Luxio", "Luxray", "Klefki", "Pawniard", "Bisharp", "Abra", "Kadabra", "Alakazam", "Ralts", "Kirlia", "Gardevoir", "Gallade", "Krabby", "Kingler", "Tentacool", "Tentacruel", "Magikarp", "Gyarados", "Remoraid", "Octillery", "Mantyke", "Mantine", "Wingull", "Pelipper", "Skorupi", "Drapion", "Dunsparce", "Bouffalant", "Lickitung", "Lickilicky", "Chewtle", "Drednaw", "Wooper", "Quagsire", "Goomy", "Sliggoo", "Goodra", "Druddigon", "Shelmet", "Accelgor", "Karrablast", "Escavalier", "Bulbasaur", "Ivysaur", "Venusaur", "Squirtle", "Wartortle", "Blastoise", "Venipede", "Whirlipede", "Scolipede", "Foongus", "Amoonguss", "Comfey", "Tangela", "Tangrowth", "Croagunk", "Toxicroak", "Pichu", "Pikachu", "Raichu", "Zorua", "Zoroark", "Oranguru", "Passimian", "Corphish", "Crawdaunt", "Cramorant", "Goldeen", "Seaking", "Arrokuda", "Barraskewda", "Staryu", "Starmie", "Kubfu", "Urshifu", "Emolga", "Dedenne", "Morpeko", "Magnemite", "Magneton", "Magnezone", "Inkay", "Malamar", "Wishiwashi", "Carvanha", "Sharpedo", "Lillipup", "Herdier", "Stoutland", "Tauros", "Miltank", "Scyther", "Scizor", "Pinsir", "Heracross", "Dwebble", "Crustle", "Wimpod", "Golisopod", "Pincurchin", "Mareanie", "Toxapex", "Clobbopus", "Grapploct", "Shellder", "Cloyster", "Sandygast", "Palossand", "Drifloon", "Drifblim", "Barboach", "Whiscash", "Azurill", "Marill", "Azumarill", "Poliwag", "Poliwhirl", "Poliwrath", "Politoed", "Psyduck", "Golduck", "Whismur", "Loudred", "Exploud", "Woobat", "Swoobat", "Skarmory", "Roggenrola", "Boldore", "Gigalith", "Rockruff", "Lycanroc", "Salandit", "Salazzle", "Scraggy", "Scrafty", "Mienfoo", "Mienshao", "Jangmo-o", "Hakamo-o", "Kommo-o", "Sandshrew", "Sandslash", "Cubone", "Marowak", "Kangaskhan", "Torkoal", "Silicobra", "Sandaconda", "Sandile", "Krokorok", "Krookodile", "Rufflet", "Braviary", "Vullaby", "Mandibuzz", "Rhyhorn", "Rhydon", "Rhyperior", "Larvesta", "Volcarona", "Chinchou", "Lanturn", "Wailmer", "Wailord", "Frillish", "Jellicent", "Skrelp", "Dragalge", "Clauncher", "Clawitzer", "Horsea", "Seadra", "Kingdra", "Petilil", "Lilligant", "Combee", "Vespiquen", "Exeggcute", "Exeggutor", "Ditto", "Porygon", "Porygon2", "Porygon-Z",
 				"Nidoran-F", "Nidorina", "Nidoqueen", "Nidoran-M", "Nidorino", "Nidoking", "Clefairy", "Clefable", "Zubat", "Golbat", "Ponyta", "Rapidash", "Mr. Mime", "Jynx", "Electabuzz", "Magmar", "Magikarp", "Gyarados", "Lapras", "Eevee", "Vaporeon", "Jolteon", "Flareon", "Omanyte", "Omastar", "Kabuto", "Kabutops", "Aerodactyl", "Snorlax", "Articuno", "Zapdos", "Moltres", "Dratini", "Dragonair", "Dragonite", "Crobat", "Cleffa", "Espeon", "Umbreon", "Shuckle", "Sneasel", "Swinub", "Piloswine", "Delibird", "Smoochum", "Elekid", "Magby", "Larvitar", "Pupitar", "Tyranitar", "Zigzagoon", "Linoone", "Sableye", "Mawile", "Aron", "Lairon", "Aggron", "Swablu", "Altaria", "Barboach", "Whiscash", "Baltoy", "Claydol", "Lileep", "Cradily", "Anorith", "Armaldo", "Feebas", "Milotic", "Absol", "Snorunt", "Glalie", "Spheal", "Sealeo", "Walrein", "Relicanth", "Bagon", "Shelgon", "Salamence", "Beldum", "Metang", "Metagross", "Regirock", "Regice", "Registeel", "Bronzor", "Bronzong", "Spiritomb", "Gible", "Gabite", "Garchomp", "Munchlax", "Riolu", "Lucario", "Snover", "Abomasnow", "Weavile", "Electivire", "Magmortar", "Leafeon", "Glaceon", "Mamoswine", "Froslass", "Audino", "Timburr", "Gurdurr", "Conkeldurr", "Cottonee", "Whimsicott", "Basculin", "Darumaka", "Darmanitan", "Tirtouga", "Carracosta", "Archen", "Archeops", "Gothita", "Gothorita", "Gothitelle", "Solosis", "Duosion", "Reuniclus", "Vanillite", "Vanillish", "Vanilluxe", "Karrablast", "Escavalier", "Joltik", "Galvantula", "Ferroseed", "Ferrothorn", "Litwick", "Lampent", "Chandelure", "Cubchoo", "Beartic", "Cryogonal", "Shelmet", "Accelgor", "Druddigon", "Golett", "Golurk", "Heatmor", "Durant", "Deino", "Zweilous", "Hydreigon", "Cobalion", "Terrakion", "Virizion", "Tyrunt", "Tyrantrum", "Amaura", "Aurorus", "Sylveon", "Carbink", "Phantump", "Trevenant", "Bergmite", "Avalugg", "Noibat", "Noivern", "Dewpider", "Araquanid", "Mimikyu", "Dhelmise", "Skwovet", "Greedent", "Rookidee", "Corvisquire", "Corviknight", "Gossifleur", "Eldegoss", "Wooloo", "Dubwool", "Yamper", "Boltund", "Rolycoly", "Carkol", "Coalossal", "Sizzlipede", "Centiskorch", "Sinistea", "Polteageist", "Hatenna", "Hattrem", "Hatterene", "Impidimp", "Morgrem", "Grimmsnarl", "Obstagoon", "Mr. Rime", "Pincurchin", "Snom", "Frosmoth", "Stonjourner", "Eiscue", "Indeedee", "Morpeko", "Cufant", "Copperajah", "Dreepy", "Drakloak", "Dragapult", "Regieleki", "Regidrago", "Glastrier", "Spectrier",
-			];
+			]);
 			const species = this.dex.species.get(set.species || set.name);
-			if (!galarDex.includes(species.baseSpecies) && !galarDex.includes(species.name)) {
+			if (!galarDex.has(species.baseSpecies) && !galarDex.has(species.name)) {
 				return [`${species.baseSpecies} is not in the Galar, Isle of Armor, or Crown Tundra Pokédexes.`];
 			}
 		},
@@ -430,11 +430,11 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 			'Zorua-Hisui', 'Zoroark-Hisui',
 		],
 		onValidateSet(set, format) {
-			const paldeaDex = [
+			const paldeaDex = new Set([
 				"Sprigatito", "Floragato", "Meowscarada", "Fuecoco", "Crocalor", "Skeledirge", "Quaxly", "Quaxwell", "Quaquaval", "Lechonk", "Oinkologne", "Tarountula", "Spidops", "Nymble", "Lokix", "Hoppip", "Skiploom", "Jumpluff", "Fletchling", "Fletchinder", "Talonflame", "Pawmi", "Pawmo", "Pawmot", "Houndour", "Houndoom", "Yungoos", "Gumshoos", "Skwovet", "Greedent", "Sunkern", "Sunflora", "Kricketot", "Kricketune", "Scatterbug", "Spewpa", "Vivillon", "Combee", "Vespiquen", "Rookidee", "Corvisquire", "Corviknight", "Happiny", "Chansey", "Blissey", "Azurill", "Marill", "Azumarill", "Surskit", "Masquerain", "Buizel", "Floatzel", "Wooper", "Clodsire", "Psyduck", "Golduck", "Chewtle", "Drednaw", "Igglybuff", "Jigglypuff", "Wigglytuff", "Ralts", "Kirlia", "Gardevoir", "Gallade", "Drowzee", "Hypno", "Gastly", "Haunter", "Gengar", "Tandemaus", "Maushold", "Pichu", "Pikachu", "Raichu", "Fidough", "Dachsbun", "Slakoth", "Vigoroth", "Slaking", "Bounsweet", "Steenee", "Tsareena", "Smoliv", "Dolliv", "Arboliva", "Bonsly", "Sudowoodo", "Rockruff", "Lycanroc", "Rolycoly", "Carkol", "Coalossal", "Shinx", "Luxio", "Luxray", "Starly", "Staravia", "Staraptor", "Oricorio", "Mareep", "Flaaffy", "Ampharos", "Petilil", "Lilligant", "Shroomish", "Breloom", "Applin", "Flapple", "Appletun", "Spoink", "Grumpig", "Squawkabilly", "Misdreavus", "Mismagius", "Makuhita", "Hariyama", "Crabrawler", "Crabominable", "Salandit", "Salazzle", "Phanpy", "Donphan", "Cufant", "Copperajah", "Gible", "Gabite", "Garchomp", "Nacli", "Naclstack", "Garganacl", "Wingull", "Pelipper", "Magikarp", "Gyarados", "Arrokuda", "Barraskewda", "Basculin", "Gulpin", "Swalot", "Meowth", "Persian", "Drifloon", "Drifblim", "Flabe\u0301be\u0301", "Floette", "Florges", "Diglett", "Dugtrio", "Torkoal", "Numel", "Camerupt", "Bronzor", "Bronzong", "Axew", "Fraxure", "Haxorus", "Mankey", "Primeape", "Annihilape", "Meditite", "Medicham", "Riolu", "Lucario", "Charcadet", "Armarouge", "Ceruledge", "Barboach", "Whiscash", "Tadbulb", "Bellibolt", "Goomy", "Sliggoo", "Goodra", "Croagunk", "Toxicroak", "Wattrel", "Kilowattrel", "Eevee", "Vaporeon", "Jolteon", "Flareon", "Espeon", "Umbreon", "Leafeon", "Glaceon", "Sylveon", "Dunsparce", "Dudunsparce", "Deerling", "Sawsbuck", "Girafarig", "Farigiraf", "Grimer", "Muk", "Maschiff", "Mabosstiff", "Toxel", "Toxtricity", "Dedenne", "Pachirisu", "Shroodle", "Grafaiai", "Stantler", "Foongus", "Amoonguss", "Voltorb", "Electrode", "Magnemite", "Magneton", "Magnezone", "Ditto", "Growlithe", "Arcanine", "Teddiursa", "Ursaring", "Zangoose", "Seviper", "Swablu", "Altaria", "Skiddo", "Gogoat", "Tauros", "Litleo", "Pyroar", "Stunky", "Skuntank", "Zorua", "Zoroark", "Sneasel", "Weavile", "Murkrow", "Honchkrow", "Gothita", "Gothorita", "Gothitelle", "Sinistea", "Polteageist", "Mimikyu", "Klefki", "Indeedee", "Bramblin", "Brambleghast", "Toedscool", "Toedscruel", "Tropius", "Fomantis", "Lurantis", "Klawf", "Capsakid", "Scovillain", "Cacnea", "Cacturne", "Rellor", "Rabsca", "Venonat", "Venomoth", "Pineco", "Forretress", "Scyther", "Scizor", "Heracross", "Flittle", "Espathra", "Hippopotas", "Hippowdon", "Sandile", "Krokorok", "Krookodile", "Silicobra", "Sandaconda", "Mudbray", "Mudsdale", "Larvesta", "Volcarona", "Bagon", "Shelgon", "Salamence", "Tinkatink", "Tinkatuff", "Tinkaton", "Hatenna", "Hattrem", "Hatterene", "Impidimp", "Morgrem", "Grimmsnarl", "Wiglett", "Wugtrio", "Bombirdier", "Finizen", "Palafin", "Varoom", "Revavroom", "Cyclizar", "Orthworm", "Sableye", "Shuppet", "Banette", "Falinks", "Hawlucha", "Spiritomb", "Noibat", "Noivern", "Dreepy", "Drakloak", "Dragapult", "Glimmet", "Glimmora", "Rotom", "Greavard", "Houndstone", "Oranguru", "Passimian", "Komala", "Larvitar", "Pupitar", "Tyranitar", "Stonjourner", "Eiscue", "Pincurchin", "Sandygast", "Palossand", "Slowpoke", "Slowbro", "Slowking", "Shellos", "Gastrodon", "Shellder", "Cloyster", "Qwilfish", "Luvdisc", "Finneon", "Lumineon", "Bruxish", "Alomomola", "Skrelp", "Dragalge", "Clauncher", "Clawitzer", "Tynamo", "Eelektrik", "Eelektross", "Mareanie", "Toxapex", "Flamigo", "Dratini", "Dragonair", "Dragonite", "Snom", "Frosmoth", "Snover", "Abomasnow", "Delibird", "Cubchoo", "Beartic", "Snorunt", "Glalie", "Froslass", "Cryogonal", "Cetoddle", "Cetitan", "Bergmite", "Avalugg", "Rufflet", "Braviary", "Pawniard", "Bisharp", "Kingambit", "Deino", "Zweilous", "Hydreigon", "Veluza", "Dondozo", "Tatsugiri", "Great Tusk", "Scream Tail", "Brute Bonnet", "Flutter Mane", "Slither Wing", "Sandy Shocks", "Iron Treads", "Iron Bundle", "Iron Hands", "Iron Jugulis", "Iron Moth", "Iron Thorns", "Frigibax", "Arctibax", "Baxcalibur", "Gimmighoul", "Gholdengo", "Wo-Chien", "Chien-Pao", "Ting-Lu", "Chi-Yu", "Roaring Moon", "Iron Valiant", "Koraidon", "Miraidon",
-			];
+			]);
 			const species = this.dex.species.get(set.species || set.name);
-			if (!paldeaDex.includes(species.baseSpecies) && !paldeaDex.includes(species.name) &&
+			if (!paldeaDex.has(species.baseSpecies) && !paldeaDex.has(species.name) &&
 				!this.ruleTable.has('+' + species.id)) {
 				return [`${species.baseSpecies} is not in the Paldea Pokédex.`];
 			}
@@ -450,11 +450,11 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 			'Sneasel-Hisui', 'Sliggoo-Hisui', 'Goodra-Hisui', 'Basculin-Red-Striped', 'Basculin-Blue-Striped', 'Ursaluna-Base',
 		],
 		onValidateSet(set, format) {
-			const kitakamiDex = [
+			const kitakamiDex = new Set([
 				"Spinarak", "Ariados", "Yanma", "Yanmega", "Wooper", "Quagsire", "Poochyena", "Mightyena", "Volbeat", "Illumise", "Corphish", "Crawdaunt", "Sewaddle", "Swadloon", "Leavanny", "Cutiefly", "Ribombee", "Ekans", "Arbok", "Pichu", "Pikachu", "Raichu", "Bellsprout", "Weepinbell", "Victreebel", "Sentret", "Furret", "Starly", "Staravia", "Staraptor", "Fomantis", "Lurantis", "Applin", "Flapple", "Appletun", "Dipplin", "Vulpix", "Ninetales", "Poliwag", "Poliwhirl", "Poliwrath", "Politoed", "Magikarp", "Gyarados", "Hoothoot", "Noctowl", "Aipom", "Ambipom", "Heracross", "Swinub", "Piloswine", "Mamoswine", "Stantler", "Seedot", "Nuzleaf", "Shiftry", "Ralts", "Kirlia", "Gardevoir", "Gallade", "Kricketot", "Kricketune", "Pachirisu", "Riolu", "Lucario", "Petilil", "Lilligant", "Phantump", "Trevenant", "Rockruff", "Lycanroc", "Skwovet", "Greedent", "Toedscool", "Toedscruel", "Poltchageist", "Sinistcha", "Growlithe", "Arcanine", "Geodude", "Graveler", "Golem", "Bonsly", "Sudowoodo", "Timburr", "Gurdurr", "Conkeldurr", "Noibat", "Noivern", "Arrokuda", "Barraskewda", "Hatenna", "Hattrem", "Hatterene", "Morpeko", "Orthworm", "Tandemaus", "Maushold", "Mankey", "Primeape", "Annihilape", "Munchlax", "Snorlax", "Lotad", "Lombre", "Ludicolo", "Nosepass", "Probopass", "Shinx", "Luxio", "Luxray", "Grubbin", "Charjabug", "Vikavolt", "Oricorio", "Sandshrew", "Sandslash", "Gastly", "Haunter", "Gengar", "Gligar", "Gliscor", "Houndour", "Houndoom", "Spoink", "Grumpig", "Vullaby", "Mandibuzz", "Mudbray", "Mudsdale", "Jangmo-o", "Hakamo-o", "Kommo-o", "Bombirdier", "Koffing", "Weezing", "Mienfoo", "Mienshao", "Duskull", "Dusclops", "Dusknoir", "Chingling", "Chimecho", "Slugma", "Magcargo", "Litwick", "Lampent", "Chandelure", "Surskit", "Masquerain", "Cleffa", "Clefairy", "Clefable", "Bronzor", "Bronzong", "Glimmet", "Glimmora", "Feebas", "Milotic", "Dunsparce", "Dudunsparce", "Barboach", "Whiscash", "Gible", "Gabite", "Garchomp", "Carbink", "Salandit", "Salazzle", "Sneasel", "Weavile", "Snorunt", "Glalie", "Froslass", "Tynamo", "Eelektrik", "Eelektross", "Goomy", "Sliggoo", "Goodra", "Ducklett", "Swanna", "Chewtle", "Drednaw", "Cramorant", "Pawniard", "Bisharp", "Kingambit", "Mimikyu", "Impidimp", "Morgrem", "Grimmsnarl", "Indeedee", "Basculin", "Basculegion", "Ursaluna", "Okidogi", "Munkidori", "Fezandipiti", "Ogerpon",
-			];
+			]);
 			const species = this.dex.species.get(set.species || set.name);
-			if (!kitakamiDex.includes(species.baseSpecies) && !kitakamiDex.includes(species.name) &&
+			if (!kitakamiDex.has(species.baseSpecies) && !kitakamiDex.has(species.name) &&
 				!this.ruleTable.has('+' + species.id)) {
 				return [`${species.baseSpecies} is not in the Kitakami Pokédex.`];
 			}
@@ -470,11 +470,11 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 			'Vulpix-Base', 'Ninetales-Base', 'Typhlosion-Hisui', 'Samurott-Hisui', 'Greninja-Bond', 'Decidueye-Hisui',
 		],
 		onValidateSet(set, format) {
-			const blueberryDex = [
+			const blueberryDex = new Set([
 				"Doduo", "Dodrio", "Exeggcute", "Exeggutor", "Rhyhorn", "Rhydon", "Rhyperior", "Venonat", "Venomoth", "Elekid", "Electabuzz", "Electivire", "Magby", "Magmar", "Magmortar", "Happiny", "Chansey", "Blissey", "Scyther", "Scizor", "Kleavor", "Tauros", "Blitzle", "Zebstrika", "Girafarig", "Farigiraf", "Sandile", "Krokorok", "Krookodile", "Rellor", "Rabsca", "Rufflet", "Braviary", "Vullaby", "Mandibuzz", "Litleo", "Pyroar", "Deerling", "Sawsbuck", "Smeargle", "Rotom", "Milcery", "Alcremie", "Trapinch", "Vibrava", "Flygon", "Pikipek", "Trumbeak", "Toucannon", "Tentacool", "Tentacruel", "Horsea", "Seadra", "Kingdra", "Bruxish", "Cottonee", "Whimsicott", "Comfey", "Slakoth", "Vigoroth", "Slaking", "Oddish", "Gloom", "Vileplume", "Bellossom", "Diglett", "Dugtrio", "Grimer", "Muk", "Zangoose", "Seviper", "Crabrawler", "Crabominable", "Oricorio", "Slowpoke", "Slowbro", "Slowking", "Chinchou", "Lanturn", "Inkay", "Malamar", "Luvdisc", "Finneon", "Lumineon", "Alomomola", "Torkoal", "Fletchling", "Fletchinder", "Talonflame", "Dewpider", "Araquanid", "Tyrogue", "Hitmonlee", "Hitmonchan", "Hitmontop", "Geodude", "Graveler", "Golem", "Drilbur", "Excadrill", "Gothita", "Gothorita", "Gothitelle", "Espurr", "Meowstic", "Minior", "Cranidos", "Rampardos", "Shieldon", "Bastiodon", "Minccino", "Cinccino", "Skarmory", "Swablu", "Altaria", "Magnemite", "Magneton", "Magnezone", "Plusle", "Minun", "Scraggy", "Scrafty", "Golett", "Golurk", "Numel", "Camerupt", "Sinistea", "Polteageist", "Porygon", "Porygon2", "Porygon-Z", "Joltik", "Galvantula", "Tynamo", "Eelektrik", "Eelektross", "Beldum", "Metang", "Metagross", "Axew", "Fraxure", "Haxorus", "Seel", "Dewgong", "Lapras", "Qwilfish", "Overqwil", "Solosis", "Duosion", "Reuniclus", "Snubbull", "Granbull", "Cubchoo", "Beartic", "Sandshrew", "Sandslash", "Vulpix", "Ninetales", "Snover", "Abomasnow", "Duraludon", "Archaludon", "Hydrapple", "Bulbasaur", "Ivysaur", "Venusaur", "Charmander", "Charmeleon", "Charizard", "Squirtle", "Wartortle", "Blastoise", "Chikorita", "Bayleef", "Meganium", "Cyndaquil", "Quilava", "Typhlosion", "Totodile", "Croconaw", "Feraligatr", "Treecko", "Grovyle", "Sceptile", "Torchic", "Combusken", "Blaziken", "Mudkip", "Marshtomp", "Swampert", "Turtwig", "Grotle", "Torterra", "Chimchar", "Monferno", "Infernape", "Piplup", "Prinplup", "Empoleon", "Snivy", "Servine", "Serperior", "Tepig", "Pignite", "Emboar", "Oshawott", "Dewott", "Samurott", "Chespin", "Quilladin", "Chesnaught", "Fennekin", "Braixen", "Delphox", "Froakie", "Frogadier", "Greninja", "Rowlet", "Dartrix", "Decidueye", "Litten", "Torracat", "Incineroar", "Popplio", "Brionne", "Primarina", "Grookey", "Thwackey", "Rillaboom", "Scorbunny", "Raboot", "Cinderace", "Sobble", "Drizzile", "Inteleon", "Gouging Fire", "Raging Bolt", "Iron Crown", "Iron Boulder", "Terapagos", "Walking Wake", "Iron Leaves",
-			];
+			]);
 			const species = this.dex.species.get(set.species || set.name);
-			if (!blueberryDex.includes(species.baseSpecies) && !blueberryDex.includes(species.name) &&
+			if (!blueberryDex.has(species.baseSpecies) && !blueberryDex.has(species.name) &&
 				!this.ruleTable.has('+' + species.id)) {
 				return [`${species.baseSpecies} is not in the Blueberry Pokédex.`];
 			}
@@ -988,15 +988,15 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		name: 'Accuracy Trap Clause',
 		desc: "Bans guaranteed accuracy-dropping moves when used with a trapping move/ability on the same Pok&eacute;mon",
 		onValidateSet(set, format, setHas, teamHas) {
-			const trapping = [
+			const trapping = new Set([
 				'arenatrap', 'magnetpull', 'shadowtag', 'block', 'meanlook', 'spiderweb', 'anchorshot', 'jawlock', 'octolock', 'spiritshackle', 'thousandwaves',
-			];
+			]);
 			const accuracy = this.dex.moves.all().filter(move => {
 				if (move.boosts?.accuracy) return move.boosts.accuracy < 0;
 				return move.secondaries?.some(x => x.chance === 100 && x.boosts?.accuracy && x.boosts.accuracy < 0);
 			}).map(x => x.id);
 			if (set.moves.map(this.toID).some(x => accuracy.includes(x)) && (
-				trapping.includes(this.toID(set.ability)) || set.moves.map(this.toID).some(x => trapping.includes(x))
+				trapping.has(this.toID(set.ability)) || set.moves.map(this.toID).some(x => trapping.has(x))
 			)) {
 				return [
 					`${set.species} has the combination of a trapping move/ability and a guaranteed accuracy-lowering move, which is banned.`,
@@ -1161,11 +1161,11 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 			this.add('rule', 'One Boost Passer Clause: Limit one Baton Passer that has a way to boost its stats');
 		},
 		onValidateTeam(team) {
-			const boostingEffects = [
+			const boostingEffects = new Set([
 				'acidarmor', 'agility', 'amnesia', 'apicotberry', 'barrier', 'bellydrum', 'bulkup', 'calmmind', 'cosmicpower', 'curse',
 				'defensecurl', 'dragondance', 'ganlonberry', 'growth', 'harden', 'howl', 'irondefense', 'liechiberry', 'meditate',
 				'petayaberry', 'salacberry', 'sharpen', 'speedboost', 'starfberry', 'swordsdance', 'tailglow', 'withdraw',
-			];
+			]);
 			let passers = 0;
 			for (const set of team) {
 				if (!set.moves.includes('Baton Pass')) continue;
@@ -1173,10 +1173,10 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 				const item = this.toID(set.item);
 				const ability = this.toID(set.ability);
 				for (const move of set.moves) {
-					if (boostingEffects.includes(this.toID(move))) passableBoosts++;
+					if (boostingEffects.has(this.toID(move))) passableBoosts++;
 				}
-				if (boostingEffects.includes(item)) passableBoosts++;
-				if (boostingEffects.includes(ability)) passableBoosts++;
+				if (boostingEffects.has(item)) passableBoosts++;
+				if (boostingEffects.has(ability)) passableBoosts++;
 				if (passableBoosts === 1) passers++;
 				if (passableBoosts > 1) {
 					return [
@@ -1199,7 +1199,7 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 			this.add('rule', 'Baton Pass Stat Clause: No Baton Passer may have a way to boost its stats');
 		},
 		onValidateTeam(team) {
-			const boostingEffects = [
+			const boostingEffects = new Set([
 				'absorbbulb', 'acidarmor', 'acupressure', 'agility', 'amnesia', 'ancientpower', 'angerpoint', 'apicotberry', 'autotomize',
 				'barrier', 'bellydrum', 'bulkup', 'calmmind', 'cellbattery', 'charge', 'chargebeam', 'coil', 'cosmicpower', 'cottonguard', 'curse',
 				'defensecurl', 'defendorder', 'defiant', 'download', 'dragondance', 'fierydance', 'flamecharge', 'focusenergy', 'ganlonberry', 'growth',
@@ -1208,7 +1208,7 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 				'rockpolish', 'salacberry', 'sapsipper', 'sharpen', 'shellsmash', 'shiftgear', 'silverwind', 'skullbash', 'speedboost',
 				'starfberry', 'steadfast', 'steelwing', 'stockpile', 'stormdrain', 'swordsdance', 'tailglow', 'weakarmor', 'withdraw',
 				'workup',
-			];
+			]);
 			for (const set of team) {
 				const moves = set.moves.map(this.toID);
 				if (!moves.includes('batonpass' as ID)) continue;
@@ -1216,8 +1216,8 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 				const item = this.toID(set.item);
 				const ability = this.toID(set.ability);
 				if (
-					moves.some(m => boostingEffects.includes(m)) || boostingEffects.includes(item) ||
-					boostingEffects.includes(ability)
+					moves.some(m => boostingEffects.has(m)) || boostingEffects.has(item) ||
+					boostingEffects.has(ability)
 				) {
 					passableBoosts = true;
 				}
@@ -1237,9 +1237,9 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 			this.add('rule', 'Baton Pass Stat Clause: No Baton Passer may have a way to boost its Speed');
 		},
 		onValidateTeam(team) {
-			const boostingEffects = [
+			const boostingEffects = new Set([
 				'agility', 'dragondance', 'ancientpower', 'silverwind', 'salacberry', 'speedboost', 'starfberry',
-			];
+			]);
 			for (const set of team) {
 				const moves = set.moves.map(this.toID);
 				if (!moves.includes('batonpass' as ID)) continue;
@@ -1247,8 +1247,8 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 				const item = this.toID(set.item);
 				const ability = this.toID(set.ability);
 				if (
-					moves.some(m => boostingEffects.includes(m)) || boostingEffects.includes(item) ||
-					boostingEffects.includes(ability)
+					moves.some(m => boostingEffects.has(m)) || boostingEffects.has(item) ||
+					boostingEffects.has(ability)
 				) {
 					passableBoosts = true;
 				}
@@ -1265,10 +1265,10 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		name: 'Baton Pass Trap Clause',
 		desc: "Stops teams from having a Pok&eacute;mon with Baton Pass that has any way to trap Pok&eacute;mon.",
 		onValidateTeam(team, format, teamHas) {
-			const trappingMoves = ['block', 'fairylock', 'meanlook', 'octolock', 'spiderweb'];
+			const trappingMoves = new Set(['block', 'fairylock', 'meanlook', 'octolock', 'spiderweb']);
 			for (const set of team) {
 				if (!set.moves.map(this.toID).includes('batonpass' as ID)) continue;
-				if (!set.moves.some(move => trappingMoves.includes(this.toID(move)))) continue;
+				if (!set.moves.some(move => trappingMoves.has(this.toID(move)))) continue;
 				const name = set.name ? `${set.name} (${set.species})` : set.species;
 				return [`${name} has Baton Pass and a way to pass trapping, which is banned.`];
 			}
@@ -1282,24 +1282,24 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 			this.add('rule', 'Baton Pass Stat Trap Clause: No Baton Passer may have a way to boost stats or trap Pok\u00e9mon');
 		},
 		onValidateTeam(team) {
-			const statBoostOrTrapping = [
+			const statBoostOrTrapping = new Set([
 				'Acid Armor', 'Acupressure', 'Agility', 'Amnesia', 'Ancient Power', 'Assist', 'Barrier', 'Belly Drum', 'Block', 'Bulk Up', 'Calm Mind', 'Charge',
 				'Charge Beam', 'Cosmic Power', 'Curse', 'Defend Order', 'Defense Curl', 'Dragon Dance', 'Growth', 'Guard Swap', 'Harden', 'Heart Swap', 'Howl',
 				'Iron Defense', 'Ingrain', 'Mean Look', 'Meteor Mash', 'Meditate', 'Metal Claw', 'Nasty Plot', 'Ominous Wind', 'Power Trick', 'Psych Up', 'Rage',
 				'Rock Polish', 'Sharpen', 'Silver Wind', 'Skull Bash', 'Spider Web', 'Steel Wing', 'Stockpile', 'Swords Dance', 'Tail Glow', 'Withdraw', 'Speed Boost',
 				'Apicot Berry', 'Ganlon Berry', 'Liechi Berry', 'Petaya Berry', 'Salac Berry', 'Starf Berry', 'Kee Berry', 'Maranga Berry', 'Weakness Policy',
 				'Blunder Policy', 'Luminiscent Moss', 'Snowball', 'Throat Spray', 'Mirror Herb', 'Adrenaline Orb',
-			].map(this.toID);
+			].map(this.toID));
 			for (const set of team) {
 				if (!set.moves.map(this.toID).includes('batonpass' as ID)) continue;
 				let passableBoosts = false;
 				const item = this.toID(set.item);
 				const ability = this.toID(set.ability);
 				for (const move of set.moves) {
-					if (statBoostOrTrapping.includes(this.toID(move))) passableBoosts = true;
+					if (statBoostOrTrapping.has(this.toID(move))) passableBoosts = true;
 				}
-				if (statBoostOrTrapping.includes(item)) passableBoosts = true;
-				if (statBoostOrTrapping.includes(ability)) passableBoosts = true;
+				if (statBoostOrTrapping.has(item)) passableBoosts = true;
+				if (statBoostOrTrapping.has(ability)) passableBoosts = true;
 				if (passableBoosts) {
 					return [
 						`${set.name || set.species} has Baton Pass and a way to boost its stats or pass trapping, which is banned by Baton Pass Stat Trap Clause.`,
@@ -1923,7 +1923,7 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		onModifySpeciesPriority: 2,
 		onModifySpecies(species) {
 			const newSpecies = this.dex.deepClone(species);
-			const reversedNums = Object.values(newSpecies.baseStats).reverse();
+			const reversedNums = Object.values(newSpecies.baseStats).toReversed();
 			for (const [i, statName] of Object.keys(newSpecies.baseStats).entries()) {
 				newSpecies.baseStats[statName] = reversedNums[i];
 			}
@@ -2146,7 +2146,7 @@ export const Rulesets: import('../sim/dex-formats').FormatDataTable = {
 		},
 		onChooseTeam(positions, pokemon, autoChoose) {
 			if (autoChoose) {
-				return [...pokemon.keys()].sort((a, b) => (pokemon[a].level - pokemon[b].level));
+				return [...pokemon.keys()].toSorted((a, b) => (pokemon[a].level - pokemon[b].level));
 			}
 			let totalLevel = 0;
 			for (const pos of positions) totalLevel += pokemon[pos].level;

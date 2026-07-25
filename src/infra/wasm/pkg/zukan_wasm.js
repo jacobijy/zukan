@@ -30,8 +30,8 @@ export class BatchDamageResult {
     /**
      * @returns {Uint16Array}
      */
-    get_rolls() {
-        const ret = wasm.batchdamageresult_get_rolls(this.__wbg_ptr);
+    getRolls() {
+        const ret = wasm.batchdamageresult_getRolls(this.__wbg_ptr);
         var v1 = getArrayU16FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
         return v1;
@@ -102,41 +102,41 @@ export class DamageInput {
      * 设置攻击方物攻等级
      * @param {number} stage
      */
-    with_attacker_atk_stage(stage) {
-        wasm.damageinput_with_attacker_atk_stage(this.__wbg_ptr, stage);
+    withAttackerAtkStage(stage) {
+        wasm.damageinput_withAttackerAtkStage(this.__wbg_ptr, stage);
     }
     /**
      * 设置攻击方特攻等级
      * @param {number} stage
      */
-    with_attacker_spa_stage(stage) {
-        wasm.damageinput_with_attacker_spa_stage(this.__wbg_ptr, stage);
+    withAttackerSpaStage(stage) {
+        wasm.damageinput_withAttackerSpaStage(this.__wbg_ptr, stage);
     }
     /**
      * 设置防御方物防等级
      * @param {number} stage
      */
-    with_defender_def_stage(stage) {
-        wasm.damageinput_with_defender_def_stage(this.__wbg_ptr, stage);
+    withDefenderDefStage(stage) {
+        wasm.damageinput_withDefenderDefStage(this.__wbg_ptr, stage);
     }
     /**
      * 设置防御方特防等级
      * @param {number} stage
      */
-    with_defender_spd_stage(stage) {
-        wasm.damageinput_with_defender_spd_stage(this.__wbg_ptr, stage);
+    withDefenderSpdStage(stage) {
+        wasm.damageinput_withDefenderSpdStage(this.__wbg_ptr, stage);
     }
     /**
      * @param {number} item_mod
      */
-    with_item_mod(item_mod) {
-        wasm.damageinput_with_item_mod(this.__wbg_ptr, item_mod);
+    withItemMod(item_mod) {
+        wasm.damageinput_withItemMod(this.__wbg_ptr, item_mod);
     }
     /**
      * @param {number} seed
      */
-    with_seed(seed) {
-        wasm.damageinput_with_seed(this.__wbg_ptr, seed);
+    withSeed(seed) {
+        wasm.damageinput_withSeed(this.__wbg_ptr, seed);
     }
 }
 if (Symbol.dispose) DamageInput.prototype[Symbol.dispose] = DamageInput.prototype.free;
@@ -146,9 +146,9 @@ if (Symbol.dispose) DamageInput.prototype[Symbol.dispose] = DamageInput.prototyp
  * @param {DamageInput} input
  * @returns {number}
  */
-export function calculate_damage(input) {
+export function calculateDamage(input) {
     _assertClass(input, DamageInput);
-    const ret = wasm.calculate_damage(input.__wbg_ptr);
+    const ret = wasm.calculateDamage(input.__wbg_ptr);
     return ret;
 }
 
@@ -157,9 +157,9 @@ export function calculate_damage(input) {
  * @param {DamageInput} input
  * @returns {BatchDamageResult}
  */
-export function calculate_damage_batch(input) {
+export function calculateDamageBatch(input) {
     _assertClass(input, DamageInput);
-    const ret = wasm.calculate_damage_batch(input.__wbg_ptr);
+    const ret = wasm.calculateDamageBatch(input.__wbg_ptr);
     return BatchDamageResult.__wrap(ret);
 }
 
@@ -171,8 +171,8 @@ export function calculate_damage_batch(input) {
  * @param {number} ev
  * @returns {number}
  */
-export function calculate_hp(level, base, iv, ev) {
-    const ret = wasm.calculate_hp(level, base, iv, ev);
+export function calculateHp(level, base, iv, ev) {
+    const ret = wasm.calculateHp(level, base, iv, ev);
     return ret;
 }
 
@@ -182,8 +182,8 @@ export function calculate_hp(level, base, iv, ev) {
  * @param {number} nature_id
  * @returns {Uint8Array}
  */
-export function calculate_nature_mod(nature_id) {
-    const ret = wasm.calculate_nature_mod(nature_id);
+export function calculateNatureMod(nature_id) {
+    const ret = wasm.calculateNatureMod(nature_id);
     var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     return v1;
@@ -198,8 +198,8 @@ export function calculate_nature_mod(nature_id) {
  * @param {number} nature_mod
  * @returns {number}
  */
-export function calculate_stat(level, base, iv, ev, nature_mod) {
-    const ret = wasm.calculate_stat(level, base, iv, ev, nature_mod);
+export function calculateStat(level, base, iv, ev, nature_mod) {
+    const ret = wasm.calculateStat(level, base, iv, ev, nature_mod);
     return ret;
 }
 
@@ -224,78 +224,121 @@ export function calculate_stat(level, base, iv, ev, nature_mod) {
  * @param {number} move_flags
  * @returns {DamageInput}
  */
-export function create_damage_input(level, attack, defense, base_power, move_type, move_category, attacker_type1, attacker_type2, defender_type1, defender_type2, weather, terrain, attacker_ability, defender_ability, is_critical, is_burned, move_flags) {
-    const ret = wasm.create_damage_input(level, attack, defense, base_power, move_type, move_category, attacker_type1, attacker_type2, defender_type1, defender_type2, weather, terrain, attacker_ability, defender_ability, is_critical, is_burned, move_flags);
+export function createDamageInput(level, attack, defense, base_power, move_type, move_category, attacker_type1, attacker_type2, defender_type1, defender_type2, weather, terrain, attacker_ability, defender_ability, is_critical, is_burned, move_flags) {
+    const ret = wasm.createDamageInput(level, attack, defense, base_power, move_type, move_category, attacker_type1, attacker_type2, defender_type1, defender_type2, weather, terrain, attacker_ability, defender_ability, is_critical, is_burned, move_flags);
     return DamageInput.__wrap(ret);
 }
 
 /**
- * AES-256-GCM 解密
- * @param {string} key_base64
- * @param {string} ciphertext_base64
- * @returns {string}
+ * 解码 `MovesDataBundle` (fid = `MDAT`) —— 招式定义
+ * @param {Uint8Array} data
+ * @returns {MovesDataBundle}
  */
-export function decrypt(key_base64, ciphertext_base64) {
-    let deferred4_0;
-    let deferred4_1;
-    try {
-        const ptr0 = passStringToWasm0(key_base64, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(ciphertext_base64, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.decrypt(ptr0, len0, ptr1, len1);
-        var ptr3 = ret[0];
-        var len3 = ret[1];
-        if (ret[3]) {
-            ptr3 = 0; len3 = 0;
-            throw takeFromExternrefTable0(ret[2]);
-        }
-        deferred4_0 = ptr3;
-        deferred4_1 = len3;
-        return getStringFromWasm0(ptr3, len3);
-    } finally {
-        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+export function decodeMovesDataBundle(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decodeMovesDataBundle(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
     }
+    return takeFromExternrefTable0(ret[0]);
 }
 
 /**
- * AES-256-GCM 加密
- * @param {string} key_base64
- * @param {string} plaintext
- * @returns {string}
+ * 解码 `PokemonGenBundle` (fid = `PKMB`) —— 宝可梦基础参数（按世代打包）
+ * @param {Uint8Array} data
+ * @returns {PokemonGenBundle}
  */
-export function encrypt(key_base64, plaintext) {
-    let deferred4_0;
-    let deferred4_1;
-    try {
-        const ptr0 = passStringToWasm0(key_base64, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(plaintext, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.encrypt(ptr0, len0, ptr1, len1);
-        var ptr3 = ret[0];
-        var len3 = ret[1];
-        if (ret[3]) {
-            ptr3 = 0; len3 = 0;
-            throw takeFromExternrefTable0(ret[2]);
-        }
-        deferred4_0 = ptr3;
-        deferred4_1 = len3;
-        return getStringFromWasm0(ptr3, len3);
-    } finally {
-        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+export function decodePokemonGenBundle(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decodePokemonGenBundle(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
     }
+    return takeFromExternrefTable0(ret[0]);
 }
 
 /**
- * 生成 256 位随机密钥（Base64 编码）
+ * 解码 `PokemonMovesBundle` (fid = `PMSB`) —— 招式学习记录（按宝可梦聚合）
+ * @param {Uint8Array} data
+ * @returns {PokemonMovesBundle}
+ */
+export function decodePokemonMovesBundle(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decodePokemonMovesBundle(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * 解码 `PokemonVgMovesBundle` (fid = `PMOV`) —— 招式学习记录（原始行式）
+ * @param {Uint8Array} data
+ * @returns {PokemonVgMovesBundle}
+ */
+export function decodePokemonVgMovesBundle(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decodePokemonVgMovesBundle(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * 解密图鉴加密二进制数据
+ * @param {Uint8Array} encrypted_data
+ * @param {string} dek_hex
+ * @returns {Uint8Array}
+ */
+export function decryptZukan(encrypted_data, dek_hex) {
+    const ptr0 = passArray8ToWasm0(encrypted_data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(dek_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.decryptZukan(ptr0, len0, ptr1, len1);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
+}
+
+/**
+ * 加密图鉴数据
+ * @param {Uint8Array} plaintext
+ * @param {string} dek_hex
+ * @param {number} version
+ * @returns {Uint8Array}
+ */
+export function encryptZukan(plaintext, dek_hex, version) {
+    const ptr0 = passArray8ToWasm0(plaintext, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(dek_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.encryptZukan(ptr0, len0, ptr1, len1, version);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
+}
+
+/**
+ * 生成 256 位随机密钥（Hex 编码）
  * @returns {string}
  */
-export function generate_key() {
+export function generateKey() {
     let deferred1_0;
     let deferred1_1;
     try {
-        const ret = wasm.generate_key();
+        const ret = wasm.generateKey();
         deferred1_0 = ret[0];
         deferred1_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
@@ -305,12 +348,24 @@ export function generate_key() {
 }
 
 /**
+ * 获取文件的密钥版本号
+ * @param {Uint8Array} data
+ * @returns {number}
+ */
+export function getZukanVersion(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.getZukanVersion(ptr0, len0);
+    return ret;
+}
+
+/**
  * HMAC-SHA256 签名
  * @param {string} key
  * @param {string} data
  * @returns {string}
  */
-export function hmac_sign(key, data) {
+export function hmacSign(key, data) {
     let deferred3_0;
     let deferred3_1;
     try {
@@ -318,7 +373,7 @@ export function hmac_sign(key, data) {
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(data, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.hmac_sign(ptr0, len0, ptr1, len1);
+        const ret = wasm.hmacSign(ptr0, len0, ptr1, len1);
         deferred3_0 = ret[0];
         deferred3_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
@@ -334,14 +389,14 @@ export function hmac_sign(key, data) {
  * @param {string} signature
  * @returns {boolean}
  */
-export function hmac_verify(key, data, signature) {
+export function hmacVerify(key, data, signature) {
     const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ptr1 = passStringToWasm0(data, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len1 = WASM_VECTOR_LEN;
     const ptr2 = passStringToWasm0(signature, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len2 = WASM_VECTOR_LEN;
-    const ret = wasm.hmac_verify(ptr0, len0, ptr1, len1, ptr2, len2);
+    const ret = wasm.hmacVerify(ptr0, len0, ptr1, len1, ptr2, len2);
     return ret !== 0;
 }
 
@@ -350,17 +405,29 @@ export function init() {
 }
 
 /**
+ * 校验文件是否为合法的图鉴加密文件格式
+ * @param {Uint8Array} data
+ * @returns {boolean}
+ */
+export function isValidZukanFile(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.isValidZukanFile(ptr0, len0);
+    return ret !== 0;
+}
+
+/**
  * SHA-256 哈希
  * @param {string} data
  * @returns {string}
  */
-export function sha256_hash(data) {
+export function sha256(data) {
     let deferred2_0;
     let deferred2_1;
     try {
         const ptr0 = passStringToWasm0(data, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.sha256_hash(ptr0, len0);
+        const ret = wasm.sha256(ptr0, len0);
         deferred2_0 = ret[0];
         deferred2_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
@@ -371,6 +438,13 @@ export function sha256_hash(data) {
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbg_String_8564e559799eccda: function(arg0, arg1) {
+            const ret = String(arg1);
+            const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len1 = WASM_VECTOR_LEN;
+            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        },
         __wbg___wbindgen_is_function_1ff95bcc5517c252: function(arg0) {
             const ret = typeof(arg0) === 'function';
             return ret;
@@ -425,6 +499,14 @@ function __wbg_get_imports() {
             const ret = new Error();
             return ret;
         },
+        __wbg_new_32b398fb48b6d94a: function() {
+            const ret = new Array();
+            return ret;
+        },
+        __wbg_new_da52cf8fe3429cb2: function() {
+            const ret = new Object();
+            return ret;
+        },
         __wbg_new_with_length_e6785c33c8e4cce8: function(arg0) {
             const ret = new Uint8Array(arg0 >>> 0);
             return ret;
@@ -447,6 +529,12 @@ function __wbg_get_imports() {
             const ret = module.require;
             return ret;
         }, arguments); },
+        __wbg_set_6be42768c690e380: function(arg0, arg1, arg2) {
+            arg0[arg1] = arg2;
+        },
+        __wbg_set_8a16b38e4805b298: function(arg0, arg1, arg2) {
+            arg0[arg1 >>> 0] = arg2;
+        },
         __wbg_stack_3b0d974bbf31e44f: function(arg0, arg1) {
             const ret = arg1.stack;
             const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
@@ -478,12 +566,17 @@ function __wbg_get_imports() {
             const ret = arg0.versions;
             return ret;
         },
-        __wbindgen_cast_0000000000000001: function(arg0, arg1) {
+        __wbindgen_cast_0000000000000001: function(arg0) {
+            // Cast intrinsic for `F64 -> Externref`.
+            const ret = arg0;
+            return ret;
+        },
+        __wbindgen_cast_0000000000000002: function(arg0, arg1) {
             // Cast intrinsic for `Ref(Slice(U8)) -> NamedExternref("Uint8Array")`.
             const ret = getArrayU8FromWasm0(arg0, arg1);
             return ret;
         },
-        __wbindgen_cast_0000000000000002: function(arg0, arg1) {
+        __wbindgen_cast_0000000000000003: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
             return ret;
@@ -572,6 +665,13 @@ function handleError(f, args) {
 
 function isLikeNone(x) {
     return x === undefined || x === null;
+}
+
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1, 1) >>> 0;
+    getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
 }
 
 function passStringToWasm0(arg, malloc, realloc) {

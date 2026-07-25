@@ -1,21 +1,36 @@
 {
   "name": "zukan-wasm",
   "version": "0.1.0",
-  "description": "Pokédex WASM Module - Crypto & Battle Calculator",
+  "description": "Pokédex WASM Module - Crypto, Battle Calculator, FlatBuffers decoding",
   "main": "pkg/zukan_wasm.js",
-  "types": "pkg/zukan_wasm.d.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./pkg/*": "./pkg/*",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "wasm-pack build --target web --out-dir pkg",
     "build:release": "wasm-pack build --target web --out-dir pkg --release",
     "build:node": "wasm-pack build --target nodejs --out-dir pkg",
     "test": "wasm-pack test --node",
     "test:web": "wasm-pack test --chrome --headless",
+    "test:fb": "cargo test --release --test fb",
+    "sync-schemas": "bash scripts/sync-schemas.sh",
+    "generate-fb": "bash scripts/generate-fb.sh",
     "clean": "rm -rf pkg target"
   },
-  "keywords": ["wasm", "pokemon", "crypto", "battle-calculator"],
+  "keywords": [
+    "wasm",
+    "pokemon",
+    "crypto",
+    "battle-calculator",
+    "flatbuffers"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "oxlint": "^1.73.0",
     "wasm-pack": "^0.12.1"
   }
 }

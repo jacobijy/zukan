@@ -1,10 +1,11 @@
 /**
  * WASM 模块加载器
  * 封装 Rust WASM 模块的初始化和类型安全调用
+ *
+ * 所有函数名与 Rust 源码中 `#[wasm_bindgen(js_name = ...)]` 保持一致（camelCase）。
  */
 
 import type {
-  DamageInput as DamageInputWasm,
   BatchDamageResult as BatchDamageResultWasm,
 } from './pkg/zukan_wasm';
 
@@ -39,80 +40,46 @@ export function isWasmReady(): boolean {
 
 // ============== 图鉴二进制文件加解密 API ==============
 
-/**
- * 解密图鉴加密二进制数据
- * 文件格式：[magic(4B)="ZKDX"] [version(1B)] [nonce(12B)] [ciphertext(...)] [tag(16B)]
- *
- * @param encryptedData 加密的二进制数据
- * @param dekHex 32 字节 DEK 密钥的 hex 字符串
- * @returns 解密后的明文数据
- */
-export function decryptZukan(encryptedData: Uint8Array, dekHex: string): Uint8Array {
+export function decryptZukan(encryptedData: Uint8Array, dekHex: string): Uint8Array<ArrayBuffer> {
   assertWasmReady();
-  return wasmModule!.decrypt_zukan(encryptedData, dekHex);
+  return wasmModule!.decryptZukan(encryptedData, dekHex) as unknown as Uint8Array<ArrayBuffer>;
 }
 
-/**
- * 加密图鉴数据
- *
- * @param plaintext 明文数据
- * @param dekHex 32 字节 DEK 密钥的 hex 字符串
- * @param version 密钥版本号
- * @returns 完整的加密二进制数据（含文件头）
- */
-export function encryptZukan(plaintext: Uint8Array, dekHex: string, version: number): Uint8Array {
+export function encryptZukan(plaintext: Uint8Array, dekHex: string, version: number): Uint8Array<ArrayBuffer> {
   assertWasmReady();
-  return wasmModule!.encrypt_zukan(plaintext, dekHex, version);
+  return wasmModule!.encryptZukan(plaintext, dekHex, version) as unknown as Uint8Array<ArrayBuffer>;
 }
 
-/**
- * 校验文件是否为合法的图鉴加密文件格式
- */
 export function isValidZukanFile(data: Uint8Array): boolean {
   assertWasmReady();
-  return wasmModule!.is_valid_zukan_file(data);
+  return wasmModule!.isValidZukanFile(data);
 }
 
-/**
- * 获取文件的密钥版本号
- */
 export function getZukanVersion(data: Uint8Array): number {
   assertWasmReady();
-  return wasmModule!.get_zukan_version(data);
+  return wasmModule!.getZukanVersion(data);
 }
 
 // ============== 通用密码学工具 API ==============
 
-/**
- * 生成 AES-256-GCM 随机密钥 (Hex 编码)
- */
 export function generateKey(): string {
   assertWasmReady();
-  return wasmModule!.generate_key();
+  return wasmModule!.generateKey();
 }
 
-/**
- * SHA-256 哈希
- */
 export function sha256(data: string): string {
   assertWasmReady();
-  return wasmModule!.sha256_hash(data);
+  return wasmModule!.sha256(data);
 }
 
-/**
- * HMAC-SHA256 签名
- */
 export function hmacSign(key: string, data: string): string {
   assertWasmReady();
-  return wasmModule!.hmac_sign(key, data);
+  return wasmModule!.hmacSign(key, data);
 }
 
-/**
- * HMAC-SHA256 验证
- */
 export function hmacVerify(key: string, data: string, signature: string): boolean {
   assertWasmReady();
-  return wasmModule!.hmac_verify(key, data, signature);
+  return wasmModule!.hmacVerify(key, data, signature);
 }
 
 // ============== 伤害计算器 API ==============
@@ -197,10 +164,10 @@ export function calculateDamage(input: DamageInput): number {
   );
 
   if (input.itemMod !== undefined) {
-    wasmInput.with_item_mod(input.itemMod);
+    wasmInput.withItemMod(input.itemMod);
   }
 
-  return wasmModule!.calculate_damage(wasmInput);
+  return wasmModule!.calculateDamage(wasmInput);
 }
 
 /**
@@ -230,18 +197,17 @@ export function calculateDamageBatch(input: DamageInput): BatchDamageResult {
   );
 
   if (input.itemMod !== undefined) {
-    wasmInput.with_item_mod(input.itemMod);
+    wasmInput.withItemMod(input.itemMod);
   }
 
   // 设置能力等级
-  if (input.attackerAtkStage) wasmInput.with_attacker_atk_stage(input.attackerAtkStage);
-  if (input.attackerSpaStage) wasmInput.with_attacker_spa_stage(input.attackerSpaStage);
-  if (input.defenderDefStage) wasmInput.with_defender_def_stage(input.defenderDefStage);
-  if (input.defenderSpdStage) wasmInput.with_defender_spd_stage(input.defenderSpdStage);
+  if (input.attackerAtkStage) wasmInput.withAttackerAtkStage(input.attackerAtkStage);
+  if (input.attackerSpaStage) wasmInput.withAttackerSpaStage(input.attackerSpaStage);
+  if (input.defenderDefStage) wasmInput.withDefenderDefStage(input.defenderDefStage);
+  if (input.defenderSpdStage) wasmInput.withDefenderSpdStage(input.defenderSpdStage);
 
-  const result = wasmModule!.calculate_damage_batch(wasmInput) as BatchDamageResultWasm;
-  // get_rolls() 新版无参数，直接返回 Uint16Array
-  const rolls = Array.from(result.get_rolls());
+  const result = wasmModule!.calculateDamageBatch(wasmInput) as BatchDamageResultWasm;
+  const rolls = Array.from(result.getRolls());
   return {
     min: result.min,
     max: result.max,
@@ -261,7 +227,7 @@ export function calculateStat(
   natureMod: number,
 ): number {
   assertWasmReady();
-  return wasmModule!.calculate_stat(level, base, iv, ev, natureMod);
+  return wasmModule!.calculateStat(level, base, iv, ev, natureMod);
 }
 
 /**
@@ -274,7 +240,7 @@ export function calculateHp(
   ev: number,
 ): number {
   assertWasmReady();
-  return wasmModule!.calculate_hp(level, base, iv, ev);
+  return wasmModule!.calculateHp(level, base, iv, ev);
 }
 
 /**
@@ -283,7 +249,7 @@ export function calculateHp(
  */
 export function getNatureMod(natureId: number): [number, number, number, number, number] {
   assertWasmReady();
-  const result = wasmModule!.calculate_nature_mod(natureId) as Uint8Array;
+  const result = wasmModule!.calculateNatureMod(natureId) as Uint8Array;
   return [result[0], result[1], result[2], result[3], result[4]];
 }
 
@@ -295,5 +261,77 @@ function assertWasmReady(): asserts this is { wasmModule: NonNullable<typeof was
   }
 }
 
-// 导出所有类型供外部使用
-export type { DamageInputWasm, BatchDamageResultWasm };
+// ============== FlatBuffers 解码 API ==============
+//
+// 类型全部由 Rust 侧 tsify-next 派生，从 `pkg/zukan_wasm.d.ts` 转出：
+// 保证 Rust owned struct、字段名、有符号语义（`genderRate/priority/…`）
+// 与 dts 天然对齐，Schema 变更时只需改 `src/fb/convert.rs` 一处。
+
+export type {
+  // Root bundles
+  PokemonGenBundle,
+  PokemonVgMovesBundle,
+  PokemonMovesBundle,
+  MovesDataBundle,
+  // PKMB 表行
+  PokemonBase,
+  PokemonStat,
+  PokemonType,
+  PokemonAbility,
+  PokemonEggGroup,
+  // PMOV / PMSB
+  PokemonMove,
+  PokemonMoveSet,
+  LevelMove,
+  // MDAT
+  Move,
+  MoveMeta,
+  MoveMetaStatChange,
+  MoveFlagPair,
+} from './pkg/zukan_wasm';
+
+// 为下方 wrapper 单独 import 类型
+import type {
+  PokemonGenBundle,
+  PokemonVgMovesBundle,
+  PokemonMovesBundle,
+  MovesDataBundle,
+} from './pkg/zukan_wasm';
+
+/**
+ * 解码 `gen-N.bin` (fid = `PKMB`) —— 宝可梦基础参数（按世代打包）
+ * @throws 若 buffer 不以 `PKMB` identifier 起始或解析失败
+ */
+export function decodePokemonGenBundle(data: Uint8Array): PokemonGenBundle {
+  assertWasmReady();
+  return wasmModule!.decodePokemonGenBundle(data);
+}
+
+/**
+ * 解码 `moves/vg-XX.bin` (fid = `PMOV`) —— 招式学习记录（原始行式，无损）
+ */
+export function decodePokemonVgMovesBundle(data: Uint8Array): PokemonVgMovesBundle {
+  assertWasmReady();
+  return wasmModule!.decodePokemonVgMovesBundle(data);
+}
+
+/**
+ * 解码 `pokemon_moves/{common,mainline/vg-XX,special/vg-XX}.bin` (fid = `PMSB`)
+ * —— 招式学习记录（按宝可梦聚合）。合并读取时先看 `kind`：
+ * - `0 (COMMON)` = baseline，全字段填充
+ * - `1 (MAINLINE_DIFF)` = 相对 common 变化的整行覆盖
+ * - `2 (SPECIAL_FULL)` = 独立表（不合并 common）
+ */
+export function decodePokemonMovesBundle(data: Uint8Array): PokemonMovesBundle {
+  assertWasmReady();
+  return wasmModule!.decodePokemonMovesBundle(data);
+}
+
+/**
+ * 解码 `moves_data/{common,vg-XX}.bin` (fid = `MDAT`) —— 招式定义。
+ * common baseline 五张表都填；vg-XX 只有 `moves` 覆写，其余 4 个数组为空。
+ */
+export function decodeMovesDataBundle(data: Uint8Array): MovesDataBundle {
+  assertWasmReady();
+  return wasmModule!.decodeMovesDataBundle(data);
+}

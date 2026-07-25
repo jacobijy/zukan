@@ -1,0 +1,38 @@
+// data/v2/fb/schemas/pokemon_moves_bundle.fbs
+//
+// 招式聚合 bundle 根表 —— 一个 .bin 承载多只 pokemon 的完整招式表。
+//
+// 布局（同 CSV 的 by_pokemon/ 布局）：
+//   data/v2/fb/pokemon_moves/common.bin
+//     kind = COMMON, version_group_id = 25 (scarlet-violet)
+//     基线快照：867 只 pokemon 在 SV 时期的完整招式表
+//
+//   data/v2/fb/pokemon_moves/mainline/vg-XX.bin
+//     kind = MAINLINE_DIFF, version_group_id = XX
+//     主线 VG 相对 common 的差异 —— 只列出招式表 ≠ common 的 pokemon
+//     下游用法：先读 common → 用本文件的 entries 按 pokemon_id 覆盖/追加
+//
+//   data/v2/fb/pokemon_moves/special/vg-XX.bin
+//     kind = SPECIAL_FULL, version_group_id = XX
+//     特殊 VG 的完整独立表（Colosseum / XD / Legends Arceus / 日版初代 /
+//     Legends ZA / Mega Dimension / Champions），不参与 diff
+//     下游用法：直接读这个文件
+
+include "pokemon_move_set.fbs";
+
+namespace pokeapi.fb;
+
+enum PokemonMovesBundleKind : uint8 {
+  COMMON = 0,
+  MAINLINE_DIFF = 1,
+  SPECIAL_FULL = 2,
+}
+
+table PokemonMovesBundle {
+  kind: PokemonMovesBundleKind;
+  version_group_id: uint8;    // 1..32
+  entries: [PokemonMoveSet];  // 按 pokemon_id 升序
+}
+
+root_type PokemonMovesBundle;
+file_identifier "PMSB";

@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "unicorn"],
+  "categories": {
+    "correctness": "warn",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "typescript/no-unused-vars": "warn",
+    "typescript/prefer-optional-chain": "warn",
+    "import/no-duplicates": "warn",
+    "unicorn/no-array-for-each": "off",
+    "unicorn/prefer-module": "off"
+  }
+}

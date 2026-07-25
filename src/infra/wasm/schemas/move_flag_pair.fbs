@@ -1,0 +1,16 @@
+// data/v2/fb/schemas/move_flag_pair.fbs
+//
+// 招式 × flag 多对多映射的一行。对应 CSV：move_flag_map.csv
+//
+// 21 种 flag（contact/sound/dance/punch/…），一招可能带多个 flag。
+//
+// 字段范围：
+//   move_id: 1..10018 (uint32；含 alt-form 引用)
+//   move_flag_id: 1..21
+
+namespace pokeapi.fb;
+
+struct MoveFlagPair {
+  move_id: uint32;
+  move_flag_id: uint8;
+}

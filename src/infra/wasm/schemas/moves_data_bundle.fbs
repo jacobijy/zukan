@@ -1,0 +1,38 @@
+// data/v2/fb/schemas/moves_data_bundle.fbs
+//
+// 招式数据 bundle 根表 —— 一个文件承载 5 张表。
+//
+// 布局：
+//   data/v2/fb/moves_data/common.bin  ← version_group_id=0，全 5 张表已填
+//   data/v2/fb/moves_data/vg-XX.bin   ← version_group_id=XX，只填 moves
+//                                       （其余 4 张表沿用 common）
+//
+// 与 CSV 的对应：
+//   common.bin        ↔ data/v2/csv/by_version_group/common/*.csv
+//   vg-XX.bin.moves   ↔ data/v2/csv/by_version_group/vg-XX/moves_diff.csv
+//     (行内容 = 该 VG 下的真实完整值，非增量差)
+//
+// 下游用法：
+//   1. 先读 common.bin 建立基线
+//   2. 需要某 VG 时读 vg-XX.bin（若存在），用其 moves 覆盖 common 的同 id 行
+//   3. move_meta / move_meta_stat_changes / move_flag_map / move_effects
+//      在 vg-XX.bin 里恒为空 —— 全部沿用 common
+
+include "move.fbs";
+include "move_meta.fbs";
+include "move_meta_stat_change.fbs";
+include "move_flag_pair.fbs";
+
+namespace pokeapi.fb;
+
+table MovesDataBundle {
+  version_group_id: uint8;                    // 0 = common bundle
+  moves: [Move];                              // 招式主表 / 该 VG diff
+  move_meta: [MoveMeta];                      // 战斗元数据（仅 common）
+  move_meta_stat_changes: [MoveMetaStatChange];  // 能力变化（仅 common）
+  move_flag_map: [MoveFlagPair];              // 21 flag 映射（仅 common）
+  move_effects: [uint16];                     // effect_id 集合（仅 common）
+}
+
+root_type MovesDataBundle;
+file_identifier "MDAT";

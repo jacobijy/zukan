@@ -3038,9 +3038,9 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 		priority: 0,
 		flags: { mirror: 1, metronome: 1 },
 		onHitField(target, source) {
-			const sideConditions = [
+			const sideConditions = new Set([
 				'mist', 'lightscreen', 'reflect', 'spikes', 'safeguard', 'tailwind', 'toxicspikes', 'stealthrock', 'waterpledge', 'firepledge', 'grasspledge', 'stickyweb', 'auroraveil', 'luckychant', 'gmaxsteelsurge', 'gmaxcannonade', 'gmaxvinelash', 'gmaxwildfire', 'gmaxvolcalith',
-			];
+			]);
 			let success = false;
 			if (this.gameType === "freeforall") {
 				// the list of all sides in clockwise order
@@ -3048,7 +3048,7 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 				const temp: { [k: number]: typeof source.side.sideConditions } = { 0: {}, 1: {}, 2: {}, 3: {} };
 				for (const side of sides) {
 					for (const id in side.sideConditions) {
-						if (!sideConditions.includes(id)) continue;
+						if (!sideConditions.has(id)) continue;
 						temp[side.n][id] = side.sideConditions[id];
 						delete side.sideConditions[id];
 						success = true;
@@ -3068,13 +3068,13 @@ export const Moves: import('../sim/dex-moves').MoveDataTable = {
 				const sourceTemp: typeof sourceSideConditions = {};
 				const targetTemp: typeof targetSideConditions = {};
 				for (const id in sourceSideConditions) {
-					if (!sideConditions.includes(id)) continue;
+					if (!sideConditions.has(id)) continue;
 					sourceTemp[id] = sourceSideConditions[id];
 					delete sourceSideConditions[id];
 					success = true;
 				}
 				for (const id in targetSideConditions) {
-					if (!sideConditions.includes(id)) continue;
+					if (!sideConditions.has(id)) continue;
 					targetTemp[id] = targetSideConditions[id];
 					delete targetSideConditions[id];
 					success = true;

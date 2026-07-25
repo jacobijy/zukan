@@ -501,9 +501,7 @@ const goBack = () => {
 </script>
 
 <style scoped>
-.calc-page {
 
-.calc-page::before {
 
 .calc-navbar {
     background: #ffffff;

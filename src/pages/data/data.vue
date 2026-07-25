@@ -66,12 +66,6 @@
                     </view>
                 </view>
 
-                <view class="section-label mt-6">研究提示</view>
-                <view class="note-card">
-                    <view class="note-card__shine"></view>
-                    <text class="relative z-10 block text-[13px] font-bold text-[#3b3f48]">资料先按系统清单浏览。</text>
-                    <text class="relative z-10 mt-1 block text-[12px] font-medium leading-5 text-[#8a8f99]">统计入口保持轻量，方便在图鉴、功能和样本详情之间快速跳转。</text>
-                </view>
             </view>
         </view>
 
@@ -81,7 +75,6 @@
 
 <script lang="ts" setup>
 import NavBar from "@/components/NavBar.vue";
-import NoteCard from "@/components/shared/NoteCard.vue";
 import TabBar from "@/components/TabBar.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 import { ref } from "vue";
@@ -89,10 +82,10 @@ import { ref } from "vue";
 const currentTab = ref(2);
 
 const overviewItems = [
-    { value: '1010', label: '宝可梦总数', desc: '当前图鉴记录的全国编号范围。', icon: 'book', iconClass: 'data-row__icon--green', valueClass: 'text-[#34b85a]' },
-    { value: '18', label: '属性种类', desc: '用于筛选、克制和组合分析。', icon: 'spark', iconClass: 'data-row__icon--gold', valueClass: 'text-[#d89a1e]' },
-    { value: '400+', label: '招式数量', desc: '覆盖对战计算和招式检索。', icon: 'bolt', iconClass: 'data-row__icon--blue', valueClass: 'text-[#357df4]' },
-    { value: '300+', label: '特性记录', desc: '包含常见对战特性与说明。', icon: 'cube', iconClass: 'data-row__icon--violet', valueClass: 'text-[#7350d4]' }
+    { value: '1010', label: '宝可梦总数', desc: '当前图鉴记录的全国编号范围。', icon: 'book', iconClass: 'list-row__icon--green', valueClass: 'text-[#34b85a]' },
+    { value: '18', label: '属性种类', desc: '用于筛选、克制和组合分析。', icon: 'spark', iconClass: 'list-row__icon--gold', valueClass: 'text-[#d89a1e]' },
+    { value: '400+', label: '招式数量', desc: '覆盖对战计算和招式检索。', icon: 'bolt', iconClass: 'list-row__icon--blue', valueClass: 'text-[#357df4]' },
+    { value: '300+', label: '特性记录', desc: '包含常见对战特性与说明。', icon: 'cube', iconClass: 'list-row__icon--violet', valueClass: 'text-[#7350d4]' }
 ];
 
 const popularPokemons = [
@@ -113,17 +106,7 @@ const onTabChange = (index: number) => {
 </script>
 
 <style lang="scss" scoped>
-.data-page {
 
-.data-page::before {
-
-.section-label {
-    padding: 0 14px 8px;
-    color: #9da2ad;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-}
 
 .data-list {
     border: 1px solid rgba(255, 255, 255, 0.78);
@@ -166,20 +149,20 @@ const onTabChange = (index: number) => {
     color: #fff;
 }
 
-.data-row__icon--green {
+.list-row__icon--green {
     background: linear-gradient(135deg, #7ad66f 0%, #34b85a 58%, #178f42 100%);
 }
 
-.data-row__icon--gold {
+.list-row__icon--gold {
     color: #4c3506;
     background: linear-gradient(135deg, #ffe7a8 0%, #f4c849 54%, #e99a24 100%);
 }
 
-.data-row__icon--blue {
+.list-row__icon--blue {
     background: linear-gradient(135deg, #73b7ff 0%, #357df4 58%, #275bd8 100%);
 }
 
-.data-row__icon--violet {
+.list-row__icon--violet {
     background: linear-gradient(135deg, #9a86f4 0%, #7350d4 58%, #4b32a6 100%);
 }
 

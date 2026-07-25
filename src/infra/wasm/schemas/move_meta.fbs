@@ -1,0 +1,32 @@
+// data/v2/fb/schemas/move_meta.fbs
+//
+// 招式战斗元数据单行记录。对应 CSV：move_meta.csv
+//
+// 字段范围：
+//   move_id: 1..903 (uint16 足够；不含 alt-form)
+//   meta_category_id: 0..13
+//   meta_ailment_id: -1..42 (-1 = 随机异常状态)
+//   min_hits/max_hits: 0..6 (0 = CSV 空 = 单次命中)
+//   min_turns/max_turns: 0..15 (0 = CSV 空)
+//   drain: -50..100 (负 = 反冲，正 = 吸血)
+//   healing: -33..50 (负 = 削减 HP 上限，如 substitute)
+//   crit_rate: 0..6 (0 = 常规，正 = 加成)
+//   ailment_chance/flinch_chance/stat_chance: 0..100
+
+namespace pokeapi.fb;
+
+struct MoveMeta {
+  move_id: uint16;
+  meta_category_id: uint8;
+  meta_ailment_id: int8;
+  min_hits: uint8;
+  max_hits: uint8;
+  min_turns: uint8;
+  max_turns: uint8;
+  drain: int8;
+  healing: int8;
+  crit_rate: uint8;
+  ailment_chance: uint8;
+  flinch_chance: uint8;
+  stat_chance: uint8;
+}

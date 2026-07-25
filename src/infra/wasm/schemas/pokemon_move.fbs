@@ -1,0 +1,33 @@
+// data/v2/fb/schemas/pokemon_move.fbs
+//
+// 单条宝可梦学习记录（一只宝可梦在一个版本组学到一招）。
+// 对应 CSV：data/v2/csv/pokemon_moves.csv 或
+//          data/v2/csv/by_pokemon/vg-XX_*/pokemon_moves.csv
+//
+// 本文件只定义 struct（固定尺寸），顶层 root 见
+// pokemon_vg_moves_bundle.fbs —— 该 bundle 把一个 version group 内
+// 全部 learn 记录打包为单个 .bin。
+//
+// 字段范围（全 635,905 行扫描得出）：
+//   pokemon_id: 1..10326
+//   move_id: 1..919
+//   method_id: 1..12
+//     (1=level-up, 2=egg, 3=tutor, 4=machine, 其他 method 也保留)
+//   level: 0..100  (0 = 无等级限制的招式如 egg move)
+//   order: 0..23   (CSV 空 → 0；同 method 同 level 时的排序键)
+//   mastery: 0..74 (CSV 空 → 0；Legends Arceus 的招式熟练度等级)
+//
+// 注意：pokemon_id 和 version_group_id 不含在 struct 内 ——
+// version_group_id 由 bundle 顶层字段承载；pokemon_id 在 struct 内保留
+// 便于同一 vg 内按 pokemon 分组或过滤。
+
+namespace pokeapi.fb;
+
+struct PokemonMove {
+  pokemon_id: uint32;
+  move_id: uint16;
+  method_id: uint8;
+  level: uint8;
+  order: uint8;
+  mastery: uint8;
+}

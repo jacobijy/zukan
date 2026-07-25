@@ -1,0 +1,27 @@
+// data/v2/fb/schemas/pokemon_stats.fbs
+//
+// 宝可梦六项种族值。
+// 对应 CSV：data/v2/csv/by_generation/pokemon_stats.csv
+//          + gen-N/pokemon_stats_diff.csv (历代差异)
+//
+// 本文件只定义 struct（固定尺寸行记录），顶层 root 见
+// pokemon_gen_bundle.fbs。
+//
+// 各字段范围：
+//   id: 1..10326
+//   hp / attack / defense / special_attack / special_defense / speed: 1..255
+//
+// 注意：Gen-1 无 SpA/SpD 之分（合并为 special）；打包脚本会把
+// gen-1 的 special_attack 与 special_defense 填成同一值。
+
+namespace pokeapi.fb;
+
+struct PokemonStat {
+  id: uint32;
+  hp: uint8;
+  attack: uint8;
+  defense: uint8;
+  special_attack: uint8;
+  special_defense: uint8;
+  speed: uint8;
+}

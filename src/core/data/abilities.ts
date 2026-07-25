@@ -2898,7 +2898,7 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 		onSwitchIn(pokemon) {
 			this.add('-ability', pokemon, 'Neutralizing Gas');
 			pokemon.abilityState.ending = false;
-			const strongWeathers = ['desolateland', 'primordialsea', 'deltastream'];
+			const strongWeathers = new Set(['desolateland', 'primordialsea', 'deltastream']);
 			for (const target of this.getAllActive()) {
 				if (target.hasItem('Ability Shield')) {
 					this.add('-block', target, 'item: Ability Shield');
@@ -2915,7 +2915,7 @@ export const Abilities: import('../sim/dex-abilities').AbilityDataTable = {
 					delete target.volatiles['slowstart'];
 					this.add('-end', target, 'Slow Start', '[silent]');
 				}
-				if (strongWeathers.includes(target.getAbility().id)) {
+				if (strongWeathers.has(target.getAbility().id)) {
 					this.singleEvent('End', this.dex.abilities.get(target.getAbility().id), target.abilityState, target, pokemon, 'neutralizinggas');
 				}
 			}

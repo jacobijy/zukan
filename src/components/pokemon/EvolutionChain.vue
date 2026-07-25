@@ -8,7 +8,14 @@
       <template v-for="(stage, index) in normalizedChain" :key="index">
         <view class="evolution-node">
           <view class="evolution-node__image">
-            <image :src="stage.imageUrl" mode="aspectFit" class="h-14 w-14"></image>
+            <EncryptedSprite
+              v-if="stage.id"
+              :pokemon-id="stage.id"
+              variant="default"
+              img-class="h-14 w-14"
+              skeleton-class="h-14 w-14"
+            />
+            <image v-else :src="stage.imageUrl" mode="aspectFit" class="h-14 w-14"></image>
           </view>
           <text class="mt-2 block text-sm font-black text-[#24262b]">{{ stage.name }}</text>
           <text v-if="stage.level" class="mt-0.5 block text-xs font-semibold text-[#8d929c]">Lv.{{ stage.level }}</text>
@@ -23,11 +30,13 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 
 type EvolutionStage = {
   name: string;
-  imageUrl: string;
+  imageUrl?: string;
   level?: number;
+  id?: number;
 };
 
 const props = defineProps<{
@@ -44,8 +53,8 @@ const normalizedChain = computed<EvolutionStage[]>(() => {
   return chain.map((stage) => {
     if (typeof stage === 'number') {
       return {
+        id: stage,
         name: `NO.${String(stage).padStart(3, '0')}`,
-        imageUrl: '/static/default.png'
       };
     }
     return stage;

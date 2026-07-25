@@ -1,0 +1,29 @@
+// data/v2/fb/schemas/pokemon_gen_bundle.fbs
+//
+// 每代"打包"的顶层 root：把 5 张宝可梦基础表合并到一个 .bin 文件。
+// 输出文件形如 data/v2/fb/gen-N.bin，每个文件包含该代所有 1351 只宝可梦
+// 在 5 个维度上的数值（基线 + gen-N diff 已合并）。
+//
+// 先 include 5 张 struct 定义，再定义 vector wrapper 和 bundle root。
+// 下游用 flatc 生成对应语言的绑定后，读取 get_root_as_pokemon_gen_bundle()
+// 即可一次性拿到全部 5 张表。
+
+include "pokemon_base.fbs";
+include "pokemon_stats.fbs";
+include "pokemon_types.fbs";
+include "pokemon_abilities.fbs";
+include "pokemon_egg_groups.fbs";
+
+namespace pokeapi.fb;
+
+table PokemonGenBundle {
+  generation_id: uint8;          // 1..9
+  base_entries: [PokemonBase];   // 1351 行
+  stat_entries: [PokemonStat];
+  type_entries: [PokemonType];
+  ability_entries: [PokemonAbility];
+  egg_group_entries: [PokemonEggGroup];
+}
+
+root_type PokemonGenBundle;
+file_identifier "PKMB";

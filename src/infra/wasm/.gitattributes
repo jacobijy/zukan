@@ -1,0 +1,3 @@
+schemas/**/*.fbs linguist-generated=false
+src/fb/generated/** linguist-generated=true
+src/fb/generated/** -diff

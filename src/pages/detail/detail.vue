@@ -17,7 +17,12 @@
                     <view class="specimen-hero__image-wrap">
                         <view class="specimen-hero__image-frame">
                             <view class="absolute inset-3 rounded-[26px] border border-dashed border-[#c9ced8]"></view>
-                            <image :src="pokemon.image || '/static/default.png'" mode="aspectFit" class="relative z-10 h-48 w-48 drop-shadow-[0_18px_18px_rgba(48,55,72,0.16)]"></image>
+                            <EncryptedSprite
+                              :pokemon-id="pokemon.id"
+                              variant="default"
+                              img-class="relative z-10 h-48 w-48 drop-shadow-[0_18px_18px_rgba(48,55,72,0.16)]"
+                              skeleton-class="h-48 w-48"
+                            />
                         </view>
                     </view>
 
@@ -87,6 +92,7 @@ import MovesList from '@/components/pokemon/MovesList.vue'
 import StatsChart from '@/components/pokemon/StatsChart.vue'
 import TabBar from '@/components/TabBar.vue'
 import DetailNavbar from '@/components/shared/DetailNavbar.vue'
+import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue'
 import { usePokemonStore } from '@/store/pokemon'
 import { onLoad } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
@@ -227,9 +233,7 @@ const getTypeClass = (type: string) => {
 </script>
 
 <style scoped>
-.detail-page {
 
-.detail-page::before {
 
 .detail-navbar {
     background: #ffffff;

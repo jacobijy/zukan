@@ -15,6 +15,13 @@
 - 能力值计算
 - 性格修正查询
 
+### 📦 FlatBuffers 解码
+- 解码 zukan-server `assets/fb/*.bin` 的四种 root：
+  - `PokemonGenBundle` (fid `PKMB`) — 宝可梦基础参数（gen-1..9）
+  - `PokemonVgMovesBundle` (fid `PMOV`) — 招式学习记录（原始行式）
+  - `PokemonMovesBundle` (fid `PMSB`) — 招式学习记录（按宝可梦聚合）
+  - `MovesDataBundle` (fid `MDAT`) — 招式定义
+
 ## 🚀 快速开始
 
 ### 前置依赖
@@ -111,6 +118,70 @@ console.log('平均伤害:', range.average);
 | `calculateHp(level, base, iv, ev)` | HP 计算 |
 | `getNatureMod(natureId)` | 获取性格修正 |
 
+### FlatBuffers 解码
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `decodePokemonGenBundle(data)` | Uint8Array | `PokemonGenBundle` | 解码 `gen-N.bin` (fid `PKMB`) |
+| `decodePokemonVgMovesBundle(data)` | Uint8Array | `PokemonVgMovesBundle` | 解码 `moves/vg-XX.bin` (fid `PMOV`) |
+| `decodePokemonMovesBundle(data)` | Uint8Array | `PokemonMovesBundle` | 解码 `pokemon_moves/*.bin` (fid `PMSB`) |
+| `decodeMovesDataBundle(data)` | Uint8Array | `MovesDataBundle` | 解码 `moves_data/*.bin` (fid `MDAT`) |
+
+字段命名、类型、有符号字段（`genderRate/priority/metaAilmentId/drain/healing/change`）
+和哨兵值语义严格遵循 [zukan-server `assets/fb/README.md`](../../../../../zukan-server/assets/fb/README.md)。
+
+**使用示例：**
+
+```typescript
+import {
+  initWasm,
+  decodePokemonGenBundle,
+  decodePokemonMovesBundle,
+} from '@/infra/wasm';
+
+await initWasm();
+
+// 加载 gen-3 全部宝可梦基础参数
+const resp = await fetch('/dev-fb/gen-3.bin');
+const buf = new Uint8Array(await resp.arrayBuffer());
+const gen3 = decodePokemonGenBundle(buf);
+
+console.log(gen3.generationId);            // 3
+console.log(gen3.baseEntries.length);      // 1351
+console.log(gen3.statEntries[0]);          // { id: 1, hp: 45, attack: 49, ... }
+
+// Clefairy (35) 在第 3 代还是 Normal
+const clefairyType = gen3.typeEntries.find(t => t.id === 35);
+console.log(clefairyType?.type1Id);        // 1 (Normal，Fairy 到 gen-6 才有)
+
+// 查询 SV baseline 里 Bulbasaur 学会的招式
+const common = decodePokemonMovesBundle(
+  new Uint8Array(await (await fetch('/dev-fb/pokemon_moves/common.bin')).arrayBuffer())
+);
+const bulba = common.entries.find(e => e.pokemonId === 1);
+bulba?.levelUp.forEach(({ level, moveId }) => console.log(`Lv ${level}: move ${moveId}`));
+```
+
+### Schema 同步 / 绑定生成
+
+Schema 从 zukan-server 拉取，需要 `flatc` (>= 23.x)：
+
+```bash
+sudo apt install flatbuffers-compiler   # 或 brew install flatbuffers
+
+# 1) 从 zukan-server 拉最新 .fbs（假设两个仓平级 checkout）
+bash scripts/sync-schemas.sh
+
+# 2) 生成 Rust 绑定（产物提交入库，位于 src/fb/generated/）
+bash scripts/generate-fb.sh
+```
+
+绑定产物在 `.gitattributes` 里标为 `linguist-generated=true`，diff 会自动折叠。
+
+**测试**（`cargo test --release --test fb`）依赖邻居仓路径 `../../../../zukan-server/assets/fb/*.bin`
+作为 fixture。若 CI 只 checkout `zukan`，把 fixture 复制到 `tests/fixtures/` 并调整
+`tests/fb.rs` 里的 `include_bytes!` 路径。
+
 ## 📁 目录结构
 
 ```
@@ -118,7 +189,17 @@ wasm/
 ├── src/
 │   ├── lib.rs          # 模块入口 + 导出
 │   ├── crypto.rs       # 加密解密
-│   └── calculator.rs   # 伤害计算器
+│   ├── calculator.rs   # 伤害计算器
+│   └── fb/             # FlatBuffers 解码
+│       ├── mod.rs      # 入口 + FbDecodeError
+│       ├── decode.rs   # 四个 root 的 decode 实现
+│       ├── convert.rs  # Serialize-able owned 结构体
+│       └── generated/  # flatc 生成产物（linguist-generated）
+├── schemas/            # .fbs IDL（同步自 zukan-server/assets/fb/schemas）
+├── scripts/
+│   ├── sync-schemas.sh # 从 zukan-server 拉最新 schema
+│   └── generate-fb.sh  # 调 flatc --rust 生成 Rust 绑定
+├── tests/fb.rs         # 4 root × 抽样 + negative case（依赖邻居仓 fixture）
 ├── pkg/                # 构建产物（gitignore）
 ├── Cargo.toml          # Rust 配置
 ├── package.json        # npm 脚本

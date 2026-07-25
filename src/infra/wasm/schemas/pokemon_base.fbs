@@ -1,0 +1,45 @@
+// data/v2/fb/schemas/pokemon_base.fbs
+//
+// 宝可梦本体元数据 —— 物种参数 + 物理数值
+// 对应 CSV：data/v2/csv/by_generation/pokemon_base.csv
+//
+// 本文件只定义 struct（固定尺寸行记录），顶层 root 见
+// pokemon_gen_bundle.fbs —— 该 bundle 把 5 张表合并到单个 .bin。
+//
+// 字段范围（全量数据扫描得出）：
+//   id: 1..10326        (含 alt-form 10000+)
+//   species_id: 1..1025
+//   gender_rate: -1..8  (-1 = genderless)
+//   generation_id: 1..9
+//   growth_rate_id: 1..6
+//   color_id: 1..10
+//   shape_id: 1..14
+//   habitat_id: 0..9    (0 = 无栖息地)
+//   height: 1..1000     (分米)
+//   weight: 0..10000    (百克)
+//   base_experience: 0..608
+//   capture_rate: 3..255
+//   base_happiness: 0..140
+//   hatch_counter: 5..120
+
+namespace pokeapi.fb;
+
+struct PokemonBase {
+  id: uint32;
+  species_id: uint16;
+  is_default: bool;
+  height: uint16;
+  weight: uint16;
+  base_experience: uint16;
+  generation_id: uint8;
+  growth_rate_id: uint8;
+  gender_rate: int8;
+  capture_rate: uint8;
+  base_happiness: uint8;
+  hatch_counter: uint8;
+  is_legendary: bool;
+  is_mythical: bool;
+  color_id: uint8;
+  shape_id: uint8;
+  habitat_id: uint8;
+}

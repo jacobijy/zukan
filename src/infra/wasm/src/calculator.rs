@@ -246,29 +246,35 @@ impl DamageInput {
     }
 
     /// 设置攻击方物攻等级
+    #[wasm_bindgen(js_name = withAttackerAtkStage)]
     pub fn with_attacker_atk_stage(&mut self, stage: i8) {
         self.attacker_atk_stage = stage.clamp(-6, 6);
     }
 
     /// 设置攻击方特攻等级
+    #[wasm_bindgen(js_name = withAttackerSpaStage)]
     pub fn with_attacker_spa_stage(&mut self, stage: i8) {
         self.attacker_spa_stage = stage.clamp(-6, 6);
     }
 
     /// 设置防御方物防等级
+    #[wasm_bindgen(js_name = withDefenderDefStage)]
     pub fn with_defender_def_stage(&mut self, stage: i8) {
         self.defender_def_stage = stage.clamp(-6, 6);
     }
 
     /// 设置防御方特防等级
+    #[wasm_bindgen(js_name = withDefenderSpdStage)]
     pub fn with_defender_spd_stage(&mut self, stage: i8) {
         self.defender_spd_stage = stage.clamp(-6, 6);
     }
 
+    #[wasm_bindgen(js_name = withItemMod)]
     pub fn with_item_mod(&mut self, item_mod: u8) {
         self.item_mod = item_mod;
     }
 
+    #[wasm_bindgen(js_name = withSeed)]
     pub fn with_seed(&mut self, seed: u8) {
         self.seed = seed;
     }
@@ -295,6 +301,7 @@ impl BatchDamageResult {
     #[wasm_bindgen(getter)]
     pub fn average(&self) -> f64 { self.average }
 
+    #[wasm_bindgen(js_name = getRolls)]
     pub fn get_rolls(&self) -> Vec<u16> {
         self.rolls.clone()
     }

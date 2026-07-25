@@ -41,8 +41,6 @@
                     </ListRow>
                 </view>
 
-                <view class="section-label mt-6">图鉴实验室</view>
-                <NoteCard title="这些入口会保持轻量。" desc="像系统设置一样快速扫描，点开后再进入更完整的研究视图。" />
             </view>
         </view>
 
@@ -54,15 +52,14 @@
 import NavBar from "@/components/NavBar.vue";
 import TabBar from "@/components/TabBar.vue";
 import ListRow from "@/components/shared/ListRow.vue";
-import NoteCard from "@/components/shared/NoteCard.vue";
 import { ref } from "vue";
 
 const currentTab = ref(1);
 
 const featureItems = [
-    { title: '伤害计算器', desc: '计算技能伤害、克制关系与实战收益。', meta: '对战', url: '/pages/calc/calc', icon: 'target', iconClass: 'feature-row__icon--green' },
-    { title: '对战模拟器', desc: '用研究记录的方式复盘宝可梦对战场景。', meta: '沙盘', url: '/pages/simulate/simulate', icon: 'grid', iconClass: 'feature-row__icon--blue' },
-    { title: '数据统计', desc: '查看属性、能力值和收集进度的统计摘要。', meta: '资料', url: '/pages/data/data', icon: 'chart', iconClass: 'feature-row__icon--violet' },
+    { title: '伤害计算器', desc: '计算技能伤害、克制关系与实战收益。', meta: '对战', url: '/pages/calc/calc', icon: 'target', iconClass: 'list-row__icon--green' },
+    { title: '对战模拟器', desc: '用研究记录的方式复盘宝可梦对战场景。', meta: '沙盘', url: '/pages/simulate/simulate', icon: 'grid', iconClass: 'list-row__icon--blue' },
+    { title: '数据统计', desc: '查看属性、能力值和收集进度的统计摘要。', meta: '资料', url: '/pages/data/data', icon: 'chart', iconClass: 'list-row__icon--violet' },
 ];
 
 const goToPage = (url: string) => {

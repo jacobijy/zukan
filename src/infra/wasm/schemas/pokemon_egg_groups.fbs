@@ -1,0 +1,23 @@
+// data/v2/fb/schemas/pokemon_egg_groups.fbs
+//
+// 宝可梦蛋组（繁殖分组）。
+// 对应 CSV：data/v2/csv/by_generation/pokemon_egg_groups.csv
+//
+// 本文件只定义 struct（固定尺寸行记录），顶层 root 见
+// pokemon_gen_bundle.fbs。
+// 本表无 _past 数据；各代 bundle 中蛋组部分内容相同。
+//
+// 字段范围：
+//   id: 1..10326
+//   species_id: 1..1025  (蛋组按物种记录，alt-form 沿用物种)
+//   egg_group_1_id: 1..15
+//   egg_group_2_id: 0..14  (0 = 无第二蛋组)
+
+namespace pokeapi.fb;
+
+struct PokemonEggGroup {
+  id: uint32;
+  species_id: uint16;
+  egg_group_1_id: uint8;
+  egg_group_2_id: uint8;
+}

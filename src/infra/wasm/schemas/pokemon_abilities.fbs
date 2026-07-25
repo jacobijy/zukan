@@ -1,0 +1,25 @@
+// data/v2/fb/schemas/pokemon_abilities.fbs
+//
+// 宝可梦双特性 + 隐藏特性。
+// 对应 CSV：data/v2/csv/by_generation/pokemon_abilities.csv
+//          + gen-N/pokemon_abilities_diff.csv
+//
+// 本文件只定义 struct（固定尺寸行记录），顶层 root 见
+// pokemon_gen_bundle.fbs。
+//
+// 字段范围：
+//   id: 1..10326
+//   ability_1_id / ability_2_id / ability_hidden_id: 0..313
+//     0 = 该槽位无特性
+//
+// 注意：隐藏特性（hidden ability）在 gen-5 之前不存在；
+// 打包 gen-1..4 的 bundle 时该字段全为 0。
+
+namespace pokeapi.fb;
+
+struct PokemonAbility {
+  id: uint32;
+  ability_1_id: uint16;
+  ability_2_id: uint16;
+  ability_hidden_id: uint16;
+}

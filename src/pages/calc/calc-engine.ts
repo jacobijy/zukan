@@ -269,9 +269,9 @@ export function calcStat(
   if (!wasm) return 0;
   try {
     if (isHP) {
-      return wasm.calculate_hp(level, base, iv, ev);
+      return wasm.calculateHp(level, base, iv, ev);
     }
-    return wasm.calculate_stat(level, base, iv, ev, natureMod);
+    return wasm.calculateStat(level, base, iv, ev, natureMod);
   } catch {
     return 0;
   }
@@ -419,9 +419,9 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
   const terrainId = params.terrain ? (TERRAIN_IDS[params.terrain.toLowerCase()] || 0) : 0;
 
   const atkAbilityId = params.attackerAbility
-    ? (ABILITY_IDS[params.attackerAbility.toLowerCase().replace(/[\s\-]/g, '')] || 0) : 0;
+    ? (ABILITY_IDS[params.attackerAbility.toLowerCase().replace(/[\s-]/g, '')] || 0) : 0;
   const defAbilityId = params.defenderAbility
-    ? (ABILITY_IDS[params.defenderAbility.toLowerCase().replace(/[\s\-]/g, '')] || 0) : 0;
+    ? (ABILITY_IDS[params.defenderAbility.toLowerCase().replace(/[\s-]/g, '')] || 0) : 0;
 
   const category = params.moveCategory === 'physical' ? 0 : 1;
   const isCritical = params.critical ? 1 : 0;
@@ -430,7 +430,7 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
 
   // 招式标志位
   const moveFlags = params.moveName
-    ? (MOVE_FLAGS_LOOKUP[params.moveName.toLowerCase().replace(/[\s\-]/g, '')] || 0)
+    ? (MOVE_FLAGS_LOOKUP[params.moveName.toLowerCase().replace(/[\s-]/g, '')] || 0)
     : 0;
 
   // 创建 WASM DamageInput
@@ -455,13 +455,13 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
   );
 
   // 设置能力等级
-  if (params.attackerAtkStage) input.with_attacker_atk_stage(params.attackerAtkStage);
-  if (params.attackerSpaStage) input.with_attacker_spa_stage(params.attackerSpaStage);
-  if (params.defenderDefStage) input.with_defender_def_stage(params.defenderDefStage);
-  if (params.defenderSpdStage) input.with_defender_spd_stage(params.defenderSpdStage);
+  if (params.attackerAtkStage) input.withAttackerAtkStage(params.attackerAtkStage);
+  if (params.attackerSpaStage) input.withAttackerSpaStage(params.attackerSpaStage);
+  if (params.defenderDefStage) input.withDefenderDefStage(params.defenderDefStage);
+  if (params.defenderSpdStage) input.withDefenderSpdStage(params.defenderSpdStage);
 
   // 执行批量计算（16 个随机种子）
-  const result: BatchDamageResult = wasm.calculate_damage_batch(input);
+  const result: BatchDamageResult = wasm.calculateDamageBatch(input);
 
   const minDamage = result.min;
   const maxDamage = result.max;

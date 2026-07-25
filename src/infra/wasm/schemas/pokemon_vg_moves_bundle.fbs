@@ -1,0 +1,22 @@
+// data/v2/fb/schemas/pokemon_vg_moves_bundle.fbs
+//
+// 每个 version group 一个 bundle：把该 vg 内所有宝可梦的学习记录
+// 打包为单个 .bin。文件形如 data/v2/fb/moves/vg-<id>.bin。
+//
+// 与 CSV 的对应关系：
+//   data/v2/csv/by_pokemon/vg-<XX>_<slug>/pokemon_moves.csv  ↔
+//   data/v2/fb/moves/vg-<XX>.bin
+//
+// 全部 26 个 vg × 每个约 2K–62K 行 = 总 635,905 行。
+
+include "pokemon_move.fbs";
+
+namespace pokeapi.fb;
+
+table PokemonVgMovesBundle {
+  version_group_id: uint8;   // 1..32
+  entries: [PokemonMove];    // 该 vg 内所有 learn 记录（按原 CSV 顺序）
+}
+
+root_type PokemonVgMovesBundle;
+file_identifier "PMOV";

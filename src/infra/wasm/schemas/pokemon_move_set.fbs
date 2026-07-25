@@ -1,0 +1,34 @@
+// data/v2/fb/schemas/pokemon_move_set.fbs
+//
+// 一只宝可梦在一个 VG 下的完整招式表。对应 CSV 的一行：
+//   data/v2/csv/by_pokemon/{common,vg-XX}/pokemon_moves_*.csv
+//
+// 12 个 method 分别用一个 vector 承载：
+//   - level_up: [LevelMove]   ← 需要 (level, move_id)
+//   - 其他 11 个: [uint16]    ← 只需要 move_id 列表
+//
+// 单招按 (order, move_id) 排序（level_up 按 (level, order, move_id)）；
+// order/mastery 在此层不保留（如需请查 data/v2/fb/moves/vg-XX.bin 无损分片）。
+
+namespace pokeapi.fb;
+
+struct LevelMove {
+  level: uint8;     // 0..100
+  move_id: uint16;  // 1..919
+}
+
+table PokemonMoveSet {
+  pokemon_id: uint32;
+  level_up:                  [LevelMove];
+  egg:                       [uint16];
+  tutor:                     [uint16];
+  machine:                   [uint16];
+  stadium_surfing_pikachu:   [uint16];
+  light_ball_egg:            [uint16];
+  colosseum_purification:    [uint16];
+  xd_shadow:                 [uint16];
+  xd_purification:           [uint16];
+  form_change:               [uint16];
+  zygarde_cube:              [uint16];
+  train:                     [uint16];
+}

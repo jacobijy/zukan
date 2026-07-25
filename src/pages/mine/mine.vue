@@ -89,9 +89,9 @@ const { favorites } = storeToRefs(pokemonStore);
 const favoritesCount = computed(() => favorites.value.length);
 
 const menuItems = computed(() => [
-    { title: '设置', desc: '调整图鉴偏好和展示方式。', meta: '偏好', icon: 'settings', iconClass: 'mine-row__icon--gray' },
-    { title: '我的收藏', desc: '查看已经标记的宝可梦样本。', icon: 'star', iconClass: 'mine-row__icon--gold', count: favoritesCount.value },
-    { title: '浏览历史', desc: '回到最近查看过的研究记录。', meta: '记录', icon: 'clock', iconClass: 'mine-row__icon--blue' }
+    { title: '设置', desc: '调整图鉴偏好和展示方式。', meta: '偏好', icon: 'settings', iconClass: 'list-row__icon--gray' },
+    { title: '我的收藏', desc: '查看已经标记的宝可梦样本。', icon: 'star', iconClass: 'list-row__icon--gold', count: favoritesCount.value },
+    { title: '浏览历史', desc: '回到最近查看过的研究记录。', meta: '记录', icon: 'clock', iconClass: 'list-row__icon--blue' }
 ]);
 
 const onTabChange = (index: number) => {
@@ -100,9 +100,7 @@ const onTabChange = (index: number) => {
 </script>
 
 <style lang="scss" scoped>
-.mine-page {
 
-.mine-page::before {
 
 .section-label {
     padding: 0 14px 8px;
@@ -213,16 +211,16 @@ const onTabChange = (index: number) => {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 10px 20px rgba(63, 70, 86, 0.12);
 }
 
-.mine-row__icon--gray {
+.list-row__icon--gray {
     background: linear-gradient(135deg, #b8bcc5 0%, #8e949f 56%, #6e7480 100%);
 }
 
-.mine-row__icon--gold {
+.list-row__icon--gold {
     color: #4c3506;
     background: linear-gradient(135deg, #ffe7a8 0%, #f4c849 54%, #e99a24 100%);
 }
 
-.mine-row__icon--blue {
+.list-row__icon--blue {
     background: linear-gradient(135deg, #73b7ff 0%, #357df4 58%, #275bd8 100%);
 }
 

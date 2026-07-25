@@ -4,3 +4,11 @@ allowBuilds:
   core-js-pure: true
   esbuild: true
   vue-demi: true
+minimumReleaseAgeExclude:
+  - '@dcloudio/uni-automator@3.0.0-5010520260709002'
+  - '@dcloudio/uni-cli-shared@3.0.0-5010520260709002'
+  - '@dcloudio/uni-i18n@3.0.0-5010520260709002'
+  - '@dcloudio/uni-nvue-styler@3.0.0-5010520260709002'
+  - '@dcloudio/uni-shared@3.0.0-5010520260709002'
+  - '@dcloudio/uni-stacktracey@3.0.0-5010520260709002'
+  - '@dcloudio/vite-plugin-uni@3.0.0-5010520260709002'

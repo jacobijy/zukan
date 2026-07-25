@@ -1,0 +1,18 @@
+// data/v2/fb/schemas/move_meta_stat_change.fbs
+//
+// 招式附带的能力变化单行记录。对应 CSV：move_meta_stat_changes.csv
+//
+// 一招可能有多条记录（如 dragon-dance 同时改 atk 和 speed）。
+//
+// 字段范围：
+//   move_id: 14..905 (uint16)
+//   stat_id: 2..8 (2=atk 3=def 4=spa 5=spd 6=speed 7=accuracy 8=evasion)
+//   change: -2..+3 (int8，负 = 降低)
+
+namespace pokeapi.fb;
+
+struct MoveMetaStatChange {
+  move_id: uint16;
+  stat_id: uint8;
+  change: int8;
+}
