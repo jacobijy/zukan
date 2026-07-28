@@ -37,6 +37,25 @@ interface IPokemonBase {
     ReminderMoves: string;
 }
 
+interface MoveRecord {
+    /** PokeAPI moveId；i18n bundle 上线后用它 join 中文名 */
+    id: number;
+    /** 显示名（未接 i18n bundle 前占位 `move-{id}`） */
+    name: string;
+    /** 属性 slug：'fire' / 'grass' / ... 与 typeStrs 一致 */
+    type: string;
+    /** 显示分类：'物理' / '特殊' / '状态' / '—' */
+    category: string;
+    /** 招式威力；0（如吼叫）显示 '—' */
+    power: number | string;
+    /** 命中率；0（如剑舞、Swift 必中）显示 '—' */
+    accuracy: number | string;
+    /** 学习方式；与 MovesList picker 一一对应 */
+    learnMethod: 'level-up' | 'machine' | 'egg' | 'tutor';
+    /** 仅 level-up 使用；0 表示进化学习 */
+    level?: number;
+}
+
 interface IPokemonBaseModel {
     id: number;
     /** 同 species 分组 key；缺席视为等于 id（单形态） */
@@ -52,7 +71,7 @@ interface IPokemonBaseModel {
     image: string;
     stats: { name: string; value: number }[];
     description: string;
-    moves: string[];
+    moves: MoveRecord[];
     evolutionChain: number[];
     height?: number;
     weight?: number;

@@ -112,6 +112,7 @@ import DetailNavbar from '@/components/shared/DetailNavbar.vue'
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue'
 import { usePokemonStore } from '@/store/pokemon'
 import { genForPokemonId } from '@/services/pokemon'
+import { loadMovesForPokemon } from '@/services/moves'
 import { onLoad } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 
@@ -163,6 +164,7 @@ const switchForm = (delta: 1 | -1) => {
     if (formCount.value <= 1) return
     const next = (formIndex.value + delta + formCount.value) % formCount.value
     pokemon.value = forms.value[next]
+    loadMoves(pokemon.value.id)
 }
 
 const toggleFavorite = () => {
@@ -205,6 +207,7 @@ const loadPokemonById = async (id: number) => {
         let found = pokemonStore.getById(id)
         if (found) {
             pokemon.value = found
+            loadMoves(id)
             return
         }
 
@@ -215,6 +218,7 @@ const loadPokemonById = async (id: number) => {
             found = pokemonStore.getById(id)
             if (found) {
                 pokemon.value = found
+                loadMoves(id)
                 return
             }
         }
@@ -224,6 +228,21 @@ const loadPokemonById = async (id: number) => {
     } catch (error) {
         console.error('获取宝可梦详情失败:', error)
         uni.showToast({ title: '获取详情失败', icon: 'none' })
+    }
+}
+
+/**
+ * 按 form id 拉招式表并回填 pokemon.moves。竞态守卫：
+ * 加载完成时 pokemon 已切到别处则丢弃结果。
+ */
+async function loadMoves(pokemonId: number) {
+    try {
+        const moves = await loadMovesForPokemon(pokemonId)
+        if (pokemon.value.id === pokemonId) {
+            pokemon.value = { ...pokemon.value, moves }
+        }
+    } catch (err) {
+        console.warn('[detail] moves load failed', err)
     }
 }
 

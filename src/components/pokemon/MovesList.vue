@@ -121,7 +121,7 @@ export default {
       return move.type || 'normal';
     },
     getMoveCategory(move) {
-      return move.category || '记录';
+      return move.category || '—';
     },
     getMovePower(move) {
       return move.power || '—';
