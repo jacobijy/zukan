@@ -13,6 +13,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `package.json` 中目前没有测试脚本或 lint 脚本。项目配置了 Stylelint，但没有暴露对应的 package script。
 
+## 环境变量
+
+- `VITE_API_BASE_URL` — zukan-server 地址（含协议，末尾无斜杠）。`src/services/*` 与 `EncryptedSprite.vue`、`src/services/resourceManager.ts` 均通过该变量拼接远端 URL。仓库根目录提供 `.env.development` 作为本地默认值（`http://localhost:8080`）；若连远端服务需自行覆盖。
+
 ## 架构概览
 
 这是一个基于 Vue 3、uni-app 和 Vite 的宝可梦图鉴应用。`src/main.ts` 创建 SSR app，安装 Pinia，注册 `uni-icons`，并引入 `src/static/styles/global.css`。`vite.config.ts` 启用 uni-app Vite 插件，开发服务端口为 4000，并将 `@/*` 映射到 `src/*`；`tsconfig.json` 中也配置了同样的路径别名。

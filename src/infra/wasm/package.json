@@ -2,7 +2,7 @@
   "name": "zukan-wasm",
   "version": "0.1.0",
   "description": "Pokédex WASM Module - Crypto, Battle Calculator, FlatBuffers decoding",
-  "main": "pkg/zukan_wasm.js",
+  "main": "./index.ts",
   "types": "index.ts",
   "exports": {
     ".": "./index.ts",

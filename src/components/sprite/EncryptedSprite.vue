@@ -13,52 +13,24 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { initWasm, decryptZukan } from '@/infra/wasm'
+import { getKey } from '@/services/auth'
+import { fetchBinary } from '@/services/binaryRequest'
 
 interface Props {
   pokemonId: number
-  variant?: string   // default / shiny / home / artwork 等
+  variant?: string   // home / shiny / artwork / back / dream 等；对应 assets/public/pokemon/{id}/{variant}.{png,svg}
   imgClass?: string
   skeletonClass?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  variant: 'default',
+  variant: 'home',
   imgClass: '',
   skeletonClass: '',
 })
 
 const blobUrl = ref<string | null>(null)
 const loading = ref(true)
-
-// ── 全局密钥缓存 ──
-let keyCache: { dek: string } | null = null
-let keyPromise: Promise<{ dek: string }> | null = null
-
-async function getKey(): Promise<{ dek: string }> {
-  if (keyCache) return keyCache
-  if (!keyPromise) {
-    keyPromise = new Promise((resolve, reject) => {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL ?? ''
-      uni.request({
-        url: `${baseUrl}/zukan/key`,
-        method: 'GET',
-        header: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-        success: (res) => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            keyCache = res.data as { dek: string }
-            resolve(keyCache)
-          } else {
-            reject(new Error(`获取密钥失败: ${res.statusCode}`))
-          }
-        },
-        fail: (err) => reject(new Error(err.errMsg)),
-      })
-    })
-  }
-  return keyPromise
-}
 
 // ── 解密结果 LRU 缓存（全局共享） ──
 const decryptedCache = new Map<string, string>()
@@ -86,22 +58,9 @@ onMounted(async () => {
     const { dek } = await getKey()
 
     // 4. 请求加密图片
-    const baseUrl = import.meta.env.VITE_API_BASE_URL ?? ''
-    const encrypted = await new Promise<Uint8Array>((resolve, reject) => {
-      uni.request({
-        url: `${baseUrl}/assets/encrypted/pokemon/${props.pokemonId}/${props.variant}.bin`,
-        method: 'GET',
-        responseType: 'arraybuffer',
-        success: (res) => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(new Uint8Array(res.data as ArrayBuffer))
-          } else {
-            reject(new Error(`加载图片失败: ${res.statusCode}`))
-          }
-        },
-        fail: (err) => reject(new Error(err.errMsg)),
-      })
-    })
+    const encrypted = await fetchBinary(
+      `/assets/encrypted/pokemon/${props.pokemonId}/${props.variant}.bin`
+    )
 
     // 5. WASM 解密（复用已有 decryptZukan）
     const decrypted = decryptZukan(encrypted, dek)
@@ -139,14 +98,6 @@ onUnmounted(() => {
     createdUrls.clear()
   }
 })
-
-/**
- * 获取认证 token。
- * 目前使用 localStorage 中的 token，后续可接入统一 auth 管理。
- */
-function getToken(): string {
-  return localStorage.getItem('zukan_token') ?? ''
-}
 </script>
 
 <style scoped>

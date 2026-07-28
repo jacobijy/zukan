@@ -11,7 +11,7 @@
             <EncryptedSprite
               v-if="stage.id"
               :pokemon-id="stage.id"
-              variant="default"
+              variant="home"
               img-class="h-14 w-14"
               skeleton-class="h-14 w-14"
             />

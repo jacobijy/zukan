@@ -10,17 +10,20 @@
 
         <view class="relative z-10 px-4 py-4 sm:px-5">
             <view class="mx-auto max-w-[720px]">
-                <view class="trainer-card mb-6">
+                <view class="trainer-card mb-6" @click="onTrainerCardClick">
                     <view class="trainer-card__avatar">
                         <view class="trainer-card__avatar-cap"></view>
                     </view>
                     <view class="min-w-0 flex-1">
-                        <text class="block text-[20px] font-bold leading-6 tracking-[-0.03em] text-[#24262b]">训练师小明</text>
-                        <text class="mt-1 block text-[12px] font-semibold leading-4 text-[#8d929c]">Lv. 58 · 金牌训练家</text>
+                        <text v-if="loggedIn" class="block text-[20px] font-bold leading-6 tracking-[-0.03em] text-[#24262b]">训练师</text>
+                        <text v-else class="block text-[20px] font-bold leading-6 tracking-[-0.03em] text-[#24262b]">未登录</text>
+                        <text class="mt-1 block text-[12px] font-semibold leading-4 text-[#8d929c]">
+                            {{ loggedIn ? '已登录 · 点击退出登录' : '点击登录以同步数据' }}
+                        </text>
                     </view>
                     <view class="trainer-card__badge">
                         <text class="block text-[10px] font-bold leading-3 text-[#9da2ad]">已收集</text>
-                        <text class="mt-0.5 block font-mono text-[18px] font-black leading-5 tracking-[-0.05em] text-[#24262b]">156</text>
+                        <text class="mt-0.5 block font-mono text-[18px] font-black leading-5 tracking-[-0.05em] text-[#24262b]">{{ favoritesCount }}</text>
                     </view>
                 </view>
 
@@ -71,6 +74,8 @@
         </view>
 
         <TabBar v-model="currentTab" @change="onTabChange" />
+
+        <LoginModal v-model:visible="showLogin" @success="onLoginSuccess" />
     </view>
 </template>
 
@@ -78,6 +83,8 @@
 import NavBar from "@/components/NavBar.vue";
 import TabBar from "@/components/TabBar.vue";
 import ListRow from "@/components/shared/ListRow.vue";
+import LoginModal from "@/components/shared/LoginModal.vue";
+import { isAuthenticated, clearSession } from '@/services/auth';
 import { usePokemonStore } from '@/store/pokemon';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
@@ -87,6 +94,32 @@ const pokemonStore = usePokemonStore();
 const { favorites } = storeToRefs(pokemonStore);
 
 const favoritesCount = computed(() => favorites.value.length);
+
+const showLogin = ref(false);
+const loggedIn = ref(isAuthenticated());
+
+function onTrainerCardClick() {
+    if (loggedIn.value) {
+        uni.showModal({
+            title: '退出登录',
+            content: '确定要退出当前账号吗？',
+            success: (res) => {
+                if (res.confirm) {
+                    clearSession();
+                    loggedIn.value = false;
+                    uni.showToast({ title: '已退出登录', icon: 'none' });
+                }
+            }
+        });
+    } else {
+        showLogin.value = true;
+    }
+}
+
+function onLoginSuccess() {
+    loggedIn.value = true;
+    uni.showToast({ title: '登录成功', icon: 'success' });
+}
 
 const menuItems = computed(() => [
     { title: '设置', desc: '调整图鉴偏好和展示方式。', meta: '偏好', icon: 'settings', iconClass: 'list-row__icon--gray' },

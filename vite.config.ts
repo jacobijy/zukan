@@ -11,7 +11,14 @@ export default defineConfig({
     open: true, // 自动打开浏览器
     hmr: {
       overlay: false
-    }
+    },
+    watch: {
+      // Rust WASM 增量编译产物变化极频繁，会撞爆 inotify 上限
+      ignored: [
+        '**/src/infra/wasm/target/**',
+        '**/target/**',
+      ],
+    },
   },
   resolve: {
     alias: {

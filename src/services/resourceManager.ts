@@ -1,0 +1,297 @@
+/**
+ * 资源下载管理器
+ *
+ * 从 zukan-server 按需下载 ZKDX 加密的 FlatBuffers bundle，
+ * 跨平台缓存加密字节，解密 + 解码后缓存解码结果到内存。
+ *
+ * ## 数据流
+ * ```
+ * memoryCache → inflight → binaryStorage → fetchBinary → decryptZukan → decode*Bundle
+ * ```
+ *
+ * ## 错误 & 缓存失效
+ * - 网络错误 / 5xx：`fetchBinary` 内部重试 1 次
+ * - `/zukan/key` 401：清空密钥缓存后重试一次
+ * - 存储读损坏 / 解密失败 / 解码 fid 不匹配：删除该 key 缓存后重下重解一次
+ *
+ * ## 版本
+ * schema 或 ZKDX 格式变更时手动 bump `FB_ASSET_VERSION`；旧 key 由存储层
+ * 通过 IDB 容量或用户"清缓存"逐步淘汰，不主动清理。
+ */
+
+import {
+  initWasm,
+  decryptZukan,
+  decodePokemonGenBundle,
+  decodePokemonVgMovesBundle,
+  decodePokemonMovesBundle,
+  decodeMovesDataBundle,
+  type PokemonGenBundle,
+  type PokemonVgMovesBundle,
+  type PokemonMovesBundle,
+  type MovesDataBundle,
+} from '@/infra/wasm';
+import { fetchBinary, BinaryRequestError } from '@/services/binaryRequest';
+import { getKey, clearKeyCache } from '@/services/auth';
+import { binaryStorage } from '@/infra/storage/binaryStorage';
+
+// ─────────────────────────────────────────────────────────
+// 常量与类型
+// ─────────────────────────────────────────────────────────
+
+/** FB schema / ZKDX 格式变更时手动 bump（一并 bump WASM 版本） */
+const FB_ASSET_VERSION = 1;
+
+/** 内存解码结果 LRU 上限（bundle 体积较大，条数保守） */
+const MEMORY_LRU_CAP = 12;
+
+export type PokemonMovesKind = 'common' | 'mainline' | 'special';
+export type MovesDataKind = 'common' | 'vg';
+
+export interface ResourceStats {
+  memoryEntries: number;
+  inflight: number;
+  /** 尽力枚举；MP 通过 getStorageInfo，H5 通过 IDB getAllKeys */
+  persistedKeys: string[];
+}
+
+// ─────────────────────────────────────────────────────────
+// 私有状态
+// ─────────────────────────────────────────────────────────
+
+const memoryCache = new Map<string, unknown>();
+const inflight = new Map<string, Promise<unknown>>();
+
+// ─────────────────────────────────────────────────────────
+// 工具函数
+// ─────────────────────────────────────────────────────────
+
+const pad2 = (n: number): string => String(n).padStart(2, '0');
+
+const cacheKeyPrefix = `fb:v${FB_ASSET_VERSION}`;
+
+function memGet<T>(key: string): T | null {
+  if (!memoryCache.has(key)) return null;
+  const v = memoryCache.get(key)!;
+  // LRU: 命中后移到末尾
+  memoryCache.delete(key);
+  memoryCache.set(key, v);
+  return v as T;
+}
+
+function memSet(key: string, val: unknown): void {
+  if (memoryCache.has(key)) memoryCache.delete(key);
+  memoryCache.set(key, val);
+  while (memoryCache.size > MEMORY_LRU_CAP) {
+    const oldest = memoryCache.keys().next().value;
+    if (oldest == null) break;
+    memoryCache.delete(oldest);
+  }
+}
+
+function assertVgId(kind: string, vgId: number | undefined): asserts vgId is number {
+  if (typeof vgId !== 'number' || !Number.isFinite(vgId)) {
+    throw new Error(`vgId required for kind='${kind}'`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// 核心加载器
+// ─────────────────────────────────────────────────────────
+
+interface BundleSpec {
+  cacheKey: string;
+  remotePath: string;
+}
+
+async function fetchDecrypted(spec: BundleSpec, allowKeyRetry = true): Promise<Uint8Array> {
+  // 1. 存储命中？
+  let bytes: Uint8Array | null = null;
+  try {
+    bytes = await binaryStorage.get(spec.cacheKey);
+  } catch (err) {
+    console.warn('[resourceManager] 存储读取失败，按 miss 处理', spec.cacheKey, err);
+  }
+
+  // 2. miss：远程下载并写回
+  if (!bytes) {
+    bytes = await fetchBinary(spec.remotePath);
+    try {
+      await binaryStorage.put(spec.cacheKey, bytes);
+    } catch (err) {
+      // MP 端 quota 已在 storage 内部静默；此处兜底
+      console.warn('[resourceManager] 存储写入失败', spec.cacheKey, err);
+    }
+  }
+
+  // 3. WASM 与密钥并发准备
+  let dek: string;
+  try {
+    const [, key] = await Promise.all([initWasm(), getKey()]);
+    dek = key.dek;
+  } catch (err) {
+    // 密钥 401 恢复：清缓存后重试一次
+    if (allowKeyRetry && err instanceof BinaryRequestError && err.statusCode === 401) {
+      clearKeyCache();
+      const [, key] = await Promise.all([initWasm(), getKey()]);
+      dek = key.dek;
+    } else if (allowKeyRetry && /401/.test(String((err as Error)?.message))) {
+      clearKeyCache();
+      const [, key] = await Promise.all([initWasm(), getKey()]);
+      dek = key.dek;
+    } else {
+      throw err;
+    }
+  }
+
+  // 4. 解密
+  return decryptZukan(bytes, dek);
+}
+
+/**
+ * 通用加载路径。dedup 通过 `inflight` map；解密/解码失败自动重试一次
+ * （覆盖缓存过期 / schema drift）。
+ */
+async function loadBundle<T>(spec: BundleSpec, decoder: (u8: Uint8Array) => T): Promise<T> {
+  // 内存命中
+  const mem = memGet<T>(spec.cacheKey);
+  if (mem != null) return mem;
+
+  // in-flight 去重
+  const existing = inflight.get(spec.cacheKey) as Promise<T> | undefined;
+  if (existing) return existing;
+
+  const p = (async (): Promise<T> => {
+    try {
+      const decrypted = await fetchDecrypted(spec);
+      return decoder(decrypted);
+    } catch (err) {
+      // 缓存字节可能已过期（DEK 轮换 / schema drift）—— 清 key 后重下重解一次
+      console.warn('[resourceManager] 首次解密/解码失败，尝试重下', spec.cacheKey, err);
+      try {
+        await binaryStorage.delete(spec.cacheKey);
+      } catch {
+        // ignore
+      }
+      const decrypted = await fetchDecrypted(spec, false);
+      return decoder(decrypted);
+    }
+  })();
+
+  inflight.set(spec.cacheKey, p);
+  try {
+    const result = await p;
+    memSet(spec.cacheKey, result);
+    return result;
+  } finally {
+    inflight.delete(spec.cacheKey);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// BundleSpec 构造
+// ─────────────────────────────────────────────────────────
+
+function specPokemonGen(genId: number): BundleSpec {
+  return {
+    cacheKey: `${cacheKeyPrefix}:gen:${genId}`,
+    remotePath: `/assets/encrypted/fb/gen-${genId}.bin`,
+  };
+}
+
+function specVgMoves(vgId: number): BundleSpec {
+  return {
+    cacheKey: `${cacheKeyPrefix}:vgmoves:${pad2(vgId)}`,
+    remotePath: `/assets/encrypted/fb/moves/vg-${pad2(vgId)}.bin`,
+  };
+}
+
+function specPokemonMoves(kind: PokemonMovesKind, vgId?: number): BundleSpec {
+  if (kind === 'common') {
+    return {
+      cacheKey: `${cacheKeyPrefix}:pmoves:common`,
+      remotePath: `/assets/encrypted/fb/pokemon_moves/common.bin`,
+    };
+  }
+  assertVgId(kind, vgId);
+  const seg = kind === 'mainline' ? 'mainline' : 'special';
+  return {
+    cacheKey: `${cacheKeyPrefix}:pmoves:${kind}:vg-${pad2(vgId)}`,
+    remotePath: `/assets/encrypted/fb/pokemon_moves/${seg}/vg-${pad2(vgId)}.bin`,
+  };
+}
+
+function specMovesData(kind: MovesDataKind, vgId?: number): BundleSpec {
+  if (kind === 'common') {
+    return {
+      cacheKey: `${cacheKeyPrefix}:mdata:common`,
+      remotePath: `/assets/encrypted/fb/moves_data/common.bin`,
+    };
+  }
+  assertVgId(kind, vgId);
+  return {
+    cacheKey: `${cacheKeyPrefix}:mdata:vg-${pad2(vgId)}`,
+    remotePath: `/assets/encrypted/fb/moves_data/vg-${pad2(vgId)}.bin`,
+  };
+}
+
+// ─────────────────────────────────────────────────────────
+// 公共 API
+// ─────────────────────────────────────────────────────────
+
+function silence<T>(p: Promise<T>, tag: string): void {
+  p.catch(err => console.warn(`[resourceManager] prefetch ${tag} 失败`, err));
+}
+
+export const resourceManager = {
+  // ── 类型化 getter ──
+  getPokemonGen(genId: number): Promise<PokemonGenBundle> {
+    return loadBundle(specPokemonGen(genId), decodePokemonGenBundle);
+  },
+  getVgMoves(vgId: number): Promise<PokemonVgMovesBundle> {
+    return loadBundle(specVgMoves(vgId), decodePokemonVgMovesBundle);
+  },
+  getPokemonMoves(kind: PokemonMovesKind, vgId?: number): Promise<PokemonMovesBundle> {
+    return loadBundle(specPokemonMoves(kind, vgId), decodePokemonMovesBundle);
+  },
+  getMovesData(kind: MovesDataKind, vgId?: number): Promise<MovesDataBundle> {
+    return loadBundle(specMovesData(kind, vgId), decodeMovesDataBundle);
+  },
+
+  // ── 预取（与 get* 共享 inflight 去重；错误静默） ──
+  prefetchPokemonGen(genId: number): void {
+    silence(this.getPokemonGen(genId), `gen-${genId}`);
+  },
+  prefetchVgMoves(vgId: number): void {
+    silence(this.getVgMoves(vgId), `vgmoves-${pad2(vgId)}`);
+  },
+  prefetchPokemonMoves(kind: PokemonMovesKind, vgId?: number): void {
+    silence(this.getPokemonMoves(kind, vgId), `pmoves-${kind}`);
+  },
+  prefetchMovesData(kind: MovesDataKind, vgId?: number): void {
+    silence(this.getMovesData(kind, vgId), `mdata-${kind}`);
+  },
+
+  // ── 运维 ──
+  async clear(): Promise<void> {
+    memoryCache.clear();
+    await binaryStorage.clear(cacheKeyPrefix);
+  },
+  stats(): ResourceStats {
+    return {
+      memoryEntries: memoryCache.size,
+      inflight: inflight.size,
+      // 同步接口无法 await；调用方需要精确列表时可自行 `await binaryStorage.keys(...)`
+      persistedKeys: [],
+    };
+  },
+  /** 异步版本，包含持久化 key 列表 */
+  async statsAsync(): Promise<ResourceStats> {
+    const persistedKeys = await binaryStorage.keys(cacheKeyPrefix).catch(() => []);
+    return {
+      memoryEntries: memoryCache.size,
+      inflight: inflight.size,
+      persistedKeys,
+    };
+  },
+};

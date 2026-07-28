@@ -40,10 +40,17 @@ export const request = <TResponse, TData extends RequestData = RequestData>(
   options: RestRequestOptions<TData> = {}
 ): Promise<TResponse> => {
   return new Promise((resolve, reject) => {
+    // 在 uni-app H5 平台上，uni.request 的 data 参数需要手动序列化
+    // 为 JSON 字符串，否则某些浏览器版本会因 Content-Type 与 payload 类型
+    // 不匹配而触发 CORS 预检失败或未知的 request:fail 错误。
+    const serializedData = options.data != null
+      ? (typeof options.data === 'string' ? options.data : JSON.stringify(options.data))
+      : undefined;
+
     uni.request({
       url: buildUrl(path),
       method,
-      data: options.data,
+      data: serializedData,
       header: {
         'Content-Type': 'application/json',
         ...options.header,
@@ -61,6 +68,7 @@ export const request = <TResponse, TData extends RequestData = RequestData>(
         reject(new RestRequestError(`Request failed with status ${response.statusCode}`, response.statusCode, response.data));
       },
       fail: error => {
+        console.warn('[request] uni.request fail', error.errMsg, 'url:', buildUrl(path));
         reject(new RestRequestError(error.errMsg));
       },
     });
