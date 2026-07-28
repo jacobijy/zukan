@@ -3,17 +3,26 @@ import { padId } from '@/utils/helpers';
 import { defineStore } from 'pinia';
 import { ref, type Ref } from 'vue';
 
+/** 首屏默认代次；与 `boot.ts` LATEST_GEN_ID 保持一致以复用预取缓存 */
+const DEFAULT_GEN_ID = 9;
+
 export const usePokemonStore = defineStore('pokemon', () => {
     const pokemonList: Ref<IPokemonBaseModel[]> = ref([]);
     const favorites: Ref<number[]> = ref(JSON.parse(localStorage.getItem('pokemonFavorites') + '') || []);
+    const currentGenId = ref<number>(DEFAULT_GEN_ID);
 
-    // 获取宝可梦数据
-    const fetchPokemon = async () => {
-        const data = await fetchPokemonList();
+    // 获取指定世代的宝可梦数据（默认 gen-9，与启动预取同代）
+    const fetchPokemon = async (genId: number = DEFAULT_GEN_ID) => {
+        currentGenId.value = genId;
+        // 切代时清空分页视图，重新从首页开始
+        pokemonList.value = [];
+        currentPage.value = 1;
+        const data = await fetchPokemonList(genId);
         allPokemons.value = data.map(p => ({
             ...p,
             formattedId: padId(p.id)
         }));
+        hasMore.value = allPokemons.value.length > 0;
         loadMore();
     };
 
@@ -61,6 +70,7 @@ export const usePokemonStore = defineStore('pokemon', () => {
         allPokemons,
         favorites,
         hasMore,
+        currentGenId,
         fetchPokemon,
         loadMore,
         toggleFavorite,
