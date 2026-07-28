@@ -63,6 +63,10 @@ export function mergeBundleToModel(bundle: PokemonGenBundle): IPokemonBaseModel[
 
     return {
       id: b.id,
+      speciesId: b.speciesId,
+      isDefault: b.isDefault,
+      // TODO(i18n): 用 i18n bundle 里的形态名替换（"攻击形态"/"阿罗拉形态"…）
+      formLabel: b.isDefault ? '' : `form-${b.id}`,
       // TODO(i18n): 用 i18n bundle 里的物种名替换
       name: `pokemon-${b.id}`,
       types,
@@ -77,6 +81,25 @@ export function mergeBundleToModel(bundle: PokemonGenBundle): IPokemonBaseModel[
       weight: b.weight,
     };
   });
+}
+
+/**
+ * 根据宝可梦全国编号推算所属世代。
+ * 号段与首页 `generations` 数组保持同源（`pages/index/index.vue`）。
+ * 未匹配返回 `null`（无效 id 或未来世代）。
+ */
+export function genForPokemonId(id: number): number | null {
+  if (id <= 0) return null;
+  if (id <= 151) return 1;
+  if (id <= 251) return 2;
+  if (id <= 386) return 3;
+  if (id <= 493) return 4;
+  if (id <= 649) return 5;
+  if (id <= 721) return 6;
+  if (id <= 809) return 7;
+  if (id <= 905) return 8;
+  if (id <= 1010) return 9;
+  return null;
 }
 
 /**

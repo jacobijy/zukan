@@ -39,6 +39,12 @@ interface IPokemonBase {
 
 interface IPokemonBaseModel {
     id: number;
+    /** 同 species 分组 key；缺席视为等于 id（单形态） */
+    speciesId?: number;
+    /** 是否 species 的默认形态；单形态默认为 true */
+    isDefault?: boolean;
+    /** 形态显示名（"攻击形态" / "阿罗拉形态"…），缺席 UI 用 `形态 #{id}` 占位 */
+    formLabel?: string;
     name: string;
     types: string[];
     abilities: string[];

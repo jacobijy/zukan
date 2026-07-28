@@ -19,11 +19,28 @@
                             <view class="absolute inset-3 rounded-[26px] border border-dashed border-[#c9ced8]"></view>
                             <EncryptedSprite
                               :pokemon-id="pokemon.id"
-                              variant="default"
+                              variant="home"
                               img-class="relative z-10 h-48 w-48 drop-shadow-[0_18px_18px_rgba(48,55,72,0.16)]"
                               skeleton-class="h-48 w-48"
                             />
                         </view>
+                    </view>
+
+                    <view v-if="formCount > 1" class="specimen-hero__form-switch">
+                        <button class="form-switch__arrow" @click="switchForm(-1)" aria-label="上一个形态">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                                <polyline points="15 6 9 12 15 18"></polyline>
+                            </svg>
+                        </button>
+                        <view class="form-switch__label">
+                            <text class="form-switch__form-name">{{ currentFormLabel }}</text>
+                            <text class="form-switch__form-index">{{ formIndex + 1 }} / {{ formCount }}</text>
+                        </view>
+                        <button class="form-switch__arrow" @click="switchForm(1)" aria-label="下一个形态">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                                <polyline points="9 6 15 12 9 18"></polyline>
+                            </svg>
+                        </button>
                     </view>
 
                     <view class="relative z-10 px-5 pb-5 text-center">
@@ -94,6 +111,7 @@ import TabBar from '@/components/TabBar.vue'
 import DetailNavbar from '@/components/shared/DetailNavbar.vue'
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue'
 import { usePokemonStore } from '@/store/pokemon'
+import { genForPokemonId } from '@/services/pokemon'
 import { onLoad } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 
@@ -124,6 +142,29 @@ const infoItems = computed(() => [
     { label: '分类', value: pokemon.value.category || '种子宝可梦', icon: 'book', iconClass: 'info-card__icon--paper' }
 ])
 
+// ── 形态切换 ──────────────────────────────────────────────
+// 同 species 的所有形态；单形态时数组只有一条，切换器不渲染。
+const forms = computed<IPokemonBaseModel[]>(() => {
+    const sid = pokemon.value.speciesId ?? pokemon.value.id
+    if (!sid) return []
+    const list = pokemonStore.getFormsBySpecies(sid)
+    return list.length > 0 ? list : [pokemon.value]
+})
+const formCount = computed(() => forms.value.length)
+const formIndex = computed(() =>
+    Math.max(0, forms.value.findIndex(f => f.id === pokemon.value.id))
+)
+const currentFormLabel = computed(() => {
+    const p = pokemon.value
+    if (p.isDefault) return '默认形态'
+    return p.formLabel || `形态 #${p.id}`
+})
+const switchForm = (delta: 1 | -1) => {
+    if (formCount.value <= 1) return
+    const next = (formIndex.value + delta + formCount.value) % formCount.value
+    pokemon.value = forms.value[next]
+}
+
 const toggleFavorite = () => {
     if (pokemon.value.id) {
         storeToggleFavorite(pokemon.value.id)
@@ -144,42 +185,45 @@ const onTabChange = (index: number) => {
     console.log('Tab changed to:', index);
 };
 
-onLoad((options: any) => {
-    if (options && options.id) {
-        fetchPokemonDetail(Number(options.id))
-    }
+onLoad(async (options: any) => {
+    const id = Number(options?.id)
+    if (!Number.isFinite(id) || id <= 0) return
+    await loadPokemonById(id)
 })
 
-const fetchPokemonDetail = async (id: number) => {
+/**
+ * 从 store 拉真实数据；深链或跨代访问时兜底切换到目标 gen。
+ * 拉不到就静默显示空态 + toast，不再 fallback 到硬编码 Bulbasaur。
+ */
+const loadPokemonById = async (id: number) => {
     try {
-        pokemon.value = {
-            id: id,
-            name: '妙蛙种子',
-            types: ['grass', 'poison'],
-            abilities: ['茂盛', '叶绿素'],
-            hiddenAbility: '',
-            image: '/static/default.png',
-            height: 0.7,
-            weight: 6.9,
-            category: '种子宝可梦',
-            stats: [
-                { name: 'HP', value: 45 },
-                { name: '攻击', value: 49 },
-                { name: '防御', value: 49 },
-                { name: '特攻', value: 65 },
-                { name: '特防', value: 65 },
-                { name: '速度', value: 45 }
-            ],
-            description: '妙蛙种子出生时背上就背着种子。种子会随着它的成长而逐渐变大并开花。',
-            moves: ['藤鞭', '撞击', '飞叶快刀'],
-            evolutionChain: [1, 2, 3]
+        // 1. store 首次访问兜底（正常从首页进入时 store 已 fetch）
+        if (pokemonStore.allPokemons.length === 0) {
+            await pokemonStore.fetchPokemon()
         }
+
+        let found = pokemonStore.getById(id)
+        if (found) {
+            pokemon.value = found
+            return
+        }
+
+        // 2. 跨代深链：按 id 号段推算 gen 并切换
+        const gen = genForPokemonId(id)
+        if (gen && gen !== pokemonStore.currentGenId) {
+            await pokemonStore.fetchPokemon(gen)
+            found = pokemonStore.getById(id)
+            if (found) {
+                pokemon.value = found
+                return
+            }
+        }
+
+        // 3. 兜底失败
+        uni.showToast({ title: '未找到该宝可梦', icon: 'none' })
     } catch (error) {
         console.error('获取宝可梦详情失败:', error)
-        uni.showToast({
-            title: '获取详情失败',
-            icon: 'none'
-        })
+        uni.showToast({ title: '获取详情失败', icon: 'none' })
     }
 }
 
@@ -294,6 +338,61 @@ const getTypeClass = (type: string) => {
     display: flex;
     justify-content: center;
     padding: 28px 0 8px;
+}
+
+.specimen-hero__form-switch {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 0 auto 4px;
+    padding: 6px 14px;
+}
+
+.form-switch__arrow {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    color: #4a5060;
+    background: #ffffff;
+    border: 1px solid #e5e7ee;
+    border-radius: 999px;
+    box-shadow: 0 4px 10px rgba(48, 55, 72, 0.08);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-switch__arrow:active {
+    transform: scale(0.94);
+    box-shadow: 0 2px 6px rgba(48, 55, 72, 0.1);
+}
+
+.form-switch__label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 108px;
+    line-height: 1.15;
+}
+
+.form-switch__form-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #24262b;
+}
+
+.form-switch__form-index {
+    margin-top: 2px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #8d929c;
 }
 
 .specimen-hero__image-frame {
