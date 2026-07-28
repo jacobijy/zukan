@@ -33,6 +33,7 @@ import {
 } from '@/infra/wasm';
 import { fetchBinary, BinaryRequestError } from '@/services/binaryRequest';
 import { getKey, clearKeyCache } from '@/services/auth';
+import { buildCdnUrl } from '@/services/cdn';
 import { binaryStorage } from '@/infra/storage/binaryStorage';
 
 // ─────────────────────────────────────────────────────────
@@ -113,34 +114,50 @@ async function fetchDecrypted(spec: BundleSpec, allowKeyRetry = true): Promise<U
     console.warn('[resourceManager] 存储读取失败，按 miss 处理', spec.cacheKey, err);
   }
 
-  // 2. miss：远程下载并写回
-  if (!bytes) {
-    bytes = await fetchBinary(spec.remotePath);
-    try {
-      await binaryStorage.put(spec.cacheKey, bytes);
-    } catch (err) {
-      // MP 端 quota 已在 storage 内部静默；此处兜底
-      console.warn('[resourceManager] 存储写入失败', spec.cacheKey, err);
-    }
-  }
-
-  // 3. WASM 与密钥并发准备
+  // 2. WASM 与密钥（含 CDN token）并发准备 —— 密钥要先到位才能签 URL
   let dek: string;
+  let cdn: Awaited<ReturnType<typeof getKey>>['cdn'];
   try {
     const [, key] = await Promise.all([initWasm(), getKey()]);
     dek = key.dek;
+    cdn = key.cdn;
   } catch (err) {
     // 密钥 401 恢复：清缓存后重试一次
     if (allowKeyRetry && err instanceof BinaryRequestError && err.statusCode === 401) {
       clearKeyCache();
       const [, key] = await Promise.all([initWasm(), getKey()]);
       dek = key.dek;
+      cdn = key.cdn;
     } else if (allowKeyRetry && /401/.test(String((err as Error)?.message))) {
       clearKeyCache();
       const [, key] = await Promise.all([initWasm(), getKey()]);
       dek = key.dek;
+      cdn = key.cdn;
     } else {
       throw err;
+    }
+  }
+
+  // 3. miss：远程下载并写回。CDN 403（签名过期 / 非法）时清 key 重签重下一次。
+  if (!bytes) {
+    try {
+      bytes = await fetchBinary(buildCdnUrl(spec.remotePath, cdn));
+    } catch (err) {
+      if (allowKeyRetry && err instanceof BinaryRequestError && err.statusCode === 403) {
+        clearKeyCache();
+        const key = await getKey();
+        dek = key.dek;
+        cdn = key.cdn;
+        bytes = await fetchBinary(buildCdnUrl(spec.remotePath, cdn));
+      } else {
+        throw err;
+      }
+    }
+    try {
+      await binaryStorage.put(spec.cacheKey, bytes);
+    } catch (err) {
+      // MP 端 quota 已在 storage 内部静默；此处兜底
+      console.warn('[resourceManager] 存储写入失败', spec.cacheKey, err);
     }
   }
 

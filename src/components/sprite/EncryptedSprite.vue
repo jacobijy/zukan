@@ -13,8 +13,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { initWasm, decryptZukan } from '@/infra/wasm'
-import { getKey } from '@/services/auth'
-import { fetchBinary } from '@/services/binaryRequest'
+import { getKey, clearKeyCache } from '@/services/auth'
+import { fetchBinary, BinaryRequestError } from '@/services/binaryRequest'
+import { buildCdnUrl } from '@/services/cdn'
 
 interface Props {
   pokemonId: number
@@ -54,13 +55,25 @@ onMounted(async () => {
     // 2. 初始化 WASM（幂等）
     await initWasm()
 
-    // 3. 获取密钥
-    const { dek } = await getKey()
+    // 3. 获取密钥（含 CDN token）
+    let { dek, cdn } = await getKey()
 
-    // 4. 请求加密图片
-    const encrypted = await fetchBinary(
-      `/assets/encrypted/pokemon/${props.pokemonId}/${props.variant}.bin`
-    )
+    // 4. 请求加密图片：走 CDN 签名 URL；403 时清 key 重签重下一次
+    const remotePath = `/assets/encrypted/pokemon/${props.pokemonId}/${props.variant}.bin`
+    let encrypted: Uint8Array
+    try {
+      encrypted = await fetchBinary(buildCdnUrl(remotePath, cdn))
+    } catch (err) {
+      if (err instanceof BinaryRequestError && err.statusCode === 403) {
+        clearKeyCache()
+        const key = await getKey()
+        dek = key.dek
+        cdn = key.cdn
+        encrypted = await fetchBinary(buildCdnUrl(remotePath, cdn))
+      } else {
+        throw err
+      }
+    }
 
     // 5. WASM 解密（复用已有 decryptZukan）
     const decrypted = decryptZukan(encrypted, dek)
