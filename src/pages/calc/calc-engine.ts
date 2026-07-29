@@ -15,6 +15,8 @@ import typeIds from '@/static/enums/types.json';
 import abilitiesJson from '@/static/enums/abilities.json';
 import movesJson from '@/static/enums/moves.json';
 import moveFlagsJson from '@/static/enums/move_flags.json';
+import weathersJson from '@/static/enums/weathers.json';
+import terrainsJson from '@/static/enums/terrains.json';
 import { resourceManager } from '@/services/resources/resourceManager';
 
 // ─── 枚举映射 ───────────────────────────────────────────
@@ -111,25 +113,13 @@ async function lookupMoveFlags(moveName: string | undefined): Promise<number> {
     return mask.get(moveId) ?? 0;
 }
 
-/** 天气名 → Weather enum ID */
-const WEATHER_IDS: Record<string, number> = {
-    raindance: 1,
-    primordialsea: 8,
-    sunnyday: 2,
-    desolateland: 7,
-    sandstorm: 3,
-    hail: 4,
-    snowscape: 5,
-    deltastream: 6,
-};
+/** 天气 slug（无连字符）→ Weather enum ID（与 calculator.rs 的 WEATHER_* 对齐） */
+const WEATHER_IDS: Record<string, number> = Object.fromEntries(
+    Object.entries(weathersJson).map(([slug, id]) => [slug.replace(/-/g, ''), id as number]),
+);
 
-/** 场地名 → Terrain enum ID */
-const TERRAIN_IDS: Record<string, number> = {
-    electric: 1,
-    grassy: 2,
-    misty: 3,
-    psychic: 4,
-};
+/** 场地 slug → Terrain enum ID（与 calculator.rs 的 TERRAIN_* 对齐） */
+const TERRAIN_IDS = terrainsJson as Record<string, number>;
 
 
 // ─── JS 侧查询函数 ──────────────────────────────────────
@@ -334,8 +324,8 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
     const defType1Id = TYPE_IDS[params.defenderType1?.toLowerCase()] || 0;
     const defType2Id = TYPE_IDS[(params.defenderType2 || '').toLowerCase()] || 0;
 
-    const weatherId = params.weather ? WEATHER_IDS[params.weather.toLowerCase()] || 0 : 0;
-    const terrainId = params.terrain ? TERRAIN_IDS[params.terrain.toLowerCase()] || 0 : 0;
+    const weatherId = params.weather ? WEATHER_IDS[params.weather.toLowerCase().replace(/[\s-]/g, '')] || 0 : 0;
+    const terrainId = params.terrain ? TERRAIN_IDS[params.terrain.toLowerCase().replace(/[\s-]/g, '')] || 0 : 0;
 
     const atkAbilityId = params.attackerAbility
         ? ABILITY_IDS[params.attackerAbility.toLowerCase().replace(/[\s-]/g, '')] || 0

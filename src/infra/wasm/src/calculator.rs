@@ -5,54 +5,18 @@ use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 
 // ============================================================
-// 枚举常量
+// 枚举常量（TYPE_* / WEATHER_* / TERRAIN_* / ABILITY_*）
+// 由 `build.rs` 从 `src/static/enums/*.json` 生成，与前端共用一份 slug→id 表。
+// 更新数据只改 JSON，不动 Rust 代码。
 // ============================================================
-
-/// 宝可梦属性 (PokemonType from PMDefine)
-/// Normal=1, Fighting=2, Flying=3, Poison=4, Ground=5, Rock=6,
-/// Bug=7, Ghost=8, Steel=9, Fire=10, Water=11, Grass=12,
-/// Electric=13, Psychic=14, Ice=15, Dragon=16, Dark=17, Fairy=18, Stellar=19
-pub const TYPE_NORMAL: u8 = 1;
-pub const TYPE_FIGHTING: u8 = 2;
-pub const TYPE_FLYING: u8 = 3;
-pub const TYPE_POISON: u8 = 4;
-pub const TYPE_GROUND: u8 = 5;
-pub const TYPE_ROCK: u8 = 6;
-pub const TYPE_BUG: u8 = 7;
-pub const TYPE_GHOST: u8 = 8;
-pub const TYPE_STEEL: u8 = 9;
-pub const TYPE_FIRE: u8 = 10;
-pub const TYPE_WATER: u8 = 11;
-pub const TYPE_GRASS: u8 = 12;
-pub const TYPE_ELECTRIC: u8 = 13;
-pub const TYPE_PSYCHIC: u8 = 14;
-pub const TYPE_ICE: u8 = 15;
-pub const TYPE_DRAGON: u8 = 16;
-pub const TYPE_DARK: u8 = 17;
-pub const TYPE_FAIRY: u8 = 18;
-pub const TYPE_STELLAR: u8 = 19;
-
-/// 天气 (Weather from PMDefine)
-pub const WEATHER_NONE: u8 = 0;
-pub const WEATHER_RAIN: u8 = 1;       // RainDance
-pub const WEATHER_SUN: u8 = 2;        // SunnyDay
-pub const WEATHER_SANDSTORM: u8 = 3;
-pub const WEATHER_HAIL: u8 = 4;
-pub const WEATHER_SNOW: u8 = 5;       // Snowscape
-pub const WEATHER_DELTA: u8 = 6;      // DeltaStream
-pub const WEATHER_DESOLATE: u8 = 7;   // DesolateLand
-pub const WEATHER_PRIMORDIAL: u8 = 8; // PrimordialSea
-
-/// 场地 (Terrain from PMDefine)
-pub const TERRAIN_NONE: u8 = 0;
-pub const TERRAIN_ELECTRIC: u8 = 1;
-pub const TERRAIN_GRASSY: u8 = 2;
-pub const TERRAIN_MISTY: u8 = 3;
-pub const TERRAIN_PSYCHIC: u8 = 4;
+include!(concat!(env!("OUT_DIR"), "/gen_enums.rs"));
 
 // ============================================================
 // 招式标志位 (MoveFlags 位掩码)
 // ============================================================
+// 位序是 Rust ↔ JS 的 ABI 契约（`src/pages/calc/calc-engine.ts` 的 MOVE_FLAG 与本表对齐）。
+// 与 `src/static/enums/move_flags.json` 里的 pokeapi flag id 不同 —— 那是数据表的行号，
+// 前端负责在运行时把 flag id 翻成这里的 bit（见 calc-engine.ts::WASM_FLAG_BITS）。
 pub const MOVE_FLAG_CONTACT: u16 = 1 << 0;   // 接触类
 pub const MOVE_FLAG_PUNCH: u16 = 1 << 1;    // 拳类 (铁拳 Iron Fist 检查)
 pub const MOVE_FLAG_BITE: u16 = 1 << 2;     // 啃咬类 (强壮之颚 Strong Jaw 检查)
@@ -61,55 +25,6 @@ pub const MOVE_FLAG_PULSE: u16 = 1 << 4;    // 波动类 (Mega Launcher 检查)
 pub const MOVE_FLAG_POWDER: u16 = 1 << 5;   // 粉末类
 pub const MOVE_FLAG_BULLET: u16 = 1 << 6;   // 子弹类
 pub const MOVE_FLAG_HEAL: u16 = 1 << 7;     // 回复类
-
-// ============================================================
-// 特性 ID (来自 AbilityId.ts)
-// ============================================================
-
-// ── 攻击方特性 ──
-pub const ABILITY_HUGE_POWER: u16 = 37;         // 大力士
-pub const ABILITY_PURE_POWER: u16 = 74;         // 瑜伽之力
-pub const ABILITY_HUSTLE: u16 = 55;             // 活力
-pub const ABILITY_GUTS: u16 = 62;               // 毅力
-pub const ABILITY_OVERGROW: u16 = 65;           // 茂盛
-pub const ABILITY_BLAZE: u16 = 66;              // 猛火
-pub const ABILITY_TORRENT: u16 = 67;            // 激流
-pub const ABILITY_SWARM: u16 = 68;              // 虫之预感
-pub const ABILITY_IRON_FIST: u16 = 89;          // 铁拳
-pub const ABILITY_STRONG_JAW: u16 = 173;        // 强壮之颚
-pub const ABILITY_MEGA_LAUNCHER: u16 = 178;     // Mega Launcher
-pub const ABILITY_TOUGH_CLAWS: u16 = 181;       // 硬爪
-pub const ABILITY_DRAGONS_MAW: u16 = 263;       // 龙颚
-pub const ABILITY_ANALYTIC: u16 = 148;          // 分析
-pub const ABILITY_DEFEATIST: u16 = 129;         // 颓废
-pub const ABILITY_SLOW_START: u16 = 112;        // 慢启动
-pub const ABILITY_TECHNICIAN: u16 = 101;        // 技术高手
-pub const ABILITY_REFRIGERATE: u16 = 174;       // 冰冻皮肤
-pub const ABILITY_PIXILATE: u16 = 182;          // 妖精皮肤
-pub const ABILITY_AERILATE: u16 = 184;          // 飞行皮肤
-pub const ABILITY_GALVANIZE: u16 = 206;         // 电气皮肤
-pub const ABILITY_ADAPTABILITY: u16 = 91;       // 适应力
-
-// ── 防御方特性 ──
-pub const ABILITY_THICK_FAT: u16 = 47;          // 厚脂肪
-pub const ABILITY_FILTER: u16 = 111;            // 过滤
-pub const ABILITY_SOLID_ROCK: u16 = 116;        // 坚石
-pub const ABILITY_PRISM_ARMOR: u16 = 232;       // 棱镜装甲
-pub const ABILITY_MULTISCALE: u16 = 136;        // 多重鳞片
-pub const ABILITY_SHADOW_SHIELD: u16 = 231;     // 暗影护盾
-pub const ABILITY_FUR_COAT: u16 = 169;          // 毛皮大衣
-pub const ABILITY_ICE_SCALES: u16 = 246;        // 冰鳞粉
-pub const ABILITY_FLUFFY: u16 = 218;            // 毛茸茸
-pub const ABILITY_HEATPROOF: u16 = 85;          // 耐火
-
-// ── 交互/规则类 ──
-pub const ABILITY_MOLD_BREAKER: u16 = 104;      // 破格
-pub const ABILITY_TURBOBLAZE: u16 = 163;        // 涡轮火焰
-pub const ABILITY_TERAVOLT: u16 = 164;          // 兆级电压
-pub const ABILITY_NEUTRALIZING_GAS: u16 = 256;  // 化学变化气体
-pub const ABILITY_CLOUD_NINE: u16 = 13;         // 无关天气
-pub const ABILITY_AIR_LOCK: u16 = 76;           // 气闸
-pub const ABILITY_UNAWARE: u16 = 109;           // 纯朴
 
 // ============================================================
 // 属性克制表
@@ -390,11 +305,11 @@ fn calc_stab(move_type: u8, atk_type1: u8, atk_type2: u8, ability: u16) -> u16 {
 /// 计算天气修正
 fn calc_weather_mod(weather: u8, move_type: u8) -> u16 {
     match weather {
-        WEATHER_RAIN | WEATHER_PRIMORDIAL => {
+        WEATHER_RAIN_DANCE | WEATHER_PRIMORDIAL_SEA => {
             if move_type == TYPE_WATER { return 150; }  // ×1.5
             if move_type == TYPE_FIRE { return 50; }     // ×0.5
         }
-        WEATHER_SUN | WEATHER_DESOLATE => {
+        WEATHER_SUNNY_DAY | WEATHER_DESOLATE_LAND => {
             if move_type == TYPE_FIRE { return 150; }    // ×1.5
             if move_type == TYPE_WATER { return 50; }     // ×0.5
         }
