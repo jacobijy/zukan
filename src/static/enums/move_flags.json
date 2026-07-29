@@ -1,0 +1,23 @@
+{
+  "contact": 1,
+  "charge": 2,
+  "recharge": 3,
+  "protect": 4,
+  "reflectable": 5,
+  "snatch": 6,
+  "mirror": 7,
+  "punch": 8,
+  "sound": 9,
+  "gravity": 10,
+  "defrost": 11,
+  "distance": 12,
+  "heal": 13,
+  "authentic": 14,
+  "powder": 15,
+  "bite": 16,
+  "pulse": 17,
+  "ballistics": 18,
+  "mental": 19,
+  "non-sky-battle": 20,
+  "dance": 21
+}

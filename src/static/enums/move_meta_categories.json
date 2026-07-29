@@ -1,0 +1,16 @@
+{
+  "damage": 0,
+  "ailment": 1,
+  "net-good-stats": 2,
+  "heal": 3,
+  "damage-ailment": 4,
+  "swagger": 5,
+  "damage-lower": 6,
+  "damage-raise": 7,
+  "damage-heal": 8,
+  "ohko": 9,
+  "whole-field-effect": 10,
+  "field-effect": 11,
+  "force-switch": 12,
+  "unique": 13
+}

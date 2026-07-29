@@ -117,3 +117,28 @@ function getNatureName(natureId: number): string {
   return natureNames[natureId] || `Nature #${natureId}`;
 }
 ```
+
+## 枚举 JSON 生成 (`gen_enums.py`)
+
+从本地 pokeapi CSV（默认 `/home/jacobi/Code/pokeapi/data/v2/csv`）生成 **英文 slug → id** 的枚举字典，
+落地到 `src/static/enums/*.json`，共 14 份表：
+
+```bash
+# 使用默认路径
+python3 tools/gen_enums.py
+
+# 或指定
+python3 tools/gen_enums.py \
+  --pokeapi /path/to/pokeapi/data/v2/csv \
+  --out src/static/enums
+```
+
+产物形如 `types.json`：`{ "normal": 1, "fire": 10, "fairy": 18, ... }`；前端消费：
+
+```ts
+import types from '@/static/enums/types.json'
+types['fire']  // 10
+```
+
+新增 pokeapi 表想被收录时，直接在 `TABLES` 里加一行 `(csv_filename, out_filename)` 即可——
+所有表都是 `identifier` 列 → id，无需额外配置。

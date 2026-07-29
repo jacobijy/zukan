@@ -1,0 +1,18 @@
+{
+  "specific-move": 1,
+  "selected-pokemon-me-first": 2,
+  "ally": 3,
+  "users-field": 4,
+  "user-or-ally": 5,
+  "opponents-field": 6,
+  "user": 7,
+  "random-opponent": 8,
+  "all-other-pokemon": 9,
+  "selected-pokemon": 10,
+  "all-opponents": 11,
+  "entire-field": 12,
+  "user-and-allies": 13,
+  "all-pokemon": 14,
+  "all-allies": 15,
+  "fainting-pokemon": 16
+}
