@@ -11,6 +11,11 @@
  */
 
 import type { DamageInput, BatchDamageResult } from '@/infra/wasm/pkg/zukan_wasm';
+import typeIds from '@/static/enums/types.json';
+import abilitiesJson from '@/static/enums/abilities.json';
+import movesJson from '@/static/enums/moves.json';
+import moveFlagsJson from '@/static/enums/move_flags.json';
+import { resourceManager } from '@/services/resources/resourceManager';
 
 // ─── 枚举映射 ───────────────────────────────────────────
 
@@ -26,146 +31,85 @@ export const MOVE_FLAG = {
     HEAL: 1 << 7,
 } as const;
 
-/**
- * 常用招式标志位查询表
- * 用于给常见招式快速设置标志位
- */
-const MOVE_FLAGS_LOOKUP: Record<string, number> = {
-    // 接触类物理招式
-    tackle: MOVE_FLAG.CONTACT,
-    bodyslam: MOVE_FLAG.CONTACT,
-    quickattack: MOVE_FLAG.CONTACT,
-    scratch: MOVE_FLAG.CONTACT,
-    slash: MOVE_FLAG.CONTACT,
-    wingattack: MOVE_FLAG.CONTACT,
-    bite: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    crunch: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    icefang: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    firefang: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    thunderfang: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    psychicfangs: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    poisonfang: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    hyperfang: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    superfang: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    flaretail: 0,
-    // 拳类
-    megapunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    thunderpunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    firepunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    icepunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    drainpunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    machpunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    bulletpunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    cometpunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    dynamicpunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    focuspunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    hammerarm: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    meteormash: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    poweruppunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    shadowpunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    skyuppercut: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    surgingstrikes: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    wickedblow: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    doubleironbash: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    armthrust: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    jetpunch: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    collisioncourse: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    // 波动类
-    aurasphere: MOVE_FLAG.PULSE,
-    darkpulse: MOVE_FLAG.PULSE,
-    dragonpulse: MOVE_FLAG.PULSE,
-    waterpulse: MOVE_FLAG.PULSE,
-    terrainpulse: MOVE_FLAG.PULSE,
-    originpulse: MOVE_FLAG.PULSE,
-    // 声音类
-    hypervoice: MOVE_FLAG.SOUND,
-    boomburst: MOVE_FLAG.SOUND,
-    uproar: MOVE_FLAG.SOUND,
-    round: MOVE_FLAG.SOUND,
-    echoedvoice: MOVE_FLAG.SOUND,
-    sing: MOVE_FLAG.SOUND,
-    growl: MOVE_FLAG.SOUND,
-    roar: MOVE_FLAG.SOUND,
-    screech: MOVE_FLAG.SOUND,
-    supersonic: MOVE_FLAG.SOUND,
-    disarmingvoice: MOVE_FLAG.SOUND,
-    sparklingaria: MOVE_FLAG.SOUND,
-    overdrive: MOVE_FLAG.SOUND,
-    clangingscales: MOVE_FLAG.SOUND,
-    clangoroussoul: MOVE_FLAG.SOUND | MOVE_FLAG.CONTACT,
-    psychicnoise: MOVE_FLAG.SOUND,
-    snore: MOVE_FLAG.SOUND,
-    // 粉末类
-    stunspore: MOVE_FLAG.POWDER,
-    sleeppowder: MOVE_FLAG.POWDER,
-    poisonpowder: MOVE_FLAG.POWDER,
-    powder: MOVE_FLAG.POWDER,
-    ragepowder: MOVE_FLAG.POWDER,
-    spore: MOVE_FLAG.POWDER,
-    // 子弹类
-    bulletseed: MOVE_FLAG.BULLET,
-    seedbomb: MOVE_FLAG.BULLET | MOVE_FLAG.CONTACT,
-    magnetbomb: MOVE_FLAG.BULLET,
-    gyroball: MOVE_FLAG.CONTACT | MOVE_FLAG.BULLET,
-    shadowball: MOVE_FLAG.BULLET,
-    acidspray: MOVE_FLAG.BULLET,
-    electroball: MOVE_FLAG.BULLET,
-    energyball: MOVE_FLAG.BULLET,
-    focusblast: MOVE_FLAG.BULLET,
-    mudbomb: MOVE_FLAG.BULLET,
-    octazooka: MOVE_FLAG.BULLET,
-    iceball: MOVE_FLAG.CONTACT | MOVE_FLAG.BULLET,
-    weatherball: MOVE_FLAG.BULLET,
-    zapcannon: MOVE_FLAG.BULLET,
-    barrage: MOVE_FLAG.BULLET,
-    rockblast: MOVE_FLAG.BULLET,
-    // 回复类
-    recover: MOVE_FLAG.HEAL,
-    roost: MOVE_FLAG.HEAL,
-    moonlight: MOVE_FLAG.HEAL,
-    morningsun: MOVE_FLAG.HEAL,
-    synthesis: MOVE_FLAG.HEAL,
-    wish: MOVE_FLAG.HEAL,
-    softboiled: MOVE_FLAG.HEAL,
-    milkdrink: MOVE_FLAG.HEAL,
-    slackoff: MOVE_FLAG.HEAL,
-    shoreup: MOVE_FLAG.HEAL,
-    lifedew: MOVE_FLAG.HEAL,
-    strengthsap: MOVE_FLAG.HEAL,
-    purifying: MOVE_FLAG.HEAL,
-    'parabolic:charge': MOVE_FLAG.HEAL,
-    drainpunchh: MOVE_FLAG.CONTACT | MOVE_FLAG.HEAL | MOVE_FLAG.PUNCH,
-    hornleech: MOVE_FLAG.CONTACT | MOVE_FLAG.HEAL,
-    absorb: MOVE_FLAG.HEAL,
-    megaabsorb: MOVE_FLAG.HEAL,
-    gigadrain: MOVE_FLAG.HEAL,
-    leechlife: MOVE_FLAG.CONTACT | MOVE_FLAG.HEAL,
-    drainingkiss: MOVE_FLAG.CONTACT | MOVE_FLAG.HEAL,
-    oblivionwing: MOVE_FLAG.HEAL,
-};
+// ─── 从 enums/*.json 派生 ID 表 ─────────────────────────
 
-/** 属性名 → PokemonType ID（来自 PMDefine） */
-const TYPE_IDS: Record<string, number> = {
-    normal: 1,
-    fighting: 2,
-    flying: 3,
-    poison: 4,
-    ground: 5,
-    rock: 6,
-    bug: 7,
-    ghost: 8,
-    steel: 9,
-    fire: 10,
-    water: 11,
-    grass: 12,
-    electric: 13,
-    psychic: 14,
-    ice: 15,
-    dragon: 16,
-    dark: 17,
-    fairy: 18,
-    stellar: 19,
+/** 属性 slug → PokemonType id（来自 types.json，pokeapi 1:1） */
+const TYPE_IDS = typeIds as Record<string, number>;
+
+/**
+ * 特性 slug（无连字符）→ AbilityId
+ * abilities.json 使用 `iron-fist` 形式，calc.vue 传入的是 `ironfist` 形式，
+ * 这里预先归一化好，避免每次调用都 replace。
+ */
+const ABILITY_IDS: Record<string, number> = Object.fromEntries(
+    Object.entries(abilitiesJson).map(([slug, id]) => [slug.replace(/-/g, ''), id]),
+);
+
+/**
+ * 招式 slug（无连字符）→ 招式 id
+ * 用于把 `firepunch` 这种归一化输入映射到 `moves.json` 里的数字 id。
+ */
+const MOVE_ID_BY_SLUG: Map<string, number> = new Map(
+    Object.entries(movesJson).map(([slug, id]) => [slug.replace(/-/g, ''), id as number]),
+);
+
+/**
+ * pokeapi flag id (1..21) → WASM 位掩码 bit
+ * 与 `src/infra/wasm/src/calculator.rs` 的 `MOVE_FLAG_*` 保持同步。
+ */
+const WASM_FLAG_BITS: Record<string, number> = {
+    contact: MOVE_FLAG.CONTACT,
+    punch: MOVE_FLAG.PUNCH,
+    bite: MOVE_FLAG.BITE,
+    sound: MOVE_FLAG.SOUND,
+    pulse: MOVE_FLAG.PULSE,
+    powder: MOVE_FLAG.POWDER,
+    ballistics: MOVE_FLAG.BULLET, // WASM 名为 BULLET
+    heal: MOVE_FLAG.HEAL,
 };
+const FLAG_ID_TO_BIT: Map<number, number> = new Map(
+    Object.entries(moveFlagsJson)
+        .filter(([slug]) => slug in WASM_FLAG_BITS)
+        .map(([slug, id]) => [id as number, WASM_FLAG_BITS[slug]]),
+);
+
+/**
+ * 懒加载：moveId → WASM bitmask 索引
+ * 首次调用时从 `moves_data/common.bin` 拉 `moveFlagMap`（跨 detail 页复用同一 bundle）；
+ * 失败静默降级为空 map（所有招式 flags=0，特性触发缺失但不阻塞计算）。
+ */
+let moveFlagMaskPromise: Promise<Map<number, number>> | null = null;
+function getMoveFlagMask(): Promise<Map<number, number>> {
+    if (moveFlagMaskPromise) return moveFlagMaskPromise;
+    moveFlagMaskPromise = (async () => {
+        try {
+            const bundle = await resourceManager.getMovesData('common');
+            const map = new Map<number, number>();
+            for (const { moveId, moveFlagId } of bundle.moveFlagMap) {
+                const bit = FLAG_ID_TO_BIT.get(moveFlagId);
+                if (bit) map.set(moveId, (map.get(moveId) ?? 0) | bit);
+            }
+            return map;
+        } catch (e) {
+            console.warn('[calc-engine] moveFlagMap 加载失败，特性触发降级', e);
+            return new Map<number, number>();
+        }
+    })();
+    moveFlagMaskPromise.catch(() => {
+        moveFlagMaskPromise = null;
+    });
+    return moveFlagMaskPromise;
+}
+
+/** 招式 slug（可含空格/连字符）→ WASM bitmask；未命中或 bundle 未就绪时返回 0 */
+async function lookupMoveFlags(moveName: string | undefined): Promise<number> {
+    if (!moveName) return 0;
+    const key = moveName.toLowerCase().replace(/[\s-]/g, '');
+    const moveId = MOVE_ID_BY_SLUG.get(key);
+    if (moveId === undefined) return 0;
+    const mask = await getMoveFlagMask();
+    return mask.get(moveId) ?? 0;
+}
 
 /** 天气名 → Weather enum ID */
 const WEATHER_IDS: Record<string, number> = {
@@ -187,162 +131,6 @@ const TERRAIN_IDS: Record<string, number> = {
     psychic: 4,
 };
 
-/** 特性名 → AbilityId（来自 AbilityId.ts） */
-const ABILITY_IDS: Record<string, number> = {
-    adaptability: 91,
-    aerilate: 184,
-    analytic: 148,
-    battlearmor: 4,
-    blaze: 66,
-    cheekpouch: 167,
-    chlorophyll: 34,
-    clearbody: 29,
-    cloudnine: 13,
-    colorchange: 16,
-    compoundeyes: 14,
-    contrary: 126,
-    cutecharm: 56,
-    damp: 6,
-    defeatist: 129,
-    defiant: 128,
-    download: 88,
-    drizzle: 2,
-    drought: 70,
-    dryskin: 87,
-    earlybird: 48,
-    effects: 78,
-    electricsurge: 226,
-    filter: 111,
-    flamebody: 49,
-    flashfire: 18,
-    flowergift: 122,
-    fluffy: 218,
-    forecast: 59,
-    friendguard: 132,
-    furcoat: 169,
-    galvanize: 206,
-    grassysurge: 229,
-    guts: 62,
-    harvest: 139,
-    heatproof: 85,
-    hugepower: 37,
-    hustle: 55,
-    hydration: 93,
-    icescales: 246,
-    illuminat: 35,
-    immunity: 17,
-    innerfocus: 39,
-    insomnia: 15,
-    intimidate: 22,
-    intrepidsword: 234,
-    ironbarbs: 160,
-    ironfist: 89,
-    justified: 154,
-    keeneye: 51,
-    levitate: 26,
-    lightningrod: 31,
-    limber: 7,
-    magmaarmor: 40,
-    magnetpull: 42,
-    marvelscale: 63,
-    megalauncher: 178,
-    mimicry: 250,
-    minus: 58,
-    mistysurge: 228,
-    moldbreaker: 104,
-    moody: 141,
-    motordrive: 78,
-    moxie: 153,
-    multiscale: 136,
-    naturalcure: 30,
-    neutralizinggas: 256,
-    noguard: 99,
-    normalize: 96,
-    oblivious: 12,
-    overgrow: 65,
-    ownpace: 22,
-    pickpocket: 183,
-    pickpocket2: 183,
-    pixilate: 182,
-    plus: 57,
-    poisonpoint: 38,
-    poissontouch: 143,
-    prismarmor: 232,
-    psychicterrain: 228,
-    psychicsurge: 228,
-    purepower: 74,
-    raindish: 44,
-    refrigerate: 174,
-    regenerator: 144,
-    reckless: 120,
-    refrigerat: 174,
-    rockhead: 69,
-    roughskin: 24,
-    runoff: 136,
-    sandforce: 159,
-    sandrush: 146,
-    sandstream: 45,
-    sandveil: 9,
-    sapsipper: 157,
-    scrappy: 113,
-    serenegrace: 32,
-    shadowshield: 231,
-    shadows: 151,
-    shedskin: 61,
-    sheerforce: 125,
-    shellarmor: 75,
-    shielddust: 19,
-    simple: 86,
-    skilllink: 92,
-    slowstart: 112,
-    smartypants: 0,
-    snowcloak: 81,
-    snowwarning: 117,
-    solarpower: 94,
-    solidrock: 116,
-    speedboost: 3,
-    stalk: 173,
-    static: 9,
-    steadfast: 80,
-    stench: 1,
-    stickyhold: 60,
-    stormdrain: 114,
-    strongjaw: 173,
-    sturdy: 5,
-    suctioncups: 24,
-    superluck: 105,
-    swarms: 68,
-    swiftswim: 33,
-    synchronize: 28,
-    tangledfeet: 77,
-    technician: 101,
-    telepathy: 140,
-    teravolt: 164,
-    thickfat: 47,
-    torrent: 67,
-    toughclaws: 181,
-    trace: 36,
-    truant: 54,
-    turboblaze: 163,
-    unaware: 109,
-    unburden: 84,
-    unnerving: 146,
-    victorystar: 162,
-    vitalcool: 144,
-    voltsorb: 10,
-    voltabsorb: 10,
-    waterabsorb: 11,
-    waterveil: 41,
-    weakarmor: 133,
-    whitesmoke: 72,
-    wonderguard: 25,
-    wonderskin: 147,
-    zenmode: 167,
-    // 简写/别名
-    dragonsmaw: 263,
-    drizzles: 2,
-    droughts: 70,
-};
 
 // ─── JS 侧查询函数 ──────────────────────────────────────
 
@@ -446,34 +234,13 @@ async function initTypeChart() {
     if (_typeChart) return;
     try {
         const { TypeChart } = await import('@/core/data/typechart');
-        // 将 TypeScript 字符串键的 TypeChart 转为数值索引的数组
-        const pmTypeIds: Record<string, number> = {
-            bug: 7,
-            dark: 17,
-            dragon: 16,
-            electric: 13,
-            fairy: 18,
-            fighting: 2,
-            fire: 10,
-            flying: 3,
-            ghost: 8,
-            grass: 12,
-            ground: 5,
-            ice: 15,
-            normal: 1,
-            poison: 4,
-            psychic: 14,
-            rock: 6,
-            steel: 9,
-            water: 11,
-            stellar: 19,
-        };
+        // typechart.ts 的 key 是首字母大写（Bug/Dark/…），先归一化到 lowercase 再查 TYPE_IDS。
         const chart: number[][] = Array.from({ length: 20 }, () => Array(20).fill(0));
         for (const [defName, entry] of Object.entries(TypeChart as Record<string, any>)) {
-            const defId = pmTypeIds[defName];
+            const defId = TYPE_IDS[defName.toLowerCase()];
             if (!defId) continue;
             for (const [atkName, val] of Object.entries(entry.damageTaken || {})) {
-                const atkId = pmTypeIds[atkName.toLowerCase()];
+                const atkId = TYPE_IDS[atkName.toLowerCase()];
                 if (!atkId) continue;
                 chart[defId][atkId] = val as number;
             }
@@ -582,8 +349,8 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
     const attackStat = params.moveCategory === 'physical' ? params.attackerAtk : params.attackerSpA;
     const defenseStat = params.moveCategory === 'physical' ? params.defenderDef : params.defenderSpD;
 
-    // 招式标志位
-    const moveFlags = params.moveName ? MOVE_FLAGS_LOOKUP[params.moveName.toLowerCase().replace(/[\s-]/g, '')] || 0 : 0;
+    // 招式标志位（从 moves_data/common.bin 的 moveFlagMap 派生；首次调用触发懒加载）
+    const moveFlags = await lookupMoveFlags(params.moveName);
 
     // 创建 WASM DamageInput
     const input = new wasm.DamageInput(
