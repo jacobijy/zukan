@@ -18,38 +18,38 @@ import { setToken, setRefreshToken, getRefreshToken, clearSession, getToken } fr
 // 类型
 // ─────────────────────────────────────────────────────────
 
-export interface RegisterRequest {
-  username: string;
-  email: string;
-  password: string;
+interface RegisterRequest {
+    username: string;
+    email: string;
+    password: string;
 }
 
-export interface RegisterResponse {
-  id: string;
-  username: string;
-  email: string;
+interface RegisterResponse {
+    id: string;
+    username: string;
+    email: string;
 }
 
-export interface LoginRequest {
-  /** 用户名或邮箱 */
-  identifier: string;
-  password: string;
+interface LoginRequest {
+    /** 用户名或邮箱 */
+    identifier: string;
+    password: string;
 }
 
-export interface TokenPair {
-  access_token: string;
-  refresh_token: string;
-  token_type: 'Bearer';
+interface TokenPair {
+    access_token: string;
+    refresh_token: string;
+    token_type: 'Bearer';
 }
 
-export interface RefreshResponse {
-  access_token: string;
-  token_type: 'Bearer';
+interface RefreshResponse {
+    access_token: string;
+    token_type: 'Bearer';
 }
 
-export interface ChangePasswordRequest {
-  old_password: string;
-  new_password: string;
+interface ChangePasswordRequest {
+    old_password: string;
+    new_password: string;
 }
 
 /**
@@ -57,22 +57,16 @@ export interface ChangePasswordRequest {
  * 文案，便于 UI 直接展示；`statusCode` 与 `code` 供调用方分支处理。
  */
 export class AuthApiError extends Error {
-  statusCode: number;
-  /** 语义化错误码，由 status + 端点推导，便于 UI 分支处理 */
-  code:
-    | 'INVALID_INPUT'
-    | 'INVALID_CREDENTIALS'
-    | 'CONFLICT'
-    | 'UNAUTHORIZED'
-    | 'NETWORK'
-    | 'UNKNOWN';
+    statusCode: number;
+    /** 语义化错误码，由 status + 端点推导，便于 UI 分支处理 */
+    code: 'INVALID_INPUT' | 'INVALID_CREDENTIALS' | 'CONFLICT' | 'UNAUTHORIZED' | 'NETWORK' | 'UNKNOWN';
 
-  constructor(message: string, statusCode: number, code: AuthApiError['code']) {
-    super(message);
-    this.name = 'AuthApiError';
-    this.statusCode = statusCode;
-    this.code = code;
-  }
+    constructor(message: string, statusCode: number, code: AuthApiError['code']) {
+        super(message);
+        this.name = 'AuthApiError';
+        this.statusCode = statusCode;
+        this.code = code;
+    }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -80,25 +74,25 @@ export class AuthApiError extends Error {
 // ─────────────────────────────────────────────────────────
 
 interface ServerError {
-  error?: string;
+    error?: string;
 }
 
 function mapError(err: unknown, kind: 'login' | 'register' | 'refresh' | 'change_password'): never {
-  if (!(err instanceof RestRequestError)) {
-    // 非 HTTP 错误：网络中断、超时等
-    throw new AuthApiError((err as Error)?.message ?? '网络请求失败', 0, 'NETWORK');
-  }
+    if (!(err instanceof RestRequestError)) {
+        // 非 HTTP 错误：网络中断、超时等
+        throw new AuthApiError((err as Error)?.message ?? '网络请求失败', 0, 'NETWORK');
+    }
 
-  const status = err.statusCode ?? 0;
-  const body = (err.data ?? {}) as ServerError;
-  const message = body.error ?? err.message ?? '请求失败';
+    const status = err.statusCode ?? 0;
+    const body = (err.data ?? {}) as ServerError;
+    const message = body.error ?? err.message ?? '请求失败';
 
-  let code: AuthApiError['code'] = 'UNKNOWN';
-  if (status === 400) code = 'INVALID_INPUT';
-  else if (status === 401) code = kind === 'login' ? 'INVALID_CREDENTIALS' : 'UNAUTHORIZED';
-  else if (status === 409) code = 'CONFLICT';
+    let code: AuthApiError['code'] = 'UNKNOWN';
+    if (status === 400) code = 'INVALID_INPUT';
+    else if (status === 401) code = kind === 'login' ? 'INVALID_CREDENTIALS' : 'UNAUTHORIZED';
+    else if (status === 409) code = 'CONFLICT';
 
-  throw new AuthApiError(message, status, code);
+    throw new AuthApiError(message, status, code);
 }
 
 // ─────────────────────────────────────────────────────────
@@ -113,11 +107,11 @@ function mapError(err: unknown, kind: 'login' | 'register' | 'refresh' | 'change
  *   - `CONFLICT` (409) — 用户名或邮箱已被占用
  */
 export async function register(req: RegisterRequest): Promise<RegisterResponse> {
-  try {
-    return await rest.post<RegisterResponse, RegisterRequest>('/auth/register', req);
-  } catch (err) {
-    mapError(err, 'register');
-  }
+    try {
+        return await rest.post<RegisterResponse, RegisterRequest>('/auth/register', req);
+    } catch (err) {
+        mapError(err, 'register');
+    }
 }
 
 /**
@@ -127,14 +121,14 @@ export async function register(req: RegisterRequest): Promise<RegisterResponse> 
  * @throws {AuthApiError} `INVALID_CREDENTIALS` (401) — 凭据错误
  */
 export async function login(req: LoginRequest): Promise<TokenPair> {
-  try {
-    const pair = await rest.post<TokenPair, LoginRequest>('/auth/login', req);
-    setToken(pair.access_token);
-    setRefreshToken(pair.refresh_token);
-    return pair;
-  } catch (err) {
-    mapError(err, 'login');
-  }
+    try {
+        const pair = await rest.post<TokenPair, LoginRequest>('/auth/login', req);
+        setToken(pair.access_token);
+        setRefreshToken(pair.refresh_token);
+        return pair;
+    } catch (err) {
+        mapError(err, 'login');
+    }
 }
 
 /**
@@ -146,20 +140,19 @@ export async function login(req: LoginRequest): Promise<TokenPair> {
  *   - `UNAUTHORIZED` (0 in-app) — 本地没有 refresh token
  */
 export async function refresh(): Promise<RefreshResponse> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    throw new AuthApiError('本地无 refresh token', 0, 'UNAUTHORIZED');
-  }
-  try {
-    const res = await rest.post<RefreshResponse, { refresh_token: string }>(
-      '/auth/refresh',
-      { refresh_token: refreshToken },
-    );
-    setToken(res.access_token);
-    return res;
-  } catch (err) {
-    mapError(err, 'refresh');
-  }
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+        throw new AuthApiError('本地无 refresh token', 0, 'UNAUTHORIZED');
+    }
+    try {
+        const res = await rest.post<RefreshResponse, { refresh_token: string }>('/auth/refresh', {
+            refresh_token: refreshToken,
+        });
+        setToken(res.access_token);
+        return res;
+    } catch (err) {
+        mapError(err, 'refresh');
+    }
 }
 
 /**
@@ -171,21 +164,21 @@ export async function refresh(): Promise<RefreshResponse> {
  *   - `UNAUTHORIZED` (401) — access token 无效 / 旧密码错误
  */
 export async function changePassword(req: ChangePasswordRequest): Promise<void> {
-  const access = getToken();
-  if (!access) {
-    throw new AuthApiError('未登录', 0, 'UNAUTHORIZED');
-  }
-  try {
-    // 204 No Content：body 为空，绕开 JSON 自动解析（部分平台会失败）
-    await rest.post<void, ChangePasswordRequest>('/auth/change-password', req, {
-      header: { Authorization: `Bearer ${access}` },
-      dataType: 'text',
-    });
-    // 服务端已作废所有 refresh token；本地清空，UI 引导重登
-    clearSession();
-  } catch (err) {
-    mapError(err, 'change_password');
-  }
+    const access = getToken();
+    if (!access) {
+        throw new AuthApiError('未登录', 0, 'UNAUTHORIZED');
+    }
+    try {
+        // 204 No Content：body 为空，绕开 JSON 自动解析（部分平台会失败）
+        await rest.post<void, ChangePasswordRequest>('/auth/change-password', req, {
+            header: { Authorization: `Bearer ${access}` },
+            dataType: 'text',
+        });
+        // 服务端已作废所有 refresh token；本地清空，UI 引导重登
+        clearSession();
+    } catch (err) {
+        mapError(err, 'change_password');
+    }
 }
 
 /**
@@ -193,5 +186,5 @@ export async function changePassword(req: ChangePasswordRequest): Promise<void> 
  * 服务端无对应端点（JWT 无状态）；如需服务端会话失效，请调用 `changePassword`。
  */
 export function logout(): void {
-  clearSession();
+    clearSession();
 }

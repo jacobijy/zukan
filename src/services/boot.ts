@@ -16,23 +16,23 @@ import { resourceManager } from '@/services/resources/resourceManager';
 const LATEST_GEN_ID = 9;
 
 export async function bootPrefetch(): Promise<void> {
-  try {
-    const key = await getKey();
-    const serverVersion = key.version;
+    try {
+        const key = await getKey();
+        const serverVersion = key.version;
 
-    // 老后端不下发 version：跳过版本对比与主动 prune，
-    // 直接按当前 cacheKeyPrefix 走预取（`fetchDecrypted` 仍然 cache-first）
-    if (typeof serverVersion === 'number') {
-      const localVersion = getStoredDataVersion();
-      if (localVersion !== serverVersion) {
-        await resourceManager.pruneOtherVersions(serverVersion);
-        setStoredDataVersion(serverVersion);
-      }
+        // 老后端不下发 version：跳过版本对比与主动 prune，
+        // 直接按当前 cacheKeyPrefix 走预取（`fetchDecrypted` 仍然 cache-first）
+        if (typeof serverVersion === 'number') {
+            const localVersion = getStoredDataVersion();
+            if (localVersion !== serverVersion) {
+                await resourceManager.pruneOtherVersions(serverVersion);
+                setStoredDataVersion(serverVersion);
+            }
+        }
+
+        // 预取最新一代（inflight 去重；错误静默）
+        resourceManager.prefetchPokemonGen(LATEST_GEN_ID);
+    } catch (err) {
+        console.warn('[boot] prefetch skipped', err);
     }
-
-    // 预取最新一代（inflight 去重；错误静默）
-    resourceManager.prefetchPokemonGen(LATEST_GEN_ID);
-  } catch (err) {
-    console.warn('[boot] prefetch skipped', err);
-  }
 }

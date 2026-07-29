@@ -34,7 +34,9 @@
     "build:quickapp-webview-huawei": "uni build -p quickapp-webview-huawei",
     "build:quickapp-webview-union": "uni build -p quickapp-webview-union",
     "type-check": "vue-tsc --noEmit",
-    "lint": "oxlint --config oxlintrc.json"
+    "lint": "oxlint --config oxlintrc.json",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "format:write": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-4080720251210001",
@@ -72,6 +74,7 @@
     "autoprefixer": "^10.4.17",
     "oxlint": "^1.73.0",
     "postcss": "^8.4.33",
+    "prettier": "^3.9.6",
     "rollup": "4.14.3",
     "sass": "^1.70.0",
     "stylelint": "^16.2.1",

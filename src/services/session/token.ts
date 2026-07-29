@@ -13,52 +13,52 @@ const REFRESH_TOKEN_KEY = 'zukan_refresh_token';
  * 获取 access token。使用 `uni.getStorageSync` 以兼容 H5 与小程序平台。
  */
 export function getToken(): string {
-  try {
-    return (uni.getStorageSync(TOKEN_KEY) as string | undefined) ?? '';
-  } catch {
-    return '';
-  }
+    try {
+        return (uni.getStorageSync(TOKEN_KEY) as string | undefined) ?? '';
+    } catch {
+        return '';
+    }
 }
 
 /**
  * 写入 access token；`null` 或空字符串会清空。
  */
 export function setToken(token: string | null): void {
-  try {
-    if (token) {
-      uni.setStorageSync(TOKEN_KEY, token);
-    } else {
-      uni.removeStorageSync(TOKEN_KEY);
+    try {
+        if (token) {
+            uni.setStorageSync(TOKEN_KEY, token);
+        } else {
+            uni.removeStorageSync(TOKEN_KEY);
+        }
+    } catch (err) {
+        console.warn('[session] 写入 access token 失败', err);
     }
-  } catch (err) {
-    console.warn('[session] 写入 access token 失败', err);
-  }
 }
 
 /**
  * 获取 refresh token（可能为空字符串）。
  */
 export function getRefreshToken(): string {
-  try {
-    return (uni.getStorageSync(REFRESH_TOKEN_KEY) as string | undefined) ?? '';
-  } catch {
-    return '';
-  }
+    try {
+        return (uni.getStorageSync(REFRESH_TOKEN_KEY) as string | undefined) ?? '';
+    } catch {
+        return '';
+    }
 }
 
 /**
  * 写入 refresh token；`null` 或空字符串会清空。
  */
 export function setRefreshToken(token: string | null): void {
-  try {
-    if (token) {
-      uni.setStorageSync(REFRESH_TOKEN_KEY, token);
-    } else {
-      uni.removeStorageSync(REFRESH_TOKEN_KEY);
+    try {
+        if (token) {
+            uni.setStorageSync(REFRESH_TOKEN_KEY, token);
+        } else {
+            uni.removeStorageSync(REFRESH_TOKEN_KEY);
+        }
+    } catch (err) {
+        console.warn('[session] 写入 refresh token 失败', err);
     }
-  } catch (err) {
-    console.warn('[session] 写入 refresh token 失败', err);
-  }
 }
 
 /**
@@ -66,7 +66,7 @@ export function setRefreshToken(token: string | null): void {
  * 过期由服务端 401 触发前端刷新流程）。
  */
 export function isAuthenticated(): boolean {
-  return !!getToken();
+    return !!getToken();
 }
 
 /**
@@ -74,7 +74,7 @@ export function isAuthenticated(): boolean {
  * 登出、改密后、或 refresh 失败时调用。
  */
 export function clearSession(): void {
-  setToken(null);
-  setRefreshToken(null);
-  clearKeyCache();
+    setToken(null);
+    setRefreshToken(null);
+    clearKeyCache();
 }

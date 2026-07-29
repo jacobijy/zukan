@@ -54,18 +54,14 @@ export const usePokemonStore = defineStore('pokemon', () => {
      * 保序：按 species 首次出现顺序（源自 bundle.baseEntries 的顺序）。
      */
     const defaultPokemons = computed<IPokemonBaseModel[]>(() =>
-        Array.from(formsBySpecies.value.values()).map(
-            forms => forms.find(f => f.isDefault) ?? forms[0]
-        )
+        Array.from(formsBySpecies.value.values()).map((forms) => forms.find((f) => f.isDefault) ?? forms[0]),
     );
 
     /** 拿指定 species 的所有形态（含 default）；未找到返回空数组 */
-    const getFormsBySpecies = (speciesId: number): IPokemonBaseModel[] =>
-        formsBySpecies.value.get(speciesId) ?? [];
+    const getFormsBySpecies = (speciesId: number): IPokemonBaseModel[] => formsBySpecies.value.get(speciesId) ?? [];
 
     /** 按 form id 精确查一只宝可梦（含非默认形态） */
-    const getById = (id: number): IPokemonBaseModel | undefined =>
-        allPokemons.value.find(p => p.id === id);
+    const getById = (id: number): IPokemonBaseModel | undefined => allPokemons.value.find((p) => p.id === id);
 
     // 获取指定世代的宝可梦数据（默认 gen-9，与启动预取同代）
     const fetchPokemon = async (genId: number = DEFAULT_GEN_ID) => {
@@ -74,9 +70,9 @@ export const usePokemonStore = defineStore('pokemon', () => {
         pokemonList.value = [];
         currentPage.value = 1;
         const data = await fetchPokemonList(genId);
-        allPokemons.value = data.map(p => ({
+        allPokemons.value = data.map((p) => ({
             ...p,
-            formattedId: padId(p.id)
+            formattedId: padId(p.id),
         }));
         hasMore.value = defaultPokemons.value.length > 0;
         loadMore();
@@ -97,7 +93,7 @@ export const usePokemonStore = defineStore('pokemon', () => {
 
         if (isAuthenticated()) {
             const p = willAdd ? favoritesApi.addFavorite(id) : favoritesApi.removeFavorite(id);
-            p.catch(err => console.warn('[favorites] sync failed', { id, willAdd }, err));
+            p.catch((err) => console.warn('[favorites] sync failed', { id, willAdd }, err));
         }
     };
 

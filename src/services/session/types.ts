@@ -9,18 +9,18 @@
  * `sign` / `t` 对客户端不透明，原样拼到 query；签名密钥仅在 origin 与 CDN 边缘之间共享。
  */
 export interface CdnToken {
-  sign: string;
-  t: number;
-  /** scheme+host（可含公共前缀），末尾无斜杠 */
-  base_url: string;
-  /** 相对秒 TTL，仅参考；实际失效走 403 lazy refresh */
-  expires_in?: number;
+    sign: string;
+    t: number;
+    /** scheme+host（可含公共前缀），末尾无斜杠 */
+    base_url: string;
+    /** 相对秒 TTL，仅参考；实际失效走 403 lazy refresh */
+    expires_in?: number;
 }
 
 export interface DekResponse {
-  dek: string;
-  version?: number;
-  algorithm?: string;
-  /** 老后端 / 本地无 CDN 时缺席；缺席则 `buildCdnUrl` fallback 到 origin */
-  cdn?: CdnToken;
+    dek: string;
+    version?: number;
+    algorithm?: string;
+    /** 老后端 / 本地无 CDN 时缺席；缺席则 `buildCdnUrl` fallback 到 origin */
+    cdn?: CdnToken;
 }

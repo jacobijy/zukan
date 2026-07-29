@@ -22,65 +22,65 @@ const SPD = '特防';
 const SPE = '速度';
 
 function typeName(id: number): string | null {
-  return id ? typeStrs[id] ?? null : null;
+    return id ? (typeStrs[id] ?? null) : null;
 }
 
-export function mergeBundleToModel(bundle: PokemonGenBundle): IPokemonBaseModel[] {
-  const statById = new Map(bundle.statEntries.map(s => [s.id, s]));
-  const typeById = new Map(bundle.typeEntries.map(t => [t.id, t]));
-  const abilityById = new Map(bundle.abilityEntries.map(a => [a.id, a]));
+function mergeBundleToModel(bundle: PokemonGenBundle): IPokemonBaseModel[] {
+    const statById = new Map(bundle.statEntries.map((s) => [s.id, s]));
+    const typeById = new Map(bundle.typeEntries.map((t) => [t.id, t]));
+    const abilityById = new Map(bundle.abilityEntries.map((a) => [a.id, a]));
 
-  return bundle.baseEntries.map((b): IPokemonBaseModel => {
-    const s = statById.get(b.id);
-    const t = typeById.get(b.id);
-    const a = abilityById.get(b.id);
+    return bundle.baseEntries.map((b): IPokemonBaseModel => {
+        const s = statById.get(b.id);
+        const t = typeById.get(b.id);
+        const a = abilityById.get(b.id);
 
-    const types: string[] = [];
-    if (t) {
-      const t1 = typeName(t.type1Id);
-      if (t1) types.push(t1);
-      const t2 = typeName(t.type2Id);
-      if (t2) types.push(t2);
-    }
+        const types: string[] = [];
+        if (t) {
+            const t1 = typeName(t.type1Id);
+            if (t1) types.push(t1);
+            const t2 = typeName(t.type2Id);
+            if (t2) types.push(t2);
+        }
 
-    const abilities: string[] = [];
-    if (a) {
-      if (a.ability1Id) abilities.push(String(a.ability1Id));
-      if (a.ability2Id) abilities.push(String(a.ability2Id));
-    }
-    const hiddenAbility = a?.abilityHiddenId ? String(a.abilityHiddenId) : '';
+        const abilities: string[] = [];
+        if (a) {
+            if (a.ability1Id) abilities.push(String(a.ability1Id));
+            if (a.ability2Id) abilities.push(String(a.ability2Id));
+        }
+        const hiddenAbility = a?.abilityHiddenId ? String(a.abilityHiddenId) : '';
 
-    const stats: { name: string; value: number }[] = s
-      ? [
-          { name: HP, value: s.hp },
-          { name: ATK, value: s.attack },
-          { name: DEF, value: s.defense },
-          { name: SPA, value: s.specialAttack },
-          { name: SPD, value: s.specialDefense },
-          { name: SPE, value: s.speed },
-        ]
-      : [];
+        const stats: { name: string; value: number }[] = s
+            ? [
+                  { name: HP, value: s.hp },
+                  { name: ATK, value: s.attack },
+                  { name: DEF, value: s.defense },
+                  { name: SPA, value: s.specialAttack },
+                  { name: SPD, value: s.specialDefense },
+                  { name: SPE, value: s.speed },
+              ]
+            : [];
 
-    return {
-      id: b.id,
-      speciesId: b.speciesId,
-      isDefault: b.isDefault,
-      // TODO(i18n): 用 i18n bundle 里的形态名替换（"攻击形态"/"阿罗拉形态"…）
-      formLabel: b.isDefault ? '' : `form-${b.id}`,
-      // TODO(i18n): 用 i18n bundle 里的物种名替换
-      name: `pokemon-${b.id}`,
-      types,
-      abilities,
-      hiddenAbility,
-      image: '/static/default.png',
-      stats,
-      description: '',
-      moves: [],
-      evolutionChain: [],
-      height: b.height,
-      weight: b.weight,
-    };
-  });
+        return {
+            id: b.id,
+            speciesId: b.speciesId,
+            isDefault: b.isDefault,
+            // TODO(i18n): 用 i18n bundle 里的形态名替换（"攻击形态"/"阿罗拉形态"…）
+            formLabel: b.isDefault ? '' : `form-${b.id}`,
+            // TODO(i18n): 用 i18n bundle 里的物种名替换
+            name: `pokemon-${b.id}`,
+            types,
+            abilities,
+            hiddenAbility,
+            image: '/static/default.png',
+            stats,
+            description: '',
+            moves: [],
+            evolutionChain: [],
+            height: b.height,
+            weight: b.weight,
+        };
+    });
 }
 
 /**
@@ -89,17 +89,17 @@ export function mergeBundleToModel(bundle: PokemonGenBundle): IPokemonBaseModel[
  * 未匹配返回 `null`（无效 id 或未来世代）。
  */
 export function genForPokemonId(id: number): number | null {
-  if (id <= 0) return null;
-  if (id <= 151) return 1;
-  if (id <= 251) return 2;
-  if (id <= 386) return 3;
-  if (id <= 493) return 4;
-  if (id <= 649) return 5;
-  if (id <= 721) return 6;
-  if (id <= 809) return 7;
-  if (id <= 905) return 8;
-  if (id <= 1010) return 9;
-  return null;
+    if (id <= 0) return null;
+    if (id <= 151) return 1;
+    if (id <= 251) return 2;
+    if (id <= 386) return 3;
+    if (id <= 493) return 4;
+    if (id <= 649) return 5;
+    if (id <= 721) return 6;
+    if (id <= 809) return 7;
+    if (id <= 905) return 8;
+    if (id <= 1010) return 9;
+    return null;
 }
 
 /**
@@ -107,6 +107,6 @@ export function genForPokemonId(id: number): number | null {
  * 首次访问才实际网络下载 + 解密 + 解码。
  */
 export async function fetchPokemonList(genId: number): Promise<IPokemonBaseModel[]> {
-  const bundle = await resourceManager.getPokemonGen(genId);
-  return mergeBundleToModel(bundle);
+    const bundle = await resourceManager.getPokemonGen(genId);
+    return mergeBundleToModel(bundle);
 }

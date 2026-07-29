@@ -16,26 +16,26 @@ let keyPromise: Promise<DekResponse> | null = null;
  * 401/403 需要调用方 `clearKeyCache()` 后重试。
  */
 export function getKey(): Promise<DekResponse> {
-  if (keyCache) return Promise.resolve(keyCache);
-  if (keyPromise) return keyPromise;
+    if (keyCache) return Promise.resolve(keyCache);
+    if (keyPromise) return keyPromise;
 
-  keyPromise = fetchKey().then(res => {
-    keyCache = res;
-    return res;
-  });
+    keyPromise = fetchKey().then((res) => {
+        keyCache = res;
+        return res;
+    });
 
-  // 请求失败时清理 keyPromise，允许下次重试（保留原 promise 供当前调用者 reject）
-  keyPromise.catch(() => {
-    keyPromise = null;
-  });
+    // 请求失败时清理 keyPromise，允许下次重试（保留原 promise 供当前调用者 reject）
+    keyPromise.catch(() => {
+        keyPromise = null;
+    });
 
-  return keyPromise;
+    return keyPromise;
 }
 
 /**
  * 清空密钥缓存。401/403 恢复路径调用；下次 `getKey()` 会重新请求。
  */
 export function clearKeyCache(): void {
-  keyCache = null;
-  keyPromise = null;
+    keyCache = null;
+    keyPromise = null;
 }

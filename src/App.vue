@@ -1,16 +1,10 @@
 <script setup lang="ts">
-import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
+import { onLaunch } from "@dcloudio/uni-app";
 import { bootPrefetch } from "@/services/boot";
 onLaunch(() => {
   // 后台预热：拉 /zukan/key + 版本对比 + 预取最新一代 bundle。
   // 不 await，网络失败也不阻塞 UI。
   bootPrefetch();
-});
-onShow(() => {
-  console.log("App Show");
-});
-onHide(() => {
-  console.log("App Hide");
 });
 </script>
 <style>

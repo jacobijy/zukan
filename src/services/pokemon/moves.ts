@@ -17,46 +17,46 @@ import type { Move, PokemonMoveSet } from '@/infra/wasm';
 
 /** `Move.damageClassId` → 中文分类；未命中显示 '—' */
 const CATEGORY_MAP: Record<number, string> = {
-  1: '状态',
-  2: '物理',
-  3: '特殊',
+    1: '状态',
+    2: '物理',
+    3: '特殊',
 };
 
 let moveIndexPromise: Promise<Map<number, Move>> | null = null;
 
 async function getMoveIndex(): Promise<Map<number, Move>> {
-  if (moveIndexPromise) return moveIndexPromise;
-  moveIndexPromise = (async () => {
-    const md = await resourceManager.getMovesData('common');
-    const map = new Map<number, Move>();
-    for (const m of md.moves) map.set(m.id, m);
-    return map;
-  })();
-  // 失败时清 promise，下次调用可以重试
-  moveIndexPromise.catch(() => {
-    moveIndexPromise = null;
-  });
-  return moveIndexPromise;
+    if (moveIndexPromise) return moveIndexPromise;
+    moveIndexPromise = (async () => {
+        const md = await resourceManager.getMovesData('common');
+        const map = new Map<number, Move>();
+        for (const m of md.moves) map.set(m.id, m);
+        return map;
+    })();
+    // 失败时清 promise，下次调用可以重试
+    moveIndexPromise.catch(() => {
+        moveIndexPromise = null;
+    });
+    return moveIndexPromise;
 }
 
 function toRecord(
-  moveId: number,
-  moveIndex: Map<number, Move>,
-  learnMethod: MoveRecord['learnMethod'],
-  level?: number,
+    moveId: number,
+    moveIndex: Map<number, Move>,
+    learnMethod: MoveRecord['learnMethod'],
+    level?: number,
 ): MoveRecord {
-  const m = moveIndex.get(moveId);
-  return {
-    id: moveId,
-    // TODO(i18n): i18n bundle 上线后换成真中文名
-    name: `move-${moveId}`,
-    type: m ? typeStrs[m.typeId] ?? 'normal' : 'normal',
-    category: m ? CATEGORY_MAP[m.damageClassId] ?? '—' : '—',
-    power: m && m.power > 0 ? m.power : '—',
-    accuracy: m && m.accuracy > 0 ? m.accuracy : '—',
-    learnMethod,
-    level,
-  };
+    const m = moveIndex.get(moveId);
+    return {
+        id: moveId,
+        // TODO(i18n): i18n bundle 上线后换成真中文名
+        name: `move-${moveId}`,
+        type: m ? (typeStrs[m.typeId] ?? 'normal') : 'normal',
+        category: m ? (CATEGORY_MAP[m.damageClassId] ?? '—') : '—',
+        power: m && m.power > 0 ? m.power : '—',
+        accuracy: m && m.accuracy > 0 ? m.accuracy : '—',
+        learnMethod,
+        level,
+    };
 }
 
 /**
@@ -64,21 +64,18 @@ function toRecord(
  * 未登记的 id 返回空数组；不抛出。
  */
 export async function loadMovesForPokemon(pokemonId: number): Promise<MoveRecord[]> {
-  const [pmBundle, moveIndex] = await Promise.all([
-    resourceManager.getPokemonMoves('common'),
-    getMoveIndex(),
-  ]);
+    const [pmBundle, moveIndex] = await Promise.all([resourceManager.getPokemonMoves('common'), getMoveIndex()]);
 
-  const set: PokemonMoveSet | undefined = pmBundle.entries.find(e => e.pokemonId === pokemonId);
-  if (!set) return [];
+    const set: PokemonMoveSet | undefined = pmBundle.entries.find((e) => e.pokemonId === pokemonId);
+    if (!set) return [];
 
-  const out: MoveRecord[] = [];
-  for (const lv of set.levelUp) {
-    out.push(toRecord(lv.moveId, moveIndex, 'level-up', lv.level));
-  }
-  for (const id of set.machine) out.push(toRecord(id, moveIndex, 'machine'));
-  for (const id of set.egg) out.push(toRecord(id, moveIndex, 'egg'));
-  for (const id of set.tutor) out.push(toRecord(id, moveIndex, 'tutor'));
+    const out: MoveRecord[] = [];
+    for (const lv of set.levelUp) {
+        out.push(toRecord(lv.moveId, moveIndex, 'level-up', lv.level));
+    }
+    for (const id of set.machine) out.push(toRecord(id, moveIndex, 'machine'));
+    for (const id of set.egg) out.push(toRecord(id, moveIndex, 'egg'));
+    for (const id of set.tutor) out.push(toRecord(id, moveIndex, 'tutor'));
 
-  return out;
+    return out;
 }

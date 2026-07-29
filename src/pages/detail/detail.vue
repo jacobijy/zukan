@@ -185,8 +185,8 @@ const goBack = () => {
 
 const currentTab = ref(0);
 
-const onTabChange = (index: number) => {
-    console.log('Tab changed to:', index);
+const onTabChange = (_index: number) => {
+    // 预留：需要时在这里响应 tab 切换
 };
 
 onLoad(async (options: any) => {

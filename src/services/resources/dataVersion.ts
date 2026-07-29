@@ -10,28 +10,20 @@
 const KEY = 'zukan_data_version';
 
 export function getStoredDataVersion(): number | null {
-  try {
-    const raw = uni.getStorageSync(KEY) as number | string | undefined;
-    if (raw == null || raw === '') return null;
-    const n = typeof raw === 'number' ? raw : Number.parseInt(raw, 10);
-    return Number.isFinite(n) ? n : null;
-  } catch {
-    return null;
-  }
+    try {
+        const raw = uni.getStorageSync(KEY) as number | string | undefined;
+        if (raw == null || raw === '') return null;
+        const n = typeof raw === 'number' ? raw : Number.parseInt(raw, 10);
+        return Number.isFinite(n) ? n : null;
+    } catch {
+        return null;
+    }
 }
 
 export function setStoredDataVersion(v: number): void {
-  try {
-    uni.setStorageSync(KEY, v);
-  } catch (err) {
-    console.warn('[dataVersion] 写入失败', err);
-  }
-}
-
-export function clearStoredDataVersion(): void {
-  try {
-    uni.removeStorageSync(KEY);
-  } catch {
-    // ignore
-  }
+    try {
+        uni.setStorageSync(KEY, v);
+    } catch (err) {
+        console.warn('[dataVersion] 写入失败', err);
+    }
 }

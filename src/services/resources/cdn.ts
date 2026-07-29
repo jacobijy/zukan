@@ -14,10 +14,10 @@
 import type { CdnToken } from '@/services/session/types';
 
 export function buildCdnUrl(remotePath: string, cdn: CdnToken | undefined): string {
-  if (/^https?:\/\//.test(remotePath)) return remotePath;
-  const path = `/${remotePath.replace(/^\//, '')}`;
-  if (!cdn) return path;
-  const base = cdn.base_url.replace(/\/$/, '');
-  const sep = path.includes('?') ? '&' : '?';
-  return `${base}${path}${sep}sign=${encodeURIComponent(cdn.sign)}&t=${cdn.t}`;
+    if (/^https?:\/\//.test(remotePath)) return remotePath;
+    const path = `/${remotePath.replace(/^\//, '')}`;
+    if (!cdn) return path;
+    const base = cdn.base_url.replace(/\/$/, '');
+    const sep = path.includes('?') ? '&' : '?';
+    return `${base}${path}${sep}sign=${encodeURIComponent(cdn.sign)}&t=${cdn.t}`;
 }

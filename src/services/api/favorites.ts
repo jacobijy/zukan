@@ -15,44 +15,36 @@ import { rest, RestRequestError } from '@/services/http';
 import { getToken } from '@/services/session/token';
 
 function authHeader(): Record<string, string> {
-  const access = getToken();
-  if (!access) {
-    throw new RestRequestError('未登录', 401);
-  }
-  return { Authorization: `Bearer ${access}` };
+    const access = getToken();
+    if (!access) {
+        throw new RestRequestError('未登录', 401);
+    }
+    return { Authorization: `Bearer ${access}` };
 }
 
 interface FavoritesListResponse {
-  pokemon_ids: number[];
-}
-
-/** 拉当前用户的收藏列表 */
-export async function listFavorites(): Promise<number[]> {
-  const res = await rest.get<FavoritesListResponse>('/favorites', {
-    header: authHeader(),
-  });
-  return res?.pokemon_ids ?? [];
+    pokemon_ids: number[];
 }
 
 /** 添加一条收藏（幂等） */
 export async function addFavorite(pokemonId: number): Promise<void> {
-  await rest.post<void, { pokemon_id: number }>(
-    '/favorites',
-    { pokemon_id: pokemonId },
-    {
-      header: authHeader(),
-      // 204 No Content：跳过 JSON 自动解析（部分平台空 body 解析会失败）
-      dataType: 'text',
-    }
-  );
+    await rest.post<void, { pokemon_id: number }>(
+        '/favorites',
+        { pokemon_id: pokemonId },
+        {
+            header: authHeader(),
+            // 204 No Content：跳过 JSON 自动解析（部分平台空 body 解析会失败）
+            dataType: 'text',
+        },
+    );
 }
 
 /** 删除一条收藏（幂等） */
 export async function removeFavorite(pokemonId: number): Promise<void> {
-  await rest.delete<void>(`/favorites/${pokemonId}`, {
-    header: authHeader(),
-    dataType: 'text',
-  });
+    await rest.delete<void>(`/favorites/${pokemonId}`, {
+        header: authHeader(),
+        dataType: 'text',
+    });
 }
 
 /**
@@ -60,10 +52,10 @@ export async function removeFavorite(pokemonId: number): Promise<void> {
  * 登录成功时调用；空数组也合法（等价于纯 fetch server side）。
  */
 export async function mergeFavorites(ids: number[]): Promise<number[]> {
-  const res = await rest.post<FavoritesListResponse, { pokemon_ids: number[] }>(
-    '/favorites/bulk',
-    { pokemon_ids: ids },
-    { header: authHeader() }
-  );
-  return res?.pokemon_ids ?? [];
+    const res = await rest.post<FavoritesListResponse, { pokemon_ids: number[] }>(
+        '/favorites/bulk',
+        { pokemon_ids: ids },
+        { header: authHeader() },
+    );
+    return res?.pokemon_ids ?? [];
 }

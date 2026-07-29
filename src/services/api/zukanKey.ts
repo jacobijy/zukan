@@ -15,9 +15,9 @@ const KEY_ENDPOINT = '/zukan/key';
  * 缓存与去重在 `session/key.ts` 里；本函数只负责一次真实请求。
  */
 export function fetchKey(): Promise<DekResponse> {
-  return rest.get<DekResponse>(KEY_ENDPOINT, {
-    header: {
-      Authorization: `Bearer ${getToken()}`,
-    },
-  });
+    return rest.get<DekResponse>(KEY_ENDPOINT, {
+        header: {
+            Authorization: `Bearer ${getToken()}`,
+        },
+    });
 }

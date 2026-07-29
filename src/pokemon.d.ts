@@ -78,5 +78,4 @@ interface IPokemonBaseModel {
     category?: string;
 }
 
-interface IPokemonCardModel extends IPokemonBaseModel {
-}
+interface IPokemonCardModel extends IPokemonBaseModel {}
