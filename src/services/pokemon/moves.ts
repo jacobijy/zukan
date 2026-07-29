@@ -11,7 +11,7 @@
  * `resourceManager` 已有 storage / memoryCache / inflight 三层；本模块额外把
  * `Map<moveId, Move>` 索引留在 module scope（`moveIndexPromise`），跨详情页复用。
  */
-import { resourceManager } from '@/services/resourceManager';
+import { resourceManager } from '@/services/resources/resourceManager';
 import { typeStrs } from '@/utils/helpers';
 import type { Move, PokemonMoveSet } from '@/infra/wasm';
 

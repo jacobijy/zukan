@@ -32,10 +32,10 @@ import {
   type PokemonMovesBundle,
   type MovesDataBundle,
 } from '@/infra/wasm';
-import { fetchBinary, BinaryRequestError } from '@/services/binaryRequest';
-import { getKey, clearKeyCache } from '@/services/auth';
-import { buildCdnUrl } from '@/services/cdn';
-import { getStoredDataVersion } from '@/services/dataVersion';
+import { fetchBinary, BinaryRequestError, RestRequestError } from '@/services/http';
+import { getKey, clearKeyCache } from '@/services/session/key';
+import { buildCdnUrl } from '@/services/resources/cdn';
+import { getStoredDataVersion } from '@/services/resources/dataVersion';
 import { binaryStorage } from '@/infra/storage/binaryStorage';
 
 // ─────────────────────────────────────────────────────────
@@ -133,13 +133,13 @@ async function fetchDecrypted(spec: BundleSpec, allowKeyRetry = true): Promise<U
     dek = key.dek;
     cdn = key.cdn;
   } catch (err) {
-    // 密钥 401 恢复：清缓存后重试一次
-    if (allowKeyRetry && err instanceof BinaryRequestError && err.statusCode === 401) {
-      clearKeyCache();
-      const [, key] = await Promise.all([initWasm(), getKey()]);
-      dek = key.dek;
-      cdn = key.cdn;
-    } else if (allowKeyRetry && /401/.test(String((err as Error)?.message))) {
+    // 密钥 401 恢复：清缓存后重试一次。
+    // `getKey` 走 rest 客户端抛 RestRequestError；
+    // `fetchBinary` 走 BinaryRequestError（预留兼容，虽然此 try 只覆盖 getKey）。
+    const is401 =
+      (err instanceof RestRequestError && err.statusCode === 401) ||
+      (err instanceof BinaryRequestError && err.statusCode === 401);
+    if (allowKeyRetry && is401) {
       clearKeyCache();
       const [, key] = await Promise.all([initWasm(), getKey()]);
       dek = key.dek;

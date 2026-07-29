@@ -11,8 +11,8 @@
  * 全部错误响应统一为 `{ "error": "<中文提示>" }`，由 `AuthApiError` 承载。
  */
 
-import { rest, RestRequestError } from '@/services/request';
-import { setToken, setRefreshToken, getRefreshToken, clearSession, getToken } from '@/services/auth';
+import { rest, RestRequestError } from '@/services/http';
+import { setToken, setRefreshToken, getRefreshToken, clearSession, getToken } from '@/services/session/token';
 
 // ─────────────────────────────────────────────────────────
 // 类型

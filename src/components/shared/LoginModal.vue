@@ -150,8 +150,7 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref, watch } from 'vue';
-import * as authApi from '@/services/authApi';
-import { AuthApiError } from '@/services/authApi';
+import { authApi, AuthApiError } from '@/services/api';
 
 type Mode = 'login' | 'register';
 

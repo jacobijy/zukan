@@ -8,9 +8,9 @@
  *
  * 网络失败静默降级：首页 `store.fetchPokemon` 独立触发，走同一份 inflight 去重。
  */
-import { getKey } from '@/services/auth';
-import { getStoredDataVersion, setStoredDataVersion } from '@/services/dataVersion';
-import { resourceManager } from '@/services/resourceManager';
+import { getKey } from '@/services/session/key';
+import { getStoredDataVersion, setStoredDataVersion } from '@/services/resources/dataVersion';
+import { resourceManager } from '@/services/resources/resourceManager';
 
 /** 当前最新一代；后续加代次时同步 bump 或改成从后端下发 */
 const LATEST_GEN_ID = 9;

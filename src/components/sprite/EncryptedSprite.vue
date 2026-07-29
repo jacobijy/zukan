@@ -13,9 +13,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { initWasm, decryptZukan } from '@/infra/wasm'
-import { getKey, clearKeyCache } from '@/services/auth'
-import { fetchBinary, BinaryRequestError } from '@/services/binaryRequest'
-import { buildCdnUrl } from '@/services/cdn'
+import { getKey, clearKeyCache } from '@/services/session'
+import { fetchBinary, BinaryRequestError } from '@/services/http'
+import { buildCdnUrl } from '@/services/resources'
 
 interface Props {
   pokemonId: number

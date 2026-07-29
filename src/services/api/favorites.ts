@@ -11,8 +11,8 @@
  * 无 token 时抛错，`store` 层判断 `isAuthenticated()` 再调。
  */
 
-import { rest, RestRequestError } from '@/services/request';
-import { getToken } from '@/services/auth';
+import { rest, RestRequestError } from '@/services/http';
+import { getToken } from '@/services/session/token';
 
 function authHeader(): Record<string, string> {
   const access = getToken();

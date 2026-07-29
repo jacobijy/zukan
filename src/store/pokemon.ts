@@ -1,6 +1,6 @@
 import { fetchPokemonList } from '@/services/pokemon';
-import { addFavorite, mergeFavorites, removeFavorite } from '@/services/favoritesApi';
-import { isAuthenticated } from '@/services/auth';
+import { favoritesApi } from '@/services/api';
+import { isAuthenticated } from '@/services/session';
 import { padId } from '@/utils/helpers';
 import { defineStore } from 'pinia';
 import { computed, ref, type Ref } from 'vue';
@@ -96,7 +96,7 @@ export const usePokemonStore = defineStore('pokemon', () => {
         saveLocalFavorites(favorites.value);
 
         if (isAuthenticated()) {
-            const p = willAdd ? addFavorite(id) : removeFavorite(id);
+            const p = willAdd ? favoritesApi.addFavorite(id) : favoritesApi.removeFavorite(id);
             p.catch(err => console.warn('[favorites] sync failed', { id, willAdd }, err));
         }
     };
@@ -113,7 +113,7 @@ export const usePokemonStore = defineStore('pokemon', () => {
     const syncFavoritesOnLogin = async (): Promise<void> => {
         try {
             const local = favorites.value.slice();
-            const merged = await mergeFavorites(local);
+            const merged = await favoritesApi.mergeFavorites(local);
             favorites.value = merged;
             saveLocalFavorites(merged);
         } catch (err) {

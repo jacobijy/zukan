@@ -84,7 +84,7 @@ import NavBar from "@/components/NavBar.vue";
 import TabBar from "@/components/TabBar.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 import LoginModal from "@/components/shared/LoginModal.vue";
-import { isAuthenticated, clearSession } from '@/services/auth';
+import { isAuthenticated, clearSession } from '@/services/session';
 import { usePokemonStore } from '@/store/pokemon';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';

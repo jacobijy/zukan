@@ -10,7 +10,7 @@
  *   （名字随后由 i18n bundle 补齐，图片走 `EncryptedSprite` 独立通道）
  * - Ability 只有数字 id —— 暂用 `String(id)` 占位
  */
-import { resourceManager } from '@/services/resourceManager';
+import { resourceManager } from '@/services/resources/resourceManager';
 import { typeStrs } from '@/utils/helpers';
 import type { PokemonGenBundle } from '@/infra/wasm';
 

@@ -11,7 +11,7 @@
  * 与 `binaryRequest.buildUrl` 语义正交：本函数只管"加 CDN 前缀与签名"，
  * `fetchBinary` 保持"给个 URL 就下"的 dumb 语义。
  */
-import type { CdnToken } from '@/services/auth';
+import type { CdnToken } from '@/services/session/types';
 
 export function buildCdnUrl(remotePath: string, cdn: CdnToken | undefined): string {
   if (/^https?:\/\//.test(remotePath)) return remotePath;
