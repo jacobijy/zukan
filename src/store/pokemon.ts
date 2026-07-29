@@ -1,4 +1,6 @@
 import { fetchPokemonList } from '@/services/pokemon';
+import { addFavorite, mergeFavorites, removeFavorite } from '@/services/favoritesApi';
+import { isAuthenticated } from '@/services/auth';
 import { padId } from '@/utils/helpers';
 import { defineStore } from 'pinia';
 import { computed, ref, type Ref } from 'vue';
@@ -6,9 +8,28 @@ import { computed, ref, type Ref } from 'vue';
 /** 首屏默认代次；与 `boot.ts` LATEST_GEN_ID 保持一致以复用预取缓存 */
 const DEFAULT_GEN_ID = 9;
 
+const FAV_STORAGE_KEY = 'pokemonFavorites';
+
+function loadLocalFavorites(): number[] {
+    try {
+        const raw = localStorage.getItem(FAV_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveLocalFavorites(ids: number[]) {
+    try {
+        localStorage.setItem(FAV_STORAGE_KEY, JSON.stringify(ids));
+    } catch {
+        // 忽略 quota / 沙箱错误；UI 状态保持
+    }
+}
+
 export const usePokemonStore = defineStore('pokemon', () => {
     const pokemonList: Ref<IPokemonBaseModel[]> = ref([]);
-    const favorites: Ref<number[]> = ref(JSON.parse(localStorage.getItem('pokemonFavorites') + '') || []);
+    const favorites: Ref<number[]> = ref(loadLocalFavorites());
     const currentGenId = ref<number>(DEFAULT_GEN_ID);
 
     const currentPage = ref(1);
@@ -61,21 +82,43 @@ export const usePokemonStore = defineStore('pokemon', () => {
         loadMore();
     };
 
-    // 切换收藏状态
+    /**
+     * 切换收藏。策略：
+     * 1. 立即更新本地 state + localStorage（UI 反馈零延迟）
+     * 2. 已登录时后台 fire-and-forget 同步到后端（幂等，失败静默 log）
+     * 3. 后端失败不影响本地 —— 下次登录 `syncFavoritesOnLogin` 时并集合并会补齐
+     */
     const toggleFavorite = (id: number) => {
         const index = favorites.value.indexOf(id);
-        if (index >= 0) {
-            favorites.value.splice(index, 1);
-        } else {
-            favorites.value.push(id);
+        const willAdd = index < 0;
+        if (willAdd) favorites.value.push(id);
+        else favorites.value.splice(index, 1);
+        saveLocalFavorites(favorites.value);
+
+        if (isAuthenticated()) {
+            const p = willAdd ? addFavorite(id) : removeFavorite(id);
+            p.catch(err => console.warn('[favorites] sync failed', { id, willAdd }, err));
         }
-        // 保存到本地存储
-        localStorage.setItem('pokemonFavorites', JSON.stringify(favorites.value));
     };
 
     // 检查是否收藏
     const isFavorite = (id: number) => {
         return favorites.value.includes(id);
+    };
+
+    /**
+     * 登录成功后同步收藏：把本地并集提交给后端，返回合并后完整列表覆盖本地。
+     * 失败静默降级 —— 保留本地状态，下次登录 / 操作再试。
+     */
+    const syncFavoritesOnLogin = async (): Promise<void> => {
+        try {
+            const local = favorites.value.slice();
+            const merged = await mergeFavorites(local);
+            favorites.value = merged;
+            saveLocalFavorites(merged);
+        } catch (err) {
+            console.warn('[favorites] initial sync failed', err);
+        }
     };
 
     /**
@@ -111,6 +154,7 @@ export const usePokemonStore = defineStore('pokemon', () => {
         loadMore,
         toggleFavorite,
         isFavorite,
+        syncFavoritesOnLogin,
         getFormsBySpecies,
         getById,
     };

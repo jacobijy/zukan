@@ -114,10 +114,13 @@ import { usePokemonStore } from '@/store/pokemon'
 import { genForPokemonId } from '@/services/pokemon'
 import { loadMovesForPokemon } from '@/services/moves'
 import { onLoad } from '@dcloudio/uni-app'
+import { storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
 
 const pokemonStore = usePokemonStore()
-const { toggleFavorite: storeToggleFavorite, favorites } = pokemonStore
+// favorites 走 storeToRefs 拿响应式引用；toggleFavorite 是 action 可以直接解构
+const { favorites } = storeToRefs(pokemonStore)
+const { toggleFavorite: storeToggleFavorite } = pokemonStore
 
 const pokemon = ref<IPokemonBaseModel>({
     id: 0,
@@ -133,7 +136,7 @@ const pokemon = ref<IPokemonBaseModel>({
 })
 
 const isFavorite = computed(() => {
-    return pokemon.value.id ? favorites.includes(pokemon.value.id) : false
+    return pokemon.value.id ? favorites.value.includes(pokemon.value.id) : false
 })
 
 const infoItems = computed(() => [

@@ -116,9 +116,11 @@ function onTrainerCardClick() {
     }
 }
 
-function onLoginSuccess() {
+async function onLoginSuccess() {
     loggedIn.value = true;
     uni.showToast({ title: '登录成功', icon: 'success' });
+    // 把本地收藏并集合并到服务端，然后覆盖本地；失败静默降级
+    await pokemonStore.syncFavoritesOnLogin();
 }
 
 const menuItems = computed(() => [
