@@ -2,67 +2,23 @@
     <view class="detail-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '100px' }">
         <DetailNavbar :title="pokemon.name || '宝可梦详情'" @back="goBack">
             <template #right>
-                <button class="detail-icon-button" :class="isFavorite ? 'detail-icon-button--active' : ''" @click="toggleFavorite">
-                    <svg viewBox="0 0 24 24" :fill="isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                        <polygon points="12 2.8 14.9 8.7 21.4 9.65 16.7 14.25 17.8 20.75 12 17.68 6.2 20.75 7.3 14.25 2.6 9.65 9.1 8.7 12 2.8"></polygon>
-                    </svg>
-                </button>
+                <FavoriteButton :active="isFavorite" @toggle="toggleFavorite" />
             </template>
         </DetailNavbar>
 
         <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--status-bar-height)-100px)] mt-[calc(var(--status-bar-height)+64px)] px-4 pb-4">
             <view class="mx-auto max-w-[1000px]">
-                <view class="specimen-hero mb-3">
-                    <text class="specimen-hero__number">{{ String(pokemon.id || 0).padStart(3, '0') }}</text>
-                    <view class="specimen-hero__image-wrap">
-                        <view class="specimen-hero__image-frame">
-                            <view class="absolute inset-3 rounded-[26px] border border-dashed border-[#c9ced8]"></view>
-                            <EncryptedSprite
-                              :pokemon-id="pokemon.id"
-                              variant="home"
-                              img-class="relative z-10 h-48 w-48 drop-shadow-[0_18px_18px_rgba(48,55,72,0.16)]"
-                              skeleton-class="h-48 w-48"
-                            />
-                        </view>
-                    </view>
+                <SpecimenHero
+                    :pokemon="pokemon"
+                    :formIndex="formIndex"
+                    :formCount="formCount"
+                    :currentFormLabel="currentFormLabel"
+                    @switch-form="switchForm"
+                />
 
-                    <view v-if="formCount > 1" class="specimen-hero__form-switch">
-                        <button class="form-switch__arrow" @click="switchForm(-1)" aria-label="上一个形态">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                                <polyline points="15 6 9 12 15 18"></polyline>
-                            </svg>
-                        </button>
-                        <view class="form-switch__label">
-                            <text class="form-switch__form-name">{{ currentFormLabel }}</text>
-                            <text class="form-switch__form-index">{{ formIndex + 1 }} / {{ formCount }}</text>
-                        </view>
-                        <button class="form-switch__arrow" @click="switchForm(1)" aria-label="下一个形态">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                                <polyline points="9 6 15 12 9 18"></polyline>
-                            </svg>
-                        </button>
-                    </view>
-
-                    <view class="relative z-10 px-5 pb-5 text-center">
-                        <view class="mb-2 flex items-center justify-center gap-2">
-                            <text class="text-[34px] font-black leading-none tracking-[-0.06em] text-[#24262b]">{{ pokemon.name }}</text>
-                            <text class="rounded-full border border-[#e1e4eb] bg-[#f5f6fa] px-3 py-1 font-mono text-xs font-black text-[#8d929c]">NO.{{ String(pokemon.id || 0).padStart(3, '0') }}</text>
-                        </view>
-                        <view class="flex justify-center gap-2">
-                            <TypeBadge
-                                v-for="type in pokemon.types"
-                                :key="type"
-                                :type="type"
-                                size="lg"
-                            />
-                        </view>
-                        <text class="mx-auto mt-3 block max-w-[620px] text-sm font-semibold leading-6 text-[#6f7682]">{{ pokemon.description }}</text>
-                    </view>
-                </view>
-
-                <view class="info-grid mb-3">
-                    <view v-for="item in infoItems" :key="item.label" class="info-card">
-                        <view class="info-card__icon" :class="item.iconClass">
+                <InfoGrid>
+                    <InfoCard v-for="item in infoItems" :key="item.label" :label="item.label" :value="item.value" :icon-class="item.iconClass">
+                        <template #icon>
                             <svg v-if="item.icon === 'height'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                                 <path d="M6 21V3"></path>
                                 <path d="M3 6l3-3 3 3"></path>
@@ -82,13 +38,9 @@
                                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
                                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                             </svg>
-                        </view>
-                        <view class="min-w-0">
-                            <text class="block text-[10px] font-black tracking-[0.14em] text-[#8d929c]">{{ item.label }}</text>
-                            <text class="mt-1 block truncate text-base font-black text-[#24262b]">{{ item.value }}</text>
-                        </view>
-                    </view>
-                </view>
+                        </template>
+                    </InfoCard>
+                </InfoGrid>
 
                 <StatsChart :stats="pokemon.stats" :types="pokemon.types" />
                 <EvolutionChain :chain="pokemon.evolutionChain" />
@@ -107,8 +59,10 @@ import MovesList from '@/components/pokemon/MovesList.vue'
 import StatsChart from '@/components/pokemon/StatsChart.vue'
 import TabBar from '@/components/TabBar.vue'
 import DetailNavbar from '@/components/shared/DetailNavbar.vue'
-import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue'
-import TypeBadge from '@/components/pokemon/TypeBadge.vue'
+import FavoriteButton from '@/components/shared/FavoriteButton.vue'
+import SpecimenHero from '@/components/pokemon/SpecimenHero.vue'
+import InfoGrid from '@/components/pokemon/InfoGrid.vue'
+import InfoCard from '@/components/pokemon/InfoCard.vue'
 import { usePokemonStore } from '@/store/pokemon'
 import { genForPokemonId, loadMovesForPokemon } from '@/services/pokemon'
 import { onLoad } from '@dcloudio/uni-app'
@@ -249,171 +203,5 @@ async function loadMoves(pokemonId: number) {
 </script>
 
 <style scoped>
-.detail-icon-button {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    margin: 0;
-    color: #8d929c;
-    background: transparent;
-    border: 0;
-}
-
-.detail-icon-button--active {
-    color: #e04f47;
-}
-
-.specimen-hero,
-.info-card {
-    border: 1px solid #e5e7ee;
-    background: #ffffff;
-    box-shadow: 0 14px 34px rgba(48, 55, 72, 0.08);
-}
-
-.specimen-hero {
-    position: relative;
-    overflow: hidden;
-    border-radius: 34px;
-}
-
-.specimen-hero::before {
-    display: none;
-}
-
-.specimen-hero__number {
-    position: absolute;
-    right: -8px;
-    bottom: 2px;
-    color: #eef0f5;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 120px;
-    font-weight: 900;
-    line-height: 1;
-    letter-spacing: -0.08em;
-}
-
-.specimen-hero__image-wrap {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    justify-content: center;
-    padding: 28px 0 8px;
-}
-
-.specimen-hero__form-switch {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin: 0 auto 4px;
-    padding: 6px 14px;
-}
-
-.form-switch__arrow {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    color: #4a5060;
-    background: #ffffff;
-    border: 1px solid #e5e7ee;
-    border-radius: 999px;
-    box-shadow: 0 4px 10px rgba(48, 55, 72, 0.08);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.form-switch__arrow:active {
-    transform: scale(0.94);
-    box-shadow: 0 2px 6px rgba(48, 55, 72, 0.1);
-}
-
-.form-switch__label {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 108px;
-    line-height: 1.15;
-}
-
-.form-switch__form-name {
-    font-size: 13px;
-    font-weight: 800;
-    color: #24262b;
-}
-
-.form-switch__form-index {
-    margin-top: 2px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    color: #8d929c;
-}
-
-.specimen-hero__image-frame {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 230px;
-    height: 230px;
-    border: 1px solid #e5e7ee;
-    border-radius: 38px;
-    background: #f5f6fa;
-    box-shadow: inset 0 1px 0 #ffffff, 0 18px 34px rgba(48, 55, 72, 0.08);
-}
-
-.info-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-}
-
-.info-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-    padding: 13px;
-    border-radius: 22px;
-}
-
-.info-card__icon {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    border-radius: 15px;
-}
-
-.info-card__icon--green {
-    color: #ffffff;
-    background: linear-gradient(135deg, #68cc67, #34b85a);
-}
-
-.info-card__icon--gold {
-    color: #3b2c0d;
-    background: linear-gradient(135deg, #f4d06f, #d89a1e);
-}
-
-.info-card__icon--red {
-    color: #ffffff;
-    background: linear-gradient(135deg, #ff7b6e, #e04f47);
-}
-
-.info-card__icon--paper {
-    color: #ffffff;
-    background: linear-gradient(135deg, #73b7ff, #357df4);
-}
+/* 所有样式已移至组件内 */
 </style>
