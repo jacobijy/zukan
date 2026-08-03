@@ -19,7 +19,7 @@
                 <view class="flex items-center gap-2 mt-1">
                     <text class="calc-pkm-name">{{ pokemon?.name ?? placeholderText }}</text>
                     <view v-if="pokemon" class="flex gap-1">
-                        <text v-for="t in pokemon.types" :key="t" class="calc-type-badge" :style="{ background: getTypeColor(t) }">{{ getTypeLabel(t) }}</text>
+                        <TypeBadge v-for="t in pokemon.types" :key="t" :type="t" size="sm" variant="chip" />
                     </view>
                 </view>
             </view>
@@ -74,8 +74,8 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { calcStat } from '@/pages/calc/calc-engine';
-import { getTypeColor, getTypeLabel } from '@/utils/helpers';
+import { calcStat, getBaseStat } from '@/pages/calc/calc-engine';
+import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 
 interface PokemonData {
     name: string;
@@ -105,21 +105,6 @@ const emit = defineEmits<{
     'dec-stage2': [];
     'inc-stage2': [];
 }>();
-
-
-/** 从 stats 数组中取某个属性的种族值 */
-const getBaseStat = (stats: { name: string; value: number }[], key: string): number => {
-    const m: Record<string, string> = { HP: 'HP', 攻击: 'atk', 防御: 'def', 特攻: 'spa', 特防: 'spd', 速度: 'spe' };
-    const target = m[key];
-    const found = stats.find(s => {
-        const sKey = s.name === 'HP' || s.name.includes('HP') ? 'HP' :
-            s.name === '攻击' ? 'atk' : s.name === '防御' ? 'def' :
-            s.name === '特攻' ? 'spa' : s.name === '特防' ? 'spd' :
-            s.name === '速度' ? 'spe' : '';
-        return sKey === target;
-    });
-    return found?.value ?? 50;
-};
 
 const statsList = computed(() => {
     if (!props.pokemon) return [];

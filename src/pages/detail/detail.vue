@@ -49,14 +49,12 @@
                             <text class="rounded-full border border-[#e1e4eb] bg-[#f5f6fa] px-3 py-1 font-mono text-xs font-black text-[#8d929c]">NO.{{ String(pokemon.id || 0).padStart(3, '0') }}</text>
                         </view>
                         <view class="flex justify-center gap-2">
-                            <view
+                            <TypeBadge
                                 v-for="type in pokemon.types"
                                 :key="type"
-                                class="rounded-full px-4 py-1.5 text-sm font-black text-white shadow-[0_8px_16px_rgba(0,0,0,0.12)]"
-                                :class="getTypeClass(type)"
-                            >
-                                {{ getTypeName(type) }}
-                            </view>
+                                :type="type"
+                                size="lg"
+                            />
                         </view>
                         <text class="mx-auto mt-3 block max-w-[620px] text-sm font-semibold leading-6 text-[#6f7682]">{{ pokemon.description }}</text>
                     </view>
@@ -110,6 +108,7 @@ import StatsChart from '@/components/pokemon/StatsChart.vue'
 import TabBar from '@/components/TabBar.vue'
 import DetailNavbar from '@/components/shared/DetailNavbar.vue'
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue'
+import TypeBadge from '@/components/pokemon/TypeBadge.vue'
 import { usePokemonStore } from '@/store/pokemon'
 import { genForPokemonId, loadMovesForPokemon } from '@/services/pokemon'
 import { onLoad } from '@dcloudio/uni-app'
@@ -247,54 +246,6 @@ async function loadMoves(pokemonId: number) {
         console.warn('[detail] moves load failed', err)
     }
 }
-
-const getTypeName = (type: string): string => {
-    const typeNames: Record<string, string> = {
-        normal: '一般',
-        fire: '火',
-        water: '水',
-        electric: '电',
-        grass: '草',
-        ice: '冰',
-        fighting: '格斗',
-        poison: '毒',
-        ground: '地面',
-        flying: '飞行',
-        psychic: '超能力',
-        bug: '虫',
-        rock: '岩石',
-        ghost: '幽灵',
-        dragon: '龙',
-        dark: '恶',
-        steel: '钢',
-        fairy: '妖精'
-    }
-    return typeNames[type] || type
-}
-
-const getTypeClass = (type: string) => {
-    const typeColors: Record<string, string> = {
-        normal: 'bg-gradient-to-br from-[#A8A77A] to-[#72714d]',
-        fire: 'bg-gradient-to-br from-[#f58b38] to-[#c84b22]',
-        water: 'bg-gradient-to-br from-[#5b95f0] to-[#2763c8]',
-        electric: 'bg-gradient-to-br from-[#ffd84a] to-[#d99b00] text-[#2f2a12]',
-        grass: 'bg-gradient-to-br from-[#83c85a] to-[#3f8f3d]',
-        ice: 'bg-gradient-to-br from-[#9adfdc] to-[#50a7aa] text-[#17383a]',
-        fighting: 'bg-gradient-to-br from-[#c83a30] to-[#7f211d]',
-        poison: 'bg-gradient-to-br from-[#a44ab0] to-[#682672]',
-        ground: 'bg-gradient-to-br from-[#e4bf67] to-[#9b7332] text-[#2f2414]',
-        flying: 'bg-gradient-to-br from-[#a996f2] to-[#6a55c7]',
-        psychic: 'bg-gradient-to-br from-[#ff6794] to-[#c82e63]',
-        bug: 'bg-gradient-to-br from-[#a9bd24] to-[#687b11]',
-        rock: 'bg-gradient-to-br from-[#bba33d] to-[#756527]',
-        ghost: 'bg-gradient-to-br from-[#725799] to-[#3d2b62]',
-        dragon: 'bg-gradient-to-br from-[#7042ff] to-[#3519a8]',
-        dark: 'bg-gradient-to-br from-[#715847] to-[#35261f]',
-        steel: 'bg-gradient-to-br from-[#bfc0d4] to-[#797b96] text-[#242638]',
-        fairy: 'bg-gradient-to-br from-[#df8bb6] to-[#a94f7c]'
-    };
-    return typeColors[type] || 'bg-gradient-to-br from-[#78906a] to-[#43543a]';
-};
 </script>
 
 <style scoped>

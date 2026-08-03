@@ -185,6 +185,25 @@ export function calcStat(base: number, level: number, isHP: boolean, iv = 31, ev
     }
 }
 
+/** 短键 → store 里 stats 数组使用的中文名 */
+const STAT_LABEL_BY_KEY: Record<string, string> = {
+    HP: 'HP',
+    atk: '攻击',
+    def: '防御',
+    spa: '特攻',
+    spd: '特防',
+    spe: '速度',
+};
+
+/** stats 数组按短键取种族值；缺失时回落到 50（未知宝可梦的中庸值） */
+export function getBaseStat(stats: { name: string; value: number }[], key: string): number {
+    const label = STAT_LABEL_BY_KEY[key];
+    if (!label) return 50;
+    // HP 兼容 'HP' / '生命值' 等含 HP 的写法
+    const found = stats.find(s => (label === 'HP' ? s.name.includes('HP') : s.name === label));
+    return found?.value ?? 50;
+}
+
 // ─── WASM 懒加载 ────────────────────────────────────────
 
 let _wasm: any = null;

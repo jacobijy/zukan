@@ -53,12 +53,13 @@
         <text class="move-card__stat-label">命中</text>
       </view>
     </view>
-    <text :class="typeBadgeClass">{{ typeLabel }}</text>
+    <TypeBadge :type="typeSlug" size="md" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import TypeBadge from '@/components/pokemon/TypeBadge.vue'
 
 interface Props {
   move: MoveRecord
@@ -70,57 +71,7 @@ const props = withDefaults(defineProps<Props>(), {
   showLevel: false,
 })
 
-// ── 属性名 slug → 中文名 ──────────────────────────
-const TYPE_NAMES: Record<string, string> = {
-  normal: '一般',
-  fire: '火',
-  water: '水',
-  electric: '电',
-  grass: '草',
-  ice: '冰',
-  fighting: '格斗',
-  poison: '毒',
-  ground: '地面',
-  flying: '飞行',
-  psychic: '超能力',
-  bug: '虫',
-  rock: '岩石',
-  ghost: '幽灵',
-  dragon: '龙',
-  dark: '恶',
-  steel: '钢',
-  fairy: '妖精',
-}
-
-// ── 属性 badge 渐变（与 detail.vue 一致） ───────────
-const TYPE_GRADIENTS: Record<string, string> = {
-  normal: 'bg-gradient-to-br from-[#A8A77A] to-[#72714d]',
-  fire: 'bg-gradient-to-br from-[#f58b38] to-[#c84b22]',
-  water: 'bg-gradient-to-br from-[#5b95f0] to-[#2763c8]',
-  electric: 'bg-gradient-to-br from-[#ffd84a] to-[#d99b00] text-[#2f2a12]',
-  grass: 'bg-gradient-to-br from-[#83c85a] to-[#3f8f3d]',
-  ice: 'bg-gradient-to-br from-[#9adfdc] to-[#50a7aa] text-[#17383a]',
-  fighting: 'bg-gradient-to-br from-[#c83a30] to-[#7f211d]',
-  poison: 'bg-gradient-to-br from-[#a44ab0] to-[#682672]',
-  ground: 'bg-gradient-to-br from-[#e4bf67] to-[#9b7332] text-[#2f2414]',
-  flying: 'bg-gradient-to-br from-[#a996f2] to-[#6a55c7]',
-  psychic: 'bg-gradient-to-br from-[#ff6794] to-[#c82e63]',
-  bug: 'bg-gradient-to-br from-[#a9bd24] to-[#687b11]',
-  rock: 'bg-gradient-to-br from-[#bba33d] to-[#756527]',
-  ghost: 'bg-gradient-to-br from-[#725799] to-[#3d2b62]',
-  dragon: 'bg-gradient-to-br from-[#7042ff] to-[#3519a8]',
-  dark: 'bg-gradient-to-br from-[#715847] to-[#35261f]',
-  steel: 'bg-gradient-to-br from-[#bfc0d4] to-[#797b96] text-[#242638]',
-  fairy: 'bg-gradient-to-br from-[#df8bb6] to-[#a94f7c]',
-}
-
-const FALLBACK_GRADIENT = 'bg-gradient-to-br from-[#78906a] to-[#43543a]'
-
 const typeSlug = computed(() => props.move.type || 'normal')
-const typeLabel = computed(() => TYPE_NAMES[typeSlug.value] || typeSlug.value)
-const typeBadgeClass = computed(
-  () => `type-badge ${TYPE_GRADIENTS[typeSlug.value] || FALLBACK_GRADIENT}`
-)
 
 // ── 分类：'物理' / '特殊' / '状态' / '—' → slug + 配色 ──
 const CATEGORY_SLUGS: Record<string, 'physical' | 'special' | 'status'> = {
@@ -159,19 +110,6 @@ const displayAccuracy = computed(() => props.move.accuracy || '—')
   border: 1px solid #e5e7ee;
   border-radius: 18px;
   background: #f5f6fa;
-}
-
-.type-badge {
-  display: inline-block;
-  flex-shrink: 0;
-  min-width: 44px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 900;
-  text-align: center;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
 }
 
 .move-card__category {

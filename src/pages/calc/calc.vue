@@ -64,7 +64,7 @@
                         <view v-else class="calc-row__main">
                             <view class="flex items-center gap-2">
                                 <text class="calc-pkm-name">{{ selectedMove.name }}</text>
-                                <text class="calc-type-badge-mini" :style="{ background: getTypeColor(selectedMove.type) }">{{ getTypeLabel(selectedMove.type) }}</text>
+                                <TypeBadge :type="selectedMove.type" size="xs" variant="chip" />
                                 <text class="text-[12px] font-bold" :class="selectedMove.category === 'physical' ? 'text-[#e74c3c]' : 'text-[#3498db]'">{{ selectedMove.category === 'physical' ? '物理' : '特殊' }}</text>
                             </view>
                             <view class="flex items-center gap-3 mt-1">
@@ -170,11 +170,12 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
-import { calcDamage, calcStat, type CalcResult, type CalcParams, MOVE_FLAG } from './calc-engine';
+import { calcDamage, calcStat, getBaseStat, type CalcResult, type CalcParams, MOVE_FLAG } from './calc-engine';
 import { usePokemonStore } from '@/store/pokemon';
 import PokemonCard from '@/components/calc/PokemonCard.vue';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
-import { getTypeColor, getTypeLabel } from '@/utils/helpers';
+import TypeBadge from '@/components/pokemon/TypeBadge.vue';
+import { getTypeShort } from '@/constants/pokemonTypes';
 
 const pokemonStore = usePokemonStore();
 
@@ -186,19 +187,6 @@ const attackerPokemon = ref<{ name: string; types: string[]; stats: { name: stri
 const defenderPokemon = ref<{ name: string; types: string[]; stats: { name: string; value: number }[] } | null>(null);
 
 const pokemonNameList = computed(() => pokemonStore.allPokemons.map(p => p.name));
-
-const getBaseStat = (stats: { name: string; value: number }[], key: string): number => {
-    const m: Record<string, string> = { HP: 'HP', 攻击: 'atk', 防御: 'def', 特攻: 'spa', 特防: 'spd', 速度: 'spe' };
-    const target = m[key];
-    const found = stats.find(s => {
-        const sKey = s.name === 'HP' || s.name.includes('HP') ? 'HP' :
-            s.name === '攻击' ? 'atk' : s.name === '防御' ? 'def' :
-            s.name === '特攻' ? 'spa' : s.name === '特防' ? 'spd' :
-            s.name === '速度' ? 'spe' : '';
-        return sKey === target;
-    });
-    return found?.value ?? 50;
-};
 
 const showPokemonPicker = (side: 'attacker' | 'defender') => {
     const names = pokemonNameList.value;
@@ -351,10 +339,7 @@ const commonMoves: MoveOption[] = [
 const selectedMove = ref<MoveOption | null>(null);
 
 const showMovePicker = () => {
-    const typeLabel: Record<string, string> = { fire:'火', water:'水', grass:'草', electric:'电', ice:'冰',
-        fighting:'斗', ground:'地', flying:'飞', psychic:'超', bug:'虫', rock:'岩', ghost:'鬼',
-        dragon:'龙', dark:'恶', steel:'钢', fairy:'妖', poison:'毒', normal:'普' };
-    const names = commonMoves.map(m => `${m.name}  (${m.power} / ${typeLabel[m.type] || m.type})`);
+    const names = commonMoves.map(m => `${m.name}  (${m.power} / ${getTypeShort(m.type)})`);
     uni.showActionSheet({
         itemList: names,
         success: (res) => { selectedMove.value = commonMoves[res.tapIndex]; }
@@ -547,8 +532,6 @@ const goBack = () => {
 
 /* ─── 新布局 ─── */
 .calc-pkm-name { font-size: 15px; font-weight: 800; color: #24262b; }
-.calc-type-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 18px; padding: 0 5px; border-radius: 4px; color: #fff; font-size: 10px; font-weight: 800; line-height: 1; }
-.calc-type-badge-mini { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 16px; padding: 0 4px; border-radius: 3px; color: #fff; font-size: 9px; font-weight: 800; line-height: 1; }
 .calc-stepper__value--wrap { display: flex; flex-direction: column; align-items: center; min-width: 32px; gap: 0; }
 .calc-stepper__label { font-size: 9px; font-weight: 700; color: #9da2ad; line-height: 1; }
 .calc-stats-row { display: flex; gap: 2px; padding: 6px 12px 8px; border-top: 1px solid #f1f2f6; }
