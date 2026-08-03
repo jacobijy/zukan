@@ -105,3 +105,20 @@ input {
 .pokemon-mark--blue {
     background: linear-gradient(135deg, #73b7ff 0%, #357df4 58%, #275bd8 100%);
 }
+
+/* ─── 通用加载转圈 ─────────────────────────────────── */
+.field-loader {
+    width: 34px;
+    height: 34px;
+    border: 3px solid rgba(131, 179, 82, 0.2);
+    border-top-color: #357df4;
+    border-right-color: #f4c849;
+    border-radius: 999px;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
