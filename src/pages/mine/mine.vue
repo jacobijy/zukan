@@ -1,9 +1,7 @@
 <template>
     <TabPageShell title="我的" :tabIndex="3" @tab-change="onTabChange">
         <view class="trainer-card glass-panel mb-6" @click="onTrainerCardClick">
-            <view class="trainer-card__avatar">
-                <view class="trainer-card__avatar-cap"></view>
-            </view>
+            <PokeballLogo :size="60" variant="blue" />
             <view class="min-w-0 flex-1">
                 <text v-if="loggedIn" class="block text-[20px] font-bold leading-6 tracking-[-0.03em] text-[#24262b]">训练师</text>
                 <text v-else class="block text-[20px] font-bold leading-6 tracking-[-0.03em] text-[#24262b]">未登录</text>
@@ -69,6 +67,7 @@
 import TabPageShell from "@/components/shared/TabPageShell.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 import LoginModal from "@/components/shared/LoginModal.vue";
+import PokeballLogo from "@/components/shared/PokeballLogo.vue";
 import { isAuthenticated, clearSession } from '@/services/session';
 import { usePokemonStore } from '@/store/pokemon';
 import { storeToRefs } from 'pinia';
@@ -124,52 +123,6 @@ const onTabChange = (_index: number) => {
     align-items: center;
     gap: 14px;
     padding: 16px;
-}
-
-.trainer-card__avatar {
-    position: relative;
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 60px;
-    overflow: hidden;
-    border-radius: 18px;
-    background: linear-gradient(135deg, #73b7ff 0%, #357df4 58%, #275bd8 100%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42), 0 10px 20px rgba(63, 70, 86, 0.12);
-}
-
-.trainer-card__avatar::before,
-.trainer-card__avatar::after {
-    position: absolute;
-    content: '';
-}
-
-.trainer-card__avatar::before {
-    top: 12px;
-    width: 26px;
-    height: 26px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.94);
-}
-
-.trainer-card__avatar::after {
-    bottom: -10px;
-    width: 46px;
-    height: 28px;
-    border-radius: 999px 999px 16px 16px;
-    background: rgba(255, 255, 255, 0.94);
-}
-
-.trainer-card__avatar-cap {
-    position: absolute;
-    z-index: 1;
-    top: 9px;
-    width: 31px;
-    height: 10px;
-    border-radius: 999px 999px 4px 4px;
-    background: #f05245;
 }
 
 .trainer-card__badge {

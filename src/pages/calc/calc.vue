@@ -95,7 +95,7 @@
                     <view class="calc-divider"></view>
                     <ChipRow label="防护" :options="SCREEN_OPTIONS" v-model="reflectScreen" />
                     <view class="calc-divider"></view>
-                    <ChipRow label="状态" :options="[]" v-model="dummyState">
+                    <ChipRow label="状态" :options="[]">
                         <template #extra>
                             <view class="calc-chip" :class="isBurned ? 'calc-chip--active--orange' : ''" @click="isBurned = !isBurned">烧伤</view>
                             <view class="calc-chip" :class="isCritical ? 'calc-chip--active--red' : ''" @click="isCritical = !isCritical">会心</view>
@@ -240,7 +240,6 @@ const selectedItem = ref<ItemOption>(ITEM_OPTIONS[0]);
 const isBurned = ref(false);
 const isCritical = ref(false);
 const reflectScreen = ref<string>('none');
-const dummyState = ref(''); // 无用，仅为满足 ChipRow v-model 要求
 
 const showItemPicker = () => {
     uni.showActionSheet({

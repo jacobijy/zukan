@@ -26,9 +26,7 @@
 
             <!-- 顶部品牌 -->
             <view class="login-modal__brand">
-                <view class="login-modal__logo">
-                    <view class="login-modal__logo-cap"></view>
-                </view>
+                <PokeballLogo :size="56" variant="gold" class="login-modal__logo" />
                 <text class="login-modal__title">{{ mode === 'login' ? '欢迎回来' : '加入图鉴' }}</text>
                 <text class="login-modal__subtitle">
                     {{ mode === 'login' ? '登录以同步收藏与图鉴记录' : '注册后即可开始你的训练师旅程' }}
@@ -151,6 +149,7 @@
 <script lang="ts" setup>
 import { computed, reactive, ref, watch } from 'vue';
 import { authApi, AuthApiError } from '@/services/api';
+import PokeballLogo from '@/components/shared/PokeballLogo.vue';
 
 type Mode = 'login' | 'register';
 
@@ -319,50 +318,7 @@ async function onSubmit() {
 }
 
 .login-modal__logo {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
     margin-bottom: 12px;
-    overflow: hidden;
-    border-radius: 18px;
-    background: linear-gradient(135deg, #ffe7a8 0%, #f4c849 54%, #e99a24 100%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42),
-                0 10px 20px rgba(63, 70, 86, 0.14);
-}
-
-.login-modal__logo::before,
-.login-modal__logo::after {
-    position: absolute;
-    content: '';
-}
-
-.login-modal__logo::before {
-    top: 10px;
-    width: 24px;
-    height: 24px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.94);
-}
-
-.login-modal__logo::after {
-    bottom: -8px;
-    width: 42px;
-    height: 26px;
-    border-radius: 999px 999px 14px 14px;
-    background: rgba(255, 255, 255, 0.94);
-}
-
-.login-modal__logo-cap {
-    position: absolute;
-    z-index: 1;
-    top: 8px;
-    width: 29px;
-    height: 9px;
-    border-radius: 999px 999px 4px 4px;
-    background: #f05245;
 }
 
 .login-modal__title {

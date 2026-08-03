@@ -55,10 +55,10 @@ import TabPageShell from "@/components/shared/TabPageShell.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 
 const overviewItems = [
-    { value: '1010', label: '宝可梦总数', desc: '当前图鉴记录的全国编号范围。', icon: 'book', iconClass: 'list-row__icon--green', valueClass: 'text-[#34b85a]' },
-    { value: '18', label: '属性种类', desc: '用于筛选、克制和组合分析。', icon: 'spark', iconClass: 'list-row__icon--gold', valueClass: 'text-[#d89a1e]' },
-    { value: '400+', label: '招式数量', desc: '覆盖对战计算和招式检索。', icon: 'bolt', iconClass: 'list-row__icon--blue', valueClass: 'text-[#357df4]' },
-    { value: '300+', label: '特性记录', desc: '包含常见对战特性与说明。', icon: 'cube', iconClass: 'list-row__icon--violet', valueClass: 'text-[#7350d4]' }
+    { value: '1010', label: '宝可梦总数', desc: '当前图鉴记录的全国编号范围。', icon: 'book', iconClass: 'list-row__icon--green' },
+    { value: '18', label: '属性种类', desc: '用于筛选、克制和组合分析。', icon: 'spark', iconClass: 'list-row__icon--gold' },
+    { value: '400+', label: '招式数量', desc: '覆盖对战计算和招式检索。', icon: 'bolt', iconClass: 'list-row__icon--blue' },
+    { value: '300+', label: '特性记录', desc: '包含常见对战特性与说明。', icon: 'cube', iconClass: 'list-row__icon--violet' }
 ];
 
 const popularPokemons = [

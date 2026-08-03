@@ -23,7 +23,8 @@ interface ChipOption {
 defineProps<{
     label: string;
     options: ChipOption[];
-    modelValue: string;
+    /** 省略时该行只渲染 #extra 槽里的 chip（如 calc 页的「状态」行） */
+    modelValue?: string;
     last?: boolean;
 }>();
 
