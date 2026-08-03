@@ -11,7 +11,7 @@
         <view class="relative z-10 px-4 py-4 sm:px-5">
             <view class="mx-auto max-w-[720px]">
                 <view class="section-label">常用工具</view>
-                <view class="feature-list">
+                <view class="feature-list glass-panel">
                     <ListRow
                         v-for="(item, index) in featureItems"
                         :key="item.title"
@@ -70,61 +70,3 @@ const onTabChange = (index: number) => {
     currentTab.value = index;
 };
 </script>
-
-<style lang="scss" scoped>
-.more-page {
-    position: relative;
-    overflow: hidden;
-    color: #24262b;
-    background:
-        radial-gradient(circle at 18% -10%, rgba(255, 255, 255, 0.95), transparent 34%),
-        linear-gradient(180deg, #f7f8fb 0%, #f1f2f6 46%, #eef0f5 100%);
-}
-
-.more-page::before {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    content: '';
-    background-image:
-        linear-gradient(rgba(45, 49, 58, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(45, 49, 58, 0.022) 1px, transparent 1px);
-    background-size: 32px 32px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 58%);
-}
-
-.section-label {
-    padding: 0 14px 8px;
-    color: #9da2ad;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-}
-
-.feature-list {
-    border: 1px solid rgba(255, 255, 255, 0.78);
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 18px 42px rgba(48, 55, 72, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(18px);
-}
-
-.feature-list {
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.78);
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 18px 42px rgba(48, 55, 72, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(18px);
-}
-
-.note-card__shine {
-    position: absolute;
-    right: -32px;
-    top: -48px;
-    width: 130px;
-    height: 130px;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(83, 144, 244, 0.14), transparent 67%);
-}
-</style>

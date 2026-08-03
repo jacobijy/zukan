@@ -10,7 +10,7 @@
 
         <view class="relative z-10 px-4 py-4 sm:px-5">
             <view class="mx-auto max-w-[720px]">
-                <view class="trainer-card mb-6" @click="onTrainerCardClick">
+                <view class="trainer-card glass-panel mb-6" @click="onTrainerCardClick">
                     <view class="trainer-card__avatar">
                         <view class="trainer-card__avatar-cap"></view>
                     </view>
@@ -28,7 +28,7 @@
                 </view>
 
                 <view class="section-label">个人图鉴</view>
-                <view class="mine-list">
+                <view class="mine-list glass-panel">
                     <ListRow
                         v-for="(item, index) in menuItems"
                         :key="item.title"
@@ -58,7 +58,7 @@
                 </view>
 
                 <view class="section-label mt-6">训练师状态</view>
-                <view class="status-card">
+                <view class="status-card glass-panel">
                     <view class="status-card__shine"></view>
                     <view class="relative z-10 flex items-center justify-between gap-3">
                         <view>
@@ -135,26 +135,6 @@ const onTabChange = (index: number) => {
 </script>
 
 <style lang="scss" scoped>
-
-
-.section-label {
-    padding: 0 14px 8px;
-    color: #9da2ad;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-}
-
-.trainer-card,
-.mine-list,
-.status-card {
-    border: 1px solid rgba(255, 255, 255, 0.78);
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 18px 42px rgba(48, 55, 72, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(18px);
-}
-
 .trainer-card {
     display: flex;
     align-items: center;
@@ -215,70 +195,6 @@ const onTabChange = (index: number) => {
     border-radius: 16px;
     text-align: right;
     background: #f5f6fa;
-}
-
-.mine-list {
-    overflow: hidden;
-}
-
-.mine-row {
-    display: flex;
-    align-items: center;
-    min-height: 78px;
-    padding-left: 14px;
-    transition: background-color 0.18s ease, transform 0.18s ease;
-}
-
-.mine-row:active {
-    background: rgba(241, 243, 248, 0.82);
-    transform: scale(0.992);
-}
-
-.mine-row__icon {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    color: #fff;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 10px 20px rgba(63, 70, 86, 0.12);
-}
-
-.list-row__icon--gray {
-    background: linear-gradient(135deg, #b8bcc5 0%, #8e949f 56%, #6e7480 100%);
-}
-
-.list-row__icon--gold {
-    color: #4c3506;
-    background: linear-gradient(135deg, #ffe7a8 0%, #f4c849 54%, #e99a24 100%);
-}
-
-.list-row__icon--blue {
-    background: linear-gradient(135deg, #73b7ff 0%, #357df4 58%, #275bd8 100%);
-}
-
-.mine-row__body {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    min-width: 0;
-    margin-left: 14px;
-    padding-right: 12px;
-    border-bottom: 1px solid rgba(222, 225, 232, 0.86);
-}
-
-.mine-row--last .mine-row__body {
-    border-bottom: 0;
-}
-
-.mine-row__meta {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: 4px;
-    margin-left: 10px;
 }
 
 .mine-row__count {

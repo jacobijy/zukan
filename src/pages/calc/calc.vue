@@ -486,17 +486,6 @@ const goBack = () => {
 </script>
 
 <style scoped>
-
-
-.calc-navbar {
-    background: #ffffff;
-    border-bottom: 1px solid #e5e7ee;
-    box-shadow: 0 4px 18px rgba(48, 55, 72, 0.06);
-}
-
-.calc-icon-button { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; margin: 0; color: #8d929c; background: transparent; border: 0; }
-.calc-icon-button--ghost { color: #c4c7cf; }
-
 .calc-card { border: 1px solid #e5e7ee; border-radius: 20px; background: #ffffff; box-shadow: 0 10px 24px rgba(48, 55, 72, 0.06); overflow: hidden; }
 .calc-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #eef0f5; background: #fafbfd; }
 .calc-head__icon { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; color: #ffffff; }
@@ -510,9 +499,6 @@ const goBack = () => {
 .calc-row + .calc-row { border-top: 1px solid #f1f2f6; }
 .calc-row__title { font-size: 14px; font-weight: 600; color: #24262b; flex-shrink: 0; }
 .calc-row__main { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
-.calc-row__level { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.calc-row__level-label { font-size: 12px; font-weight: 700; color: #9da2ad; }
-.calc-row__value { font-size: 13px; font-weight: 600; color: #24262b; text-align: right; }
 
 .calc-stepper { display: flex; align-items: center; gap: 8px; }
 .calc-stepper__btn { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; border: 1px solid #e1e4eb; background: #f5f6fa; color: #6f7682; font-size: 15px; font-weight: 700; }

@@ -89,13 +89,6 @@ const toggleExpand = (key: LearnMethod) => {
 </script>
 
 <style scoped>
-.archive-section {
-  border: 1px solid #e5e7ee;
-  border-radius: 28px;
-  background: #ffffff;
-  box-shadow: 0 14px 34px rgba(48, 55, 72, 0.08);
-}
-
 .section-header {
   display: flex;
   align-items: center;

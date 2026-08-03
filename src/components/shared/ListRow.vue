@@ -50,34 +50,9 @@ defineEmits<{ click: [] }>();
     transform: scale(0.992);
 }
 
-.list-row__icon {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    color: #fff;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 10px 20px rgba(63, 70, 86, 0.12);
-}
-
-.list-row__icon--green {
-    background: linear-gradient(135deg, #7ad66f 0%, #34b85a 58%, #178f42 100%);
-}
-
-.list-row__icon--blue {
-    background: linear-gradient(135deg, #73b7ff 0%, #357df4 58%, #275bd8 100%);
-}
-
-.list-row__icon--violet {
-    background: linear-gradient(135deg, #9a86f4 0%, #7350d4 58%, #4b32a6 100%);
-}
-
-.list-row__icon--gold {
-    color: #4c3506;
-    background: linear-gradient(135deg, #ffe7a8 0%, #f4c849 54%, #e99a24 100%);
-}
+/* .list-row__icon 及其配色变体在 global.css：
+ * iconClass 由页面传入，scoped 选择器（0,2,0）会盖掉全局变体（0,1,0）的
+ * 文字色，因此基础规则必须与变体同处全局、同特异性竞争。 */
 
 .list-row__body {
     display: flex;

@@ -430,29 +430,6 @@ const filteredPokemons = computed(() => {
     mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 58%);
 }
 
-.dex-orb {
-    position: absolute;
-    border-radius: 999px;
-    filter: blur(4px);
-    pointer-events: none;
-}
-
-.dex-orb--leaf {
-    right: -80px;
-    top: 110px;
-    width: 230px;
-    height: 230px;
-    background: radial-gradient(circle, rgba(95, 145, 65, 0.28), transparent 68%);
-}
-
-.dex-orb--gold {
-    left: -90px;
-    bottom: 160px;
-    width: 210px;
-    height: 210px;
-    background: radial-gradient(circle, rgba(232, 181, 62, 0.24), transparent 68%);
-}
-
 .stat-tile {
     display: flex;
     flex-direction: column;
@@ -477,40 +454,6 @@ const filteredPokemons = computed(() => {
     font-weight: 900;
     line-height: 1;
     color: #24262b;
-}
-
-.toolbar-pill {
-    position: relative;
-    display: inline-flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: 8px;
-    height: 48px;
-    padding: 0 16px;
-    border: 1px solid rgba(51, 67, 34, 0.09);
-    border-radius: 999px;
-    color: #6f7480;
-    font-size: 13px;
-    font-weight: 900;
-    background: #ffffff;
-    box-shadow: inset 0 1px 0 #ffffff, 0 12px 24px rgba(48, 55, 72, 0.06);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-
-.toolbar-pill:active {
-    transform: scale(0.96);
-}
-
-.toolbar-pill--active-green {
-    color: #fff;
-    background: linear-gradient(135deg, #34b85a, #178f42);
-    box-shadow: 0 16px 30px rgba(52, 184, 90, 0.2);
-}
-
-.toolbar-pill--active-red {
-    color: #fff;
-    background: linear-gradient(135deg, #ff8a76, #f05245);
-    box-shadow: 0 16px 30px rgba(240, 82, 69, 0.2);
 }
 
 .filter-stack {
@@ -608,7 +551,6 @@ const filteredPokemons = computed(() => {
     color: #e04f47;
 }
 
-.toolbar-pill::after,
 .panel-button::after {
     border: none !important;
 }

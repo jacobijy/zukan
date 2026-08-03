@@ -249,14 +249,6 @@ async function loadMoves(pokemonId: number) {
 </script>
 
 <style scoped>
-
-
-.detail-navbar {
-    background: #ffffff;
-    border-bottom: 1px solid #e5e7ee;
-    box-shadow: 0 4px 18px rgba(48, 55, 72, 0.06);
-}
-
 .detail-icon-button {
     display: flex;
     flex-shrink: 0;

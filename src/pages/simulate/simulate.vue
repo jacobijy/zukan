@@ -88,51 +88,6 @@ const goBack = () => {
 </script>
 
 <style scoped>
-.sim-page {
-    position: relative;
-    overflow: hidden;
-    color: #24262b;
-    background:
-        radial-gradient(circle at 18% -10%, #ffffff 0%, transparent 34%),
-        linear-gradient(180deg, #f7f8fb 0%, #f1f2f6 46%, #eef0f5 100%);
-}
-
-.sim-page::before {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    content: '';
-    background-image:
-        linear-gradient(rgba(45, 49, 58, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(45, 49, 58, 0.022) 1px, transparent 1px);
-    background-size: 32px 32px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 58%);
-}
-
-.sim-navbar {
-    background: #ffffff;
-    border-bottom: 1px solid #e5e7ee;
-    box-shadow: 0 4px 18px rgba(48, 55, 72, 0.06);
-}
-
-.sim-icon-button {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    margin: 0;
-    color: #8d929c;
-    background: transparent;
-    border: 0;
-}
-
-.sim-icon-button--ghost {
-    color: #c4c7cf;
-}
-
 .sim-card,
 .log-card {
     border: 1px solid #e5e7ee;
