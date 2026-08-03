@@ -9,12 +9,9 @@
   </view>
 </template>
 
-<script setup>
-defineProps({
-  title: {
-    type: String,
-    default: '宝可梦图鉴'
-  }
+<script setup lang="ts">
+withDefaults(defineProps<{ title?: string }>(), {
+  title: '宝可梦图鉴'
 })
 </script>
 

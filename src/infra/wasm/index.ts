@@ -38,14 +38,14 @@ export function isWasmReady(): boolean {
 
 // ============== 图鉴二进制文件加解密 API ==============
 
-export function decryptZukan(encryptedData: Uint8Array, dekHex: string): Uint8Array<ArrayBuffer> {
+export function decryptZukan(encryptedData: Uint8Array, dekHex: string): Uint8Array {
     assertWasmReady();
-    return wasmModule!.decryptZukan(encryptedData, dekHex) as unknown as Uint8Array<ArrayBuffer>;
+    return wasmModule!.decryptZukan(encryptedData, dekHex) as unknown as Uint8Array;
 }
 
-export function encryptZukan(plaintext: Uint8Array, dekHex: string, version: number): Uint8Array<ArrayBuffer> {
+export function encryptZukan(plaintext: Uint8Array, dekHex: string, version: number): Uint8Array {
     assertWasmReady();
-    return wasmModule!.encryptZukan(plaintext, dekHex, version) as unknown as Uint8Array<ArrayBuffer>;
+    return wasmModule!.encryptZukan(plaintext, dekHex, version) as unknown as Uint8Array;
 }
 
 export function isValidZukanFile(data: Uint8Array): boolean {
@@ -242,7 +242,7 @@ export function getNatureMod(natureId: number): [number, number, number, number,
 
 // ============== 工具函数 ==============
 
-function assertWasmReady(): asserts this is { wasmModule: NonNullable<typeof wasmModule> } {
+function assertWasmReady(): void {
     if (!wasmModule) {
         throw new Error('WASM module not initialized. Call initWasm() first.');
     }

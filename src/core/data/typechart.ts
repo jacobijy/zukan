@@ -1,4 +1,10 @@
-export const TypeChart: Record<string, { damageTaken: Record<string, number> }> = {
+export const TypeChart: Record<string, {
+	damageTaken: Record<string, number>;
+	/** 隐藏力量属性对应的 IV 组合（第 3-7 世代） */
+	HPivs?: Record<string, number>;
+	/** 隐藏力量属性对应的 DV 组合（第 2 世代） */
+	HPdvs?: Record<string, number>;
+}> = {
 	bug: {
 		damageTaken: {
 			Bug: 0,
