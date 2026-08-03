@@ -47,11 +47,7 @@
                     </view>
                     <view class="sim-row sim-row--last">
                         <text class="sim-row__title">等级</text>
-                        <view class="calc-stepper">
-                            <view class="calc-stepper__btn" @click="noop">−</view>
-                            <text class="calc-stepper__value">50</text>
-                            <view class="calc-stepper__btn" @click="noop">+</view>
-                        </view>
+                        <LevelStepper v-model="simLevel" />
                     </view>
                 </view>
 
@@ -78,7 +74,9 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
+import LevelStepper from '@/components/calc/LevelStepper.vue';
 
+const simLevel = ref(50);
 const rules = ref(['单打', '双打']);
 const noop = () => {};
 
@@ -202,35 +200,6 @@ const goBack = () => {
     color: #ffffff;
     background: linear-gradient(135deg, #73b7ff, #357df4);
     border-color: transparent;
-}
-
-.calc-stepper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.calc-stepper__btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
-    border: 1px solid #e1e4eb;
-    background: #f5f6fa;
-    color: #6f7682;
-    font-size: 15px;
-    font-weight: 700;
-}
-
-.calc-stepper__value {
-    min-width: 26px;
-    text-align: center;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 14px;
-    font-weight: 800;
-    color: #24262b;
 }
 
 .log-card {

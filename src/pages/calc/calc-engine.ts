@@ -290,6 +290,8 @@ export interface CalcParams {
     weather?: string | null;
     terrain?: string | null;
     critical?: boolean;
+    isBurned?: boolean;
+    itemMod?: number; // 100=1x
 
     /* 能力等级 (默认 0, 范围 -6 ~ 6) */
     attackerAtkStage?: number;
@@ -355,6 +357,7 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
 
     const category = params.moveCategory === 'physical' ? 0 : 1;
     const isCritical = params.critical ? 1 : 0;
+    const isBurned = params.isBurned ? 1 : 0;
     const attackStat = params.moveCategory === 'physical' ? params.attackerAtk : params.attackerSpA;
     const defenseStat = params.moveCategory === 'physical' ? params.defenderDef : params.defenderSpD;
 
@@ -378,7 +381,7 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
         atkAbilityId,
         defAbilityId,
         isCritical,
-        0, // is_burned — 暂不暴露
+        isBurned,
         moveFlags,
     );
 
@@ -387,6 +390,9 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
     if (params.attackerSpaStage) input.withAttackerSpaStage(params.attackerSpaStage);
     if (params.defenderDefStage) input.withDefenderDefStage(params.defenderDefStage);
     if (params.defenderSpdStage) input.withDefenderSpdStage(params.defenderSpdStage);
+
+    // 道具修正
+    if (params.itemMod !== undefined) input.withItemMod(params.itemMod);
 
     // 执行批量计算（16 个随机种子）
     const result: BatchDamageResult = wasm.calculateDamageBatch(input);
