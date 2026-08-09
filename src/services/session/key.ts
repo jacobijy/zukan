@@ -2,7 +2,7 @@
  * DEK 密钥缓存与去重
  *
  * `getKey()` 会缓存首次请求结果；并发调用共享同一 promise，避免多次
- * 撞 `/zukan/key`。401 / 403 由调用方（`resourceManager`、`EncryptedSprite`）
+ * 撞 `/api/v1/zukan/key`。401 / 403 由调用方（`resourceManager`、`EncryptedSprite`）
  * 判断后 `clearKeyCache()` + 重试。
  */
 import { fetchKey } from '@/services/api/zukanKey';

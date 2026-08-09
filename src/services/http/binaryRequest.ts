@@ -7,6 +7,12 @@
 
 const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? '') as string;
 
+/**
+ * 注意：这里**不加** `/api/v1` 前缀（`request.ts` 里加）。
+ *
+ * 二进制资源全部是 `/assets/encrypted/*`，后端刻意把静态资源留在根路径 ——
+ * CDN 回源地址与前端资源 URL 不随 API 版本变动。若在此补前缀会 404。
+ */
 const buildUrl = (path: string): string => {
     if (/^https?:\/\//.test(path)) return path;
     return `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;

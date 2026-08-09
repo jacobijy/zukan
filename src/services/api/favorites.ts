@@ -2,10 +2,10 @@
  * 收藏 API 客户端
  *
  * 后端 4 个端点（全部要求 `Authorization: Bearer <access>`）：
- * - `GET /favorites`             拿当前用户所有收藏 pokemon_id
- * - `POST /favorites`            幂等添加一条
- * - `DELETE /favorites/:id`      幂等删除一条
- * - `POST /favorites/bulk`       并集合并，返回合并后完整列表（登录时同步用）
+ * - `GET /api/v1/favorites`             拿当前用户所有收藏 pokemon_id
+ * - `POST /api/v1/favorites`            幂等添加一条
+ * - `DELETE /api/v1/favorites/:id`      幂等删除一条
+ * - `POST /api/v1/favorites/bulk`       并集合并，返回合并后完整列表（登录时同步用）
  *
  * 与 `authApi.changePassword` 风格一致：手动读 `getToken()` 拼 Bearer；
  * 无 token 时抛错，`store` 层判断 `isAuthenticated()` 再调。

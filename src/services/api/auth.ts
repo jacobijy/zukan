@@ -1,5 +1,5 @@
 /**
- * 认证 API（`/auth/*`）
+ * 认证 API（`/api/v1/auth/*`）
  *
  * 端点契约参见 zukan-server 的 `docs/auth-api.md`：
  *

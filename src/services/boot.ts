@@ -2,7 +2,7 @@
  * 启动预取入口
  *
  * 由 `App.vue onLaunch` fire-and-forget 调用。职责：
- * 1. 拉一次 `/zukan/key` 拿到 DEK + CDN token + 数据版本（复用 keyCache 去重）
+ * 1. 拉一次 `/api/v1/zukan/key` 拿到 DEK + CDN token + 数据版本（复用 keyCache 去重）
  * 2. 服务端版本 vs 本地存储版本不一致 → 清旧版本字节 + 写新版本号
  * 3. 预取最新一代的 gen bundle（缓存命中则 fetchDecrypted 内部 skip）
  *

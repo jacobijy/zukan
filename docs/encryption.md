@@ -67,9 +67,9 @@
            ┌──────────────────────────────────────┐
            │         Axum 服务端（文件分发）         │
            │                                      │
-           │  /zukan/{era}/{id}    需要认证        │
-           │  /assets/encrypted/*  无需认证         │
-           │  /zukan/key           需要认证        │
+           │  /api/v1/zukan/{era}/{id}  需要认证   │
+           │  /api/v1/zukan/key         需要认证   │
+           │  /assets/encrypted/*       无需认证   │
            └───────────────────┬──────────────────┘
                                │
                                ▼
@@ -170,7 +170,7 @@ encrypt:
 ### 5.1 路由配置
 
 ```rust
-// crates/server/src/routes.rs
+// crates/server/src/api/mod.rs
 pub fn build_router(state: AppState) -> Router {
     let encrypted_assets_dir = format!("{}/encrypted-assets", state.config.assets_dir);
 
@@ -193,8 +193,8 @@ pub fn build_router(state: AppState) -> Router {
 
 | 前端 URL | 服务端读文件 | 说明 |
 |---|---|---|
-| `GET /zukan/red/001` | `zukan_data/red/001.bin` | 加密数据（需认证） |
-| `GET /zukan/key` | — | 返回 DEK（需认证） |
+| `GET /api/v1/zukan/red/001` | `zukan_data/red/001.bin` | 加密数据（需认证） |
+| `GET /api/v1/zukan/key` | — | 返回 DEK（需认证） |
 | `GET /assets/encrypted/pokemon/25/default.bin` | `assets/encrypted-assets/pokemon/25/default.bin` | 加密精灵图（无需认证） |
 
 ---
@@ -231,7 +231,7 @@ async function loadPokemonSprite(id: number, variant = 'default'): Promise<strin
   await initWasm()
 
   // 1. 获取密钥（需认证）
-  const resp = await fetch('/zukan/key', {
+  const resp = await fetch('/api/v1/zukan/key', {
     headers: { Authorization: `Bearer ${token}` },
   })
   const { dek } = await resp.json()
@@ -269,7 +269,7 @@ let keyPromise: Promise<{ dek: string }> | null = null
 
 async function getKey(): Promise<{ dek: string }> {
   if (!keyPromise) {
-    keyPromise = fetch('/zukan/key', {
+    keyPromise = fetch('/api/v1/zukan/key', {
       headers: { Authorization: `Bearer ${getToken()}` },
     }).then(r => r.json())
   }
@@ -331,8 +331,8 @@ onMounted(async () => {
 
 | 资源 | Cache-Control | 说明 |
 |---|---|---|
-| `/zukan/{era}/{id}` | `private, max-age=3600` | 认证态，CDN 不缓存 |
-| `/zukan/key` | `private, no-cache` | 每次重新获取 |
+| `/api/v1/zukan/{era}/{id}` | `private, max-age=3600` | 认证态，CDN 不缓存 |
+| `/api/v1/zukan/key` | `private, no-cache` | 每次重新获取 |
 | `/assets/encrypted/*` | `public, max-age=31536000, immutable` | 预加密不可变文件，CDN 大力缓存 |
 
 ---
@@ -354,6 +354,6 @@ onMounted(async () => {
 - 前端 WASM 模块：[`src/infra/wasm/`](../src/infra/wasm/)
 - WASM TypeScript API：[`src/infra/wasm/index.ts`](../src/infra/wasm/index.ts)
 - 加密核心 Rust 代码：[`src/infra/wasm/src/crypto.rs`](../src/infra/wasm/src/crypto.rs)
-- 服务端路由：[`crates/server/src/routes.rs`](../../../zukan-server/crates/server/src/routes.rs)
-- 服务端加密数据 handler：[`crates/server/src/zukan/mod.rs`](../../../zukan-server/crates/server/src/zukan/mod.rs)
+- 服务端路由聚合：[`crates/server/src/api/mod.rs`](../../../zukan-server/crates/server/src/api/mod.rs)
+- 服务端加密数据 handler：[`crates/server/src/features/zukan/`](../../../zukan-server/crates/server/src/features/zukan/)
 - WASM crypto crate：[`crates/wasm-crypto/src/lib.rs`](../../../zukan-server/crates/wasm-crypto/src/lib.rs)

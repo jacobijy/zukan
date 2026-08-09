@@ -11,11 +11,11 @@
  *
  * ## 错误 & 缓存失效
  * - 网络错误 / 5xx：`fetchBinary` 内部重试 1 次
- * - `/zukan/key` 401：清空密钥缓存后重试一次
+ * - `/api/v1/zukan/key` 401：清空密钥缓存后重试一次
  * - 存储读损坏 / 解密失败 / 解码 fid 不匹配：删除该 key 缓存后重下重解一次
  *
  * ## 版本
- * 缓存 key 前缀 `fb:v{N}` 里的 `N` 来自服务端 `GET /zukan/key.version`，
+ * 缓存 key 前缀 `fb:v{N}` 里的 `N` 来自服务端 `GET /api/v1/zukan/key.version`，
  * 由 `boot.ts` 在启动时写入 `dataVersion` 存储。版本升级时 `pruneOtherVersions`
  * 主动删旧字节；`FB_ASSET_VERSION` 只是首次启动前的兜底值。
  */

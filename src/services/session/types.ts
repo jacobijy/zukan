@@ -1,7 +1,7 @@
 /**
  * 会话相关类型：DEK 响应 + CDN 签名 token
  *
- * 与 `/zukan/key` 端点响应共享类型；也被 `resources/cdn.ts` 消费。
+ * 与 `/api/v1/zukan/key` 端点响应共享类型；也被 `resources/cdn.ts` 消费。
  */
 
 /**

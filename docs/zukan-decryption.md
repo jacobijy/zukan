@@ -66,7 +66,7 @@
 - **编码**：hex 字符串（64 字符）
 - **来源**：服务端环境变量 `ZUKAN_DEK`
 - **版本**：`ZUKAN_DEK_VERSION`（当前 `1`）
-- **下发接口**：`GET /zukan/key`（需鉴权）
+- **下发接口**：`GET /api/v1/zukan/key`（需鉴权）
 
 ### 密钥轮换流程
 
@@ -74,7 +74,7 @@
 
 1. 服务端设置新的 `ZUKAN_DEK`，递增 `ZUKAN_DEK_VERSION`
 2. 服务端用新 DEK 重加密全部 `.bin` 文件（更新 version 字节）
-3. 客户端调用 `GET /zukan/key` 获取新 DEK + version
+3. 客户端调用 `GET /api/v1/zukan/key` 获取新 DEK + version
 4. 客户端用新 DEK 和文件中的 version 字节匹配解密
 5. 旧版本文件可保留或淘汰
 
@@ -93,8 +93,8 @@
 | 文件 | 职责 |
 |------|------|
 | `crates/wasm-crypto/src/lib.rs` | Rust 核心：定义文件格式常量、加密解密实现（与前端 crypto.rs 一致） |
-| `crates/server/src/zukan/mod.rs` | Axum handler：`GET /zukan/{era}/{id}` 下发密文，`GET /zukan/key` 下发 DEK |
-| `crates/server/src/routes.rs` | 路由注册 |
+| `crates/server/src/features/zukan/` | Axum handler：`GET /api/v1/zukan/{era}/{id}` 下发密文，`GET /api/v1/zukan/key` 下发 DEK |
+| `crates/server/src/api/mod.rs` | 路由聚合与 `/api/v1` 前缀（具体路由表在各 feature 的 `routes.rs`） |
 | `crates/server/src/config.rs` | 环境变量解析：`ZUKAN_DEK`、`ZUKAN_DEK_VERSION` |
 | `openspec/specs/zukan-binary/spec.md` | 加密二进制下发规范 |
 
@@ -106,7 +106,7 @@ import { initWasm, decryptZukan, isValidZukanFile } from '@/infra/wasm';
 await initWasm();
 
 // 1. 从服务端获取加密文件
-const resp = await fetch('/zukan/red/001.bin', {
+const resp = await fetch('/api/v1/zukan/red/001', {
   headers: { Authorization: `Bearer ${token}` },
 });
 const encrypted = new Uint8Array(await resp.arrayBuffer());
@@ -117,7 +117,7 @@ if (!isValidZukanFile(encrypted)) {
 }
 
 // 3. 获取 DEK
-const keyResp = await fetch('/zukan/key', {
+const keyResp = await fetch('/api/v1/zukan/key', {
   headers: { Authorization: `Bearer ${token}` },
 });
 const { dek } = await keyResp.json();
@@ -129,7 +129,7 @@ const plaintext = decryptZukan(encrypted, dek);
 
 ## 常量对照表
 
-| 常量 | 前端 `src/infra/wasm/src/crypto.rs` | 后端 `crates/wasm-crypto/src/lib.rs` | 后端 `crates/server/src/zukan/mod.rs` |
+| 常量 | 前端 `src/infra/wasm/src/crypto.rs` | 后端 `crates/wasm-crypto/src/lib.rs` | 后端 `crates/server/src/features/zukan/service.rs` |
 |------|---|---|---|
 | MAGIC | `b"ZKDX"` | `b"ZKDX"` | `b"ZKDX"` |
 | FORMAT_VERSION | `1` | `1` | `1` |

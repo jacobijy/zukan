@@ -26,12 +26,24 @@ export class RestRequestError extends Error {
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL ?? '';
 
+/**
+ * JSON API 版本前缀。
+ *
+ * 后端把 JSON API 全部收在 `/api/v1` 下，静态资源（`/assets/*`）与健康检查
+ * （`/health`）仍在根路径。本模块只服务 JSON API，故在此统一补前缀 ——
+ * 调用方写 `/auth/login` 即可，无需在每个 endpoint 字面量里重复版本号。
+ *
+ * 静态资源走 `binaryRequest.ts`，那里**不加**前缀。
+ * 绝对 URL（如 CDN 签名地址）在 `buildUrl` 里直接透传，不受影响。
+ */
+const API_PREFIX = '/api/v1';
+
 const buildUrl = (path: string) => {
     if (/^https?:\/\//.test(path)) {
         return path;
     }
 
-    return `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+    return `${baseUrl.replace(/\/$/, '')}${API_PREFIX}/${path.replace(/^\//, '')}`;
 };
 
 const request = <TResponse, TData extends RequestData = RequestData>(
