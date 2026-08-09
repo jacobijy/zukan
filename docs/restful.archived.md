@@ -1,4 +1,30 @@
-# RESTful API 文档
+# RESTful API 文档（已废弃 / 未实现的设计稿）
+
+> **⚠️ 本文档描述的 API 从未实现，请勿据此写代码。**
+>
+> 这是项目早期设想的一套通用 CRUD 后端。实际的 zukan-server 走了完全不同的
+> 路线：宝可梦数据不走 JSON 接口，而是以预加密的 FlatBuffers bundle 整包下发，
+> 前端 WASM 解密后在本地组装。因此下面的宝可梦 / 属性 / 世代接口**都不存在**。
+>
+> 与现实的主要冲突：
+>
+> | 本文档 | 实际实现 |
+> |---|---|
+> | Base URL `/api` | `/api/v1`（静态资源与 `/health` 在根路径） |
+> | 字段 camelCase（`pokemonId`） | snake_case（`pokemon_id`） |
+> | 响应包 `{data, message}` | 直接返回裸对象 |
+> | 错误包 `{error:{code,message,details}}` | `{error: "消息字符串"}` |
+> | `GET /api/pokemons` 等 CRUD 端点 | 不存在；数据走 `/assets/encrypted/fb/*.bin` |
+> | 分页参数 `page`/`pageSize` | 不存在；整包下发后前端本地分页 |
+>
+> **真实 API 文档：**
+> - 端点总表：[`zukan-server/README.md`](../../zukan-server/README.md)
+> - 认证接口：[`zukan-server/docs/auth-api.md`](../../zukan-server/docs/auth-api.md)
+> - 数据下发与解密：[`encryption.md`](./encryption.md)、[`zukan-decryption.md`](./zukan-decryption.md)
+>
+> 保留本文件仅为记录早期设计意图与命名约定的讨论过程。
+
+---
 
 ## 基础约定
 
