@@ -69,6 +69,7 @@ import ListRow from "@/components/shared/ListRow.vue";
 import LoginModal from "@/components/shared/LoginModal.vue";
 import PokeballLogo from "@/components/shared/PokeballLogo.vue";
 import { isAuthenticated, clearSession } from '@/services/session';
+import { authGate } from '@/services/session/authGate';
 import { usePokemonStore } from '@/store/pokemon';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
@@ -78,7 +79,12 @@ const { favorites } = storeToRefs(pokemonStore);
 
 const favoritesCount = computed(() => favorites.value.length);
 
-const showLogin = ref(false);
+/** 代理 authGate.visible 供 v-model 绑定（理由见 index.vue）。 */
+const showLogin = computed({
+    get: () => authGate.visible.value,
+    set: (v: boolean) => { authGate.visible.value = v; },
+});
+
 const loggedIn = ref(isAuthenticated());
 
 function onTrainerCardClick() {
@@ -95,11 +101,13 @@ function onTrainerCardClick() {
             }
         });
     } else {
-        showLogin.value = true;
+        // 复用全局 gate，避免与首页的自动登录弹层各开一个。
+        authGate.open();
     }
 }
 
 async function onLoginSuccess() {
+    authGate.notifySuccess();
     loggedIn.value = true;
     uni.showToast({ title: '登录成功', icon: 'success' });
     // 把本地收藏并集合并到服务端，然后覆盖本地；失败静默降级

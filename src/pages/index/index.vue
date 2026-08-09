@@ -76,6 +76,15 @@
             v-model:visible="showGenerationPanel"
             v-model:selected="selectedGeneration"
         />
+
+        <!--
+            全局登录弹层。状态由 authGate 单例控制：getKey() 遇未认证时
+            自动置 visible，登录成功后 authGate.notifySuccess() 唤醒等待者重试。
+        -->
+        <LoginModal
+            v-model:visible="showLogin"
+            @success="onLoginSuccess"
+        />
     </view>
 </template>
 
@@ -86,13 +95,25 @@ import FavoritesBanner from "@/components/dex/FavoritesBanner.vue";
 import DexEmptyState from "@/components/dex/DexEmptyState.vue";
 import GenerationDrawer from "@/components/dex/GenerationDrawer.vue";
 import NavBar from "@/components/NavBar.vue";
+import LoginModal from "@/components/shared/LoginModal.vue";
 import PokemonCard from "@/components/pokemon/PokemonCard.vue";
 import TabBar from "@/components/TabBar.vue";
 import { usePokemonStore } from "@/store/pokemon";
+import { authGate, LoginDismissedError } from "@/services/session/authGate";
 import { debounce } from 'lodash-es';
 import { storeToRefs } from "pinia";
 import { computed, onMounted, ref } from "vue";
 import { findGeneration, isInGeneration } from "@/constants/generations";
+
+/**
+ * 代理 authGate.visible，供 v-model 绑定。
+ * 直接绑 `authGate.visible`（一个嵌套 Ref）会让 v-model 的赋值覆盖 ref 本身；
+ * 用可写 computed 转成 `.value` 读写。
+ */
+const showLogin = computed({
+    get: () => authGate.visible.value,
+    set: (v: boolean) => { authGate.visible.value = v; },
+});
 
 const pokemonStore = usePokemonStore();
 const { pokemonList, hasMore } = storeToRefs(pokemonStore);
@@ -107,11 +128,34 @@ onMounted(async () => {
     try {
         await fetchPokemon();
     } catch (error) {
+        if (error instanceof LoginDismissedError) {
+            // 用户关掉了登录弹层，主动选择不登录 —— 不是错误，不打 error 日志，
+            // 列表保持空态（loading 已在 finally 中关掉）。
+            return;
+        }
         console.error("加载宝可梦数据失败:", error);
     } finally {
         loading.value = false;
     }
 });
+
+/**
+ * 登录弹层成功回调：token 已由 authApi.login 写入存储。
+ * 重新拉取数据 —— 此时 getKey() 拿着新 token 能正常拿到 DEK。
+ */
+async function onLoginSuccess() {
+    authGate.notifySuccess();
+    loading.value = true;
+    try {
+        await fetchPokemon();
+    } catch (error) {
+        if (!(error instanceof LoginDismissedError)) {
+            console.error("登录后加载宝可梦数据失败:", error);
+        }
+    } finally {
+        loading.value = false;
+    }
+}
 
 const currentFilterTypes = ref<string[]>([]);
 const currentSort = ref<string>('id');

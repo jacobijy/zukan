@@ -75,6 +75,28 @@ export class AuthApiError extends Error {
 
 interface ServerError {
     error?: string;
+    /**
+     * 服务端错误码（`AppError::code()`）。比状态码精确：401 既可能是
+     * `UNAUTHENTICATED`（未登录/失效，应引导登录）也可能是
+     * `INVALID_CREDENTIALS`（密码错误，应留在当前表单）。
+     */
+    code?: string;
+}
+
+/** 服务端 code → 本地 AuthApiError.code。未知值回退 null 交给状态码推断。 */
+function mapServerCode(code: string | undefined): AuthApiError['code'] | null {
+    switch (code) {
+        case 'INVALID_INPUT':
+            return 'INVALID_INPUT';
+        case 'INVALID_CREDENTIALS':
+            return 'INVALID_CREDENTIALS';
+        case 'UNAUTHENTICATED':
+            return 'UNAUTHORIZED';
+        case 'CONFLICT':
+            return 'CONFLICT';
+        default:
+            return null;
+    }
 }
 
 function mapError(err: unknown, kind: 'login' | 'register' | 'refresh' | 'change_password'): never {
@@ -87,10 +109,14 @@ function mapError(err: unknown, kind: 'login' | 'register' | 'refresh' | 'change
     const body = (err.data ?? {}) as ServerError;
     const message = body.error ?? err.message ?? '请求失败';
 
-    let code: AuthApiError['code'] = 'UNKNOWN';
-    if (status === 400) code = 'INVALID_INPUT';
-    else if (status === 401) code = kind === 'login' ? 'INVALID_CREDENTIALS' : 'UNAUTHORIZED';
-    else if (status === 409) code = 'CONFLICT';
+    // 服务端 code 优先；缺失（旧后端）时回退到 status + 端点推断。
+    let code = mapServerCode(body.code);
+    if (code == null) {
+        if (status === 400) code = 'INVALID_INPUT';
+        else if (status === 401) code = kind === 'login' ? 'INVALID_CREDENTIALS' : 'UNAUTHORIZED';
+        else if (status === 409) code = 'CONFLICT';
+        else code = 'UNKNOWN';
+    }
 
     throw new AuthApiError(message, status, code);
 }

@@ -11,7 +11,9 @@
  *
  * ## 错误 & 缓存失效
  * - 网络错误 / 5xx：`fetchBinary` 内部重试 1 次
- * - `/api/v1/zukan/key` 401：清空密钥缓存后重试一次
+ * - 未登录 / token 失效：由 `getKey()` 内部恢复（自动 refresh 或弹登录层）；
+ *   用户放弃登录时抛 `LoginDismissedError`，调用方静默降级
+ * - CDN 403（签名过期）：清密钥缓存后重签重下一次
  * - 存储读损坏 / 解密失败 / 解码 fid 不匹配：删除该 key 缓存后重下重解一次
  *
  * ## 版本
@@ -32,7 +34,7 @@ import {
     type PokemonMovesBundle,
     type MovesDataBundle,
 } from '@/infra/wasm';
-import { fetchBinary, BinaryRequestError, RestRequestError } from '@/services/http';
+import { fetchBinary, BinaryRequestError } from '@/services/http';
 import { getKey, clearKeyCache } from '@/services/session/key';
 import { buildCdnUrl } from '@/services/resources/cdn';
 import { getStoredDataVersion } from '@/services/resources/dataVersion';
@@ -125,29 +127,12 @@ async function fetchDecrypted(spec: BundleSpec, allowKeyRetry = true): Promise<U
         console.warn('[resourceManager] 存储读取失败，按 miss 处理', spec.cacheKey, err);
     }
 
-    // 2. WASM 与密钥（含 CDN token）并发准备 —— 密钥要先到位才能签 URL
-    let dek: string;
-    let cdn: Awaited<ReturnType<typeof getKey>>['cdn'];
-    try {
-        const [, key] = await Promise.all([initWasm(), getKey()]);
-        dek = key.dek;
-        cdn = key.cdn;
-    } catch (err) {
-        // 密钥 401 恢复：清缓存后重试一次。
-        // `getKey` 走 rest 客户端抛 RestRequestError；
-        // `fetchBinary` 走 BinaryRequestError（预留兼容，虽然此 try 只覆盖 getKey）。
-        const is401 =
-            (err instanceof RestRequestError && err.statusCode === 401) ||
-            (err instanceof BinaryRequestError && err.statusCode === 401);
-        if (allowKeyRetry && is401) {
-            clearKeyCache();
-            const [, key] = await Promise.all([initWasm(), getKey()]);
-            dek = key.dek;
-            cdn = key.cdn;
-        } else {
-            throw err;
-        }
-    }
+    // 2. WASM 与密钥（含 CDN token）并发准备 —— 密钥要先到位才能签 URL。
+    //    未登录 / token 失效的恢复（自动 refresh 或弹登录层）在 `getKey()`
+    //    内部完成，此处无需再判 401。
+    const [, key] = await Promise.all([initWasm(), getKey()]);
+    let dek = key.dek;
+    let cdn = key.cdn;
 
     // 3. miss：远程下载并写回。CDN 403（签名过期 / 非法）时清 key 重签重下一次。
     if (!bytes) {
