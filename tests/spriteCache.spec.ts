@@ -375,9 +375,18 @@ function useDeferredFetch(): void {
 }
 
 /** 放行到调度队列的下一轮 —— 微任务队列排空 */
+/**
+ * 把微任务队列推到静止。
+ *
+ * 迭代次数要够多：`fetchSpriteBytes` 在发请求前先 await 一次持久层探测
+ * （`spritePersist.loadSpriteBytes`，node 下 no-op 但仍是 async）+ WASM/密钥，
+ * 每个任务因此有好几个 tick 的前置开销。给够余量，别卡在边界上。
+ */
 async function flush(): Promise<void> {
-    // eslint-disable-next-line no-await-in-loop -- 就是要逐个 tick 地推进微任务队列
-    for (let i = 0; i < 8; i += 1) await Promise.resolve();
+    for (let i = 0; i < 40; i += 1) {
+        // eslint-disable-next-line no-await-in-loop -- 就是要逐个 tick 地推进微任务队列
+        await Promise.resolve();
+    }
 }
 
 /**

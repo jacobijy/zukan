@@ -55,12 +55,20 @@
  * （实测 100–300ms × 4 槽），当前视口仍得等。排队中取消则连 `fetchBinary` 都不调。
  * 多个组件共享同一任务时**只有 waiters 归零才真取消** —— 列表卡片卸载不能连带
  * 取消详情页正在等的同一只。
+ *
+ * ## 跨刷新缓存
+ *
+ * 本模块的缓存是纯内存的，刷新即清空。持久层在 `spritePersist.ts`
+ * （IndexedDB 存 ZKDX **密文**），由 `fetchSpriteBytes` 在走网络前先问一次，
+ * 于是整条链是 `内存 Blob URL → IDB 密文 → 网络`。
+ * HTTP 缓存在这里救不了场：CDN 签名 URL 的 `t` 每次都不同，URL 不同必然 miss。
  */
 
 import { initWasm, decryptZukan } from '@/infra/wasm';
 import { getKey, clearKeyCache } from '@/services/session';
 import { fetchBinary, BinaryRequestError } from '@/services/http';
 import { buildCdnUrl } from '@/services/resources/cdn';
+import { loadSpriteBytes, saveSpriteBytes, dropSpriteBytes } from '@/services/resources/spritePersist';
 
 /**
  * 缓存条目上限。sprite 解密后是完整 PNG（实测 76–190 KB），200 条约 20–30 MB，
@@ -171,14 +179,37 @@ function evictIfNeeded(): void {
 
 /**
  * 下载 + 解密单个 sprite。
+ *
+ * 三层：`spritePersist`（IDB 密文）→ 网络。内存层在 `acquireSprite` 里，
+ * 命中的话根本走不到这里。
+ *
  * CDN 403（签名过期）时清 key 重签重下一次 —— 与 `resourceManager.fetchDecrypted`
  * 同一策略。
  */
 async function fetchSpriteBytes(pokemonId: number, variant: string, signal?: AbortSignal): Promise<Uint8Array> {
+    // 存储读取与「WASM + 密钥」并发启动 —— 三者互不依赖，串行会白等一个 IDB 往返。
+    // 与 `resourceManager.fetchDecrypted` 同一手法。
+    const storedPromise = loadSpriteBytes(pokemonId, variant).catch(() => null);
+
     const [, key] = await Promise.all([initWasm(), getKey()]);
     let { dek, cdn } = key;
 
     const remotePath = `/assets/encrypted/pokemon/${pokemonId}/${variant}.bin`;
+
+    // 取消可能发生在等 IDB / 密钥期间；此时一个请求都还没发，直接退出
+    if (signal?.aborted) throw new SpriteAbortError(spriteCacheKey(pokemonId, variant));
+
+    const stored = await storedPromise;
+    if (stored) {
+        try {
+            return decryptZukan(stored, dek);
+        } catch (err) {
+            // 盘上那份是旧 DEK 加密的（或已损坏）。删掉再走网络 ——
+            // 不删的话每次刷新都会重复这一轮「解密失败 → 重下」。
+            console.warn('[spriteCache] 缓存密文解密失败，重新下载', pokemonId, variant, err);
+            await dropSpriteBytes(pokemonId, variant).catch(() => {});
+        }
+    }
 
     let encrypted: Uint8Array;
     try {
@@ -195,7 +226,14 @@ async function fetchSpriteBytes(pokemonId: number, variant: string, signal?: Abo
         }
     }
 
-    return decryptZukan(encrypted, dek);
+    // 先解密：解不开的字节不值得存（存了下次还是走这条失败路径）。
+    const plain = decryptZukan(encrypted, dek);
+
+    // 落盘不阻塞返回 —— 调用方等的是这张图，不是 IDB 写完。
+    // 存的是**密文**，磁盘上不留明文 PNG（见 spritePersist 文件头）。
+    void saveSpriteBytes(pokemonId, variant, encrypted);
+
+    return plain;
 }
 
 /**
@@ -397,7 +435,13 @@ export function releaseSprite(pokemonId: number, variant: string): void {
     if (entry && entry.refs > 0) entry.refs -= 1;
 }
 
-/** 清空缓存并撤销所有 URL。登出 / DEK 轮换时调用。 */
+/**
+ * 清空**内存**缓存并撤销所有 URL。登出 / DEK 轮换时调用。
+ *
+ * 刻意不动 `spritePersist` 的磁盘缓存：那里存的是密文，没有 DEK 解不开，
+ * 留着不构成泄露，而下次登录还能直接命中。真要清（版本升级）走
+ * `resourceManager.pruneOtherVersions`。
+ */
 export function clearSpriteCache(): void {
     for (const entry of cache.values()) {
         URL.revokeObjectURL(entry.url);

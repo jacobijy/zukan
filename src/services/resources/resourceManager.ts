@@ -19,7 +19,8 @@
  * ## 版本
  * 缓存 key 前缀 `fb:v{N}` 里的 `N` 来自服务端 `GET /api/v1/zukan/key.version`，
  * 由 `boot.ts` 在启动时写入 `dataVersion` 存储。版本升级时 `pruneOtherVersions`
- * 主动删旧字节；`FB_ASSET_VERSION` 只是首次启动前的兜底值。
+ * 主动删旧字节（含 sprite 密文，两者共用同一版本号）；
+ * `FALLBACK_DATA_VERSION` 只是首次启动前的兜底值。
  */
 
 import {
@@ -37,7 +38,8 @@ import {
 import { fetchBinary, BinaryRequestError } from '@/services/http';
 import { getKey, clearKeyCache } from '@/services/session/key';
 import { buildCdnUrl } from '@/services/resources/cdn';
-import { getStoredDataVersion } from '@/services/resources/dataVersion';
+import { currentDataVersion } from '@/services/resources/dataVersion';
+import { pruneSpriteVersions } from '@/services/resources/spritePersist';
 import { binaryStorage } from '@/infra/storage/binaryStorage';
 
 // ─────────────────────────────────────────────────────────
@@ -45,7 +47,6 @@ import { binaryStorage } from '@/infra/storage/binaryStorage';
 // ─────────────────────────────────────────────────────────
 
 /** WASM schema / ZKDX 格式变更时手动 bump（一并 bump WASM 版本），作为 boot 未完成前的兜底 */
-const FB_ASSET_VERSION = 1;
 
 /** 内存解码结果 LRU 上限（bundle 体积较大，条数保守） */
 const MEMORY_LRU_CAP = 12;
@@ -76,12 +77,11 @@ const pad2 = (n: number): string => String(n).padStart(2, '0');
 /**
  * 缓存 key 前缀基于**服务端下发**的资源版本运行时派生：
  * - 已 boot：使用 `zukan_data_version` 里的值
- * - 未 boot / 老后端未下发：兜底到 `FB_ASSET_VERSION`
+ * - 未 boot / 老后端未下发：兜底到 `FALLBACK_DATA_VERSION`
  * 版本变化时 `boot.ts` 调用 `pruneOtherVersions` 清旧字节；此处只负责 key 生成。
  */
 function currentCacheKeyPrefix(): string {
-    const v = getStoredDataVersion() ?? FB_ASSET_VERSION;
-    return `fb:v${v}`;
+    return `fb:v${currentDataVersion()}`;
 }
 
 function memGet<T>(key: string): T | null {
@@ -293,7 +293,8 @@ export const resourceManager = {
     /**
      * 清理**除 `keepVersion` 外**所有历史版本的字节缓存。
      * boot 流程发现服务端版本变化时调用；`keepVersion` 是即将写入 `dataVersion` 的新值。
-     * 同时清空内存 LRU（跨版本的解码结果不能保留）。
+     * 同时清空内存 LRU（跨版本的解码结果不能保留）与 sprite 密文缓存
+     * （两者共用同一版本号，必须同步失效）。
      */
     async pruneOtherVersions(keepVersion: number): Promise<void> {
         const keepPrefix = `fb:v${keepVersion}`;
@@ -301,6 +302,9 @@ export const resourceManager = {
         const stale = allFb.filter((k) => !(k === keepPrefix || k.startsWith(`${keepPrefix}:`)));
         await Promise.all(stale.map((k) => binaryStorage.delete(k).catch(() => {})));
         memoryCache.clear();
+        await pruneSpriteVersions(keepVersion).catch((err) =>
+            console.warn('[resourceManager] sprite 旧版本清理失败', err),
+        );
     },
     stats(): ResourceStats {
         return {

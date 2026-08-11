@@ -9,6 +9,21 @@
 
 const KEY = 'zukan_data_version';
 
+/**
+ * boot 未完成（或老后端不下发 version）时的兜底版本号。
+ * WASM schema / ZKDX 格式变更时手动 bump，一并 bump WASM 版本。
+ */
+export const FALLBACK_DATA_VERSION = 1;
+
+/**
+ * 缓存 key 用的资源版本号：优先服务端下发值，未 boot 时兜底。
+ * `resourceManager`（FB bundle）与 `spritePersist`（sprite 密文）共用，
+ * 保证两者的版本前缀同步失效 —— 否则 DEK 轮换后一方清了另一方没清。
+ */
+export function currentDataVersion(): number {
+    return getStoredDataVersion() ?? FALLBACK_DATA_VERSION;
+}
+
 export function getStoredDataVersion(): number | null {
     try {
         const raw = uni.getStorageSync(KEY) as number | string | undefined;

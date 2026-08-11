@@ -188,4 +188,12 @@ function pickBackend(): BinaryStorage {
     return uniStorage;
 }
 
+/**
+ * 当前后端类型。调用方据此决定「值不值得往里塞大批数据」：
+ * IDB 有几十上百 MB 配额，`uni.setStorage` 只有约 10MB 总量 ——
+ * 把上千张 sprite 塞进后者会把 FB bundle 顶出去，得不偿失
+ * （见 `spritePersist.ts`）。
+ */
+export const storageBackend: 'idb' | 'uni' = typeof indexedDB !== 'undefined' ? 'idb' : 'uni';
+
 export const binaryStorage: BinaryStorage = pickBackend();
