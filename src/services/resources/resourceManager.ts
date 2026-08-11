@@ -119,20 +119,20 @@ interface BundleSpec {
 }
 
 async function fetchDecrypted(spec: BundleSpec, allowKeyRetry = true): Promise<Uint8Array> {
-    // 1. 存储命中？
-    let bytes: Uint8Array | null = null;
-    try {
-        bytes = await binaryStorage.get(spec.cacheKey);
-    } catch (err) {
+    // 1. 存储读取与「WASM + 密钥」并发启动 —— 三者互不依赖，串行会白等一个
+    //    IDB 往返。密钥必须先到位才能签 CDN URL，故仍与 initWasm 一起 await。
+    const bytesPromise = binaryStorage.get(spec.cacheKey).catch((err) => {
         console.warn('[resourceManager] 存储读取失败，按 miss 处理', spec.cacheKey, err);
-    }
+        return null;
+    });
 
-    // 2. WASM 与密钥（含 CDN token）并发准备 —— 密钥要先到位才能签 URL。
-    //    未登录 / token 失效的恢复（自动 refresh 或弹登录层）在 `getKey()`
-    //    内部完成，此处无需再判 401。
     const [, key] = await Promise.all([initWasm(), getKey()]);
     let dek = key.dek;
     let cdn = key.cdn;
+
+    // 2. 未登录 / token 失效的恢复（自动 refresh 或弹登录层）在 `getKey()`
+    //    内部完成，此处无需再判 401。
+    let bytes = await bytesPromise;
 
     // 3. miss：远程下载并写回。CDN 403（签名过期 / 非法）时清 key 重签重下一次。
     if (!bytes) {
