@@ -2,6 +2,7 @@ import { fetchPokemonList } from '@/services/pokemon';
 import { favoritesApi } from '@/services/api';
 import { isAuthenticated } from '@/services/session';
 import { padId } from '@/utils/helpers';
+import { filterAndSortPokemons, type DexFilterCriteria } from '@/utils/dexFilter';
 import { defineStore } from 'pinia';
 import { computed, ref, type Ref } from 'vue';
 
@@ -46,13 +47,9 @@ function saveLocalFavorites(ids: number[]) {
 }
 
 export const usePokemonStore = defineStore('pokemon', () => {
-    const pokemonList: Ref<IPokemonBaseModel[]> = ref([]);
     const favorites: Ref<number[]> = ref(loadLocalFavorites());
     const currentGenId = ref<number>(DEFAULT_GEN_ID);
 
-    const currentPage = ref(1);
-    const pageSize = ref(20);
-    const hasMore = ref(true);
     const allPokemons = ref<IPokemonBaseModel[]>([]);
 
     /** 按 speciesId 分组的所有形态。同 species 的多形态在同一 bucket。 */
@@ -81,19 +78,45 @@ export const usePokemonStore = defineStore('pokemon', () => {
     /** 按 form id 精确查一只宝可梦（含非默认形态） */
     const getById = (id: number): IPokemonBaseModel | undefined => allPokemons.value.find((p) => p.id === id);
 
+    // ─────────────────────────────────────────────────────────
+    // 筛选
+    //
+    // 筛选**作用于全量**，不做分页 —— 列表渲染由 `VirtualGrid` 虚拟化，
+    // DOM 只保留视口附近的行，因此不需要再用分页来限制渲染量。
+    //
+    // 历史坑：早先是「先分页再筛选」，选任意非第一世代会把首页 20 条全滤掉
+    // → 列表空 → 容器无内容 → 滚动不触发 → loadMore 永不执行 → 死锁。
+    // 现在没有分页，这个失败模式不存在了；`tests/pokemonStore.spec.ts` 仍保留
+    // 「每代都有结果」的回归用例守着筛选本身。
+    // ─────────────────────────────────────────────────────────
+
+    /** 当前筛选条件；由页面写入 */
+    const criteria = ref<DexFilterCriteria>({});
+
+    /** 全量筛选排序后的结果。世代/属性/搜索/排序都作用于此，直接喂给虚拟列表。 */
+    const matchedPokemons = computed<IPokemonBaseModel[]>(() =>
+        filterAndSortPokemons(defaultPokemons.value, {
+            ...criteria.value,
+            favorites: favorites.value,
+        }),
+    );
+
+    /** 命中总数，供工具栏显示 */
+    const matchedCount = computed(() => matchedPokemons.value.length);
+
+    /** 更新筛选条件 */
+    const setCriteria = (next: DexFilterCriteria): void => {
+        criteria.value = next;
+    };
+
     // 获取指定世代的宝可梦数据（默认 gen-9，与启动预取同代）
     const fetchPokemon = async (genId: number = DEFAULT_GEN_ID) => {
         currentGenId.value = genId;
-        // 切代时清空分页视图，重新从首页开始
-        pokemonList.value = [];
-        currentPage.value = 1;
         const data = await fetchPokemonList(genId);
         allPokemons.value = data.map((p) => ({
             ...p,
             formattedId: padId(p.id),
         }));
-        hasMore.value = defaultPokemons.value.length > 0;
-        loadMore();
     };
 
     /**
@@ -135,40 +158,23 @@ export const usePokemonStore = defineStore('pokemon', () => {
         }
     };
 
-    /**
-     * 分页把 `defaultPokemons`（每 species 一条默认形态）追加到 `pokemonList`。
-     * 详情页仍能通过 `getFormsBySpecies` / `getById` 访问全部形态。
-     */
-    const loadMore = (): Promise<void> => {
-        return new Promise((resolve) => {
-            const source = defaultPokemons.value;
-            const start = (currentPage.value - 1) * pageSize.value;
-            const end = start + pageSize.value;
-            const nextPage = source.slice(start, end);
-
-            if (nextPage.length > 0) {
-                pokemonList.value = [...pokemonList.value, ...nextPage];
-                currentPage.value++;
-                hasMore.value = end < source.length;
-            } else {
-                hasMore.value = false;
-            }
-            resolve();
-        });
-    };
-
     return {
-        pokemonList,
+        // 数据
         allPokemons,
         defaultPokemons,
         favorites,
-        hasMore,
         currentGenId,
         fetchPokemon,
-        loadMore,
+        // 筛选
+        criteria,
+        matchedPokemons,
+        matchedCount,
+        setCriteria,
+        // 收藏
         toggleFavorite,
         isFavorite,
         syncFavoritesOnLogin,
+        // 形态查询
         getFormsBySpecies,
         getById,
     };

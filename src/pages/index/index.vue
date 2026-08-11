@@ -19,7 +19,7 @@
                 :generation-label="selectedGenerationLabel"
                 :type-filter-open="isShow"
                 :type-filter-active="currentFilterTypes.length > 0"
-                :sample-count="filteredPokemons.length"
+                :sample-count="matchedCount"
                 :favorite-count="pokemonStore.favorites.length"
                 @toggle-favorites="toggleFavoritesView"
                 @toggle-generation="toggleGenerationPanel(!showGenerationPanel)"
@@ -30,44 +30,48 @@
 
             <FavoritesBanner
                 v-if="showFavoritesOnly"
-                :count="filteredPokemons.length"
+                :count="matchedCount"
                 @show-all="toggleFavoritesView"
             />
 
+            <!--
+                空态与列表互斥。空态包一层撑满剩余高度的容器，替代原先由
+                滚动容器提供的 `flex-1 min-h-0`（虚拟列表接管滚动后空态不再在其内部）。
+            -->
             <view
-                class="custom-scrollbar flex-1 min-h-0 overflow-y-auto px-3 pb-5 pt-4 sm:px-5"
-                @scroll="onScroll"
-                @touchstart="handleTouchStart"
-                @touchmove="handleTouchMove"
-                @touchend="handleTouchEnd"
+                v-if="loading || matchedCount === 0"
+                class="flex-1 min-h-0 overflow-y-auto px-3 pb-5 pt-4 sm:px-5"
             >
                 <DexEmptyState v-if="loading" variant="loading" />
 
                 <DexEmptyState
-                    v-else-if="showFavoritesOnly && filteredPokemons.length === 0"
+                    v-else-if="showFavoritesOnly"
                     variant="favorites-empty"
                     @action="toggleFavoritesView"
                 />
 
-                <DexEmptyState
-                    v-else-if="filteredPokemons.length === 0"
-                    variant="no-match"
-                    @action="clearSearch"
-                />
-
-                <view v-else class="mx-auto grid max-w-[1400px] grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3 pb-3 sm:grid-cols-[repeat(auto-fill,minmax(310px,1fr))] sm:gap-4 2xl:grid-cols-[repeat(auto-fill,minmax(340px,1fr))]">
-                    <PokemonCard
-                        v-for="pokemon in filteredPokemons"
-                        :key="pokemon.id"
-                        :pokemon="pokemon"
-                    />
-                </view>
-
-                <view v-if="loadingMore" class="flex flex-col items-center justify-center py-8 text-[#8d929c]">
-                    <view class="field-loader mb-3"></view>
-                    <text class="text-xs font-black tracking-[0.18em]">继续翻页采样...</text>
-                </view>
+                <DexEmptyState v-else variant="no-match" @action="clearSearch" />
             </view>
+
+            <!--
+                虚拟化列表：DOM 只保留视口附近的行（1025 条实测 3083 → 35 节点）。
+                列数与 gap 的响应式定义只写在 grid-class 里一处，组件从
+                computed style 读回来算窗口，不复制断点。
+            -->
+            <VirtualGrid
+                v-else
+                :items="matchedPokemons"
+                :item-key="pokemonKey"
+                scroller-class="custom-scrollbar flex-1 min-h-0 px-3 pb-5 pt-4 sm:px-5"
+                grid-class="mx-auto max-w-[1400px] grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fill,minmax(310px,1fr))] sm:gap-4 2xl:grid-cols-[repeat(auto-fill,minmax(340px,1fr))]"
+                @touchstart="handleTouchStart"
+                @touchmove="handleTouchMove"
+                @touchend="handleTouchEnd"
+            >
+                <template #default="{ item }">
+                    <PokemonCard :pokemon="item as IPokemonCardModel" />
+                </template>
+            </VirtualGrid>
         </view>
 
         <TabBar v-model="currentTab" @change="onTabChange" />
@@ -97,13 +101,15 @@ import GenerationDrawer from "@/components/dex/GenerationDrawer.vue";
 import NavBar from "@/components/NavBar.vue";
 import LoginModal from "@/components/shared/LoginModal.vue";
 import PokemonCard from "@/components/pokemon/PokemonCard.vue";
+import VirtualGrid from "@/components/dex/VirtualGrid.vue";
 import TabBar from "@/components/TabBar.vue";
 import { usePokemonStore } from "@/store/pokemon";
 import { authGate, LoginDismissedError } from "@/services/session/authGate";
 import { debounce } from 'lodash-es';
 import { storeToRefs } from "pinia";
-import { computed, onMounted, ref } from "vue";
-import { findGeneration, isInGeneration } from "@/constants/generations";
+import { computed, onMounted, ref, watch } from "vue";
+import { findGeneration } from "@/constants/generations";
+import type { DexSortKey } from "@/utils/dexFilter";
 
 /**
  * 代理 authGate.visible，供 v-model 绑定。
@@ -116,13 +122,14 @@ const showLogin = computed({
 });
 
 const pokemonStore = usePokemonStore();
-const { pokemonList, hasMore } = storeToRefs(pokemonStore);
-const { fetchPokemon, loadMore } = pokemonStore;
-const loadingMore = ref(false);
+const { matchedPokemons, matchedCount } = storeToRefs(pokemonStore);
+const { fetchPokemon, setCriteria } = pokemonStore;
 const searchText = ref("");
-const searchQuery = ref("");
 const loading = ref(true);
 const isIndexCollapsed = ref(true);
+
+/** 虚拟列表的稳定 key —— 回收复用时下标会变，必须用 id */
+const pokemonKey = (item: IPokemonBaseModel) => item.id;
 
 onMounted(async () => {
     try {
@@ -158,7 +165,7 @@ async function onLoginSuccess() {
 }
 
 const currentFilterTypes = ref<string[]>([]);
-const currentSort = ref<string>('id');
+const currentSort = ref<DexSortKey>('id');
 const isShow = ref(false);
 const currentTab = ref(0);
 const showFavoritesOnly = ref(false);
@@ -171,7 +178,7 @@ const selectedGenerationLabel = computed(() => {
 
 const onFilterChange = (filterData: { types: string[], sort: string }) => {
     currentFilterTypes.value = filterData.types;
-    currentSort.value = filterData.sort;
+    currentSort.value = filterData.sort as DexSortKey;
 };
 
 const toggleFavoritesView = () => {
@@ -185,14 +192,45 @@ const toggleGenerationPanel = (visible: boolean) => {
     showGenerationPanel.value = visible;
 };
 
-const onSearchInput = () => {
-    searchQuery.value = searchText.value;
-};
-
 const clearSearch = () => {
     searchText.value = '';
-    searchQuery.value = '';
 };
+
+/**
+ * 页面级筛选状态 → store。
+ *
+ * store 用它对**全量**筛选排序后再分页（`visibleList`），所以世代/搜索这类
+ * 会滤掉首页 20 条的条件也能正常出结果。
+ *
+ * 搜索走 300ms 防抖：`searchText` 每次按键都变，而筛选要重算 1025 条。
+ * 其余条件是离散点击，立即生效。
+ */
+const debouncedQuery = ref('');
+const applyQuery = debounce((v: string) => { debouncedQuery.value = v; }, 300);
+
+watch(searchText, (v) => {
+    // 清空立即生效，不等防抖（点 × 应当马上看到全量列表）
+    if (!v) {
+        applyQuery.cancel();
+        debouncedQuery.value = '';
+        return;
+    }
+    applyQuery(v);
+});
+
+watch(
+    [showFavoritesOnly, selectedGeneration, currentFilterTypes, currentSort, debouncedQuery],
+    ([favoritesOnly, generation, types, sort, query]) => {
+        setCriteria({
+            favoritesOnly,
+            generation,
+            types,
+            sort,
+            query,
+        });
+    },
+    { immediate: true },
+);
 
 const filterToggle = (value: boolean) => {
     isShow.value = value;
@@ -233,77 +271,6 @@ const handleTouchEnd = () => {
 
     touchDeltaX.value = 0;
 };
-
-const onScroll = debounce((e: Event) => {
-    const target = e.target as HTMLElement;
-    const { scrollHeight, scrollTop, clientHeight } = target;
-    const threshold = 100;
-
-    if (scrollHeight - (scrollTop + clientHeight) < threshold &&
-        hasMore.value &&
-        !loadingMore.value &&
-        !searchQuery.value) {
-        loadingMore.value = true;
-        loadMore().finally(() => {
-            loadingMore.value = false;
-        });
-    }
-}, 200);
-
-const filteredPokemons = computed(() => {
-    let list = [...pokemonList.value];
-
-    if (showFavoritesOnly.value) {
-        const favoriteIds = pokemonStore.favorites;
-        list = list.filter((p) => favoriteIds.includes(p.id));
-    }
-
-    if (selectedGeneration.value) {
-        list = list.filter((p) => isInGeneration(p.id, selectedGeneration.value));
-    }
-
-    if (currentFilterTypes.value.length > 0) {
-        list = list.filter((p) =>
-            currentFilterTypes.value.some(type => p.types.includes(type))
-        );
-    }
-
-    if (currentSort.value === 'id') {
-        list.sort((a, b) => a.id - b.id);
-    } else if (currentSort.value === 'name') {
-        list.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (currentSort.value === 'hp') {
-        list.sort((a, b) => {
-            const hpA = a.stats?.find(s => s.name === 'HP')?.value || 0;
-            const hpB = b.stats?.find(s => s.name === 'HP')?.value || 0;
-            return hpB - hpA;
-        });
-    } else if (currentSort.value === 'attack') {
-        list.sort((a, b) => {
-            const atkA = a.stats?.find(s => s.name === '攻击')?.value || 0;
-            const atkB = b.stats?.find(s => s.name === '攻击')?.value || 0;
-            return atkB - atkA;
-        });
-    } else if (currentSort.value === 'defense') {
-        list.sort((a, b) => {
-            const defA = a.stats?.find(s => s.name === '防御')?.value || 0;
-            const defB = b.stats?.find(s => s.name === '防御')?.value || 0;
-            return defB - defA;
-        });
-    }
-
-    if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase();
-        list = list.filter(
-            (p) =>
-                p.name.toLowerCase().includes(query) ||
-                p.id.toString().includes(query) ||
-                p.types.some((type) => type.toLowerCase().includes(query))
-        );
-    }
-
-    return list;
-});
 </script>
 
 <style lang="scss" scoped>
