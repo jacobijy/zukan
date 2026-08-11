@@ -27,7 +27,10 @@ export const GENERATIONS: Generation[] = [
     { value: 'gen6', label: 'VI', name: '第六世代', start: 650, end: 721 },
     { value: 'gen7', label: 'VII', name: '第七世代', start: 722, end: 809 },
     { value: 'gen8', label: 'VIII', name: '第八世代', start: 810, end: 905 },
-    { value: 'gen9', label: 'IX', name: '第九世代', start: 906, end: 1010 },
+    // 号段止值以 bundle 自带的 `generation_id` 为准（解 gen-9.bin 核对过每代
+    // default 形态的 id 区间）。gen9 曾写成 1010，把 1011..1025 这 15 只
+    // 永久筛掉了。
+    { value: 'gen9', label: 'IX', name: '第九世代', start: 906, end: 1025 },
 ];
 
 /** 抽屉里显示的号段串：'#001 - #151' */
@@ -36,7 +39,7 @@ export const formatGenerationRange = (gen: Generation) =>
 
 /** 按 value 取世代；未命中返回 undefined */
 export const findGeneration = (value: string | null) =>
-    value ? GENERATIONS.find(g => g.value === value) : undefined;
+    value ? GENERATIONS.find((g) => g.value === value) : undefined;
 
 /** 该 id 是否落在指定世代号段内 */
 export const isInGeneration = (id: number, value: string | null): boolean => {

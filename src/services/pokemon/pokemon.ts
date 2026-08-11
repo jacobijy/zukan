@@ -12,6 +12,7 @@
  */
 import { resourceManager } from '@/services/resources/resourceManager';
 import { typeStrs } from '@/utils/helpers';
+import { GENERATIONS } from '@/constants/generations';
 import type { PokemonGenBundle } from '@/infra/wasm';
 
 const HP = 'HP';
@@ -85,21 +86,17 @@ function mergeBundleToModel(bundle: PokemonGenBundle): IPokemonBaseModel[] {
 
 /**
  * 根据宝可梦全国编号推算所属世代。
- * 号段与首页 `generations` 数组保持同源（`pages/index/index.vue`）。
+ * 号段来自 `@/constants/generations` 单一数据源 —— 这里曾复制过一份
+ * if-else 阶梯，与常量表各自漂移（gen9 两边都写成 1010）。
  * 未匹配返回 `null`（无效 id 或未来世代）。
  */
 export function genForPokemonId(id: number): number | null {
     if (id <= 0) return null;
-    if (id <= 151) return 1;
-    if (id <= 251) return 2;
-    if (id <= 386) return 3;
-    if (id <= 493) return 4;
-    if (id <= 649) return 5;
-    if (id <= 721) return 6;
-    if (id <= 809) return 7;
-    if (id <= 905) return 8;
-    if (id <= 1010) return 9;
-    return null;
+    const gen = GENERATIONS.find((g) => id >= g.start && id <= g.end);
+    if (!gen) return null;
+    // 'gen9' → 9
+    const n = Number.parseInt(gen.value.replace('gen', ''), 10);
+    return Number.isFinite(n) ? n : null;
 }
 
 /**
