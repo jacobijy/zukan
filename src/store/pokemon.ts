@@ -10,10 +10,27 @@ const DEFAULT_GEN_ID = 9;
 
 const FAV_STORAGE_KEY = 'pokemonFavorites';
 
+/**
+ * 读本地收藏。
+ *
+ * 走 `uni.getStorageSync` 以兼容小程序端（与 `session/token.ts`、
+ * `resources/dataVersion.ts` 同一套写法）。
+ *
+ * 需要同时认两种形态：
+ * - **数组** —— `setStorageSync(key, ids)` 写入的当前格式（H5 上实际落盘为
+ *   `{"type":"object","data":[...]}`，读取时被 uni 还原成数组）
+ * - **字符串** —— 历史上直接 `localStorage.setItem(key, JSON.stringify(ids))`
+ *   写的裸 JSON。uni 的 `parseValue` 认不出这种没有 `type` 字段的值，会把原始
+ *   字符串原样返回；不在这里解析的话老用户的收藏会被静默清空。
+ *
+ * 任一形态都过一遍数字校验，脏数据降级为空列表而不是把 `NaN` 灌进 UI。
+ */
 function loadLocalFavorites(): number[] {
     try {
-        const raw = localStorage.getItem(FAV_STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
+        const raw = uni.getStorageSync(FAV_STORAGE_KEY) as unknown;
+        const parsed = typeof raw === 'string' ? (raw ? JSON.parse(raw) : []) : raw;
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((id): id is number => typeof id === 'number' && Number.isFinite(id));
     } catch {
         return [];
     }
@@ -21,9 +38,10 @@ function loadLocalFavorites(): number[] {
 
 function saveLocalFavorites(ids: number[]) {
     try {
-        localStorage.setItem(FAV_STORAGE_KEY, JSON.stringify(ids));
-    } catch {
-        // 忽略 quota / 沙箱错误；UI 状态保持
+        uni.setStorageSync(FAV_STORAGE_KEY, ids);
+    } catch (err) {
+        // quota / 沙箱错误：内存 state 保持，仅丢失持久化
+        console.warn('[favorites] 写入本地存储失败', err);
     }
 }
 
@@ -80,7 +98,7 @@ export const usePokemonStore = defineStore('pokemon', () => {
 
     /**
      * 切换收藏。策略：
-     * 1. 立即更新本地 state + localStorage（UI 反馈零延迟）
+     * 1. 立即更新本地 state + 本地存储（UI 反馈零延迟）
      * 2. 已登录时后台 fire-and-forget 同步到后端（幂等，失败静默 log）
      * 3. 后端失败不影响本地 —— 下次登录 `syncFavoritesOnLogin` 时并集合并会补齐
      */
