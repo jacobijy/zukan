@@ -8,6 +8,7 @@
                 <EncryptedSprite
                     :pokemon-id="pokemon.id"
                     variant="home"
+                    eager
                     img-class="relative z-10 h-48 w-48 drop-shadow-[0_18px_18px_rgba(48,55,72,0.16)]"
                     skeleton-class="h-48 w-48"
                 />

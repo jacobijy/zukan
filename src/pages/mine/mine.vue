@@ -69,6 +69,7 @@ import ListRow from "@/components/shared/ListRow.vue";
 import LoginModal from "@/components/shared/LoginModal.vue";
 import PokeballLogo from "@/components/shared/PokeballLogo.vue";
 import { isAuthenticated, clearSession } from '@/services/session';
+import { clearSpriteCache } from '@/services/resources';
 import { authGate } from '@/services/session/authGate';
 import { usePokemonStore } from '@/store/pokemon';
 import { storeToRefs } from 'pinia';
@@ -95,6 +96,10 @@ function onTrainerCardClick() {
             success: (res) => {
                 if (res.confirm) {
                     clearSession();
+                    // sprite 是用旧 DEK 解出来的，登出后一并撤销所有 Blob URL。
+                    // 放在这里而不是 clearSession() 里：session 层引入 resources
+                    // 会形成 session ⇄ resources 循环依赖。
+                    clearSpriteCache();
                     loggedIn.value = false;
                     uni.showToast({ title: '已退出登录', icon: 'none' });
                 }
