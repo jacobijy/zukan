@@ -125,13 +125,20 @@ const pokemonStore = usePokemonStore();
 const { matchedPokemons, matchedCount } = storeToRefs(pokemonStore);
 const { fetchPokemon, setCriteria } = pokemonStore;
 const searchText = ref("");
-const loading = ref(true);
+/**
+ * 已有数据时（从其他 tab 切回）不进 loading 态，避免整页闪空态再重渲染列表。
+ * 数据由 boot 预取 + 内存 LRU 缓存保证新鲜度，session 内无需重拉。
+ */
+const loading = ref(pokemonStore.allPokemons.length === 0);
 const isIndexCollapsed = ref(true);
 
 /** 虚拟列表的稳定 key —— 回收复用时下标会变，必须用 id */
 const pokemonKey = (item: IPokemonBaseModel) => item.id;
 
 onMounted(async () => {
+    // 切 tab 走 reLaunch 会重建页面；store 已有数据时跳过 fetch，
+    // 避免重跑 mergeBundleToModel（1351 对象分配）+ 全列表重渲染。
+    if (pokemonStore.allPokemons.length > 0) return;
     try {
         await fetchPokemon();
     } catch (error) {

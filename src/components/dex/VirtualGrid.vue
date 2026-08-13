@@ -88,11 +88,27 @@ const scrollerRef = ref<unknown>(null)
 const gridRef = ref<unknown>(null)
 
 const scrollTop = ref(0)
-const viewportHeight = ref(0)
+/**
+ * 初始几何估算：避免首次挂载时因 cardHeight/viewportHeight 为空而降级为
+ * 全量渲染（~1025 个 PokemonCard 实例 + IntersectionObserver 同步创建，
+ * 是 tab 切回图鉴时的主要卡顿源）。measure() 在 onMounted 后会用实测值覆盖。
+ *
+ * 数值来自 CLAUDE.md 记录的实测卡高：98px @ mobile / 106px @ ≥640px。
+ * 列数按 grid 的 minmax 宽度估算；SSR/无 window 环境回退 0/1，保留原降级行为。
+ */
+const hasWindow = typeof window !== 'undefined'
+const viewportHeight = ref(hasWindow ? window.innerHeight : 0)
 /** 单卡高度与行间距；null 表示尚未测到 → 降级全量渲染 */
-const cardHeight = ref<number | null>(null)
+function estimateColumns(): number {
+  if (!hasWindow) return 1
+  const w = window.innerWidth
+  // 与 grid-class 的 minmax 断点一致：<640px 用 260px，≥640px 用 310px
+  const minCard = w >= 640 ? 310 : 260
+  return Math.max(1, Math.floor(w / minCard))
+}
+const cardHeight = ref<number | null>(hasWindow ? (window.innerWidth >= 640 ? 106 : 98) : null)
 const rowGap = ref(0)
-const columns = ref(1)
+const columns = ref(estimateColumns())
 
 /** 几何就绪才启用虚拟化 */
 const active = computed(() => cardHeight.value != null && cardHeight.value > 0 && viewportHeight.value > 0)
