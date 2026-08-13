@@ -1,13 +1,4 @@
 # 保持第三方数据表原始格式（tab 缩进 + 手工对齐的注释块）
-src/core/data/moves.ts
-src/core/data/items.ts
-src/core/data/abilities.ts
-src/core/data/conditions.ts
-src/core/data/formats-data.ts
-src/core/data/natures.ts
-src/core/data/rulesets.ts
-src/core/data/scripts.ts
-src/core/data/tags.ts
 src/core/data/typechart.ts
 
 # 生成物 / 依赖
