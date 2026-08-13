@@ -48,8 +48,9 @@ function toRecord(
     const m = moveIndex.get(moveId);
     return {
         id: moveId,
-        // TODO(i18n): i18n bundle 上线后换成真中文名
-        name: `move-${moveId}`,
+        // 名称不在数据层拼接：MoveCard 渲染时按 id 查 i18n 名称表（响应式，
+        // 名称表异步到达 / 切换语言时自动刷新）。这里留空串占位。
+        name: '',
         type: m ? (typeStrs[m.typeId] ?? 'normal') : 'normal',
         category: m ? (CATEGORY_MAP[m.damageClassId] ?? '—') : '—',
         power: m && m.power > 0 ? m.power : '—',

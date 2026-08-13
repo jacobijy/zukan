@@ -60,6 +60,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import TypeBadge from '@/components/pokemon/TypeBadge.vue'
+import { useI18nStore } from '@/store/i18n'
 
 interface Props {
   move: MoveRecord
@@ -71,7 +72,13 @@ const props = withDefaults(defineProps<Props>(), {
   showLevel: false,
 })
 
+const i18n = useI18nStore()
+
 const typeSlug = computed(() => props.move.type || 'normal')
+
+// 名称按 move.id 响应式查 i18n 表（含英文基线回落）；
+// 名称表异步到达 / 切换语言时自动更新，无需重拉招式数据。
+const displayName = computed(() => i18n.moveName(props.move.id) ?? '未知招式')
 
 // ── 分类：'物理' / '特殊' / '状态' / '—' → slug + 配色 ──
 const CATEGORY_SLUGS: Record<string, 'physical' | 'special' | 'status'> = {
@@ -95,7 +102,6 @@ const categoryBadgeClass = computed(() => {
   }
 })
 
-const displayName = computed(() => props.move.name || '未知招式')
 const displayCategory = computed(() => props.move.category || '—')
 const displayPower = computed(() => props.move.power || '—')
 const displayAccuracy = computed(() => props.move.accuracy || '—')

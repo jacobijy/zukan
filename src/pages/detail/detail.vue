@@ -64,12 +64,17 @@ import SpecimenHero from '@/components/pokemon/SpecimenHero.vue'
 import InfoGrid from '@/components/pokemon/InfoGrid.vue'
 import InfoCard from '@/components/pokemon/InfoCard.vue'
 import { usePokemonStore } from '@/store/pokemon'
+import { useI18nStore } from '@/store/i18n'
 import { genForPokemonId, loadMovesForPokemon } from '@/services/pokemon'
 import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
 
 const pokemonStore = usePokemonStore()
+const i18nStore = useI18nStore()
+// 确保招式/特性名称表已加载：深链进入时 boot 可能尚未跑完，
+// MoveCard 会响应式地在名称到达后刷新。
+void i18nStore.ensureLoaded()
 // favorites 走 storeToRefs 拿响应式引用；toggleFavorite 是 action 可以直接解构
 const { favorites } = storeToRefs(pokemonStore)
 const { toggleFavorite: storeToggleFavorite } = pokemonStore
