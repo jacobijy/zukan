@@ -1,0 +1,126 @@
+// tools/schemas/i18n_names_bundle.fbs
+//
+// 单语言"名称组"bundle 的顶层 root：把上游全部短文本 i18n 表合并到一个
+// .bin 文件，输出形如 assets/fb/i18n/<lang>/names.bin。
+//
+// 与 pokemon_gen_bundle.fbs 的关键差异：本 bundle 的行记录必须用 table
+// 而非 struct —— struct 不允许包含 string 字段。代价是每行多一个 vtable，
+// 但名称类数据量小（约 35 KB/语言），可以接受。
+//
+// 上游 CSV 的语言列（local_language_id）在打包时被剥离：一个文件即一种
+// 语言，语言标识提升到 bundle 头部。
+//
+// 排除上游 split_by_language.py 所定义的外传玩法表（contest_ /
+// super_contest_ / pokeathlon_ / pal_park / conquest_）。
+
+namespace pokeapi.fb;
+
+/// 最常见的形状：单一 id + 单一名称。
+///
+/// id 用 int32 而非 uint32：上游 move_meta_ailment_names 存在 id = -1
+/// （veekun 用来表示"未知异常状态"的哨兵值），无符号会丢掉这一行。
+table NamedEntry {
+  id: int32;
+  name: string;
+}
+
+/// 仅有一列文本、且语义不是"名称"而是整段描述/消息的表。
+table TextEntry {
+  id: uint32;
+  text: string;
+}
+
+/// 名称 + 描述两列。
+table ProseEntry {
+  id: uint32;
+  name: string;
+  description: string;
+}
+
+/// 宝可梦物种：除名称外还有"分类"（genus，如 たねポケモン / 种子宝可梦）。
+/// 对应 CSV：pokemon_species_names.csv
+table SpeciesName {
+  id: uint16;          // 1..1025
+  name: string;
+  genus: string;
+}
+
+/// 宝可梦形态：形态名与该形态下的宝可梦全名。
+/// 对应 CSV：pokemon_form_names.csv
+table FormName {
+  id: uint32;          // 1..10554（含 alt-form 10000+）
+  form_name: string;
+  pokemon_name: string;
+}
+
+/// 地点：名称与副标题。
+/// 对应 CSV：location_names.csv
+table LocationName {
+  id: uint32;
+  name: string;
+  subtitle: string;
+}
+
+/// 宝可梦体型：名称、趣味名与描述三列。
+/// 对应 CSV：pokemon_shape_prose.csv
+table ShapeEntry {
+  id: uint32;
+  name: string;
+  awesome_name: string;
+  description: string;
+}
+
+/// 单一语言的全部名称类文本。
+///
+/// 任何一张表在该语言下无数据时，对应 vector 为空（上游数据缺口如实反映，
+/// 不做跨语言回落——回落策略由客户端决定）。
+table I18nNamesBundle {
+  /// 上游 languages.csv 的 id（1..14）。
+  language_id: uint8;
+  /// 上游 languages.csv 的 identifier，如 "zh-hans"、"ja-hrkt"、"en"。
+  language: string;
+
+  // ---- 特殊形状的表 ----
+  species: [SpeciesName];
+  forms: [FormName];
+  locations: [LocationName];
+  shapes: [ShapeEntry];
+
+  // ---- id + name ----
+  moves: [NamedEntry];
+  abilities: [NamedEntry];
+  items: [NamedEntry];
+  types: [NamedEntry];
+  natures: [NamedEntry];
+  stats: [NamedEntry];
+  egg_groups: [NamedEntry];
+  regions: [NamedEntry];
+  versions: [NamedEntry];
+  generations: [NamedEntry];
+  growth_rates: [NamedEntry];
+  item_categories: [NamedEntry];
+  item_pockets: [NamedEntry];
+  colors: [NamedEntry];
+  habitats: [NamedEntry];
+  move_ailments: [NamedEntry];
+  move_battle_styles: [NamedEntry];
+  encounter_methods: [NamedEntry];
+  evolution_triggers: [NamedEntry];
+  berry_firmnesses: [NamedEntry];
+  languages: [NamedEntry];
+
+  // ---- id + name + description ----
+  pokedexes: [ProseEntry];
+  move_damage_classes: [ProseEntry];
+  move_targets: [ProseEntry];
+  item_flags: [ProseEntry];
+  move_flags: [ProseEntry];
+
+  // ---- id + 单列长文本 ----
+  move_categories: [TextEntry];      // move_meta_category_prose.description
+  item_fling_effects: [TextEntry];   // item_fling_effect_prose.effect
+  characteristics: [TextEntry];      // characteristic_text.message
+}
+
+root_type I18nNamesBundle;
+file_identifier "PKNM";

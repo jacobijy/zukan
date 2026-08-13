@@ -25,7 +25,7 @@
                 :iconClass="item.iconClass"
                 :last="index === menuItems.length - 1"
                 showChevron
-                @click="() => {}"
+                @click="onMenuTap(item)"
             >
                 <template #icon>
                     <svg v-if="item.icon === 'settings'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
@@ -61,22 +61,30 @@
     </TabPageShell>
 
     <LoginModal v-model:visible="showLogin" @success="onLoginSuccess" />
+    <LanguageDrawer v-model:visible="showLangDrawer" />
 </template>
 
 <script lang="ts" setup>
 import TabPageShell from "@/components/shared/TabPageShell.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 import LoginModal from "@/components/shared/LoginModal.vue";
+import LanguageDrawer from "@/components/shared/LanguageDrawer.vue";
 import PokeballLogo from "@/components/shared/PokeballLogo.vue";
 import { isAuthenticated, clearSession } from '@/services/session';
 import { clearSpriteCache } from '@/services/resources';
 import { authGate } from '@/services/session/authGate';
 import { usePokemonStore } from '@/store/pokemon';
+import { useI18nStore } from '@/store/i18n';
+import { LANGUAGES } from '@/services/i18n/languages';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
 const pokemonStore = usePokemonStore();
 const { favorites } = storeToRefs(pokemonStore);
+const i18nStore = useI18nStore();
+
+const showLangDrawer = ref(false);
+const currentLangLabel = computed(() => LANGUAGES.find((l) => l.id === i18nStore.currentLang)?.label ?? '简体中文');
 
 const favoritesCount = computed(() => favorites.value.length);
 
@@ -120,10 +128,16 @@ async function onLoginSuccess() {
 }
 
 const menuItems = computed(() => [
-    { title: '设置', desc: '调整图鉴偏好和展示方式。', meta: '偏好', icon: 'settings', iconClass: 'list-row__icon--gray' },
+    { title: '设置', desc: '调整图鉴偏好和展示方式。', meta: currentLangLabel.value, icon: 'settings', iconClass: 'list-row__icon--gray' },
     { title: '我的收藏', desc: '查看已经标记的宝可梦样本。', icon: 'star', iconClass: 'list-row__icon--gold', count: favoritesCount.value },
     { title: '浏览历史', desc: '回到最近查看过的研究记录。', meta: '记录', icon: 'clock', iconClass: 'list-row__icon--blue' }
 ]);
+
+function onMenuTap(item: { icon: string }) {
+    if (item.icon === 'settings') {
+        showLangDrawer.value = true;
+    }
+}
 
 const onTabChange = (_index: number) => {
     // TabBar handles tab switching internally

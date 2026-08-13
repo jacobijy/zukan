@@ -1,5 +1,164 @@
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * 一条\"效果说明\"：简述 + 详述。文本已从池中解析。
+ */
+export interface ProseEffect {
+    id: number;
+    shortEffect: string;
+    effect: string;
+}
+
+/**
+ * 一条\"某实体在某游戏版本下的描述\"。文本已从池中解析为内联字符串。
+ */
+export interface FlavorText {
+    id: number;
+    text: string;
+    /**
+     * species 中为 version_id；moves/abilities/items 中为 version_group_id
+     */
+    version: number;
+}
+
+/**
+ * 仅一列长文本。
+ */
+export interface SoloTextEntry {
+    id: number;
+    text: string;
+}
+
+/**
+ * 名称 + 描述。
+ */
+export interface ProseTextEntry {
+    id: number;
+    name: string;
+    description: string;
+}
+
+/**
+ * 地点：名称 + 副标题。
+ */
+export interface LocationName {
+    id: number;
+    name: string;
+    subtitle: string;
+}
+
+/**
+ * 宝可梦体型：名称、趣味名与描述。
+ */
+export interface ShapeEntry {
+    id: number;
+    name: string;
+    awesomeName: string;
+    description: string;
+}
+
+/**
+ * 宝可梦形态。
+ */
+export interface FormName {
+    id: number;
+    formName: string;
+    pokemonName: string;
+}
+
+/**
+ * 宝可梦物种：名称 + 分类（genus）。
+ */
+export interface SpeciesName {
+    id: number;
+    name: string;
+    genus: string;
+}
+
+/**
+ * 最常见形状：单一 id + 单一名称。
+ *
+ * `id` 为 `i32`：上游 move_meta_ailment_names 存在 id=-1 哨兵，
+ * 与服务端 schema 保持一致。
+ */
+export interface NamedTextEntry {
+    id: number;
+    name: string;
+}
+
+export interface I18nFlavorBundle {
+    languageId: number;
+    language: string;
+    /**
+     * 宝可梦图鉴描述（version 语义 = version_id）
+     */
+    species: FlavorText[];
+    /**
+     * 技能说明（version 语义 = version_group_id）
+     */
+    moves: FlavorText[];
+    /**
+     * 特性说明（version 语义 = version_group_id）
+     */
+    abilities: FlavorText[];
+    /**
+     * 道具说明（version 语义 = version_group_id）
+     */
+    items: FlavorText[];
+    /**
+     * 特性效果（简述 + 详述）。上游仅英文有数据。
+     */
+    abilityEffects: ProseEffect[];
+    /**
+     * 技能效果（简述 + 详述）。上游仅英文有数据。
+     */
+    moveEffects: ProseEffect[];
+}
+
+export interface I18nNamesBundle {
+    /**
+     * 上游 languages.csv 的 id（1..14）
+     */
+    languageId: number;
+    /**
+     * 上游 languages.csv 的 identifier，如 \"zh-hans\
+     */
+    language: string;
+    species: SpeciesName[];
+    forms: FormName[];
+    locations: LocationName[];
+    shapes: ShapeEntry[];
+    moves: NamedTextEntry[];
+    abilities: NamedTextEntry[];
+    items: NamedTextEntry[];
+    types: NamedTextEntry[];
+    natures: NamedTextEntry[];
+    stats: NamedTextEntry[];
+    eggGroups: NamedTextEntry[];
+    regions: NamedTextEntry[];
+    versions: NamedTextEntry[];
+    generations: NamedTextEntry[];
+    growthRates: NamedTextEntry[];
+    itemCategories: NamedTextEntry[];
+    itemPockets: NamedTextEntry[];
+    colors: NamedTextEntry[];
+    habitats: NamedTextEntry[];
+    moveAilments: NamedTextEntry[];
+    moveBattleStyles: NamedTextEntry[];
+    encounterMethods: NamedTextEntry[];
+    evolutionTriggers: NamedTextEntry[];
+    berryFirmnesses: NamedTextEntry[];
+    languages: NamedTextEntry[];
+    pokedexes: ProseTextEntry[];
+    moveDamageClasses: ProseTextEntry[];
+    moveTargets: ProseTextEntry[];
+    itemFlags: ProseTextEntry[];
+    moveFlags: ProseTextEntry[];
+    moveCategories: SoloTextEntry[];
+    itemFlingEffects: SoloTextEntry[];
+    characteristics: SoloTextEntry[];
+}
+
 export interface LevelMove {
     level: number;
     moveId: number;
@@ -274,6 +433,18 @@ export function calculateStat(level: number, base: number, iv: number, ev: numbe
 export function createDamageInput(level: number, attack: number, defense: number, base_power: number, move_type: number, move_category: number, attacker_type1: number, attacker_type2: number, defender_type1: number, defender_type2: number, weather: number, terrain: number, attacker_ability: number, defender_ability: number, is_critical: number, is_burned: number, move_flags: number): DamageInput;
 
 /**
+ * 解码 `I18nFlavorBundle` (fid = `PKFL`) —— 单语言描述组
+ * （图鉴/技能/特性/道具描述）。传输层的字符串池在解码时解析为内联字符串。
+ */
+export function decodeI18nFlavorBundle(data: Uint8Array): I18nFlavorBundle;
+
+/**
+ * 解码 `I18nNamesBundle` (fid = `PKNM`) —— 单语言名称组
+ * （物种名、技能名、属性名、形态名等 33 张短文本表）
+ */
+export function decodeI18nNamesBundle(data: Uint8Array): I18nNamesBundle;
+
+/**
  * 解码 `MovesDataBundle` (fid = `MDAT`) —— 招式定义
  */
 export function decodeMovesDataBundle(data: Uint8Array): MovesDataBundle;
@@ -356,6 +527,8 @@ export interface InitOutput {
     readonly damageinput_withDefenderSpdStage: (a: number, b: number) => void;
     readonly damageinput_withItemMod: (a: number, b: number) => void;
     readonly damageinput_withSeed: (a: number, b: number) => void;
+    readonly decodeI18nFlavorBundle: (a: number, b: number) => [number, number, number];
+    readonly decodeI18nNamesBundle: (a: number, b: number) => [number, number, number];
     readonly decodeMovesDataBundle: (a: number, b: number) => [number, number, number];
     readonly decodePokemonGenBundle: (a: number, b: number) => [number, number, number];
     readonly decodePokemonMovesBundle: (a: number, b: number) => [number, number, number];

@@ -236,3 +236,179 @@ pub struct MoveFlagPair {
     pub move_id: u32,
     pub move_flag_id: u8,
 }
+
+// ────────── I18nNamesBundle (fid = PKNM) ──────────
+//
+// 单语言名称组。行记录按形状分为 7 类（NamedEntry / TextEntry / ProseEntry +
+// 4 个特殊形状），bundle 含 33 个 vector。字符串字段缺失时为空串。
+
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct I18nNamesBundle {
+    /// 上游 languages.csv 的 id（1..14）
+    pub language_id: u8,
+    /// 上游 languages.csv 的 identifier，如 "zh-hans"
+    pub language: String,
+
+    // 特殊形状
+    pub species: Vec<SpeciesName>,
+    pub forms: Vec<FormName>,
+    pub locations: Vec<LocationName>,
+    pub shapes: Vec<ShapeEntry>,
+
+    // id + name
+    pub moves: Vec<NamedTextEntry>,
+    pub abilities: Vec<NamedTextEntry>,
+    pub items: Vec<NamedTextEntry>,
+    pub types: Vec<NamedTextEntry>,
+    pub natures: Vec<NamedTextEntry>,
+    pub stats: Vec<NamedTextEntry>,
+    pub egg_groups: Vec<NamedTextEntry>,
+    pub regions: Vec<NamedTextEntry>,
+    pub versions: Vec<NamedTextEntry>,
+    pub generations: Vec<NamedTextEntry>,
+    pub growth_rates: Vec<NamedTextEntry>,
+    pub item_categories: Vec<NamedTextEntry>,
+    pub item_pockets: Vec<NamedTextEntry>,
+    pub colors: Vec<NamedTextEntry>,
+    pub habitats: Vec<NamedTextEntry>,
+    pub move_ailments: Vec<NamedTextEntry>,
+    pub move_battle_styles: Vec<NamedTextEntry>,
+    pub encounter_methods: Vec<NamedTextEntry>,
+    pub evolution_triggers: Vec<NamedTextEntry>,
+    pub berry_firmnesses: Vec<NamedTextEntry>,
+    pub languages: Vec<NamedTextEntry>,
+
+    // id + name + description
+    pub pokedexes: Vec<ProseTextEntry>,
+    pub move_damage_classes: Vec<ProseTextEntry>,
+    pub move_targets: Vec<ProseTextEntry>,
+    pub item_flags: Vec<ProseTextEntry>,
+    pub move_flags: Vec<ProseTextEntry>,
+
+    // id + 单列长文本
+    pub move_categories: Vec<SoloTextEntry>,
+    pub item_fling_effects: Vec<SoloTextEntry>,
+    pub characteristics: Vec<SoloTextEntry>,
+}
+
+/// 最常见形状：单一 id + 单一名称。
+///
+/// `id` 为 `i32`：上游 move_meta_ailment_names 存在 id=-1 哨兵，
+/// 与服务端 schema 保持一致。
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct NamedTextEntry {
+    pub id: i32,
+    pub name: String,
+}
+
+/// 仅一列长文本。
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct SoloTextEntry {
+    pub id: u32,
+    pub text: String,
+}
+
+/// 名称 + 描述。
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct ProseTextEntry {
+    pub id: u32,
+    pub name: String,
+    pub description: String,
+}
+
+/// 宝可梦物种：名称 + 分类（genus）。
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct SpeciesName {
+    pub id: u16,
+    pub name: String,
+    pub genus: String,
+}
+
+/// 宝可梦形态。
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct FormName {
+    pub id: u32,
+    pub form_name: String,
+    pub pokemon_name: String,
+}
+
+/// 地点：名称 + 副标题。
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct LocationName {
+    pub id: u32,
+    pub name: String,
+    pub subtitle: String,
+}
+
+/// 宝可梦体型：名称、趣味名与描述。
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct ShapeEntry {
+    pub id: u32,
+    pub name: String,
+    pub awesome_name: String,
+    pub description: String,
+}
+
+// ────────── I18nFlavorBundle (fid = PKFL) ──────────
+//
+// 单语言描述组。传输层用 text_pool 去重（下标 0 恒为空串），解码时解析为
+// 内联字符串，对调用方隐藏池的存在；回落策略由客户端决定。
+
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct I18nFlavorBundle {
+    pub language_id: u8,
+    pub language: String,
+
+    /// 宝可梦图鉴描述（version 语义 = version_id）
+    pub species: Vec<FlavorText>,
+    /// 技能说明（version 语义 = version_group_id）
+    pub moves: Vec<FlavorText>,
+    /// 特性说明（version 语义 = version_group_id）
+    pub abilities: Vec<FlavorText>,
+    /// 道具说明（version 语义 = version_group_id）
+    pub items: Vec<FlavorText>,
+
+    /// 特性效果（简述 + 详述）。上游仅英文有数据。
+    pub ability_effects: Vec<ProseEffect>,
+    /// 技能效果（简述 + 详述）。上游仅英文有数据。
+    pub move_effects: Vec<ProseEffect>,
+}
+
+/// 一条"某实体在某游戏版本下的描述"。文本已从池中解析为内联字符串。
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct FlavorText {
+    pub id: u32,
+    pub text: String,
+    /// species 中为 version_id；moves/abilities/items 中为 version_group_id
+    pub version: u8,
+}
+
+/// 一条"效果说明"：简述 + 详述。文本已从池中解析。
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct ProseEffect {
+    pub id: u32,
+    pub short_effect: String,
+    pub effect: String,
+}

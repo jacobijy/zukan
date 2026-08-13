@@ -30,10 +30,14 @@ import {
     decodePokemonVgMovesBundle,
     decodePokemonMovesBundle,
     decodeMovesDataBundle,
+    decodeI18nNamesBundle,
+    decodeI18nFlavorBundle,
     type PokemonGenBundle,
     type PokemonVgMovesBundle,
     type PokemonMovesBundle,
     type MovesDataBundle,
+    type I18nNamesBundle,
+    type I18nFlavorBundle,
 } from '@/infra/wasm';
 import { fetchBinary, BinaryRequestError } from '@/services/http';
 import { getKey, clearKeyCache } from '@/services/session/key';
@@ -248,6 +252,20 @@ function specMovesData(kind: MovesDataKind, vgId?: number): BundleSpec {
     };
 }
 
+function specI18nNames(lang: string): BundleSpec {
+    return {
+        cacheKey: `${currentCacheKeyPrefix()}:i18n:names:${lang}`,
+        remotePath: `/assets/encrypted/fb/i18n/${lang}/names.bin`,
+    };
+}
+
+function specI18nFlavor(lang: string): BundleSpec {
+    return {
+        cacheKey: `${currentCacheKeyPrefix()}:i18n:flavor:${lang}`,
+        remotePath: `/assets/encrypted/fb/i18n/${lang}/flavor.bin`,
+    };
+}
+
 // ─────────────────────────────────────────────────────────
 // 公共 API
 // ─────────────────────────────────────────────────────────
@@ -270,6 +288,14 @@ export const resourceManager = {
     getMovesData(kind: MovesDataKind, vgId?: number): Promise<MovesDataBundle> {
         return loadBundle(specMovesData(kind, vgId), decodeMovesDataBundle);
     },
+    /** 单语言名称组（PKNM）—— 物种名/技能名/属性名等短文本 */
+    getI18nNames(lang: string): Promise<I18nNamesBundle> {
+        return loadBundle(specI18nNames(lang), decodeI18nNamesBundle);
+    },
+    /** 单语言描述组（PKFL）—— 图鉴/技能/特性/道具描述，体积较大按需加载 */
+    getI18nFlavor(lang: string): Promise<I18nFlavorBundle> {
+        return loadBundle(specI18nFlavor(lang), decodeI18nFlavorBundle);
+    },
 
     // ── 预取（与 get* 共享 inflight 去重；错误静默） ──
     prefetchPokemonGen(genId: number): void {
@@ -283,6 +309,12 @@ export const resourceManager = {
     },
     prefetchMovesData(kind: MovesDataKind, vgId?: number): void {
         silence(this.getMovesData(kind, vgId), `mdata-${kind}`);
+    },
+    prefetchI18nNames(lang: string): void {
+        silence(this.getI18nNames(lang), `i18n-names-${lang}`);
+    },
+    prefetchI18nFlavor(lang: string): void {
+        silence(this.getI18nFlavor(lang), `i18n-flavor-${lang}`);
     },
 
     // ── 运维 ──

@@ -260,6 +260,8 @@ export type {
     PokemonVgMovesBundle,
     PokemonMovesBundle,
     MovesDataBundle,
+    I18nNamesBundle,
+    I18nFlavorBundle,
     // PKMB 表行
     PokemonBase,
     PokemonStat,
@@ -275,10 +277,28 @@ export type {
     MoveMeta,
     MoveMetaStatChange,
     MoveFlagPair,
+    // PKNM 名称组
+    NamedTextEntry,
+    SoloTextEntry,
+    ProseTextEntry,
+    SpeciesName,
+    FormName,
+    LocationName,
+    ShapeEntry,
+    // PKFL 描述组（字符串池已解析为内联字符串）
+    FlavorText,
+    ProseEffect,
 } from './pkg/zukan_wasm';
 
 // 为下方 wrapper 单独 import 类型
-import type { PokemonGenBundle, PokemonVgMovesBundle, PokemonMovesBundle, MovesDataBundle } from './pkg/zukan_wasm';
+import type {
+    PokemonGenBundle,
+    PokemonVgMovesBundle,
+    PokemonMovesBundle,
+    MovesDataBundle,
+    I18nNamesBundle,
+    I18nFlavorBundle,
+} from './pkg/zukan_wasm';
 
 /**
  * 解码 `gen-N.bin` (fid = `PKMB`) —— 宝可梦基础参数（按世代打包）
@@ -316,4 +336,23 @@ export function decodePokemonMovesBundle(data: Uint8Array): PokemonMovesBundle {
 export function decodeMovesDataBundle(data: Uint8Array): MovesDataBundle {
     assertWasmReady();
     return wasmModule!.decodeMovesDataBundle(data);
+}
+
+/**
+ * 解码 `i18n/<lang>/names.bin` (fid = `PKNM`) —— 单语言名称组。
+ * 含物种名、技能名、属性名、形态名、地点名等 33 张短文本表。
+ */
+export function decodeI18nNamesBundle(data: Uint8Array): I18nNamesBundle {
+    assertWasmReady();
+    return wasmModule!.decodeI18nNamesBundle(data);
+}
+
+/**
+ * 解码 `i18n/<lang>/flavor.bin` (fid = `PKFL`) —— 单语言描述组。
+ * 传输层的字符串池（text_pool）在 Rust 解码时解析为内联字符串，
+ * 调用方直接读 `FlavorText.text` / `ProseEffect.effect` 即可。
+ */
+export function decodeI18nFlavorBundle(data: Uint8Array): I18nFlavorBundle {
+    assertWasmReady();
+    return wasmModule!.decodeI18nFlavorBundle(data);
 }

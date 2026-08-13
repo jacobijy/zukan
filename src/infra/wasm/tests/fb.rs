@@ -7,10 +7,8 @@
 //! 迁到本 crate 的 `tests/fixtures/` 目录并把 `include_bytes!` 路径改成本地。
 
 use zukan_wasm::fb::decode::{
-    decode_moves_data_bundle,
-    decode_pokemon_gen_bundle,
-    decode_pokemon_moves_bundle,
-    decode_pokemon_vg_moves_bundle,
+    decode_i18n_flavor_bundle, decode_i18n_names_bundle, decode_moves_data_bundle,
+    decode_pokemon_gen_bundle, decode_pokemon_moves_bundle, decode_pokemon_vg_moves_bundle,
 };
 use zukan_wasm::fb::FbDecodeError;
 
@@ -21,6 +19,12 @@ const PMSB_COMMON: &[u8] =
     include_bytes!("../../../../../zukan-server/assets/fb/pokemon_moves/common.bin");
 const MDAT_COMMON: &[u8] =
     include_bytes!("../../../../../zukan-server/assets/fb/moves_data/common.bin");
+const I18N_ZH_NAMES: &[u8] =
+    include_bytes!("../../../../../zukan-server/assets/fb/i18n/zh-hans/names.bin");
+const I18N_ZH_FLAVOR: &[u8] =
+    include_bytes!("../../../../../zukan-server/assets/fb/i18n/zh-hans/flavor.bin");
+const I18N_EN_FLAVOR: &[u8] =
+    include_bytes!("../../../../../zukan-server/assets/fb/i18n/en/flavor.bin");
 
 #[test]
 fn decodes_pokemon_gen_bundle_gen3() {
@@ -106,5 +110,62 @@ fn rejects_truncated_buffer() {
         Err(FbDecodeError::TruncatedBuffer(4)) => {}
         Err(other) => panic!("expected TruncatedBuffer(4), got {other:?}"),
         Ok(_) => panic!("expected TruncatedBuffer(4), got Ok"),
+    }
+}
+
+#[test]
+fn decodes_i18n_names_bundle_zh_hans() {
+    let b = decode_i18n_names_bundle(I18N_ZH_NAMES).expect("zh-hans/names.bin decode");
+    assert_eq!(b.language, "zh-hans");
+    assert_eq!(b.species.len(), 1025, "全部物种");
+
+    // 妙蛙种子（id=1）
+    let bulba = b.species.iter().find(|s| s.id == 1).expect("Bulbasaur");
+    assert_eq!(bulba.name, "妙蛙种子");
+    assert_eq!(bulba.genus, "种子宝可梦");
+
+    // 属性名：火(10)/水(11)/草(12)
+    let fire = b.types.iter().find(|t| t.id == 10).expect("Fire");
+    assert_eq!(fire.name, "火");
+}
+
+#[test]
+fn decodes_i18n_flavor_bundle_resolves_text_pool() {
+    let b = decode_i18n_flavor_bundle(I18N_ZH_FLAVOR).expect("zh-hans/flavor.bin decode");
+    assert_eq!(b.language, "zh-hans");
+    assert!(!b.species.is_empty(), "图鉴描述非空");
+
+    // 字符串池已在解码时解析为内联文本：所有非空文本都应可读
+    let with_text = b.species.iter().find(|s| !s.text.is_empty());
+    assert!(with_text.is_some(), "至少有一条非空图鉴描述");
+    let sample = with_text.unwrap();
+    assert!(sample.text.contains('\n') || !sample.text.is_empty());
+    // 下标 0 代表的空串应被解析为 ""，不是 "0" 或越界 panic
+    assert!(b.species.iter().all(|s| !s.text.contains('\u{0}')));
+
+    // 中文无 effect 数据（上游仅英文）
+    assert!(b.ability_effects.is_empty());
+    assert!(b.move_effects.is_empty());
+}
+
+#[test]
+fn decodes_i18n_flavor_bundle_en_effects() {
+    let b = decode_i18n_flavor_bundle(I18N_EN_FLAVOR).expect("en/flavor.bin decode");
+    assert_eq!(b.language, "en");
+    // 英文独有：特性/技能效果
+    assert!(!b.ability_effects.is_empty(), "英文有特性效果");
+    assert!(!b.move_effects.is_empty(), "英文有技能效果");
+    let first = &b.ability_effects[0];
+    assert!(!first.short_effect.is_empty());
+    assert!(!first.effect.is_empty());
+}
+
+#[test]
+fn rejects_wrong_identifier_for_i18n() {
+    // 用 names.bin 的 PKNM 去解 flavor，应报 identifier 不匹配
+    match decode_i18n_flavor_bundle(I18N_ZH_NAMES) {
+        Err(FbDecodeError::InvalidIdentifier { expected, .. }) => assert_eq!(expected, "PKFL"),
+        Err(other) => panic!("expected InvalidIdentifier(PKFL), got {other:?}"),
+        Ok(_) => panic!("expected InvalidIdentifier(PKFL), got Ok"),
     }
 }

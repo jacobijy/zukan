@@ -19,6 +19,10 @@ use super::generated::pokemon_move_set_generated::pokeapi::fb as gen_move_set;
 use super::generated::pokemon_stats_generated::pokeapi::fb as gen_stat;
 use super::generated::pokemon_types_generated::pokeapi::fb as gen_type;
 
+// —— i18n 类型来源模块 ——
+use super::generated::i18n_names_bundle_generated::pokeapi::fb as gen_names;
+use super::generated::i18n_flavor_bundle_generated::pokeapi::fb as gen_flavor;
+
 // —— 四个 root：identifier 常量 + root_as_* 函数 ——
 use super::generated::moves_data_bundle_generated::pokeapi::fb::{
     MOVES_DATA_BUNDLE_IDENTIFIER, root_as_moves_data_bundle,
@@ -31,6 +35,12 @@ use super::generated::pokemon_moves_bundle_generated::pokeapi::fb::{
 };
 use super::generated::pokemon_vg_moves_bundle_generated::pokeapi::fb::{
     POKEMON_VG_MOVES_BUNDLE_IDENTIFIER, root_as_pokemon_vg_moves_bundle,
+};
+use super::generated::i18n_names_bundle_generated::pokeapi::fb::{
+    I_18N_NAMES_BUNDLE_IDENTIFIER, root_as_i18n_names_bundle,
+};
+use super::generated::i18n_flavor_bundle_generated::pokeapi::fb::{
+    I_18N_FLAVOR_BUNDLE_IDENTIFIER, root_as_i18n_flavor_bundle,
 };
 
 // ────────── 通用工具 ──────────
@@ -317,4 +327,184 @@ fn move_flag_pair_to_owned(m: &gen_move_flag_pair::MoveFlagPair) -> owned::MoveF
         move_id: m.move_id(),
         move_flag_id: m.move_flag_id(),
     }
+}
+
+// ────────── I18nNamesBundle → owned ──────────
+
+pub fn decode_i18n_names_bundle(buf: &[u8]) -> Result<owned::I18nNamesBundle, FbDecodeError> {
+    check_identifier(buf, I_18N_NAMES_BUNDLE_IDENTIFIER)?;
+    let root = root_as_i18n_names_bundle(buf)
+        .map_err(|e| FbDecodeError::ParseFailed(e.to_string()))?;
+
+    let s = |opt: Option<&str>| opt.unwrap_or("").to_string();
+
+    let species = root
+        .species()
+        .map(|v| {
+            v.iter()
+                .map(|x| owned::SpeciesName {
+                    id: x.id(),
+                    name: s(x.name()),
+                    genus: s(x.genus()),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let forms = root
+        .forms()
+        .map(|v| {
+            v.iter()
+                .map(|x| owned::FormName {
+                    id: x.id(),
+                    form_name: s(x.form_name()),
+                    pokemon_name: s(x.pokemon_name()),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let locations = root
+        .locations()
+        .map(|v| {
+            v.iter()
+                .map(|x| owned::LocationName {
+                    id: x.id(),
+                    name: s(x.name()),
+                    subtitle: s(x.subtitle()),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let shapes = root
+        .shapes()
+        .map(|v| {
+            v.iter()
+                .map(|x| owned::ShapeEntry {
+                    id: x.id(),
+                    name: s(x.name()),
+                    awesome_name: s(x.awesome_name()),
+                    description: s(x.description()),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let named = |vec: Option<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<gen_names::NamedEntry<'_>>>>| {
+        vec.map(|v| {
+            v.iter()
+                .map(|x| owned::NamedTextEntry { id: x.id(), name: s(x.name()) })
+                .collect()
+        })
+        .unwrap_or_default()
+    };
+    let solo = |vec: Option<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<gen_names::TextEntry<'_>>>>| {
+        vec.map(|v| {
+            v.iter()
+                .map(|x| owned::SoloTextEntry { id: x.id(), text: s(x.text()) })
+                .collect()
+        })
+        .unwrap_or_default()
+    };
+    let prose = |vec: Option<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<gen_names::ProseEntry<'_>>>>| {
+        vec.map(|v| {
+            v.iter()
+                .map(|x| owned::ProseTextEntry {
+                    id: x.id(),
+                    name: s(x.name()),
+                    description: s(x.description()),
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+    };
+
+    Ok(owned::I18nNamesBundle {
+        language_id: root.language_id(),
+        language: s(root.language()),
+        species,
+        forms,
+        locations,
+        shapes,
+        moves: named(root.moves()),
+        abilities: named(root.abilities()),
+        items: named(root.items()),
+        types: named(root.types()),
+        natures: named(root.natures()),
+        stats: named(root.stats()),
+        egg_groups: named(root.egg_groups()),
+        regions: named(root.regions()),
+        versions: named(root.versions()),
+        generations: named(root.generations()),
+        growth_rates: named(root.growth_rates()),
+        item_categories: named(root.item_categories()),
+        item_pockets: named(root.item_pockets()),
+        colors: named(root.colors()),
+        habitats: named(root.habitats()),
+        move_ailments: named(root.move_ailments()),
+        move_battle_styles: named(root.move_battle_styles()),
+        encounter_methods: named(root.encounter_methods()),
+        evolution_triggers: named(root.evolution_triggers()),
+        berry_firmnesses: named(root.berry_firmnesses()),
+        languages: named(root.languages()),
+        pokedexes: prose(root.pokedexes()),
+        move_damage_classes: prose(root.move_damage_classes()),
+        move_targets: prose(root.move_targets()),
+        item_flags: prose(root.item_flags()),
+        move_flags: prose(root.move_flags()),
+        move_categories: solo(root.move_categories()),
+        item_fling_effects: solo(root.item_fling_effects()),
+        characteristics: solo(root.characteristics()),
+    })
+}
+
+// ────────── I18nFlavorBundle → owned ──────────
+
+pub fn decode_i18n_flavor_bundle(buf: &[u8]) -> Result<owned::I18nFlavorBundle, FbDecodeError> {
+    check_identifier(buf, I_18N_FLAVOR_BUNDLE_IDENTIFIER)?;
+    let root = root_as_i18n_flavor_bundle(buf)
+        .map_err(|e| FbDecodeError::ParseFailed(e.to_string()))?;
+
+    // 建字符串池：下标 0 恒为空串，越界也回落空串（防御性）。
+    let pool: Vec<&str> = match root.text_pool() {
+        Some(v) => v.iter().collect(),
+        None => Vec::new(),
+    };
+    let resolve = |idx: u32| -> String {
+        pool.get(idx as usize).copied().unwrap_or("").to_string()
+    };
+
+    let flavors = |vec: Option<flatbuffers::Vector<'_, gen_flavor::FlavorRef>>| {
+        vec.map(|v| {
+            v.iter()
+                .map(|r| owned::FlavorText {
+                    id: r.id(),
+                    text: resolve(r.text()),
+                    version: r.version(),
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+    };
+    let effects = |vec: Option<flatbuffers::Vector<'_, gen_flavor::ProseRef>>| {
+        vec.map(|v| {
+            v.iter()
+                .map(|r| owned::ProseEffect {
+                    id: r.id(),
+                    short_effect: resolve(r.short_effect()),
+                    effect: resolve(r.effect()),
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+    };
+
+    Ok(owned::I18nFlavorBundle {
+        language_id: root.language_id(),
+        language: root.language().unwrap_or("").to_string(),
+        species: flavors(root.species()),
+        moves: flavors(root.moves()),
+        abilities: flavors(root.abilities()),
+        items: flavors(root.items()),
+        ability_effects: effects(root.ability_effects()),
+        move_effects: effects(root.move_effects()),
+    })
 }

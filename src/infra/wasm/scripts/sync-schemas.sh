@@ -4,8 +4,11 @@
 # 用法：从 zukan/src/infra/wasm/ 目录执行
 #   bash scripts/sync-schemas.sh [--server <path>]
 #
-# 默认假设两个仓平级：../../../../../zukan-server/assets/fb/schemas/
+# 默认假设两个仓平级：../../../../../zukan-server/tools/schemas/
 # 也可以显式指定 --server 覆盖。
+#
+# schema 的权威目录在 zukan-server/tools/schemas/（数值 + i18n 共 17 份）。
+# assets/fb/schemas/ 是旧的数值子集副本，不要再作为同步源。
 
 set -euo pipefail
 
@@ -25,7 +28,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-SRC="$SERVER_ROOT/assets/fb/schemas"
+SRC="$SERVER_ROOT/tools/schemas"
 DST="$CRATE_DIR/schemas"
 
 if [[ ! -d "$SRC" ]]; then

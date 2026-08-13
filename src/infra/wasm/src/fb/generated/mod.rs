@@ -6,6 +6,8 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 
+pub mod i18n_flavor_bundle_generated;
+pub mod i18n_names_bundle_generated;
 pub mod move_flag_pair_generated;
 pub mod move_generated;
 pub mod move_meta_generated;

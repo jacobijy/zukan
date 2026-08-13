@@ -230,6 +230,38 @@ export function createDamageInput(level, attack, defense, base_power, move_type,
 }
 
 /**
+ * 解码 `I18nFlavorBundle` (fid = `PKFL`) —— 单语言描述组
+ * （图鉴/技能/特性/道具描述）。传输层的字符串池在解码时解析为内联字符串。
+ * @param {Uint8Array} data
+ * @returns {I18nFlavorBundle}
+ */
+export function decodeI18nFlavorBundle(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decodeI18nFlavorBundle(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * 解码 `I18nNamesBundle` (fid = `PKNM`) —— 单语言名称组
+ * （物种名、技能名、属性名、形态名等 33 张短文本表）
+ * @param {Uint8Array} data
+ * @returns {I18nNamesBundle}
+ */
+export function decodeI18nNamesBundle(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decodeI18nNamesBundle(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
  * 解码 `MovesDataBundle` (fid = `MDAT`) —— 招式定义
  * @param {Uint8Array} data
  * @returns {MovesDataBundle}

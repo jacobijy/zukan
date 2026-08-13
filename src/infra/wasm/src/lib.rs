@@ -1,6 +1,6 @@
 //! 图鉴 WASM 模块
 //! 提供图鉴二进制文件加解密（AES-256-GCM）、通用密码学工具、伤害计算，以及
-//! FlatBuffers 数据（宝可梦基础参数 / 招式记录 / 招式定义）解码
+//! FlatBuffers 数据（宝可梦基础参数 / 招式记录 / 招式定义 / 多语言文本）解码
 
 use wasm_bindgen::prelude::*;
 
@@ -148,7 +148,10 @@ pub fn create_damage_input(
 // `decodePokemonGenBundle(data: Uint8Array): PokemonGenBundle`（而非 `any`）。
 // 字段类型/命名对齐 `assets/fb/README.md` §Field Reference。
 
-use fb::convert::{MovesDataBundle, PokemonGenBundle, PokemonMovesBundle, PokemonVgMovesBundle};
+use fb::convert::{
+    I18nFlavorBundle, I18nNamesBundle, MovesDataBundle, PokemonGenBundle, PokemonMovesBundle,
+    PokemonVgMovesBundle,
+};
 
 /// 解码 `PokemonGenBundle` (fid = `PKMB`) —— 宝可梦基础参数（按世代打包）
 #[wasm_bindgen(js_name = decodePokemonGenBundle)]
@@ -172,4 +175,18 @@ pub fn decode_pokemon_moves_bundle(data: &[u8]) -> Result<PokemonMovesBundle, Js
 #[wasm_bindgen(js_name = decodeMovesDataBundle)]
 pub fn decode_moves_data_bundle(data: &[u8]) -> Result<MovesDataBundle, JsValue> {
     Ok(fb::decode::decode_moves_data_bundle(data)?)
+}
+
+/// 解码 `I18nNamesBundle` (fid = `PKNM`) —— 单语言名称组
+/// （物种名、技能名、属性名、形态名等 33 张短文本表）
+#[wasm_bindgen(js_name = decodeI18nNamesBundle)]
+pub fn decode_i18n_names_bundle(data: &[u8]) -> Result<I18nNamesBundle, JsValue> {
+    Ok(fb::decode::decode_i18n_names_bundle(data)?)
+}
+
+/// 解码 `I18nFlavorBundle` (fid = `PKFL`) —— 单语言描述组
+/// （图鉴/技能/特性/道具描述）。传输层的字符串池在解码时解析为内联字符串。
+#[wasm_bindgen(js_name = decodeI18nFlavorBundle)]
+pub fn decode_i18n_flavor_bundle(data: &[u8]) -> Result<I18nFlavorBundle, JsValue> {
+    Ok(fb::decode::decode_i18n_flavor_bundle(data)?)
 }

@@ -1,0 +1,78 @@
+// tools/schemas/i18n_flavor_bundle.fbs
+//
+// 单语言"描述组"bundle 的顶层 root：图鉴描述、技能说明、特性效果等长文本，
+// 输出形如 assets/fb/i18n/<lang>/flavor.bin。
+//
+// 与名称组分开成两个文件，是因为描述类文本占总体积约 90%：客户端可以只下
+// names.bin 先把界面跑起来，描述按需再取。
+//
+// # 字符串池
+//
+// 同一段文本在多个 version / version_group 下大量重复（实测
+// move_flavor_text 的 50360 条中仅 15328 条唯一，去重省约 70%）。因此本
+// bundle 把全部文本收进 `text_pool`，各表只存池下标。
+//
+// 约定：`text_pool[0]` 恒为空串，故下标 0 表示"该字段无文本"。
+//
+// 因为行记录只含标量下标（不含 string），这里可以用 struct —— 无 vtable
+// 开销，布局与 pokemon_base.fbs 等现有 schema 风格一致。
+//
+// 文本保持上游原样：游戏内换行（`\n`，占 92.5%）与软连字符（U+00AD，361
+// 处）均不做规范化，交由客户端按排版需要处理。
+
+namespace pokeapi.fb;
+
+/// 一条"某实体在某游戏版本下的描述"记录。
+///
+/// `version` 的语义随所在字段而定：
+///   - `species` 字段中为 version_id（上游 pokemon_species_flavor_text，1..41）
+///   - 其余三个字段中为 version_group_id（上游 *_flavor_text，1..32）
+struct FlavorRef {
+  /// 实体 id：species / move / ability / item 各自的主键。
+  id: uint32;
+  /// 文本在 text_pool 中的下标。
+  text: uint32;
+  /// version_id 或 version_group_id，见上述说明。
+  version: uint8;
+}
+
+/// 一条"效果说明"记录：简述 + 详述。
+/// 对应 CSV：ability_prose.csv、move_effect_prose.csv
+///
+/// 注意上游数据缺口：这两张表**只有英文**（中日韩等语言 0 行）。
+/// 非英语 bundle 中对应 vector 为空，回落策略由客户端决定。
+struct ProseRef {
+  id: uint32;
+  /// 简述在 text_pool 中的下标。
+  short_effect: uint32;
+  /// 详述在 text_pool 中的下标。
+  effect: uint32;
+}
+
+/// 单一语言的全部描述类文本。
+table I18nFlavorBundle {
+  /// 上游 languages.csv 的 id（1..14）。
+  language_id: uint8;
+  /// 上游 languages.csv 的 identifier，如 "zh-hans"。
+  language: string;
+
+  /// 去重后的文本池。下标 0 恒为空串，表示"无文本"。
+  text_pool: [string];
+
+  /// 宝可梦图鉴描述（按 version_id 区分）。
+  species: [FlavorRef];
+  /// 技能说明（按 version_group_id 区分）。
+  moves: [FlavorRef];
+  /// 特性说明（按 version_group_id 区分）。
+  abilities: [FlavorRef];
+  /// 道具说明（按 version_group_id 区分）。
+  items: [FlavorRef];
+
+  /// 特性效果（简述 + 详述）。上游仅英文。
+  ability_effects: [ProseRef];
+  /// 技能效果（简述 + 详述）。上游仅英文。
+  move_effects: [ProseRef];
+}
+
+root_type I18nFlavorBundle;
+file_identifier "PKFL";
