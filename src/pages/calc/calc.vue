@@ -24,6 +24,8 @@
                     @inc-stage1="incStage('atk')"
                     @dec-stage2="decStage('spa')"
                     @inc-stage2="incStage('spa')"
+                    :item="attackerItemLabel"
+                    @select-item="showItemPicker"
                 />
 
                 <!-- 防御方 -->
@@ -87,8 +89,6 @@
                     <view class="calc-divider"></view>
                     <ChipRow :label="t('calc.terrain')" :options="TERRAIN_OPTIONS" v-model="selectedTerrain" />
                     <view class="calc-divider"></view>
-                    <ChipRow :label="t('calc.item')" :options="ITEM_OPTIONS" v-model="selectedItemId" />
-                    <view class="calc-divider"></view>
                     <ChipRow :label="t('calc.screen')" :options="SCREEN_OPTIONS" v-model="reflectScreen" />
                     <view class="calc-divider"></view>
                     <ChipRow :label="t('calc.status')" :options="STATUS_OPTIONS" v-model="selectedStatus" multiple />
@@ -123,7 +123,7 @@ import { getTypeShort } from '@/constants/pokemonTypes';
 import {
     WEATHER_OPTIONS, TERRAIN_OPTIONS, COMMON_ABILITIES,
     COMMON_MOVES, ITEM_OPTIONS, SCREEN_OPTIONS, STATUS_OPTIONS,
-    getAbilityName, getItemMod,
+    getAbilityName, getItemMod, getItemLabel,
     type MoveOption,
 } from './calc-options';
 
@@ -227,9 +227,21 @@ const incStage = (key: string) => {
 };
 
 // ==============================
-// 道具 / 状态
+// 道具（攻击方携带）/ 状态
 // ==============================
-const selectedItemId = ref('none');
+const attackerItemId = ref('none');
+const attackerItemLabel = computed(() => getItemLabel(attackerItemId.value));
+
+const showItemPicker = () => {
+    uni.showActionSheet({
+        itemList: ITEM_OPTIONS.map((i) => i.label),
+        success: (res) => {
+            const opt = ITEM_OPTIONS[res.tapIndex];
+            if (opt) attackerItemId.value = opt.id;
+        },
+    });
+};
+
 const selectedStatus = ref<string[]>([]);
 const isBurned = computed(() => selectedStatus.value.includes('burn'));
 const isCritical = computed(() => selectedStatus.value.includes('critical'));
@@ -256,7 +268,7 @@ const doCalculate = async () => {
         const hp = calcStat(getBaseStat(defenderPokemon.value.stats, 'HP'), defenderLevel.value, true);
 
         // 光墙/反射壁: 折叠进 itemMod
-        let itemMod = getItemMod(selectedItemId.value);
+        let itemMod = getItemMod(attackerItemId.value);
         if (reflectScreen.value === 'reflect' && selectedMove.value.category === 'physical') itemMod = Math.round(itemMod * 50 / 100);
         if (reflectScreen.value === 'lightscreen' && selectedMove.value.category === 'special') itemMod = Math.round(itemMod * 50 / 100);
         if (reflectScreen.value === 'auroraveil') itemMod = Math.round(itemMod * 50 / 100);
@@ -307,7 +319,7 @@ const resetAll = () => {
     attackerPokemon.value = null; defenderPokemon.value = null;
     selectedMove.value = null;
     atkStage.value = 0; defStage.value = 0; spaStage.value = 0; spdStage.value = 0;
-    selectedItemId.value = 'none';
+    attackerItemId.value = 'none';
     selectedStatus.value = [];
     reflectScreen.value = 'none';
     result.value = null;

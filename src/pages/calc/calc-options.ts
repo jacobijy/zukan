@@ -237,6 +237,7 @@ export const ITEM_OPTIONS: ItemOption[] = [
 ];
 
 export const getItemMod = (id: string): number => ITEM_OPTIONS.find((i) => i.id === id)?.mod ?? 100;
+export const getItemLabel = (id: string): string => ITEM_OPTIONS.find((i) => i.id === id)?.label ?? '无';
 
 // ─── 防护 ─────────────────────────────────────────────
 export interface ScreenOption {

@@ -44,6 +44,12 @@
             <text class="text-[#9da2ad] text-[12px] font-semibold">{{ t('calc.side.statsHint') }}</text>
         </view>
 
+        <!-- 道具（仅攻击方携带时渲染） -->
+        <view v-if="item !== undefined" class="calc-sub-row" @click="$emit('select-item')">
+            <text class="calc-inline-label">{{ t('calc.item') }}</text>
+            <text class="calc-inline-value" :class="itemIsSet ? 'calc-inline-value--set' : ''">{{ item }}</text>
+        </view>
+
         <!-- 特性 + 能力等级 -->
         <view class="calc-row-line">
             <view class="calc-inline-item" @click="$emit('select-ability')">
@@ -97,17 +103,22 @@ const props = defineProps<{
     stage2Label: string;
     stage1Val: number;
     stage2Val: number;
+    /** 传入则在能力值下方渲染可点击的道具行（攻击方携带） */
+    item?: string;
 }>();
 
 const emit = defineEmits<{
     'select-pokemon': [];
     'select-ability': [];
+    'select-item': [];
     'adjust-level': [delta: number];
     'dec-stage1': [];
     'inc-stage1': [];
     'dec-stage2': [];
     'inc-stage2': [];
 }>();
+
+const itemIsSet = computed(() => !!props.item && props.item !== '无');
 
 const statsList = computed(() => {
     if (!props.pokemon) return [];
@@ -273,6 +284,17 @@ const statsList = computed(() => {
     font-weight: 800;
     color: #24262b;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* 道具行（攻击方携带） */
+.calc-sub-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 14px;
+    border-top: 1px solid #f1f2f6;
+    min-height: 38px;
 }
 
 /* 特性 + 能力等级行 */
