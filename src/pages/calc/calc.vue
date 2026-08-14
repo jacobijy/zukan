@@ -83,24 +83,15 @@
                         </svg>
                     </template>
 
-                    <ChipRow :label="t('calc.weather')" :options="WEATHER_OPTIONS" v-model="selectedWeather" />
+                    <ChipRow :label="t('calc.weather')" :options="WEATHER_OPTIONS" v-model="selectedWeather" nowrap />
                     <view class="calc-divider"></view>
                     <ChipRow :label="t('calc.terrain')" :options="TERRAIN_OPTIONS" v-model="selectedTerrain" />
                     <view class="calc-divider"></view>
-                    <ChipRow :label="t('calc.item')" :options="[]" v-model="selectedItem.name">
-                        <template #extra>
-                            <view class="calc-chip" :class="selectedItem.name !== '无' ? 'calc-chip--active' : ''" @click="showItemPicker">{{ selectedItem.name }}</view>
-                        </template>
-                    </ChipRow>
+                    <ChipRow :label="t('calc.item')" :options="ITEM_OPTIONS" v-model="selectedItemId" />
                     <view class="calc-divider"></view>
                     <ChipRow :label="t('calc.screen')" :options="SCREEN_OPTIONS" v-model="reflectScreen" />
                     <view class="calc-divider"></view>
-                    <ChipRow :label="t('calc.status')" :options="[]">
-                        <template #extra>
-                            <view class="calc-chip" :class="isBurned ? 'calc-chip--active--orange' : ''" @click="isBurned = !isBurned">{{ t('calc.burn') }}</view>
-                            <view class="calc-chip" :class="isCritical ? 'calc-chip--active--red' : ''" @click="isCritical = !isCritical">{{ t('calc.critical') }}</view>
-                        </template>
-                    </ChipRow>
+                    <ChipRow :label="t('calc.status')" :options="STATUS_OPTIONS" v-model="selectedStatus" multiple />
                 </CalcCard>
 
                 <!-- 结果 -->
@@ -131,9 +122,9 @@ import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import { getTypeShort } from '@/constants/pokemonTypes';
 import {
     WEATHER_OPTIONS, TERRAIN_OPTIONS, COMMON_ABILITIES,
-    COMMON_MOVES, ITEM_OPTIONS, SCREEN_OPTIONS,
-    getAbilityName,
-    type MoveOption, type ItemOption,
+    COMMON_MOVES, ITEM_OPTIONS, SCREEN_OPTIONS, STATUS_OPTIONS,
+    getAbilityName, getItemMod,
+    type MoveOption,
 } from './calc-options';
 
 const { t } = useI18n();
@@ -238,17 +229,11 @@ const incStage = (key: string) => {
 // ==============================
 // 道具 / 状态
 // ==============================
-const selectedItem = ref<ItemOption>(ITEM_OPTIONS[0]);
-const isBurned = ref(false);
-const isCritical = ref(false);
+const selectedItemId = ref('none');
+const selectedStatus = ref<string[]>([]);
+const isBurned = computed(() => selectedStatus.value.includes('burn'));
+const isCritical = computed(() => selectedStatus.value.includes('critical'));
 const reflectScreen = ref<string>('none');
-
-const showItemPicker = () => {
-    uni.showActionSheet({
-        itemList: ITEM_OPTIONS.map(i => i.name),
-        success: (res) => { selectedItem.value = ITEM_OPTIONS[res.tapIndex]; }
-    });
-};
 
 // ==============================
 // 计算结果
@@ -271,7 +256,7 @@ const doCalculate = async () => {
         const hp = calcStat(getBaseStat(defenderPokemon.value.stats, 'HP'), defenderLevel.value, true);
 
         // 光墙/反射壁: 折叠进 itemMod
-        let itemMod = selectedItem.value.mod;
+        let itemMod = getItemMod(selectedItemId.value);
         if (reflectScreen.value === 'reflect' && selectedMove.value.category === 'physical') itemMod = Math.round(itemMod * 50 / 100);
         if (reflectScreen.value === 'lightscreen' && selectedMove.value.category === 'special') itemMod = Math.round(itemMod * 50 / 100);
         if (reflectScreen.value === 'auroraveil') itemMod = Math.round(itemMod * 50 / 100);
@@ -322,8 +307,9 @@ const resetAll = () => {
     attackerPokemon.value = null; defenderPokemon.value = null;
     selectedMove.value = null;
     atkStage.value = 0; defStage.value = 0; spaStage.value = 0; spdStage.value = 0;
-    selectedItem.value = ITEM_OPTIONS[0];
-    isBurned.value = false; isCritical.value = false; reflectScreen.value = 'none';
+    selectedItemId.value = 'none';
+    selectedStatus.value = [];
+    reflectScreen.value = 'none';
     result.value = null;
 };
 
@@ -340,8 +326,6 @@ const goBack = () => {
 .calc-pkm-name { font-size: 15px; font-weight: 800; color: #24262b; }
 
 .calc-divider { height: 1px; margin: 0 14px; background: #f1f2f6; }
-.calc-chip--active--orange { color: #fff; background: linear-gradient(135deg, #f4a06f, #d87a1e); border-color: transparent; }
-.calc-chip--active--red { color: #fff; background: linear-gradient(135deg, #e76f6f, #d43a3a); border-color: transparent; }
 
 .calc-action { flex: 1; height: 46px; line-height: 46px; border-radius: 16px; color: #ffffff; font-size: 15px; font-weight: 800; background: linear-gradient(135deg, #73b7ff, #357df4); box-shadow: 0 10px 22px rgba(53, 125, 244, 0.22); }
 .calc-action--reset { flex: 0 0 auto; width: auto; padding: 0 20px; background: #eef0f5; color: #6f7682; box-shadow: none; }
