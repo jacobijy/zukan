@@ -119,3 +119,231 @@ const statsList = computed(() => {
     }));
 });
 </script>
+
+<style lang="scss" scoped>
+.calc-card {
+    border: 1px solid #e5e7ee;
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(48, 55, 72, 0.06);
+    overflow: hidden;
+}
+
+.calc-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #eef0f5;
+    background: #fafbfd;
+}
+
+.calc-head__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    color: #ffffff;
+}
+
+.calc-head__icon--green {
+    background: linear-gradient(135deg, #68cc67, #34b85a);
+}
+
+.calc-head__icon--blue {
+    background: linear-gradient(135deg, #73b7ff, #357df4);
+}
+
+.calc-head__title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #3b3f48;
+}
+
+.calc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+    padding: 10px 14px;
+}
+
+.calc-row__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #24262b;
+    flex-shrink: 0;
+}
+
+.calc-row__main {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+}
+
+.calc-pkm-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: #24262b;
+}
+
+/* 等级步进器 */
+.calc-stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.calc-stepper__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    border: 1px solid #e1e4eb;
+    background: #f5f6fa;
+    color: #6f7682;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.calc-stepper__value--wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 32px;
+    gap: 0;
+}
+
+.calc-stepper__label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #9da2ad;
+    line-height: 1;
+}
+
+.calc-stepper__value {
+    min-width: 26px;
+    text-align: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 14px;
+    font-weight: 800;
+    color: #24262b;
+}
+
+/* 能力值行 */
+.calc-stats-row {
+    display: flex;
+    gap: 2px;
+    padding: 6px 12px 8px;
+    border-top: 1px solid #f1f2f6;
+}
+
+.calc-stats-row--empty {
+    justify-content: center;
+    min-height: 36px;
+    align-items: center;
+    padding: 6px 14px;
+}
+
+.calc-stat-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.calc-stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #9da2ad;
+}
+
+.calc-stat-value {
+    font-size: 13px;
+    font-weight: 800;
+    color: #24262b;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* 特性 + 能力等级行 */
+.calc-row-line {
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-top: 1px solid #f1f2f6;
+    gap: 0;
+}
+
+.calc-inline-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+}
+
+.calc-inline-divider {
+    width: 1px;
+    height: 20px;
+    background: #eef0f5;
+    flex-shrink: 0;
+}
+
+.calc-inline-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9da2ad;
+    flex-shrink: 0;
+}
+
+.calc-inline-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #9da2ad;
+}
+
+.calc-inline-value--set {
+    color: #357df4;
+}
+
+/* 能力等级小步进器 */
+.calc-stage-mini {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.calc-stage-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid #e1e4eb;
+    background: #f5f6fa;
+    color: #6f7682;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.calc-stage-val {
+    min-width: 24px;
+    text-align: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+    font-weight: 800;
+    color: #24262b;
+}
+</style>
