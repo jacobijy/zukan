@@ -1,20 +1,20 @@
 <template>
     <view class="calc-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
-        <DetailNavbar title="伤害计算器" @back="goBack" />
+        <DetailNavbar :title="t('calc.title')" @back="goBack" />
 
         <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6">
             <view class="mx-auto max-w-[720px] flex flex-col gap-3 pt-3">
 
                 <!-- 攻击方 -->
                 <CalcSideCard
-                    title="攻击方"
+                    :title="t('calc.attacker')"
                     iconClass="calc-head__icon--green"
-                    placeholderText="选择攻击方"
+                    :placeholderText="t('calc.selectAttacker')"
                     :pokemon="attackerPokemon"
                     :level="attackerLevel"
                     :ability="attackerAbility"
-                    stage1Label="物攻"
-                    stage2Label="特攻"
+                    :stage1Label="t('calc.atk')"
+                    :stage2Label="t('calc.spa')"
                     :stage1Val="atkStage"
                     :stage2Val="spaStage"
                     @select-pokemon="showPokemonPicker('attacker')"
@@ -28,14 +28,14 @@
 
                 <!-- 防御方 -->
                 <CalcSideCard
-                    title="防御方"
+                    :title="t('calc.defender')"
                     iconClass="calc-head__icon--blue"
-                    placeholderText="选择防御方"
+                    :placeholderText="t('calc.selectDefender')"
                     :pokemon="defenderPokemon"
                     :level="defenderLevel"
                     :ability="defenderAbility"
-                    stage1Label="物防"
-                    stage2Label="特防"
+                    :stage1Label="t('calc.def')"
+                    :stage2Label="t('calc.spd')"
                     :stage1Val="defStage"
                     :stage2Val="spdStage"
                     @select-pokemon="showPokemonPicker('defender')"
@@ -48,7 +48,7 @@
                 />
 
                 <!-- 招式 -->
-                <CalcCard title="招式" iconClass="calc-head__icon--violet">
+                <CalcCard :title="t('calc.move')" iconClass="calc-head__icon--violet">
                     <template #icon>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                             <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"></path>
@@ -56,17 +56,17 @@
                     </template>
                     <view class="calc-row p-3" @click="showMovePicker">
                         <view v-if="!selectedMove" class="calc-row__main items-center">
-                            <text class="text-[#9da2ad] text-[14px] font-semibold">点击选择招式</text>
+                            <text class="text-[#9da2ad] text-[14px] font-semibold">{{ t('calc.selectMove') }}</text>
                         </view>
                         <view v-else class="calc-row__main">
                             <view class="flex items-center gap-2">
                                 <text class="calc-pkm-name">{{ selectedMove.name }}</text>
                                 <TypeBadge :type="selectedMove.type" size="xs" variant="chip" />
-                                <text class="text-[12px] font-bold" :class="selectedMove.category === 'physical' ? 'text-[#e74c3c]' : 'text-[#3498db]'">{{ selectedMove.category === 'physical' ? '物理' : '特殊' }}</text>
+                                <text class="text-[12px] font-bold" :class="selectedMove.category === 'physical' ? 'text-[#e74c3c]' : 'text-[#3498db]'">{{ selectedMove.category === 'physical' ? t('calc.physical') : t('calc.special') }}</text>
                             </view>
                             <view class="flex items-center gap-3 mt-1">
                                 <view class="flex items-center gap-1">
-                                    <text class="text-[11px] font-bold text-[#9da2ad]">威力</text>
+                                    <text class="text-[11px] font-bold text-[#9da2ad]">{{ t('moves.power') }}</text>
                                     <text class="text-[16px] font-black text-[#24262b]">{{ selectedMove.power }}</text>
                                 </view>
                             </view>
@@ -76,29 +76,29 @@
                 </CalcCard>
 
                 <!-- 战场条件 -->
-                <CalcCard title="战场条件" iconClass="calc-head__icon--gold">
+                <CalcCard :title="t('calc.field')" iconClass="calc-head__icon--gold">
                     <template #icon>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                             <path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.7 1.5A4 4 0 0 0 6 19z"></path>
                         </svg>
                     </template>
 
-                    <ChipRow label="天气" :options="WEATHER_OPTIONS" v-model="selectedWeather" />
+                    <ChipRow :label="t('calc.weather')" :options="WEATHER_OPTIONS" v-model="selectedWeather" />
                     <view class="calc-divider"></view>
-                    <ChipRow label="场地" :options="TERRAIN_OPTIONS" v-model="selectedTerrain" />
+                    <ChipRow :label="t('calc.terrain')" :options="TERRAIN_OPTIONS" v-model="selectedTerrain" />
                     <view class="calc-divider"></view>
-                    <ChipRow label="道具" :options="[]" v-model="selectedItem.name">
+                    <ChipRow :label="t('calc.item')" :options="[]" v-model="selectedItem.name">
                         <template #extra>
                             <view class="calc-chip" :class="selectedItem.name !== '无' ? 'calc-chip--active' : ''" @click="showItemPicker">{{ selectedItem.name }}</view>
                         </template>
                     </ChipRow>
                     <view class="calc-divider"></view>
-                    <ChipRow label="防护" :options="SCREEN_OPTIONS" v-model="reflectScreen" />
+                    <ChipRow :label="t('calc.screen')" :options="SCREEN_OPTIONS" v-model="reflectScreen" />
                     <view class="calc-divider"></view>
-                    <ChipRow label="状态" :options="[]">
+                    <ChipRow :label="t('calc.status')" :options="[]">
                         <template #extra>
-                            <view class="calc-chip" :class="isBurned ? 'calc-chip--active--orange' : ''" @click="isBurned = !isBurned">烧伤</view>
-                            <view class="calc-chip" :class="isCritical ? 'calc-chip--active--red' : ''" @click="isCritical = !isCritical">会心</view>
+                            <view class="calc-chip" :class="isBurned ? 'calc-chip--active--orange' : ''" @click="isBurned = !isBurned">{{ t('calc.burn') }}</view>
+                            <view class="calc-chip" :class="isCritical ? 'calc-chip--active--red' : ''" @click="isCritical = !isCritical">{{ t('calc.critical') }}</view>
                         </template>
                     </ChipRow>
                 </CalcCard>
@@ -108,9 +108,9 @@
 
                 <view class="flex gap-2">
                     <button class="calc-action flex-1" @click="doCalculate" :disabled="calculating">
-                        {{ calculating ? '计算中…' : '开始计算' }}
+                        {{ calculating ? t('calc.computing') : t('calc.compute') }}
                     </button>
-                    <button class="calc-action calc-action--reset" @click="resetAll">重置</button>
+                    <button class="calc-action calc-action--reset" @click="resetAll">{{ t('common.reset') }}</button>
                 </view>
             </view>
         </scroll-view>
@@ -119,6 +119,7 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { calcDamage, calcStat, getBaseStat, type CalcResult, type CalcParams, MOVE_FLAG } from './calc-engine';
 import { usePokemonStore } from '@/store/pokemon';
 import CalcSideCard from '@/components/calc/CalcSideCard.vue';
@@ -135,6 +136,7 @@ import {
     type MoveOption, type ItemOption,
 } from './calc-options';
 
+const { t } = useI18n();
 const pokemonStore = usePokemonStore();
 
 // ==============================
@@ -149,7 +151,7 @@ const pokemonNameList = computed(() => pokemonStore.allPokemons.map(p => p.name)
 const showPokemonPicker = (side: 'attacker' | 'defender') => {
     const names = pokemonNameList.value;
     if (names.length === 0) {
-        uni.showToast({ title: '暂无宝可梦数据', icon: 'none' });
+        uni.showToast({ title: t('calc.toast.noData'), icon: 'none' });
         return;
     }
     uni.showActionSheet({
@@ -256,7 +258,7 @@ const calculating = ref(false);
 
 const doCalculate = async () => {
     if (!attackerPokemon.value || !defenderPokemon.value || !selectedMove.value) {
-        uni.showToast({ title: '请选择双方宝可梦和招式', icon: 'none' });
+        uni.showToast({ title: t('calc.toast.needBoth'), icon: 'none' });
         return;
     }
 
@@ -307,7 +309,7 @@ const doCalculate = async () => {
         result.value = engineResult;
     } catch (e) {
         console.error('[calc] 计算失败', e);
-        uni.showToast({ title: '计算失败', icon: 'none' });
+        uni.showToast({ title: t('calc.toast.failed'), icon: 'none' });
     } finally {
         calculating.value = false;
     }

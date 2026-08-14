@@ -5,7 +5,7 @@
                 <view class="relative h-10 min-w-0 flex-1 sm:h-11">
                     <input
                         type="text"
-                        placeholder="搜索名称、编号或属性..."
+                        :placeholder="t('dex.searchPlaceholder')"
                         class="h-10 w-full rounded-[20px] border border-[#e1e4eb] bg-[#f5f6fa] pl-10 pr-9 text-sm font-semibold text-[#24262b] shadow-[inset_0_1px_0_#ffffff] outline-none placeholder:text-[#9da2ad] focus:border-[#357df4] focus:bg-white focus:shadow-[0_0_0_4px_rgba(53,125,244,0.12)] sm:h-11 sm:rounded-[22px] sm:pl-11 sm:pr-10"
                         :value="search"
                         @input="onSearchInput"
@@ -46,11 +46,11 @@
 
             <view v-if="!collapsed" class="mt-2 grid grid-cols-[1fr_1fr_1.18fr] gap-2 sm:mt-3 sm:grid-cols-[140px_140px_180px]">
                 <view class="stat-tile">
-                    <text class="stat-tile__label">当前样本</text>
+                    <text class="stat-tile__label">{{ t('dex.sampleCount') }}</text>
                     <text class="stat-tile__value">{{ sampleCount }}</text>
                 </view>
                 <view class="stat-tile">
-                    <text class="stat-tile__label">已收藏</text>
+                    <text class="stat-tile__label">{{ t('dex.favoriteCount') }}</text>
                     <text class="stat-tile__value">{{ favoriteCount }}</text>
                 </view>
                 <view class="filter-stack">
@@ -75,7 +75,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="filter-stack__icon">
                             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                         </svg>
-                        <text class="filter-stack__text">属性筛选</text>
+                        <text class="filter-stack__text">{{ t('dex.typeFilter') }}</text>
                         <view v-if="typeFilterActive" class="pill-dot"></view>
                     </button>
                 </view>
@@ -85,6 +85,9 @@
 </template>
 
 <script lang="ts" setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
+
 interface Props {
     /** 搜索词（v-model:search） */
     search: string;

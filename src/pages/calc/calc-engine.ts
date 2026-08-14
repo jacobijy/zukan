@@ -18,6 +18,12 @@ import moveFlagsJson from '@/static/enums/move_flags.json';
 import weathersJson from '@/static/enums/weathers.json';
 import terrainsJson from '@/static/enums/terrains.json';
 import { resourceManager } from '@/services/resources/resourceManager';
+import { i18n } from '@/services/i18n/ui-i18n';
+
+/** 翻译辅助：calc-engine 在模块/非组件上下文运行，用全局 i18n 实例。 */
+function te(key: string, params?: Record<string, string | number>): string {
+    return params ? i18n.global.t(key, params) : i18n.global.t(key);
+}
 
 // ─── 枚举映射 ───────────────────────────────────────────
 
@@ -121,7 +127,6 @@ const WEATHER_IDS: Record<string, number> = Object.fromEntries(
 /** 场地 slug → Terrain enum ID（与 calculator.rs 的 TERRAIN_* 对齐） */
 const TERRAIN_IDS = terrainsJson as Record<string, number>;
 
-
 // ─── JS 侧查询函数 ──────────────────────────────────────
 
 /**
@@ -158,13 +163,13 @@ function getTypeEffectiveness(
     }
 
     let label: string;
-    if (mult >= 4) label = `效果绝佳 ×${mult}`;
-    else if (mult === 2) label = '效果绝佳';
-    else if (mult === 1) label = '通常';
-    else if (mult === 0.5) label = '效果不好';
-    else if (mult <= 0.25) label = `效果不好 ×${mult}`;
-    else if (mult === 0) label = '完全免疫';
-    else label = '通常';
+    if (mult >= 4) label = te('calc.eff.superMult', { mult });
+    else if (mult === 2) label = te('calc.eff.super');
+    else if (mult === 1) label = te('calc.eff.normal');
+    else if (mult === 0.5) label = te('calc.eff.notVery');
+    else if (mult <= 0.25) label = te('calc.eff.notVeryMult', { mult });
+    else if (mult === 0) label = te('calc.eff.immune');
+    else label = te('calc.eff.normal');
 
     return { multiplier: mult, label };
 }
@@ -200,7 +205,7 @@ export function getBaseStat(stats: { name: string; value: number }[], key: strin
     const label = STAT_LABEL_BY_KEY[key];
     if (!label) return 50;
     // HP 兼容 'HP' / '生命值' 等含 HP 的写法
-    const found = stats.find(s => (label === 'HP' ? s.name.includes('HP') : s.name === label));
+    const found = stats.find((s) => (label === 'HP' ? s.name.includes('HP') : s.name === label));
     return found?.value ?? 50;
 }
 
@@ -326,7 +331,7 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
             minDamage: 0,
             maxDamage: 0,
             typeEffectiveness: 1,
-            effectivenessLabel: 'WASM 未加载',
+            effectivenessLabel: te('calc.wasmNotLoaded'),
             stabMultiplier: 1,
             weatherMultiplier: 1,
             terrainMultiplier: 1,
@@ -415,7 +420,7 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
     // 克制倍率描述
     let effectivenessLabel: string;
     if (minDamage === 0 && maxDamage === 0) {
-        effectivenessLabel = '完全免疫';
+        effectivenessLabel = te('calc.eff.immune');
     } else {
         // 需要克制倍率用于显示 — 从 WASM 拿不到就直接用 JS 侧
         const eff = getTypeEffectiveness(params.moveType, params.defenderType1, params.defenderType2);

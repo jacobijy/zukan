@@ -8,7 +8,7 @@
                 paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))'
             }"
         >
-            <NavBar title="宝可梦图鉴" />
+            <NavBar :title="t('nav.pokedex')" />
 
             <DexToolbar
                 v-model:search="searchText"
@@ -104,6 +104,7 @@ import PokemonCard from "@/components/pokemon/PokemonCard.vue";
 import VirtualGrid from "@/components/dex/VirtualGrid.vue";
 import TabBar from "@/components/TabBar.vue";
 import { usePokemonStore } from "@/store/pokemon";
+import { useI18n } from 'vue-i18n';
 import { authGate, LoginDismissedError } from "@/services/session/authGate";
 import { debounce } from 'lodash-es';
 import { storeToRefs } from "pinia";
@@ -122,6 +123,7 @@ const showLogin = computed({
 });
 
 const pokemonStore = usePokemonStore();
+const { t } = useI18n();
 const { matchedPokemons, matchedCount } = storeToRefs(pokemonStore);
 const { fetchPokemon, setCriteria } = pokemonStore;
 const searchText = ref("");
@@ -180,7 +182,7 @@ const showGenerationPanel = ref(false);
 const selectedGeneration = ref<string | null>(null);
 
 const selectedGenerationLabel = computed(() => {
-    return findGeneration(selectedGeneration.value)?.name ?? '世代';
+    return findGeneration(selectedGeneration.value)?.name ?? t('dex.generationFallback');
 });
 
 const onFilterChange = (filterData: { types: string[], sort: string }) => {

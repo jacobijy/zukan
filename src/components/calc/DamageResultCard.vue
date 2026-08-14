@@ -1,7 +1,7 @@
 <template>
     <view class="result-card">
         <view class="flex items-center justify-between">
-            <text class="result-card__label">预计伤害</text>
+            <text class="result-card__label">{{ t('calc.result.damage') }}</text>
             <text class="result-card__value">{{ result ? `${result.minDamage} — ${result.maxDamage}` : '—' }}</text>
         </view>
         <view v-if="result" class="result-card__bar-wrap">
@@ -12,17 +12,20 @@
         </view>
         <view v-if="result" class="result-card__meta">
             <text class="result-card__meta-item" :class="result.typeEffectiveness > 1 ? 'text-[#e74c3c]' : 'text-[#9da2ad]'">
-                {{ result.effectivenessLabel ?? '克制 —' }}
+                {{ result.effectivenessLabel ?? t('calc.result.effectivenessFallback') }}
             </text>
             <text class="result-card__meta-item font-black" :class="result.hkoLabel === 'OHKO' ? 'text-[#e74c3c]' : 'text-[#9da2ad]'">
-                {{ result.hkoLabel ?? '击杀 —' }}
+                {{ result.hkoLabel ?? t('calc.result.killFallback') }}
             </text>
         </view>
     </view>
 </template>
 
 <script lang="ts" setup>
+import { useI18n } from 'vue-i18n';
 import type { CalcResult } from '@/pages/calc/calc-engine';
+
+const { t } = useI18n();
 
 defineProps<{
     result: CalcResult | null;

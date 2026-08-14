@@ -45,12 +45,12 @@
     <view class="move-card__stats">
       <view class="move-card__stat">
         <text class="move-card__stat-value">{{ displayPower }}</text>
-        <text class="move-card__stat-label">威力</text>
+        <text class="move-card__stat-label">{{ t('moves.power') }}</text>
       </view>
       <view class="move-card__stat-divider"></view>
       <view class="move-card__stat">
         <text class="move-card__stat-value">{{ displayAccuracy }}</text>
-        <text class="move-card__stat-label">命中</text>
+        <text class="move-card__stat-label">{{ t('moves.accuracy') }}</text>
       </view>
     </view>
     <TypeBadge :type="typeSlug" size="md" />
@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import TypeBadge from '@/components/pokemon/TypeBadge.vue'
 import { useI18nStore } from '@/store/i18n'
 
@@ -73,12 +74,13 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const i18n = useI18nStore()
+const { t } = useI18n()
 
 const typeSlug = computed(() => props.move.type || 'normal')
 
 // 名称按 move.id 响应式查 i18n 表（含英文基线回落）；
 // 名称表异步到达 / 切换语言时自动更新，无需重拉招式数据。
-const displayName = computed(() => i18n.moveName(props.move.id) ?? '未知招式')
+const displayName = computed(() => i18n.moveName(props.move.id) ?? t('moves.unknown'))
 
 // ── 分类：'物理' / '特殊' / '状态' / '—' → slug + 配色 ──
 const CATEGORY_SLUGS: Record<string, 'physical' | 'special' | 'status'> = {

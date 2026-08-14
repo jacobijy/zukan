@@ -27,9 +27,9 @@
             <!-- 顶部品牌 -->
             <view class="login-modal__brand">
                 <PokeballLogo :size="56" variant="gold" class="login-modal__logo" />
-                <text class="login-modal__title">{{ mode === 'login' ? '欢迎回来' : '加入图鉴' }}</text>
+                <text class="login-modal__title">{{ mode === 'login' ? t('login.welcomeTitle') : t('login.registerTitle') }}</text>
                 <text class="login-modal__subtitle">
-                    {{ mode === 'login' ? '登录以同步收藏与图鉴记录' : '注册后即可开始你的训练师旅程' }}
+                    {{ mode === 'login' ? t('login.welcomeSub') : t('login.registerSub') }}
                 </text>
             </view>
 
@@ -40,14 +40,14 @@
                     :class="mode === 'login' ? 'login-modal__tab--active' : ''"
                     @click="switchMode('login')"
                 >
-                    登录
+                    {{ t('login.tabLogin') }}
                 </view>
                 <view
                     class="login-modal__tab"
                     :class="mode === 'register' ? 'login-modal__tab--active' : ''"
                     @click="switchMode('register')"
                 >
-                    注册
+                    {{ t('login.tabRegister') }}
                 </view>
                 <view
                     class="login-modal__tab-indicator"
@@ -59,11 +59,11 @@
             <view class="login-modal__body">
                 <!-- 用户名 / 邮箱 -->
                 <view class="login-field">
-                    <text class="login-field__label">{{ mode === 'login' ? '用户名或邮箱' : '用户名' }}</text>
+                    <text class="login-field__label">{{ mode === 'login' ? t('login.identifierLabel') : t('login.usernameLabel') }}</text>
                     <input
                         v-model.trim="form.identifier"
                         class="login-field__input"
-                        :placeholder="mode === 'login' ? '例如 ash 或 ash@pallet.town' : '给自己起个训练师名'"
+                        :placeholder="mode === 'login' ? t('login.idPlaceholder') : t('login.usernamePlaceholder')"
                         :disabled="loading"
                         maxlength="64"
                     />
@@ -71,11 +71,11 @@
 
                 <!-- 邮箱（仅注册） -->
                 <view v-if="mode === 'register'" class="login-field">
-                    <text class="login-field__label">邮箱</text>
+                    <text class="login-field__label">{{ t('login.emailLabel') }}</text>
                     <input
                         v-model.trim="form.email"
                         class="login-field__input"
-                        placeholder="用于找回账号"
+                        :placeholder="t('login.emailPlaceholder')"
                         :disabled="loading"
                         maxlength="128"
                         type="email"
@@ -84,12 +84,12 @@
 
                 <!-- 密码 -->
                 <view class="login-field">
-                    <text class="login-field__label">密码</text>
+                    <text class="login-field__label">{{ t('login.passwordLabel') }}</text>
                     <view class="relative">
                         <input
                             v-model="form.password"
                             class="login-field__input login-field__input--with-suffix"
-                            :placeholder="mode === 'login' ? '输入登录密码' : '至少 8 位'"
+                            :placeholder="mode === 'login' ? t('login.passwordPlaceholderLogin') : t('login.passwordPlaceholderRegister')"
                             :password="!showPassword"
                             :disabled="loading"
                             maxlength="128"
@@ -126,19 +126,19 @@
                     :disabled="loading || !canSubmit"
                     @click="onSubmit"
                 >
-                    <text v-if="!loading">{{ mode === 'login' ? '登录' : '注册并登录' }}</text>
-                    <text v-else>处理中…</text>
+                    <text v-if="!loading">{{ mode === 'login' ? t('login.submitLogin') : t('login.submitRegister') }}</text>
+                    <text v-else>{{ t('common.processing') }}</text>
                 </button>
 
                 <!-- 底部辅助 -->
                 <view class="login-modal__foot">
                     <text v-if="mode === 'login'">
-                        还没有账号？
-                        <text class="login-modal__link" @click="switchMode('register')">立即注册</text>
+                        {{ t('login.noAccount') }}
+                        <text class="login-modal__link" @click="switchMode('register')">{{ t('login.registerNow') }}</text>
                     </text>
                     <text v-else>
-                        已有账号？
-                        <text class="login-modal__link" @click="switchMode('login')">直接登录</text>
+                        {{ t('login.haveAccount') }}
+                        <text class="login-modal__link" @click="switchMode('login')">{{ t('login.loginNow') }}</text>
                     </text>
                 </view>
             </view>
@@ -148,8 +148,11 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { authApi, AuthApiError } from '@/services/api';
 import PokeballLogo from '@/components/shared/PokeballLogo.vue';
+
+const { t } = useI18n();
 
 type Mode = 'login' | 'register';
 
@@ -220,7 +223,7 @@ async function onSubmit() {
 
     // 前端预校验：与服务端 400 规则保持一致，避免多一次往返
     if (mode.value === 'register' && [...form.password].length < 8) {
-        errorMsg.value = '密码长度至少为 8 个字符';
+        errorMsg.value = t('login.passwordTooShort');
         return;
     }
 
@@ -252,7 +255,7 @@ async function onSubmit() {
         if (err instanceof AuthApiError) {
             errorMsg.value = err.message;
         } else {
-            errorMsg.value = (err as Error)?.message ?? '请求失败，请稍后重试';
+            errorMsg.value = (err as Error)?.message ?? t('login.fallbackError');
         }
     } finally {
         loading.value = false;

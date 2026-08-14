@@ -1,6 +1,6 @@
 <template>
-    <TabPageShell title="资料中心" :tabIndex="2" @tab-change="onTabChange">
-        <view class="section-label">图鉴概览</view>
+    <TabPageShell :title="t('data.title')" :tabIndex="2" @tab-change="onTabChange">
+        <view class="section-label">{{ t('data.sectionOverview') }}</view>
         <view class="data-list glass-panel">
             <ListRow
                 v-for="(item, index) in overviewItems"
@@ -29,14 +29,14 @@
             </ListRow>
         </view>
 
-        <view class="section-label mt-6">热门样本</view>
+        <view class="section-label mt-6">{{ t('data.sectionPopular') }}</view>
         <view class="data-list glass-panel">
             <ListRow
                 v-for="(pokemon, index) in popularPokemons"
                 :key="pokemon.id"
                 :title="pokemon.name"
                 :desc="pokemon.type"
-                meta="详情"
+                :meta="t('data.detail')"
                 :last="index === popularPokemons.length - 1"
                 :iconClass="pokemon.markClass"
                 showChevron
@@ -51,21 +51,38 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import TabPageShell from "@/components/shared/TabPageShell.vue";
 import ListRow from "@/components/shared/ListRow.vue";
+import { useI18nStore } from '@/store/i18n';
 
-const overviewItems = [
-    { value: '1010', label: '宝可梦总数', desc: '当前图鉴记录的全国编号范围。', icon: 'book', iconClass: 'list-row__icon--green' },
-    { value: '18', label: '属性种类', desc: '用于筛选、克制和组合分析。', icon: 'spark', iconClass: 'list-row__icon--gold' },
-    { value: '400+', label: '招式数量', desc: '覆盖对战计算和招式检索。', icon: 'bolt', iconClass: 'list-row__icon--blue' },
-    { value: '300+', label: '特性记录', desc: '包含常见对战特性与说明。', icon: 'cube', iconClass: 'list-row__icon--violet' }
-];
+const { t } = useI18n();
+const i18nStore = useI18nStore();
+// 热门样本名称走 i18n 名称表：深链/冷启动时名称可能未到，到达后自动刷新。
+void i18nStore.ensureLoaded();
 
-const popularPokemons = [
-    { id: 25, name: '皮卡丘', type: '电气属性', markClass: 'pokemon-mark--gold' },
-    { id: 6, name: '喷火龙', type: '火 / 飞行', markClass: 'pokemon-mark--red' },
-    { id: 9, name: '水箭龟', type: '水属性', markClass: 'pokemon-mark--blue' }
+const overviewItems = computed(() => [
+    { value: '1010', label: t('data.overview.total'), desc: t('data.overview.totalDesc'), icon: 'book', iconClass: 'list-row__icon--green' },
+    { value: '18', label: t('data.overview.types'), desc: t('data.overview.typesDesc'), icon: 'spark', iconClass: 'list-row__icon--gold' },
+    { value: '400+', label: t('data.overview.moves'), desc: t('data.overview.movesDesc'), icon: 'bolt', iconClass: 'list-row__icon--blue' },
+    { value: '300+', label: t('data.overview.abilities'), desc: t('data.overview.abilitiesDesc'), icon: 'cube', iconClass: 'list-row__icon--violet' }
+]);
+
+// 物种名按 species id 查名称表，未就绪时回落中文名占位。
+const popularDefs = [
+    { id: 25, speciesId: 25, fallback: '皮卡丘', typeKey: 'electricType' as const, markClass: 'pokemon-mark--gold' },
+    { id: 6, speciesId: 6, fallback: '喷火龙', typeKey: 'fireFlyingType' as const, markClass: 'pokemon-mark--red' },
+    { id: 9, speciesId: 9, fallback: '水箭龟', typeKey: 'waterType' as const, markClass: 'pokemon-mark--blue' }
 ];
+const popularPokemons = computed(() =>
+    popularDefs.map(p => ({
+        id: p.id,
+        name: i18nStore.speciesName(p.speciesId) ?? p.fallback,
+        type: t(`data.popular.${p.typeKey}`),
+        markClass: p.markClass,
+    }))
+);
 
 const goToDetail = (id: number) => {
     uni.navigateTo({

@@ -1,13 +1,13 @@
 <template>
     <view class="sim-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
-        <DetailNavbar title="对战模拟器" @back="goBack" />
+        <DetailNavbar :title="t('simulate.title')" @back="goBack" />
 
         <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6">
             <view class="mx-auto max-w-[720px] flex flex-col gap-3 pt-3">
                 <view class="sim-card">
                     <view class="sim-head">
-                        <view class="sim-head__badge sim-head__badge--blue">我方</view>
-                        <text class="sim-head__hint">已选 0 / 3</text>
+                        <view class="sim-head__badge sim-head__badge--blue">{{ t('simulate.mySide') }}</view>
+                        <text class="sim-head__hint">{{ t('simulate.selectedZero') }}</text>
                     </view>
                     <view class="team-slots">
                         <view v-for="i in 3" :key="`mine-${i}`" class="team-slot" @click="noop">
@@ -16,15 +16,15 @@
                                     <path d="M12 5v14M5 12h14"></path>
                                 </svg>
                             </view>
-                            <text class="team-slot__name">空位</text>
+                            <text class="team-slot__name">{{ t('simulate.emptySlot') }}</text>
                         </view>
                     </view>
                 </view>
 
                 <view class="sim-card">
                     <view class="sim-head">
-                        <view class="sim-head__badge sim-head__badge--red">对手</view>
-                        <text class="sim-head__hint">已选 0 / 3</text>
+                        <view class="sim-head__badge sim-head__badge--red">{{ t('simulate.foeSide') }}</view>
+                        <text class="sim-head__hint">{{ t('simulate.selectedZero') }}</text>
                     </view>
                     <view class="team-slots">
                         <view v-for="i in 3" :key="`foe-${i}`" class="team-slot" @click="noop">
@@ -33,20 +33,20 @@
                                     <path d="M12 5v14M5 12h14"></path>
                                 </svg>
                             </view>
-                            <text class="team-slot__name">空位</text>
+                            <text class="team-slot__name">{{ t('simulate.emptySlot') }}</text>
                         </view>
                     </view>
                 </view>
 
                 <view class="sim-card">
                     <view class="sim-row">
-                        <text class="sim-row__title">规则</text>
+                        <text class="sim-row__title">{{ t('simulate.rules') }}</text>
                         <view class="rule-chip-group">
-                            <view v-for="r in rules" :key="r" class="rule-chip" :class="r === '单打' ? 'rule-chip--active' : ''" @click="noop">{{ r }}</view>
+                            <view v-for="r in rules" :key="r.value" class="rule-chip" :class="selectedRule === r.value ? 'rule-chip--active' : ''" @click="noop">{{ r.label }}</view>
                         </view>
                     </view>
                     <view class="sim-row sim-row--last">
-                        <text class="sim-row__title">等级</text>
+                        <text class="sim-row__title">{{ t('simulate.level') }}</text>
                         <LevelStepper v-model="simLevel" />
                     </view>
                 </view>
@@ -58,13 +58,13 @@
                             <polyline points="14 2 14 8 20 8"></polyline>
                             <path d="M8 13h8M8 17h5"></path>
                         </svg>
-                        <text class="log-empty__text">尚未开始模拟</text>
+                        <text class="log-empty__text">{{ t('simulate.notStarted') }}</text>
                     </view>
                 </view>
 
                 <view class="sim-actions">
-                    <button class="sim-action sim-action--ghost" @click="noop">重置</button>
-                    <button class="sim-action" @click="noop">开始模拟</button>
+                    <button class="sim-action sim-action--ghost" @click="noop">{{ t('common.reset') }}</button>
+                    <button class="sim-action" @click="noop">{{ t('simulate.start') }}</button>
                 </view>
             </view>
         </scroll-view>
@@ -72,12 +72,20 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import LevelStepper from '@/components/calc/LevelStepper.vue';
 
+const { t } = useI18n();
+
 const simLevel = ref(50);
-const rules = ref(['单打', '双打']);
+// 规则用稳定 value 比较，label 走 i18n
+const selectedRule = ref('singles');
+const rules = computed(() => [
+    { value: 'singles', label: t('simulate.singles') },
+    { value: 'doubles', label: t('simulate.doubles') },
+]);
 const noop = () => {};
 
 const goBack = () => {

@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const TAB_SLIDE_FROM_KEY = 'tab_indicator_from'
 
@@ -57,12 +58,14 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:modelValue', 'change'])
 
-const tabs = [
-  { label: '图鉴' },
-  { label: '功能' },
-  { label: '资料' },
-  { label: '我的' },
-]
+const { t } = useI18n()
+
+const tabs = computed(() => [
+  { label: t('tabs.dex') },
+  { label: t('tabs.features') },
+  { label: t('tabs.data') },
+  { label: t('tabs.mine') },
+])
 
 const pages = [
   '/pages/index/index',
@@ -78,7 +81,7 @@ const indicatorIndex = ref(props.modelValue)
 const enableTransition = ref(false)
 
 const indicatorStyle = computed(() => ({
-  width: `${100 / tabs.length}%`,
+  width: `${100 / tabs.value.length}%`,
   transform: `translateX(${indicatorIndex.value * 100}%)`,
 }))
 

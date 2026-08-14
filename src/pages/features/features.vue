@@ -1,6 +1,6 @@
 <template>
-    <TabPageShell title="其他功能" :tabIndex="1" @tab-change="onTabChange">
-        <view class="section-label">常用工具</view>
+    <TabPageShell :title="t('features.title')" :tabIndex="1" @tab-change="onTabChange">
+        <view class="section-label">{{ t('features.sectionTools') }}</view>
         <view class="feature-list glass-panel">
             <ListRow
                 v-for="(item, index) in featureItems"
@@ -34,14 +34,18 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import TabPageShell from "@/components/shared/TabPageShell.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 
-const featureItems = [
-    { title: '伤害计算器', desc: '计算技能伤害、克制关系与实战收益。', meta: '对战', url: '/pages/calc/calc', icon: 'target', iconClass: 'list-row__icon--green' },
-    { title: '对战模拟器', desc: '用研究记录的方式复盘宝可梦对战场景。', meta: '沙盘', url: '/pages/simulate/simulate', icon: 'grid', iconClass: 'list-row__icon--blue' },
-    { title: '数据统计', desc: '查看属性、能力值和收集进度的统计摘要。', meta: '资料', url: '/pages/data/data', icon: 'chart', iconClass: 'list-row__icon--violet' },
-];
+const { t } = useI18n();
+
+const featureItems = computed(() => [
+    { title: t('features.calc.title'), desc: t('features.calc.desc'), meta: t('features.calc.meta'), url: '/pages/calc/calc', icon: 'target', iconClass: 'list-row__icon--green' },
+    { title: t('features.simulate.title'), desc: t('features.simulate.desc'), meta: t('features.simulate.meta'), url: '/pages/simulate/simulate', icon: 'grid', iconClass: 'list-row__icon--blue' },
+    { title: t('features.stats.title'), desc: t('features.stats.desc'), meta: t('features.stats.meta'), url: '/pages/data/data', icon: 'chart', iconClass: 'list-row__icon--violet' },
+]);
 
 const goToPage = (url: string) => {
     uni.navigateTo({ url });

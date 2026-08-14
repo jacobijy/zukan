@@ -22,6 +22,7 @@ import {
     getStoredLanguage,
     setStoredLanguage,
 } from '@/services/i18n/languages';
+import { syncUiLocale } from '@/services/i18n/ui-i18n';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
@@ -74,6 +75,8 @@ export const useI18nStore = defineStore('i18n', () => {
         if (lang === currentLang.value && lookup.value) return;
         setStoredLanguage(lang);
         currentLang.value = lang;
+        // 同步界面静态文案（vue-i18n）的 locale
+        syncUiLocale(lang);
         loading.value = true;
         try {
             lookup.value = await loadFor(lang);

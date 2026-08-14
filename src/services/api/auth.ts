@@ -13,6 +13,7 @@
 
 import { rest, RestRequestError } from '@/services/http';
 import { setToken, setRefreshToken, getRefreshToken, clearSession, getToken } from '@/services/session/token';
+import { i18n } from '@/services/i18n/ui-i18n';
 
 // ─────────────────────────────────────────────────────────
 // 类型
@@ -102,12 +103,12 @@ function mapServerCode(code: string | undefined): AuthApiError['code'] | null {
 function mapError(err: unknown, kind: 'login' | 'register' | 'refresh' | 'change_password'): never {
     if (!(err instanceof RestRequestError)) {
         // 非 HTTP 错误：网络中断、超时等
-        throw new AuthApiError((err as Error)?.message ?? '网络请求失败', 0, 'NETWORK');
+        throw new AuthApiError((err as Error)?.message ?? i18n.global.t('auth.networkError'), 0, 'NETWORK');
     }
 
     const status = err.statusCode ?? 0;
     const body = (err.data ?? {}) as ServerError;
-    const message = body.error ?? err.message ?? '请求失败';
+    const message = body.error ?? err.message ?? i18n.global.t('auth.requestFailed');
 
     // 服务端 code 优先；缺失（旧后端）时回退到 status + 端点推断。
     let code = mapServerCode(body.code);
@@ -168,7 +169,7 @@ export async function login(req: LoginRequest): Promise<TokenPair> {
 export async function refresh(): Promise<RefreshResponse> {
     const refreshToken = getRefreshToken();
     if (!refreshToken) {
-        throw new AuthApiError('本地无 refresh token', 0, 'UNAUTHORIZED');
+        throw new AuthApiError(i18n.global.t('auth.noRefreshToken'), 0, 'UNAUTHORIZED');
     }
     try {
         const res = await rest.post<RefreshResponse, { refresh_token: string }>('/auth/refresh', {
@@ -192,7 +193,7 @@ export async function refresh(): Promise<RefreshResponse> {
 export async function changePassword(req: ChangePasswordRequest): Promise<void> {
     const access = getToken();
     if (!access) {
-        throw new AuthApiError('未登录', 0, 'UNAUTHORIZED');
+        throw new AuthApiError(i18n.global.t('auth.notLoggedIn'), 0, 'UNAUTHORIZED');
     }
     try {
         // 204 No Content：body 为空，绕开 JSON 自动解析（部分平台会失败）

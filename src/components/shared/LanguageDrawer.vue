@@ -8,7 +8,7 @@
             <view class="p-5">
                 <view class="mb-5 flex items-start justify-between gap-3">
                     <view>
-                        <text class="block text-2xl font-black tracking-[-0.05em] text-[#24262b]">语言设置</text>
+                        <text class="block text-2xl font-black tracking-[-0.05em] text-[#24262b]">{{ t('language.title') }}</text>
                         <text class="mt-1 block text-xs font-bold uppercase tracking-[0.18em] text-[#89947e]">Language</text>
                     </view>
                     <button
@@ -69,8 +69,11 @@
 </template>
 
 <script lang="ts" setup>
+import { useI18n } from 'vue-i18n';
 import { LANGUAGES } from '@/services/i18n/languages';
 import { useI18nStore } from '@/store/i18n';
+
+const { t } = useI18n();
 
 interface Props {
     /** 抽屉是否展开（v-model:visible） */

@@ -8,16 +8,18 @@
                     </svg>
                 </view>
                 <view>
-                    <text class="block text-sm font-black text-[#4c3506]">收藏标本架</text>
-                    <text class="block text-xs font-semibold text-[#8a6a17]">当前显示 {{ count }} 只</text>
+                    <text class="block text-sm font-black text-[#4c3506]">{{ t('dex.banner.title') }}</text>
+                    <text class="block text-xs font-semibold text-[#8a6a17]">{{ t('dex.banner.count', { count }) }}</text>
                 </view>
             </view>
-            <button class="panel-button rounded-full bg-white px-4 py-2 text-xs font-black text-[#4c3506] shadow-[inset_0_1px_0_#ffffff,0_8px_18px_rgba(111,82,9,0.12)] active:scale-95" @click="emit('show-all')">查看全部</button>
+            <button class="panel-button rounded-full bg-white px-4 py-2 text-xs font-black text-[#4c3506] shadow-[inset_0_1px_0_#ffffff,0_8px_18px_rgba(111,82,9,0.12)] active:scale-95" @click="emit('show-all')">{{ t('dex.banner.showAll') }}</button>
         </view>
     </view>
 </template>
 
 <script lang="ts" setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 defineProps<{ count: number }>();
 
 const emit = defineEmits<{ 'show-all': [] }>();

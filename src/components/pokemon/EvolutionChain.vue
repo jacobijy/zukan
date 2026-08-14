@@ -1,7 +1,7 @@
 <template>
   <view class="archive-section mb-3 p-4">
     <view class="mb-3 flex items-center justify-between gap-3">
-      <text class="text-lg font-black tracking-[-0.03em] text-[#24262b]">进化链</text>
+      <text class="text-lg font-black tracking-[-0.03em] text-[#24262b]">{{ t('evolution.title') }}</text>
       <text class="rounded-full border border-[#e1e4eb] bg-[#f5f6fa] px-3 py-1 text-[10px] font-black tracking-[0.14em] text-[#8d929c]">EVOLVE</text>
     </view>
     <view class="flex items-center gap-2 overflow-x-auto pb-1">
@@ -30,7 +30,10 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
+
+const { t } = useI18n();
 
 type EvolutionStage = {
   name: string;
@@ -47,7 +50,7 @@ const props = defineProps<{
 const normalizedChain = computed<EvolutionStage[]>(() => {
   const chain = props.chain ?? props.evolutionChain ?? [];
   if (!chain.length) {
-    return [{ name: '暂无记录', imageUrl: '/static/default.png' }];
+    return [{ name: t('evolution.empty'), imageUrl: '/static/default.png' }];
   }
 
   return chain.map((stage) => {

@@ -8,7 +8,7 @@
             <view class="p-5">
                 <view class="mb-5 flex items-start justify-between gap-3">
                     <view>
-                        <text class="block text-2xl font-black tracking-[-0.05em] text-[#24262b]">世代索引</text>
+                        <text class="block text-2xl font-black tracking-[-0.05em] text-[#24262b]">{{ t('dex.drawer.generationTitle') }}</text>
                         <text class="mt-1 block text-xs font-bold uppercase tracking-[0.18em] text-[#89947e]">Generation drawer</text>
                     </view>
                     <button class="panel-button flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f6fa] text-[#8d929c] shadow-[0_10px_22px_rgba(48,55,72,0.08)] active:scale-95" @click="close">
@@ -53,7 +53,10 @@
 </template>
 
 <script lang="ts" setup>
+import { useI18n } from 'vue-i18n';
 import { GENERATIONS, formatGenerationRange } from '@/constants/generations';
+
+const { t } = useI18n();
 
 interface Props {
     /** 抽屉是否展开（v-model:visible） */

@@ -10,9 +10,12 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{ title?: string }>(), {
-  title: '宝可梦图鉴'
-})
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const props = defineProps<{ title?: string }>()
+const { t } = useI18n()
+const displayTitle = computed(() => props.title ?? t('nav.pokedex'))
 </script>
 
 <style lang="scss" scoped>

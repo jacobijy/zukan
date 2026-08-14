@@ -2,7 +2,7 @@
     <!-- 加载中 -->
     <view v-if="variant === 'loading'" class="mx-auto flex max-w-[1400px] flex-col items-center justify-center py-20 text-[#8d929c]">
         <view class="field-loader mb-4"></view>
-        <text class="text-sm font-black tracking-[0.18em]">正在整理图鉴样本...</text>
+        <text class="text-sm font-black tracking-[0.18em]">{{ t('dex.empty.loading') }}</text>
     </view>
 
     <!-- 收藏夹为空 -->
@@ -12,20 +12,22 @@
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
             </svg>
         </view>
-        <text class="block text-xl font-black tracking-[-0.03em] text-[#24262b]">收藏标本架还是空的</text>
-        <text class="mt-2 block text-sm font-medium leading-6 text-[#8d929c]">点击卡片右上角的书签，就能把喜欢的宝可梦收入你的研究手册。</text>
-        <button class="panel-button mt-6 rounded-full bg-[#24262b] px-6 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(48,55,72,0.22)] active:scale-95" @click="emit('action')">浏览全部宝可梦</button>
+        <text class="block text-xl font-black tracking-[-0.03em] text-[#24262b]">{{ t('dex.empty.favTitle') }}</text>
+        <text class="mt-2 block text-sm font-medium leading-6 text-[#8d929c]">{{ t('dex.empty.favDesc') }}</text>
+        <button class="panel-button mt-6 rounded-full bg-[#24262b] px-6 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(48,55,72,0.22)] active:scale-95" @click="emit('action')">{{ t('dex.empty.favAction') }}</button>
     </view>
 
     <!-- 筛选无结果 -->
     <view v-else class="empty-card mx-auto max-w-[560px] px-8 py-14 text-center">
-        <text class="block text-xl font-black tracking-[-0.03em] text-[#24262b]">没有匹配的宝可梦</text>
-        <text class="mt-2 block text-sm font-medium leading-6 text-[#8d929c]">尝试清空搜索词，或者减少属性与世代筛选条件。</text>
-        <button class="panel-button mt-6 rounded-full bg-[#357df4] px-6 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(53,125,244,0.22)] active:scale-95" @click="emit('action')">清空搜索</button>
+        <text class="block text-xl font-black tracking-[-0.03em] text-[#24262b]">{{ t('dex.empty.noMatchTitle') }}</text>
+        <text class="mt-2 block text-sm font-medium leading-6 text-[#8d929c]">{{ t('dex.empty.noMatchDesc') }}</text>
+        <button class="panel-button mt-6 rounded-full bg-[#357df4] px-6 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(53,125,244,0.22)] active:scale-95" @click="emit('action')">{{ t('dex.empty.clearAction') }}</button>
     </view>
 </template>
 
 <script lang="ts" setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 defineProps<{
     variant: 'loading' | 'favorites-empty' | 'no-match';
 }>();

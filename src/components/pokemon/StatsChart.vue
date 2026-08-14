@@ -1,7 +1,7 @@
 <template>
   <view class="archive-section mb-3 p-4">
     <view class="mb-3 flex items-center justify-between gap-3">
-      <text class="text-lg font-black tracking-[-0.03em] text-[#24262b]">能力值</text>
+      <text class="text-lg font-black tracking-[-0.03em] text-[#24262b]">{{ t('stats.title') }}</text>
       <text class="rounded-full border border-[#e1e4eb] bg-[#f5f6fa] px-3 py-1 text-[10px] font-black tracking-[0.14em] text-[#8d929c]">STATS</text>
     </view>
     <view class="grid gap-2">
@@ -20,18 +20,21 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   stats?: Array<{ name: string; value: number }>;
 }>();
 
 const normalizedStats = computed(() => props.stats?.length ? props.stats : [
-  { name: 'HP', value: 0 },
-  { name: '攻击', value: 0 },
-  { name: '防御', value: 0 },
-  { name: '特攻', value: 0 },
-  { name: '特防', value: 0 },
-  { name: '速度', value: 0 }
+  { name: t('stats.hp'), value: 0 },
+  { name: t('stats.attack'), value: 0 },
+  { name: t('stats.defense'), value: 0 },
+  { name: t('stats.spAttack'), value: 0 },
+  { name: t('stats.spDefense'), value: 0 },
+  { name: t('stats.speed'), value: 0 }
 ]);
 </script>
 

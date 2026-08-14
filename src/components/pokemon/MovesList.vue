@@ -19,7 +19,7 @@
 
       <template v-if="isExpanded(group.key)">
         <view v-if="group.moves.length === 0" class="section-empty mt-3">
-          暂无{{ group.label }}招式
+          {{ t('moves.empty', { label: group.label }) }}
         </view>
         <view v-else class="mt-3 flex flex-col gap-2">
           <MoveCard
@@ -36,7 +36,10 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import MoveCard from '@/components/pokemon/MoveCard.vue'
+
+const { t } = useI18n()
 
 type LearnMethod = MoveRecord['learnMethod']
 
@@ -52,12 +55,15 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const GROUP_DEFS: { key: LearnMethod; label: string }[] = [
-  { key: 'level-up', label: '升级学习' },
-  { key: 'machine', label: '技能机器' },
-  { key: 'egg', label: '遗传（蛋招式）' },
-  { key: 'tutor', label: '教授招式' },
-]
+const GROUP_KEYS: LearnMethod[] = ['level-up', 'machine', 'egg', 'tutor']
+const groupLabel = (key: LearnMethod): string => {
+  switch (key) {
+    case 'level-up': return t('moves.group.levelUp')
+    case 'machine': return t('moves.group.machine')
+    case 'egg': return t('moves.group.egg')
+    case 'tutor': return t('moves.group.tutor')
+  }
+}
 
 /** 默认展开状态：升级学习开，其余闭 */
 const DEFAULT_EXPANDED: Partial<Record<LearnMethod, boolean>> = {
@@ -75,9 +81,10 @@ watch(
 )
 
 const groups = computed<Group[]>(() =>
-  GROUP_DEFS.map(g => ({
-    ...g,
-    moves: (props.moves ?? []).filter(m => m.learnMethod === g.key),
+  GROUP_KEYS.map(key => ({
+    key,
+    label: groupLabel(key),
+    moves: (props.moves ?? []).filter(m => m.learnMethod === key),
   }))
 )
 

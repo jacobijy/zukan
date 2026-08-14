@@ -1,6 +1,6 @@
 <template>
     <view class="detail-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '100px' }">
-        <DetailNavbar :title="pokemon.name || '宝可梦详情'" @back="goBack">
+        <DetailNavbar :title="pokemon.name || t('detail.titleFallback')" @back="goBack">
             <template #right>
                 <FavoriteButton :active="isFavorite" @toggle="toggleFavorite" />
             </template>
@@ -65,6 +65,7 @@ import InfoGrid from '@/components/pokemon/InfoGrid.vue'
 import InfoCard from '@/components/pokemon/InfoCard.vue'
 import { usePokemonStore } from '@/store/pokemon'
 import { useI18nStore } from '@/store/i18n'
+import { useI18n } from 'vue-i18n'
 import { genForPokemonId, loadMovesForPokemon } from '@/services/pokemon'
 import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
@@ -72,6 +73,7 @@ import { computed, ref } from 'vue'
 
 const pokemonStore = usePokemonStore()
 const i18nStore = useI18nStore()
+const { t } = useI18n()
 // 确保招式/特性名称表已加载：深链进入时 boot 可能尚未跑完，
 // MoveCard 会响应式地在名称到达后刷新。
 void i18nStore.ensureLoaded()
@@ -97,10 +99,10 @@ const isFavorite = computed(() => {
 })
 
 const infoItems = computed(() => [
-    { label: '身高', value: `${pokemon.value.height || 0}m`, icon: 'height', iconClass: 'info-card__icon--green' },
-    { label: '体重', value: `${pokemon.value.weight || 0}kg`, icon: 'weight', iconClass: 'info-card__icon--gold' },
-    { label: '特性', value: pokemon.value.abilities?.[0] || '-', icon: 'star', iconClass: 'info-card__icon--red' },
-    { label: '分类', value: pokemon.value.category || '种子宝可梦', icon: 'book', iconClass: 'info-card__icon--paper' }
+    { label: t('detail.info.height'), value: `${pokemon.value.height || 0}m`, icon: 'height', iconClass: 'info-card__icon--green' },
+    { label: t('detail.info.weight'), value: `${pokemon.value.weight || 0}kg`, icon: 'weight', iconClass: 'info-card__icon--gold' },
+    { label: t('detail.info.ability'), value: pokemon.value.abilities?.[0] || '-', icon: 'star', iconClass: 'info-card__icon--red' },
+    { label: t('detail.info.category'), value: pokemon.value.category || t('detail.info.categoryFallback'), icon: 'book', iconClass: 'info-card__icon--paper' }
 ])
 
 // ── 形态切换 ──────────────────────────────────────────────
@@ -117,8 +119,8 @@ const formIndex = computed(() =>
 )
 const currentFormLabel = computed(() => {
     const p = pokemon.value
-    if (p.isDefault) return '默认形态'
-    return p.formLabel || `形态 #${p.id}`
+    if (p.isDefault) return t('detail.form.default')
+    return p.formLabel || t('detail.form.label', { id: p.id })
 })
 const switchForm = (delta: 1 | -1) => {
     if (formCount.value <= 1) return
@@ -184,10 +186,10 @@ const loadPokemonById = async (id: number) => {
         }
 
         // 3. 兜底失败
-        uni.showToast({ title: '未找到该宝可梦', icon: 'none' })
+        uni.showToast({ title: t('detail.toast.notFound'), icon: 'none' })
     } catch (error) {
         console.error('获取宝可梦详情失败:', error)
-        uni.showToast({ title: '获取详情失败', icon: 'none' })
+        uni.showToast({ title: t('detail.toast.loadFailed'), icon: 'none' })
     }
 }
 

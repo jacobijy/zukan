@@ -2,13 +2,13 @@
   <view class="filter-panel fixed z-[999] bg-white shadow-[0_12px_30px_rgba(48,55,72,0.12)] border-b border-[#e5e7ee] animate-slideDown overflow-visible" :style="{ top: 'calc(var(--status-bar-height) + var(--navbar-content-height))' }">
     <view class="px-5 py-4 flex flex-col gap-4">
       <view class="flex items-center justify-between pr-8">
-        <text class="text-base font-bold text-[#24262b]">筛选和排序</text>
-        <text class="text-xs font-medium text-[#9da2ad]">点击右侧收起</text>
+        <text class="text-base font-bold text-[#24262b]">{{ t('dex.filter.title') }}</text>
+        <text class="text-xs font-medium text-[#9da2ad]">{{ t('dex.filter.collapseHint') }}</text>
       </view>
 
       <!-- 类型筛选 -->
       <view class="flex flex-col gap-3">
-        <text class="text-sm font-semibold text-[#6f7480] tracking-wide">类型筛选</text>
+        <text class="text-sm font-semibold text-[#6f7480] tracking-wide">{{ t('dex.filter.typeFilter') }}</text>
         <view class="flex flex-wrap gap-2 items-center">
           <button
             v-for="type in allTypes"
@@ -23,7 +23,7 @@
 
       <!-- 排序选项 -->
       <view class="flex flex-col gap-2 relative w-[180px] max-w-full">
-        <text class="text-sm font-semibold text-[#6f7480] tracking-wide">排序方式</text>
+        <text class="text-sm font-semibold text-[#6f7480] tracking-wide">{{ t('dex.filter.sortBy') }}</text>
         <button class="filter-panel-btn w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#f5f6fa] border border-[#e1e4eb] rounded-[20px] text-sm font-semibold text-[#24262b] cursor-pointer transition-all duration-300 shadow-[inset_0_1px_0_#ffffff,0_2px_6px_rgba(48,55,72,0.06)] active:scale-[0.98]" @click="toggleSortDropdown">
           <text>{{ currentSort.label }}</text>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-[#8d929c] transition-transform duration-200" :class="showSortDropdown ? 'rotate-180' : ''">
@@ -56,8 +56,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ALL_TYPE_SLUGS, getTypeGradient, getTypeName } from '@/constants/pokemonTypes'
+
+const { t } = useI18n()
 
 interface SortOption { value: string; label: string }
 
@@ -67,17 +70,20 @@ const allTypes = ref<string[]>(ALL_TYPE_SLUGS)
 // 定义选中的类型
 const selectedTypes = ref<string[]>([])
 
-// 定义排序选项
-const sortOptions = ref<SortOption[]>([
-  { value: 'id', label: '编号' },
-  { value: 'name', label: '名称' },
-  { value: 'hp', label: 'HP' },
-  { value: 'attack', label: '攻击力' },
-  { value: 'defense', label: '防御力' }
+// 排序选项（label 随语言切换）
+const sortOptions = computed<SortOption[]>(() => [
+  { value: 'id', label: t('dex.filter.sort.id') },
+  { value: 'name', label: t('dex.filter.sort.name') },
+  { value: 'hp', label: t('dex.filter.sort.hp') },
+  { value: 'attack', label: t('dex.filter.sort.attack') },
+  { value: 'defense', label: t('dex.filter.sort.defense') }
 ])
 
-// 当前排序项
-const currentSort = ref<SortOption>({ value: 'id', label: '编号' })
+// 当前排序项（按 value 跟踪；label 随语言切换由 sortOptions 派生）
+const currentSortValue = ref('id')
+const currentSort = computed<SortOption>(
+  () => sortOptions.value.find(o => o.value === currentSortValue.value) ?? sortOptions.value[0],
+)
 const showSortDropdown = ref(false)
 
 // 切换类型筛选
@@ -98,7 +104,7 @@ const toggleSortDropdown = () => {
 }
 
 const selectSort = (option: SortOption) => {
-  currentSort.value = option
+  currentSortValue.value = option.value
   showSortDropdown.value = false
   emit('filterChange', {
     types: selectedTypes.value,

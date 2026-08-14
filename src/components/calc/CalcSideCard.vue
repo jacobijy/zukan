@@ -15,7 +15,7 @@
         <!-- 宝可梦 + 等级 -->
         <view class="calc-row" @click="$emit('select-pokemon')">
             <view class="calc-row__main">
-                <text class="calc-row__title">宝可梦</text>
+                <text class="calc-row__title">{{ t('calc.side.pokemon') }}</text>
                 <view class="flex items-center gap-2 mt-1">
                     <text class="calc-pkm-name">{{ pokemon?.name ?? placeholderText }}</text>
                     <view v-if="pokemon" class="flex gap-1">
@@ -41,13 +41,13 @@
             </view>
         </view>
         <view class="calc-stats-row calc-stats-row--empty" v-else>
-            <text class="text-[#9da2ad] text-[12px] font-semibold">选择宝可梦后显示能力值</text>
+            <text class="text-[#9da2ad] text-[12px] font-semibold">{{ t('calc.side.statsHint') }}</text>
         </view>
 
         <!-- 特性 + 能力等级 -->
         <view class="calc-row-line">
             <view class="calc-inline-item" @click="$emit('select-ability')">
-                <text class="calc-inline-label">特性</text>
+                <text class="calc-inline-label">{{ t('calc.side.ability') }}</text>
                 <text class="calc-inline-value" :class="ability !== '无' ? 'calc-inline-value--set' : ''">{{ ability }}</text>
             </view>
             <view class="calc-inline-divider"></view>
@@ -74,8 +74,11 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { calcStat, getBaseStat } from '@/pages/calc/calc-engine';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
+
+const { t } = useI18n();
 
 interface PokemonData {
     name: string;
@@ -108,7 +111,7 @@ const emit = defineEmits<{
 
 const statsList = computed(() => {
     if (!props.pokemon) return [];
-    const labels = ['HP', '攻击', '防御', '特攻', '特防', '速度'];
+    const labels = [t('stats.hp'), t('stats.attack'), t('stats.defense'), t('stats.spAttack'), t('stats.spDefense'), t('stats.speed')];
     const keys = ['HP', 'atk', 'def', 'spa', 'spd', 'spe'];
     return labels.map((label, i) => ({
         label,
