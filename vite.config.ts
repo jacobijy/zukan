@@ -1,6 +1,8 @@
 import uni from "@dcloudio/vite-plugin-uni";
 import { createRequire } from 'node:module';
 import path from 'path';
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
 import { defineConfig } from "vite";
 
 // vue-i18n@9.9 依赖 @intlify/*@9.9（其 message-compiler 导出 CompileErrorCodes），
@@ -36,6 +38,11 @@ export default defineConfig({
         '**/src/infra/wasm/target/**',
         '**/target/**',
       ],
+    },
+  },
+  css: {
+    postcss: {
+      plugins: [tailwindcss(), autoprefixer()],
     },
   },
   resolve: {
