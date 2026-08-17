@@ -1,9 +1,12 @@
 /**
  * 多语言文本 store。
  *
- * 负责加载 PKNM 名称组 bundle、按英文回落叠加成查找表，并对外暴露
- * 同步名称查询。描述组（PKFL，图鉴/技能描述）体积较大、按需加载，
- * 不在启动路径里。
+ * 语言拆成两套独立设置：
+ * - `contentLang`：宝可梦游戏数据名称（物种/招式/特性），从加密 bundle 加载；
+ * - `uiLang`：界面静态文案（vue-i18n）。
+ *
+ * `currentLang` 是 `contentLang` 解析后的实际 bundle 语言（`'auto'` 按系统），
+ * 名称查找、加载与回落都围绕它。
  *
  * ## 回落策略
  * 首选语言可能部分或整体缺失（ja-roma 仅有物种名；cs/pt-br 全空），
@@ -18,17 +21,27 @@ import { resourceManager } from '@/services/resources/resourceManager';
 import { buildNamesLookup, overlay, type NamesLookup } from '@/services/i18n/lookup';
 import {
     FALLBACK_LANGUAGE,
-    getPreferredLanguage,
-    getStoredLanguage,
-    setStoredLanguage,
+    getStoredContentLang,
+    getStoredUiLang,
+    resolveContentLang,
+    resolveUiLocale,
+    setStoredContentLang,
+    setStoredUiLang,
+    type ContentLangSetting,
+    type UiLangSetting,
 } from '@/services/i18n/languages';
+import { TYPE_ID_BY_SLUG } from '@/constants/pokemonTypes';
 import { syncUiLocale } from '@/services/i18n/ui-i18n';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
 export const useI18nStore = defineStore('i18n', () => {
-    /** 当前语言 identifier */
-    const currentLang = ref<string>(getStoredLanguage() ?? getPreferredLanguage());
+    /** 内容语言设置（可能为 'auto'） */
+    const contentLang = ref<ContentLangSetting>(getStoredContentLang());
+    /** UI 语言设置（可能为 'auto'） */
+    const uiLang = ref<UiLangSetting>(getStoredUiLang());
+    /** 解析后的实际内容语言（bundle id），供加载与查询使用 */
+    const currentLang = computed(() => resolveContentLang(contentLang.value));
     /** 叠加英文回落之后的查找表；未加载完成时为 null */
     const lookup = ref<NamesLookup | null>(null);
     const loading = ref(false);
@@ -70,20 +83,32 @@ export const useI18nStore = defineStore('i18n', () => {
         return loadPromise;
     }
 
-    /** 切换语言：持久化偏好并重载查找表 */
-    async function setLanguage(lang: string): Promise<void> {
-        if (lang === currentLang.value && lookup.value) return;
-        setStoredLanguage(lang);
-        currentLang.value = lang;
-        // 同步界面静态文案（vue-i18n）的 locale
-        syncUiLocale(lang);
+    /**
+     * 切换内容语言：持久化偏好；若解析后的实际语言变化则重载查找表。
+     * 设为与当前相同的设置（含 auto 解析后相同）时直接返回。
+     */
+    async function setContentLang(setting: ContentLangSetting): Promise<void> {
+        if (setting === contentLang.value && lookup.value) return;
+        const nextLang = resolveContentLang(setting);
+        setStoredContentLang(setting);
+        contentLang.value = setting;
+        if (nextLang === currentLang.value && lookup.value) return;
+
         loading.value = true;
         try {
-            lookup.value = await loadFor(lang);
+            lookup.value = await loadFor(nextLang);
             refreshPokemonIfLoaded();
         } finally {
             loading.value = false;
         }
+    }
+
+    /** 切换 UI 语言：持久化偏好并同步界面静态文案。 */
+    function setUiLang(setting: UiLangSetting): void {
+        if (setting === uiLang.value) return;
+        setStoredUiLang(setting);
+        uiLang.value = setting;
+        syncUiLocale(resolveUiLocale(setting));
     }
 
     /**
@@ -127,13 +152,29 @@ export const useI18nStore = defineStore('i18n', () => {
         return lookup.value?.natures.get(id) ?? null;
     }
 
+    /**
+     * 属性 slug（'fire'）→ 本地化名称。slug 先经 `TYPE_ID_BY_SLUG` 反查到
+     * 数字 id（与 i18n types 表同键），再查表。未就绪 / 未知 slug 返回 null，
+     * 由调用方回落硬编码名。
+     */
+    function typeName(slug: string): string | null {
+        const id = TYPE_ID_BY_SLUG[slug?.toLowerCase()];
+        if (id === undefined) return null;
+        return lookup.value?.types.get(id) ?? null;
+    }
+
     return {
+        // 设置
+        contentLang,
+        uiLang,
         currentLang,
         loading,
         ready,
         lookup,
         ensureLoaded,
-        setLanguage,
+        setContentLang,
+        setUiLang,
+        // 查询
         speciesName,
         speciesGenus,
         formLabel,
@@ -141,5 +182,6 @@ export const useI18nStore = defineStore('i18n', () => {
         abilityName,
         itemName,
         natureName,
+        typeName,
     };
 });

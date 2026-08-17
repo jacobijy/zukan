@@ -76,7 +76,7 @@ import { authGate } from '@/services/session/authGate';
 import { usePokemonStore } from '@/store/pokemon';
 import { useI18nStore } from '@/store/i18n';
 import { useI18n } from 'vue-i18n';
-import { LANGUAGES } from '@/services/i18n/languages';
+import { LANGUAGES, UI_LANGUAGES, resolveContentLang, resolveUiLocale } from '@/services/i18n/languages';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
@@ -86,7 +86,14 @@ const i18nStore = useI18nStore();
 const { t } = useI18n();
 
 const showLangDrawer = ref(false);
-const currentLangLabel = computed(() => LANGUAGES.find((l) => l.id === i18nStore.currentLang)?.label ?? t('mine.langFallback'));
+const currentLangLabel = computed(() => {
+    const uiLabel =
+        UI_LANGUAGES.find((l) => l.id === resolveUiLocale(i18nStore.uiLang))?.label ?? '';
+    const contentLabel =
+        LANGUAGES.find((l) => l.id === resolveContentLang(i18nStore.contentLang))?.label ??
+        t('mine.langFallback');
+    return `${uiLabel} · ${contentLabel}`;
+});
 
 const favoritesCount = computed(() => favorites.value.length);
 

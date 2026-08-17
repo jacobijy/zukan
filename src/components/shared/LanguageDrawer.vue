@@ -1,12 +1,12 @@
 <template>
     <view>
         <view
-            class="lang-drawer fixed right-0 top-0 z-[999] h-full w-[300px] border-l border-[#e5e7ee] bg-white shadow-[-24px_0_60px_rgba(48,55,72,0.18)] transition-transform duration-300 ease-out"
+            class="lang-drawer fixed right-0 top-0 z-[999] flex h-full w-[320px] flex-col border-l border-[#e5e7ee] bg-white shadow-[-24px_0_60px_rgba(48,55,72,0.18)] transition-transform duration-300 ease-out"
             :class="visible ? 'translate-x-0' : 'translate-x-full'"
             :style="{ paddingTop: 'var(--status-bar-height)' }"
         >
-            <view class="p-5">
-                <view class="mb-5 flex items-start justify-between gap-3">
+            <view class="px-5 pb-4 pt-5">
+                <view class="flex items-start justify-between gap-3">
                     <view>
                         <text class="block text-2xl font-black tracking-[-0.05em] text-[#24262b]">{{ t('language.title') }}</text>
                         <text class="mt-1 block text-xs font-bold uppercase tracking-[0.18em] text-[#89947e]">Language</text>
@@ -21,43 +21,26 @@
                         </svg>
                     </button>
                 </view>
-
-                <view class="flex flex-col gap-2 overflow-y-auto pr-1" style="height: calc(100vh - 120px);">
-                    <view
-                        v-for="lang in LANGUAGES"
-                        :key="lang.id"
-                        class="lang-item"
-                        :class="{
-                            'lang-item--active': i18nStore.currentLang === lang.id,
-                            'lang-item--loading': i18nStore.loading && i18nStore.currentLang === lang.id,
-                        }"
-                        @click="select(lang.id)"
-                    >
-                        <view class="flex items-center gap-3">
-                            <view class="lang-item__mark">
-                                <text class="text-xs font-black uppercase">{{ lang.id.slice(0, 2) }}</text>
-                            </view>
-                            <view>
-                                <text class="block text-sm font-black text-[#24262b]">{{ lang.label }}</text>
-                                <text class="block font-mono text-[11px] font-bold text-[#89947e]">{{ lang.id }}</text>
-                            </view>
-                        </view>
-                        <svg
-                            v-if="i18nStore.currentLang === lang.id && !i18nStore.loading"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="3"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="h-5 w-5 text-[#83a84c]"
-                        >
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        <view v-else-if="i18nStore.loading && i18nStore.currentLang === lang.id" class="lang-spinner"></view>
-                    </view>
-                </view>
             </view>
+
+            <scroll-view scroll-y class="flex-1 px-5 pb-6">
+                <text class="section-label">{{ t('language.uiSection') }}</text>
+                <LanguageOptionList
+                    :model-value="i18nStore.uiLang"
+                    :options="UI_LANGUAGES"
+                    :auto-subtitle="uiAutoHint"
+                    @update:model-value="onUiChange"
+                />
+
+                <text class="section-label mt-6">{{ t('language.contentSection') }}</text>
+                <LanguageOptionList
+                    :model-value="i18nStore.contentLang"
+                    :options="LANGUAGES"
+                    :auto-subtitle="contentAutoHint"
+                    :loading="i18nStore.loading"
+                    @update:model-value="onContentChange"
+                />
+            </scroll-view>
         </view>
 
         <view
@@ -69,91 +52,68 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { LANGUAGES } from '@/services/i18n/languages';
+import LanguageOptionList from '@/components/shared/LanguageOptionList.vue';
+import {
+    AUTO_LANG,
+    LANGUAGES,
+    UI_LANGUAGES,
+    detectSystemLanguage,
+    resolveUiLocale,
+    type UiLangSetting,
+} from '@/services/i18n/languages';
 import { useI18nStore } from '@/store/i18n';
 
 const { t } = useI18n();
+const i18nStore = useI18nStore();
 
 interface Props {
     /** 抽屉是否展开（v-model:visible） */
     visible: boolean;
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
 const emit = defineEmits<{
     'update:visible': [value: boolean];
 }>();
 
-const i18nStore = useI18nStore();
-
 const close = () => emit('update:visible', false);
 
-const select = async (langId: string) => {
-    if (langId === i18nStore.currentLang || i18nStore.loading) return;
-    await i18nStore.setLanguage(langId);
-    close();
-};
+/** UI「跟随系统」副标题：系统语言映射到的 UI locale */
+const uiAutoHint = computed(() => {
+    const locale = resolveUiLocale(AUTO_LANG);
+    const label = UI_LANGUAGES.find((l) => l.id === locale)?.label ?? locale;
+    return t('language.systemHint', { lang: label });
+});
+
+/** 内容「跟随系统」副标题：系统语言对应的内容语言 */
+const contentAutoHint = computed(() => {
+    const sys = detectSystemLanguage();
+    const label = LANGUAGES.find((l) => l.id === sys)?.label ?? sys;
+    return t('language.systemHint', { lang: label });
+});
+
+function onUiChange(value: string) {
+    i18nStore.setUiLang(value as UiLangSetting);
+}
+
+async function onContentChange(value: string) {
+    if (value === i18nStore.contentLang || i18nStore.loading) return;
+    await i18nStore.setContentLang(value);
+}
 </script>
 
 <style lang="scss" scoped>
-.lang-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px;
-    border: 1px solid #e5e7ee;
-    border-radius: 22px;
-    background: #f5f6fa;
-    box-shadow: inset 0 1px 0 #ffffff, 0 10px 22px rgba(48, 55, 72, 0.06);
-    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
-}
-
-.lang-item:active {
-    transform: scale(0.98);
-}
-
-.lang-item--active {
-    border-color: rgba(53, 125, 244, 0.32);
-    background: linear-gradient(135deg, #eef4ff, #fff7dc);
-}
-
-.lang-item--loading {
-    opacity: 0.7;
-}
-
-.lang-item__mark {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    border-radius: 16px;
-    color: #6f7480;
-    background: #eef0f5;
-    box-shadow: inset 0 0 0 1px #ffffff;
-}
-
-.lang-item--active .lang-item__mark {
-    color: #fff;
-    background: linear-gradient(135deg, #73b7ff, #357df4);
-}
-
-.lang-spinner {
-    width: 18px;
-    height: 18px;
-    border: 2.5px solid #e5e7ee;
-    border-top-color: #357df4;
-    border-radius: 50%;
-    animation: lang-spin 0.7s linear infinite;
-}
-
-@keyframes lang-spin {
-    to {
-        transform: rotate(360deg);
-    }
+.section-label {
+    display: block;
+    margin-bottom: 10px;
+    color: #89947e;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
 }
 
 .panel-button::after {

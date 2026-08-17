@@ -257,6 +257,10 @@ const zhHans = {
     },
     language: {
         title: '语言设置',
+        uiSection: '界面语言',
+        contentSection: '宝可梦内容',
+        followSystem: '跟随系统',
+        systemHint: '{lang}（系统）',
     },
 };
 
@@ -513,6 +517,10 @@ const en: typeof zhHans = {
     },
     language: {
         title: 'Language',
+        uiSection: 'Interface',
+        contentSection: 'Pokémon content',
+        followSystem: 'Follow system',
+        systemHint: '{lang} (System)',
     },
 };
 
