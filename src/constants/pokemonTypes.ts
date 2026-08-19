@@ -4,7 +4,12 @@
  * 全站属性的中文名、单字缩写、纯色、渐变 class 都从这里取。
  * 曾经散落在 PokemonCard / detail / MoveCard / FilterBar / helpers 五处，
  * 改动一个颜色要找五个文件——收敛到此。
+ *
+ * 属性 id 采用 PokeApi / 服务端 `Types` 枚举的标准编号（normal=1, fire=10…），
+ * 与 i18n bundle 的 `types` 名称表同键。本地化名称见 `useI18nStore().typeName`。
  */
+
+import { Types } from '@/model/TypesDefine';
 
 export interface TypeMeta {
     /** pokeapi slug：'fire' */
@@ -64,3 +69,33 @@ export const getTypeName = (slug: string) => getTypeMeta(slug).name;
 export const getTypeShort = (slug: string) => getTypeMeta(slug).short;
 export const getTypeColor = (slug: string) => getTypeMeta(slug).color;
 export const getTypeGradient = (slug: string) => getTypeMeta(slug).gradient;
+
+// ─── id ↔ slug ───
+// `Types` 枚举数字 id → slug，服务端 typeEntries 与 i18n types 表都用这个 id 键控。
+
+/** 数字 type id → slug（与服务端 `Types` 枚举 / i18n types 表同键） */
+export const typeStrs: { [type: number]: string } = {
+    [Types.Normal]: 'normal',
+    [Types.Fire]: 'fire',
+    [Types.Water]: 'water',
+    [Types.Electric]: 'electric',
+    [Types.Grass]: 'grass',
+    [Types.Ice]: 'ice',
+    [Types.Fighting]: 'fighting',
+    [Types.Poison]: 'poison',
+    [Types.Ground]: 'ground',
+    [Types.Flying]: 'flying',
+    [Types.Psychic]: 'psychic',
+    [Types.Bug]: 'bug',
+    [Types.Rock]: 'rock',
+    [Types.Ghost]: 'ghost',
+    [Types.Dragon]: 'dragon',
+    [Types.Dark]: 'dark',
+    [Types.Steel]: 'steel',
+    [Types.Fairy]: 'fairy',
+};
+
+/** slug → 数字 type id；未知 slug 返回 undefined */
+export const TYPE_ID_BY_SLUG: Readonly<Record<string, number>> = Object.fromEntries(
+    Object.entries(typeStrs).map(([id, slug]) => [slug, Number(id)])
+);

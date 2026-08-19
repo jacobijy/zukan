@@ -16,7 +16,7 @@
             :class="['px-3.5 py-1.5 rounded-[20px] text-[13px] font-semibold text-white cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] border-2 border-transparent shadow-[0_2px_6px_rgba(48,55,72,0.1)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(48,55,72,0.15)] active:translate-y-0', getTypeGradient(type), { 'border-white shadow-[0_0_0_3px_rgba(53,125,244,0.14),0_4px_12px_rgba(48,55,72,0.18)] scale-105': selectedTypes.includes(type) }]"
             @click="toggleTypeFilter(type)"
           >
-            {{ getTypeName(type) }}
+            {{ typeLabel(type) }}
           </button>
         </view>
       </view>
@@ -59,8 +59,13 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ALL_TYPE_SLUGS, getTypeGradient, getTypeName } from '@/constants/pokemonTypes'
+import { useI18nStore } from '@/store/i18n'
 
 const { t } = useI18n()
+const i18nStore = useI18nStore()
+
+/** 属性筛选名：优先内容语言，未就绪回落硬编码中文名 */
+const typeLabel = (slug: string) => i18nStore.typeName(slug) ?? getTypeName(slug)
 
 interface SortOption { value: string; label: string }
 

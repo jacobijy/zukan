@@ -5,6 +5,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { getTypeMeta } from '@/constants/pokemonTypes';
+import { useI18nStore } from '@/store/i18n';
 
 interface Props {
     /** 属性 slug：'fire' / 'grass' / ... */
@@ -22,11 +23,15 @@ const props = withDefaults(defineProps<Props>(), {
     variant: 'pill',
 });
 
+const i18nStore = useI18nStore();
+
 const meta = computed(() => getTypeMeta(props.type));
 
 const label = computed(() => {
     const style = props.labelStyle ?? (props.variant === 'chip' ? 'short' : 'name');
-    return style === 'short' ? meta.value.short : meta.value.name;
+    if (style === 'short') return meta.value.short;
+    // 全名优先取 i18n 内容语言；未就绪 / 未知 slug 回落硬编码名
+    return i18nStore.typeName(props.type) ?? meta.value.name;
 });
 
 const badgeClass = computed(() => [
