@@ -145,6 +145,9 @@ export const useI18nStore = defineStore('i18n', () => {
     function abilityName(id: number): string | null {
         return lookup.value?.abilities.get(id) ?? null;
     }
+    function eggGroupName(id: number): string | null {
+        return lookup.value?.eggGroups.get(id) ?? null;
+    }
     function itemName(id: number): string | null {
         return lookup.value?.items.get(id) ?? null;
     }
@@ -180,6 +183,7 @@ export const useI18nStore = defineStore('i18n', () => {
         formLabel,
         moveName,
         abilityName,
+        eggGroupName,
         itemName,
         natureName,
         typeName,

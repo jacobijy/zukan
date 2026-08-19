@@ -32,6 +32,7 @@ function makeRoster(count = 1025): IPokemonBaseModel[] {
             types,
             abilities: [],
             hiddenAbility: '',
+            eggGroups: [],
             image: '',
             description: '',
             moves: [],

@@ -29,6 +29,7 @@ function roster(count = 1025): IPokemonBaseModel[] {
             types: [TYPES[id % TYPES.length]],
             abilities: [],
             hiddenAbility: '',
+            eggGroups: [],
             image: '',
             description: '',
             moves: [],

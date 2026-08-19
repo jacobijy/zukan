@@ -1,11 +1,13 @@
 <template>
-    <view class="info-card">
+    <view class="info-card" :class="{ 'info-card--wide': wide }">
         <view class="info-card__icon" :class="iconClass">
             <slot name="icon" />
         </view>
-        <view class="min-w-0">
+        <view class="min-w-0 flex-1">
             <text class="block text-[10px] font-black tracking-[0.14em] text-[#8d929c]">{{ label }}</text>
-            <text class="mt-1 block truncate text-base font-black text-[#24262b]">{{ value }}</text>
+            <slot name="value">
+                <text class="mt-1 block truncate text-base font-black text-[#24262b]">{{ value }}</text>
+            </slot>
         </view>
     </view>
 </template>
@@ -15,6 +17,8 @@ defineProps<{
     label: string;
     value: string;
     iconClass: string;
+    /** 横跨整行（用于列表型内容如多个特性） */
+    wide?: boolean;
 }>();
 </script>
 
@@ -39,6 +43,15 @@ defineProps<{
     width: 42px;
     height: 42px;
     border-radius: 15px;
+}
+
+.info-card--wide {
+    grid-column: 1 / -1;
+    align-items: flex-start;
+}
+
+.info-card--wide .info-card__icon {
+    margin-top: 1px;
 }
 
 .info-card__icon--green {

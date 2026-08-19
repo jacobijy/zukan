@@ -68,6 +68,8 @@ interface IPokemonBaseModel {
     types: string[];
     abilities: string[];
     hiddenAbility: string;
+    /** 蛋组本地化名称（1~2 个；未发现蛋组为单个「未发现」） */
+    eggGroups: string[];
     image: string;
     stats: { name: string; value: number }[];
     description: string;

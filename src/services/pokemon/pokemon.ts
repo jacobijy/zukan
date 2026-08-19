@@ -30,14 +30,17 @@ function typeName(id: number): string | null {
 /** i18n 名称解析器；未就绪时各字段为 null，merge 逻辑自行回落 */
 interface NameResolvers {
     species: (speciesId: number) => string | null;
+    genus: (speciesId: number) => string | null;
     form: (formId: number) => string | null;
     ability: (abilityId: number) => string | null;
+    eggGroup: (eggGroupId: number) => string | null;
 }
 
 function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | null): IPokemonBaseModel[] {
     const statById = new Map(bundle.statEntries.map((s) => [s.id, s]));
     const typeById = new Map(bundle.typeEntries.map((t) => [t.id, t]));
     const abilityById = new Map(bundle.abilityEntries.map((a) => [a.id, a]));
+    const eggGroupById = new Map(bundle.eggGroupEntries.map((e) => [e.id, e]));
 
     const resolveAbility = (id: number): string =>
         names?.ability(id) ?? String(id);
@@ -46,6 +49,7 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
         const s = statById.get(b.id);
         const t = typeById.get(b.id);
         const a = abilityById.get(b.id);
+        const e = eggGroupById.get(b.id);
 
         const types: string[] = [];
         if (t) {
@@ -62,6 +66,15 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
         }
         const hiddenAbility = a?.abilityHiddenId ? resolveAbility(a.abilityHiddenId) : '';
 
+        // 蛋组：egg_group_1 恒有值（未发现组=15），egg_group_2 为 0 表示无第二蛋组。
+        const eggGroups: string[] = [];
+        if (e) {
+            const g1 = e.eggGroup1Id ? names?.eggGroup(e.eggGroup1Id) ?? null : null;
+            if (g1) eggGroups.push(g1);
+            const g2 = e.eggGroup2Id ? names?.eggGroup(e.eggGroup2Id) ?? null : null;
+            if (g2) eggGroups.push(g2);
+        }
+
         const stats: { name: string; value: number }[] = s
             ? [
                   { name: HP, value: s.hp },
@@ -75,6 +88,8 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
 
         // 物种名：i18n 未就绪时回落 `pokemon-<id>` 占位
         const name = names?.species(b.speciesId) ?? `pokemon-${b.id}`;
+        // 分类（genus，如「种子宝可梦」）：查 i18n species.genus
+        const category = names?.genus(b.speciesId) ?? '';
         // 形态名：默认形态无标签；非默认形态查 i18n，未就绪回落 form-<id>
         const formLabel = b.isDefault ? '' : (names?.form(b.id) ?? `form-${b.id}`);
 
@@ -87,6 +102,7 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
             types,
             abilities,
             hiddenAbility,
+            eggGroups,
             image: '/static/default.png',
             stats,
             description: '',
@@ -94,6 +110,7 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
             evolutionChain: [],
             height: b.height,
             weight: b.weight,
+            category,
         };
     });
 }
@@ -124,8 +141,10 @@ function resolveNames(): NameResolvers | null {
         if (!i18n.ready) return null;
         return {
             species: (id) => i18n.speciesName(id),
+            genus: (id) => i18n.speciesGenus(id),
             form: (id) => i18n.formLabel(id),
             ability: (id) => i18n.abilityName(id),
+            eggGroup: (id) => i18n.eggGroupName(id),
         };
     } catch {
         return null;

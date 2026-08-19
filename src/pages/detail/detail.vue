@@ -17,9 +17,9 @@
                 />
 
                 <InfoGrid>
-                    <InfoCard v-for="item in infoItems" :key="item.label" :label="item.label" :value="item.value" :icon-class="item.iconClass">
+                    <InfoCard :label="t('detail.info.height')" :value="`${pokemon.height || 0}m`" icon-class="info-card__icon--green">
                         <template #icon>
-                            <svg v-if="item.icon === 'height'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                                 <path d="M6 21V3"></path>
                                 <path d="M3 6l3-3 3 3"></path>
                                 <path d="M3 18l3 3 3-3"></path>
@@ -27,17 +27,56 @@
                                 <path d="M13 12h5"></path>
                                 <path d="M13 18h8"></path>
                             </svg>
-                            <svg v-else-if="item.icon === 'weight'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                        </template>
+                    </InfoCard>
+                    <InfoCard :label="t('detail.info.weight')" :value="`${pokemon.weight || 0}kg`" icon-class="info-card__icon--gold">
+                        <template #icon>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                                 <path d="M7 8a5 5 0 0 1 10 0"></path>
                                 <path d="M5 8h14l-1.5 13h-11L5 8z"></path>
                             </svg>
-                            <svg v-else-if="item.icon === 'star'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                                <polygon points="12 2.8 14.9 8.7 21.4 9.65 16.7 14.25 17.8 20.75 12 17.68 6.2 20.75 7.3 14.25 2.6 9.65 9.1 8.7 12 2.8"></polygon>
+                        </template>
+                    </InfoCard>
+                    <InfoCard :label="t('detail.info.eggGroup')" :value="eggGroupText" icon-class="info-card__icon--paper">
+                        <template #icon>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                                <path d="M12 3c-3.5 0-7 4.5-7 9.5A7 7 0 0 0 12 20a7 7 0 0 0 7-7.5C19 7.5 15.5 3 12 3z"></path>
                             </svg>
-                            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                        </template>
+                    </InfoCard>
+                    <InfoCard :label="t('detail.info.category')" :value="pokemon.category || t('detail.info.categoryFallback')" icon-class="info-card__icon--paper">
+                        <template #icon>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
                                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                             </svg>
+                        </template>
+                    </InfoCard>
+
+                    <InfoCard
+                        wide
+                        :label="t('detail.info.ability')"
+                        value=""
+                        icon-class="info-card__icon--red"
+                    >
+                        <template #icon>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                                <polygon points="12 2.8 14.9 8.7 21.4 9.65 16.7 14.25 17.8 20.75 12 17.68 6.2 20.75 7.3 14.25 2.6 9.65 9.1 8.7 12 2.8"></polygon>
+                            </svg>
+                        </template>
+                        <template #value>
+                            <view v-if="abilityEntries.length" class="mt-1.5 flex flex-wrap gap-1.5">
+                                <view
+                                    v-for="(ab, i) in abilityEntries"
+                                    :key="i"
+                                    class="flex items-center gap-1 rounded-full px-2.5 py-1"
+                                    :class="ab.hidden ? 'bg-[#f3e8ff]' : 'bg-[#f1f3f8]'"
+                                >
+                                    <text class="text-xs font-bold leading-tight" :class="ab.hidden ? 'text-[#9333ea]' : 'text-[#24262b]'">{{ ab.name }}</text>
+                                    <text v-if="ab.hidden" class="rounded-full bg-[#9333ea] px-1.5 py-px text-[9px] font-bold leading-tight text-white">{{ t('detail.info.hiddenAbility') }}</text>
+                                </view>
+                            </view>
+                            <text v-else class="mt-1 block text-base font-black text-[#24262b]">-</text>
                         </template>
                     </InfoCard>
                 </InfoGrid>
@@ -87,6 +126,7 @@ const pokemon = ref<IPokemonBaseModel>({
     types: [],
     abilities: [],
     hiddenAbility: '',
+    eggGroups: [],
     image: '',
     stats: [],
     description: '',
@@ -98,12 +138,22 @@ const isFavorite = computed(() => {
     return pokemon.value.id ? favorites.value.includes(pokemon.value.id) : false
 })
 
-const infoItems = computed(() => [
-    { label: t('detail.info.height'), value: `${pokemon.value.height || 0}m`, icon: 'height', iconClass: 'info-card__icon--green' },
-    { label: t('detail.info.weight'), value: `${pokemon.value.weight || 0}kg`, icon: 'weight', iconClass: 'info-card__icon--gold' },
-    { label: t('detail.info.ability'), value: pokemon.value.abilities?.[0] || '-', icon: 'star', iconClass: 'info-card__icon--red' },
-    { label: t('detail.info.category'), value: pokemon.value.category || t('detail.info.categoryFallback'), icon: 'book', iconClass: 'info-card__icon--paper' }
-])
+// 1~2 个蛋组用「 / 」连接；i18n 未就绪时数组里是数字占位，过滤掉。
+const eggGroupText = computed(() => {
+    const groups = (pokemon.value.eggGroups ?? []).filter(s => s && !/^\d+$/.test(s))
+    return groups.length ? groups.join(' / ') : '-'
+})
+
+// 特性可能有 1~2 个普通特性 + 0/1 个隐藏特性，详情页需全部展示。
+// 过滤掉 i18n 未就绪时的数字占位 / 空串，避免渲染无意义值。
+const abilityEntries = computed<{ name: string; hidden: boolean }[]>(() => {
+    const isPlaceholder = (s: string) => !s || /^\d+$/.test(s)
+    const normal = (pokemon.value.abilities ?? []).filter(s => !isPlaceholder(s))
+    const entries = normal.map(name => ({ name, hidden: false }))
+    const hidden = pokemon.value.hiddenAbility
+    if (hidden && !isPlaceholder(hidden)) entries.push({ name: hidden, hidden: true })
+    return entries
+})
 
 // ── 形态切换 ──────────────────────────────────────────────
 // 同 species 的所有形态；单形态时数组只有一条，切换器不渲染。
