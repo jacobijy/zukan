@@ -32,6 +32,7 @@
  */
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { acquireSprite, releaseSprite, isSpriteAbortError } from '@/services/resources/spriteCache'
+import { BinaryRequestError } from '@/services/http'
 
 interface Props {
   pokemonId: number
@@ -98,7 +99,13 @@ async function load(pokemonId: number, variant: string): Promise<void> {
     if (disposed) return
     // 主动取消是正常路径（滑出视口）：保持骨架屏，等下次进视口重来
     if (isSpriteAbortError(err)) return
-    console.error('[EncryptedSprite] 解密失败:', pokemonId, variant, err)
+    // 404 = 服务端没有该形态的立绘（如故勒顿/密勒顿骑行模式），已回退默认图，
+    // 不是解密失败，降级为 warn 避免误导。
+    if (err instanceof BinaryRequestError && err.statusCode === 404) {
+      console.warn('[EncryptedSprite] 无立绘资源:', pokemonId, variant)
+    } else {
+      console.error('[EncryptedSprite] 解密失败:', pokemonId, variant, err)
+    }
     blobUrl.value = '/static/default.png'
   } finally {
     if (controller === ac) controller = null
