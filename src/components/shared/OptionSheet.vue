@@ -1,18 +1,12 @@
 <template>
-    <view v-if="mounted" class="sheet-root">
+    <view v-if="visible" class="sheet-root">
         <view
             class="sheet-mask"
-            :class="{ 'sheet-mask--show': visible }"
             @click="onMaskClick"
             @touchmove.stop.prevent
         ></view>
 
-        <view
-            class="sheet-panel"
-            :class="{ 'sheet-panel--show': visible }"
-            @touchmove.stop
-            @transitionend="onPanelTransitionEnd"
-        >
+        <view class="sheet-panel" @touchmove.stop>
             <view class="sheet-grip"></view>
 
             <view class="sheet-header">
@@ -67,7 +61,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 export interface SheetOption {
@@ -78,7 +72,7 @@ export interface SheetOption {
 }
 
 interface Props {
-    /** 面板是否展开（v-model:visible） */
+    /** 面板是否展开（v-model:visible）；关闭即卸载，入场动画见样式 */
     visible: boolean;
     title: string;
     options: readonly SheetOption[];
@@ -104,23 +98,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-// 保留在 DOM 中，让退出过渡能播完再卸载
-const mounted = ref(props.visible);
-
-/** 多选的本地草稿，每次打开时从 modelValue 同步 */
-const draft = ref<string[]>([]);
-
-watch(
-    () => props.visible,
-    (v) => {
-        if (v) {
-            mounted.value = true;
-            if (props.multi) {
-                draft.value = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
-            }
-        }
-    },
-    { immediate: true }
+/** 多选的本地草稿（组件随 v-if 打开时重建，直接从 modelValue 初始化） */
+const draft = ref<string[]>(
+    props.multi && Array.isArray(props.modelValue) ? [...props.modelValue] : []
 );
 
 function isSelected(id: string): boolean {
@@ -168,11 +148,6 @@ function close() {
 function onMaskClick() {
     if (props.maskClosable) close();
 }
-
-// 面板 transform 过渡结束后才卸载节点（遮罩过渡时长不同，忽略冒泡上来的其它事件）
-function onPanelTransitionEnd(e: TransitionEvent) {
-    if (!props.visible && e.propertyName === 'transform') mounted.value = false;
-}
 </script>
 
 <style lang="scss" scoped>
@@ -183,18 +158,15 @@ function onPanelTransitionEnd(e: TransitionEvent) {
     pointer-events: none;
 }
 
+/* 关闭即 v-if 卸载，只做入场动画（与 LoginModal 一致）；
+ * 不做退出过渡，避免依赖 transitionend 导致遮罩残留挡住返回。 */
 .sheet-mask {
     position: absolute;
     inset: 0;
     pointer-events: auto;
-    background: rgba(36, 38, 43, 0);
-    backdrop-filter: blur(0);
-    transition: background 0.3s ease, backdrop-filter 0.3s ease;
-
-    &--show {
-        background: rgba(36, 38, 43, 0.42);
-        backdrop-filter: blur(6px);
-    }
+    background: rgba(36, 38, 43, 0.42);
+    backdrop-filter: blur(6px);
+    animation: sheet-fade 0.28s ease-out;
 }
 
 .sheet-panel {
@@ -210,11 +182,19 @@ function onPanelTransitionEnd(e: TransitionEvent) {
     background: #ffffff;
     border-radius: 28px 28px 0 0;
     box-shadow: 0 -24px 60px rgba(48, 55, 72, 0.22);
-    transform: translateY(100%);
-    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: sheet-slide-up 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
 
-    &--show {
-        transform: translateY(0);
+@keyframes sheet-fade {
+    from {
+        background: rgba(36, 38, 43, 0);
+        backdrop-filter: blur(0);
+    }
+}
+
+@keyframes sheet-slide-up {
+    from {
+        transform: translateY(100%);
     }
 }
 

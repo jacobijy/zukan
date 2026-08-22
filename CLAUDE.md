@@ -208,6 +208,18 @@ src/pages/<name>/<name>-options.ts   仅该页用的选项/常量表
 同理：**slot 内容由父组件渲染，带的是父组件的 scope id**，子组件的 scoped
 样式选不中它；跨组件共用的动画/样式（如 `.field-loader`）要放 global.css。
 
+### 弹层关闭要直接 `v-if` 卸载，别靠 `transitionend`（踩过一次）
+
+给遮罩/弹层做退出动画时，常见写法是 `v-if="mounted"` + 监听面板的
+`transitionend` 再把 `mounted` 置 false。**在 uni-app H5 的 `<view>` 上
+`transitionend` 不可靠**（`propertyName` 匹配尤其不稳），结果节点不卸载：
+遮罩变透明但 `pointer-events: auto` 还在，全屏盖住下层，把背后的按钮点击吃掉。
+`OptionSheet` 因此出现"弹一次选择框、关掉后设置页返回按钮失灵"。
+
+**规则：弹层用 `v-if="visible"` 关闭即卸载，入场用 CSS `animation`，不做退出过渡。**
+这是 `LoginModal` 已验证可靠的模式。要等退出动画播完，得在 DOM 元素（非 uni 组件）
+上自己绑 transitionend 并兜底 setTimeout，复杂度不值得——直接卸载。
+
 ### `<script setup>` 顶层不是模块作用域（踩过一次，两个 bug）
 
 写在 `<script setup>` 顶层的 `const cache = new Map()` 看着像模块级单例，
