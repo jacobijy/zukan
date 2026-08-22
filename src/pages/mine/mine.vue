@@ -61,14 +61,12 @@
     </TabPageShell>
 
     <LoginModal v-model:visible="showLogin" @success="onLoginSuccess" />
-    <LanguageDrawer v-model:visible="showLangDrawer" />
 </template>
 
 <script lang="ts" setup>
 import TabPageShell from "@/components/shared/TabPageShell.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 import LoginModal from "@/components/shared/LoginModal.vue";
-import LanguageDrawer from "@/components/shared/LanguageDrawer.vue";
 import PokeballLogo from "@/components/shared/PokeballLogo.vue";
 import { isAuthenticated, clearSession } from '@/services/session';
 import { clearSpriteCache } from '@/services/resources';
@@ -85,7 +83,6 @@ const { favorites } = storeToRefs(pokemonStore);
 const i18nStore = useI18nStore();
 const { t } = useI18n();
 
-const showLangDrawer = ref(false);
 const currentLangLabel = computed(() => {
     const uiLabel =
         UI_LANGUAGES.find((l) => l.id === resolveUiLocale(i18nStore.uiLang))?.label ?? '';
@@ -144,7 +141,7 @@ const menuItems = computed(() => [
 
 function onMenuTap(item: { icon: string }) {
     if (item.icon === 'settings') {
-        showLangDrawer.value = true;
+        uni.navigateTo({ url: '/pages/settings/settings' });
     }
 }
 

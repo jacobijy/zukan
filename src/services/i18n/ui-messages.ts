@@ -264,6 +264,14 @@ const zhHans = {
         followSystem: '跟随系统',
         systemHint: '{lang}（系统）',
     },
+    settings: {
+        title: '设置',
+        sectionLanguage: '语言',
+        uiLanguage: '界面语言',
+        uiLanguageDesc: '按钮、菜单等界面文字',
+        contentLanguage: '宝可梦内容语言',
+        contentLanguageDesc: '物种 / 招式 / 特性名称与描述',
+    },
 };
 
 const en: typeof zhHans = {
@@ -525,6 +533,14 @@ const en: typeof zhHans = {
         contentSection: 'Pokémon content',
         followSystem: 'Follow system',
         systemHint: '{lang} (System)',
+    },
+    settings: {
+        title: 'Settings',
+        sectionLanguage: 'Language',
+        uiLanguage: 'Interface language',
+        uiLanguageDesc: 'Buttons, menus, and other interface text',
+        contentLanguage: 'Pokémon content language',
+        contentLanguageDesc: 'Species, move, and ability names and text',
     },
 };
 

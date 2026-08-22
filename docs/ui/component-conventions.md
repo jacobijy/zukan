@@ -7,7 +7,7 @@
 ```
 src/components/
   shared/    跨页面通用：TabPageShell、ListRow、DetailNavbar、
-             FavoriteButton、PokeballLogo、LoginModal
+             FavoriteButton、PokeballLogo、LoginModal、OptionSheet
   pokemon/   宝可梦领域：PokemonCard、TypeBadge、SpecimenHero、
              InfoGrid/InfoCard、StatsChart、MovesList/MoveCard、EvolutionChain
   dex/       图鉴列表上下文：DexToolbar、FilterBar、GenerationDrawer、
@@ -29,6 +29,9 @@ src/pages/<name>/<name>-options.ts   仅该页用的选项/常量表
 - **详情类页**用 `DetailNavbar` + `SpecimenHero` + `InfoGrid`/`InfoCard`
   （`detail.vue` 就是标准模板）。
 - **列表行**用 `ListRow`（配 `list-row__icon--*` 配色）；**属性徽章**用 `TypeBadge`。
+- **单选/多选设置项**点击后弹 `OptionSheet`（底部滑出，支持对勾、副标题、loading、
+  多选确认按钮条），不要用 `uni.showActionSheet`——后者不支持多选/副标题/自定义样式。
+  非 tab 子页用 `DetailNavbar`，从来源页 `uni.navigateTo` 打开（参考 `pages/settings/`）。
 - **表单/选项分组**用 `CalcCard` + `ChipRow` + `LevelStepper`。
 - 容器样式用 global.css 已有的 `glass-panel`、`archive-section`、`section-label`，
   不要新写等价的 scoped 版本。

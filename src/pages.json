@@ -50,6 +50,13 @@
         "navigationBarTitleText": "对战模拟器",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/settings/settings",
+      "style": {
+        "navigationBarTitleText": "设置",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

@@ -48,6 +48,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 个人中心 | `pages/mine/mine` | 键页 |
 | 伤害计算器 | `pages/calc/calc` | 键页（计算引擎在 `calc-engine.ts`） |
 | 对战模拟器 | `pages/simulate/simulate` | **UI 骨架**（`noop` 占位，无实际交互） |
+| 设置 | `pages/settings/settings` | 子页（`DetailNavbar`，语言等系统设置；点选项弹 `OptionSheet`） |
 
 `src/pages/` 下没有其他游离页面文件。
 
@@ -151,7 +152,7 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 ```
 src/components/
   shared/    跨页面通用：TabPageShell、ListRow、DetailNavbar、
-             FavoriteButton、PokeballLogo、LoginModal
+             FavoriteButton、PokeballLogo、LoginModal、OptionSheet
   pokemon/   宝可梦领域：PokemonCard、TypeBadge、SpecimenHero、
              InfoGrid/InfoCard、StatsChart、MovesList、MoveCard、EvolutionChain
   dex/       图鉴列表上下文：DexToolbar、FilterBar、GenerationDrawer、
@@ -172,6 +173,9 @@ src/pages/<name>/<name>-options.ts   仅该页用的选项/常量表
   不要重新写 NavBar + padding + TabBar 骨架
 - **详情类页**用 `DetailNavbar` + `SpecimenHero` + `InfoGrid`/`InfoCard`（`detail.vue` 就是标准模板）
 - **列表行**用 `ListRow`（配 `list-row__icon--*` 配色）；**属性徽章**用 `TypeBadge`
+- **单选/多选设置项**弹 `OptionSheet`（底部滑出，支持对勾、副标题、loading、多选确认），
+  不要用 `uni.showActionSheet`（不支持多选/副标题/自定义样式）。非 tab 子页用
+  `DetailNavbar` + `uni.navigateTo`（参考 `pages/settings/`）
 - **表单/选项分组**用 `CalcCard` + `ChipRow` + `LevelStepper`
 - 容器样式用 global.css 已有的 `glass-panel`、`archive-section`、`section-label`，
   不要新写等价的 scoped 版本
