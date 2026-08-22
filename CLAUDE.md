@@ -111,8 +111,9 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 
 ### 当前已知的占位 / 模拟数据
 
-- `pokemon.ts:mergeBundleToModel` 返回的 `name` 为 `'pokemon-{id}'`，`image` 为 `/static/default.png`，
-  `description` 为空，`moves`/`evolutionChain` 为空数组 —— 搜索按名称、按名称排序在现阶段是无意义的。
+- `pokemon.ts:mergeBundleToModel` 的 `image` 为 `/static/default.png`（卡面图走 `EncryptedSprite`），
+  `description` 为空，`moves`/`evolutionChain` 为空数组。物种名/形态名/特性名已接通 i18n
+  名称组（见 `docs/i18n/`），i18n 未就绪时回落 `pokemon-{id}` / `form-{id}` 占位。
 - `simulate.vue` 是纯 UI 骨架，所有交互 handler 都是 `noop`。
 - `src/core/data/typechart.ts` 被 `calc-engine.ts` 动态 import，是移除的服务端模块的残留。
 
@@ -130,11 +131,16 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 
 ### `docs/` 目录
 
-- `docs/encryption.md` — 加密方案概述（AES-256-GCM ZKDX 格式），精准且不过时。
-- `docs/zukan-decryption.md` — 解密流程细节，与代码一致。
-- `docs/calc-engine.md` — 伤害计算器数据流，含三处硬编码 / WASM 依赖说明，改 calc 前必读。
-- `docs/ARCHITECTURE.md` — **严重过时**（描述的是 `src/core/`、`src/shared/`、`src/infra/flatbuffers/` 等已不存在的目录），不要参考。
-- `docs/encrypted-assets.archived.md` / `docs/restful.archived.md` — 归档文档，历史背景。
+按主题分类，入口是 `docs/README.md`（索引）。改哪块读哪块：
+
+- `docs/architecture/` — 架构总览、测试约定
+- `docs/ui/` — 组件化约定、scoped CSS / `<script setup>` 陷阱、VirtualGrid 定高耦合
+- `docs/data/` — FlatBuffers bundle 解码与五表 join、三套 id 空间、筛选排序收藏
+- `docs/i18n/` — 多语言 names/flavor bundle、UI/内容双语言、回落策略
+- `docs/features/` — 伤害计算器数据流（改 calc 前必读）
+- `docs/security/` — ZKDX 加密全链路、DEK 认证与会话
+- `docs/caching/` — resourceManager 三层缓存、spriteCache/spritePersist 不变量
+- `docs/archive/` — 旧文档（早期加密稿、解密稿、旧架构图、REST/encrypted-assets 归档稿），不再维护
 
 ## 组件化约定（写新页面时必须遵守）
 

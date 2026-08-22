@@ -1,5 +1,9 @@
 # 加密方案
 
+> ⚠️ **本文是早期设计稿，部分实现已过时**（CDN 签名、FlatBuffers bundle 分类、
+> 模块级缓存、id 对应关系、版本失效等均未覆盖）。
+> 权威文档请看 [`encryption-pipeline.md`](./encryption-pipeline.md)。
+
 > 图鉴数据和精灵图片统一使用 AES-256-GCM 加密（ZKDX 格式）。
 > 后端负责加密和分发，前端 WASM 运行时解密。
 
