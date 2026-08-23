@@ -73,7 +73,6 @@
                                     :class="ab.hidden ? 'bg-[#f3e8ff]' : 'bg-[#f1f3f8]'"
                                 >
                                     <text class="text-xs font-bold leading-tight" :class="ab.hidden ? 'text-[#9333ea]' : 'text-[#24262b]'">{{ ab.name }}</text>
-                                    <text v-if="ab.hidden" class="rounded-full bg-[#9333ea] px-1.5 py-px text-[9px] font-bold leading-tight text-white">{{ t('detail.info.hiddenAbility') }}</text>
                                 </view>
                             </view>
                             <text v-else class="mt-1 block text-base font-black text-[#24262b]">-</text>
