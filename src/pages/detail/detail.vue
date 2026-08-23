@@ -82,7 +82,7 @@
                 </InfoGrid>
 
                 <StatsChart :stats="pokemon.stats" :types="pokemon.types" />
-                <EvolutionChain :chain="pokemon.evolutionChain" />
+                <EvolutionChain :chain="evolutionChain" :loading="evolutionLoading" />
                 <MovesList :moves="pokemon.moves" />
                 <view class="h-4"></view>
             </view>
@@ -105,7 +105,7 @@ import InfoCard from '@/components/pokemon/InfoCard.vue'
 import { usePokemonStore } from '@/store/pokemon'
 import { useI18nStore } from '@/store/i18n'
 import { useI18n } from 'vue-i18n'
-import { genForPokemonId, loadMovesForPokemon } from '@/services/pokemon'
+import { genForPokemonId, loadMovesForPokemon, loadEvolutionChain } from '@/services/pokemon'
 import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
@@ -157,11 +157,16 @@ const abilityEntries = computed<{ name: string; hidden: boolean }[]>(() => {
 
 // ── 形态切换 ──────────────────────────────────────────────
 // 同 species 的所有形态；单形态时数组只有一条，切换器不渲染。
+// 无正面立绘的形态（hasSprite === false）不在左右切换中出现——
+// 数据层已判定官方无可展示图，放进来只会裂图/占位，挡在用户和正常形态之间。
+// 当前形态自身无立绘时仍保留自身，否则会无形态可显。
 const forms = computed<IPokemonBaseModel[]>(() => {
     const sid = pokemon.value.speciesId ?? pokemon.value.id
     if (!sid) return []
     const list = pokemonStore.getFormsBySpecies(sid)
-    return list.length > 0 ? list : [pokemon.value]
+    if (list.length === 0) return [pokemon.value]
+    const visible = list.filter(f => f.hasSprite !== false || f.id === pokemon.value.id)
+    return visible.length > 0 ? visible : [pokemon.value]
 })
 const formCount = computed(() => forms.value.length)
 const formIndex = computed(() =>
@@ -177,6 +182,32 @@ const switchForm = (delta: 1 | -1) => {
     const next = (formIndex.value + delta + formCount.value) % formCount.value
     pokemon.value = forms.value[next]
     loadMoves(pokemon.value.id)
+}
+
+// ── 进化链（按 species，形态切换不重取） ──────────────────
+const evolutionChain = ref<EvolutionStage | null>(null)
+const evolutionLoading = ref(false)
+let evolutionToken = 0
+
+async function loadEvolution(speciesId: number | undefined) {
+    const sid = speciesId ?? 0
+    if (!sid) {
+        evolutionChain.value = null
+        evolutionLoading.value = false
+        return
+    }
+    const token = ++evolutionToken
+    evolutionLoading.value = true
+    evolutionChain.value = null
+    try {
+        const chain = await loadEvolutionChain(sid)
+        if (token === evolutionToken) evolutionChain.value = chain
+    } catch (err) {
+        console.warn('[detail] evolution load failed', err)
+        if (token === evolutionToken) evolutionChain.value = null
+    } finally {
+        if (token === evolutionToken) evolutionLoading.value = false
+    }
 }
 
 const toggleFavorite = () => {
@@ -220,6 +251,7 @@ const loadPokemonById = async (id: number) => {
         if (found) {
             pokemon.value = found
             loadMoves(id)
+            loadEvolution(found.speciesId)
             return
         }
 
@@ -231,6 +263,7 @@ const loadPokemonById = async (id: number) => {
             if (found) {
                 pokemon.value = found
                 loadMoves(id)
+                loadEvolution(found.speciesId)
                 return
             }
         }

@@ -105,6 +105,7 @@ const zhHans = {
     evolution: {
         title: '进化链',
         empty: '暂无记录',
+        loading: '加载中…',
     },
     specimen: {
         prevForm: '上一个形态',
@@ -371,6 +372,7 @@ const en: typeof zhHans = {
     evolution: {
         title: 'Evolution',
         empty: 'No records',
+        loading: 'Loading…',
     },
     specimen: {
         prevForm: 'Previous form',

@@ -4,88 +4,34 @@
       <text class="text-lg font-black tracking-[-0.03em] text-[#24262b]">{{ t('evolution.title') }}</text>
       <text class="rounded-full border border-[#e1e4eb] bg-[#f5f6fa] px-3 py-1 text-[10px] font-black tracking-[0.14em] text-[#8d929c]">EVOLVE</text>
     </view>
-    <view class="flex items-center gap-2 overflow-x-auto pb-1">
-      <template v-for="(stage, index) in normalizedChain" :key="index">
-        <view class="evolution-node">
-          <view class="evolution-node__image">
-            <EncryptedSprite
-              v-if="stage.id"
-              :pokemon-id="stage.id"
-              variant="home"
-              img-class="h-14 w-14"
-              skeleton-class="h-14 w-14"
-            />
-            <image v-else :src="stage.imageUrl" mode="aspectFit" class="h-14 w-14"></image>
-          </view>
-          <text class="mt-2 block text-sm font-black text-[#24262b]">{{ stage.name }}</text>
-          <text v-if="stage.level" class="mt-0.5 block text-xs font-semibold text-[#8d929c]">Lv.{{ stage.level }}</text>
-        </view>
-        <svg v-if="index < normalizedChain.length - 1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 shrink-0 text-[#9da2ad]">
-          <path d="m9 18 6-6-6-6"></path>
-        </svg>
-      </template>
+
+    <view v-if="loading" class="flex items-center gap-2 py-4">
+      <text class="text-sm font-semibold text-[#8d929c]">{{ t('evolution.loading') }}</text>
+    </view>
+
+    <scroll-view v-else-if="chain" scroll-x class="pb-1">
+      <EvolutionNode :stage="chain" @select="openPokemon" class="min-w-max" />
+    </scroll-view>
+
+    <view v-else class="py-3">
+      <text class="text-sm font-semibold text-[#8d929c]">{{ t('evolution.empty') }}</text>
     </view>
   </view>
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
+import EvolutionNode from '@/components/pokemon/EvolutionNode.vue';
 import { useI18n } from 'vue-i18n';
-import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 
 const { t } = useI18n();
 
-type EvolutionStage = {
-  name: string;
-  imageUrl?: string;
-  level?: number;
-  id?: number;
-};
-
-const props = defineProps<{
-  chain?: Array<number | EvolutionStage>;
-  evolutionChain?: Array<number | EvolutionStage>;
+defineProps<{
+  /** 进化链根节点；null 表示已加载但无数据；undefined 表示加载中 */
+  chain?: EvolutionStage | null;
+  loading?: boolean;
 }>();
 
-const normalizedChain = computed<EvolutionStage[]>(() => {
-  const chain = props.chain ?? props.evolutionChain ?? [];
-  if (!chain.length) {
-    return [{ name: t('evolution.empty'), imageUrl: '/static/default.png' }];
-  }
-
-  return chain.map((stage) => {
-    if (typeof stage === 'number') {
-      return {
-        id: stage,
-        name: `NO.${String(stage).padStart(3, '0')}`,
-      };
-    }
-    return stage;
-  });
-});
+function openPokemon(id: number) {
+  uni.navigateTo({ url: `/pages/detail/detail?id=${id}` });
+}
 </script>
-
-<style scoped>
-.evolution-node {
-  flex: 1 0 92px;
-  min-width: 92px;
-  padding: 12px;
-  text-align: center;
-  border: 1px solid #e5e7ee;
-  border-radius: 22px;
-  background: #f5f6fa;
-}
-
-.evolution-node__image {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 70px;
-  height: 70px;
-  margin: 0 auto;
-  border: 1px solid #e5e7ee;
-  border-radius: 22px;
-  background: #ffffff;
-  box-shadow: inset 0 1px 0 #ffffff, 0 10px 18px rgba(48, 55, 72, 0.08);
-}
-</style>
