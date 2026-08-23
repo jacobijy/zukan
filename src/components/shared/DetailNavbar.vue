@@ -26,15 +26,25 @@
 </template>
 
 <script lang="ts" setup>
-defineProps<{ title: string }>();
+const props = withDefaults(defineProps<{
+    title: string;
+    /** 无上一页可回退时（H5 刷新/深链直达）reLaunch 的目标页 */
+    fallbackUrl?: string;
+}>(), {
+    fallbackUrl: '/pages/features/features'
+});
 
 const emit = defineEmits<{ back: [] }>();
 
 const handleBack = () => {
     emit('back');
-    uni.navigateBack({
-        fail: () => { uni.reLaunch({ url: '/pages/features/features' }); }
-    });
+    // H5 直接刷新/深链进入时页面栈只有当前页，navigateBack 走 history.back()
+    // 且 fail 回调不可靠，必须显式判断栈深，没有上一页就 reLaunch 兜底。
+    if (getCurrentPages().length > 1) {
+        uni.navigateBack();
+    } else {
+        uni.reLaunch({ url: props.fallbackUrl });
+    }
 };
 </script>
 

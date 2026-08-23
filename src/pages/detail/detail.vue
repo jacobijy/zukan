@@ -1,6 +1,6 @@
 <template>
     <view class="detail-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '100px' }">
-        <DetailNavbar :title="pokemon.name || t('detail.titleFallback')" @back="goBack">
+        <DetailNavbar :title="pokemon.name || t('detail.titleFallback')" fallback-url="/pages/index/index" @back="goBack">
             <template #right>
                 <FavoriteButton :active="isFavorite" @toggle="toggleFavorite" />
             </template>
@@ -216,11 +216,7 @@ const toggleFavorite = () => {
 }
 
 const goBack = () => {
-    uni.navigateBack({
-        fail: () => {
-            uni.reLaunch({ url: '/pages/index/index' })
-        }
-    })
+    // DetailNavbar 内部已处理 navigateBack / reLaunch 兜底
 }
 
 const currentTab = ref(0);
