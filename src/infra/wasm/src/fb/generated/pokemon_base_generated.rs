@@ -55,6 +55,7 @@ impl core::fmt::Debug for PokemonBase {
       .field("color_id", &self.color_id())
       .field("shape_id", &self.shape_id())
       .field("habitat_id", &self.habitat_id())
+      .field("has_sprite", &self.has_sprite())
       .finish()
   }
 }
@@ -113,6 +114,7 @@ impl<'a> PokemonBase {
     color_id: u8,
     shape_id: u8,
     habitat_id: u8,
+    has_sprite: bool,
   ) -> Self {
     let mut s = Self([0; 28]);
     s.set_id(id);
@@ -132,6 +134,7 @@ impl<'a> PokemonBase {
     s.set_color_id(color_id);
     s.set_shape_id(shape_id);
     s.set_habitat_id(habitat_id);
+    s.set_has_sprite(has_sprite);
     s
   }
 
@@ -624,6 +627,35 @@ impl<'a> PokemonBase {
         &x_le as *const _ as *const u8,
         self.0[24..].as_mut_ptr(),
         core::mem::size_of::<<u8 as EndianScalar>::Scalar>(),
+      );
+    }
+  }
+
+  pub fn has_sprite(&self) -> bool {
+    let mut mem = core::mem::MaybeUninit::<<bool as EndianScalar>::Scalar>::uninit();
+    // Safety:
+    // Created from a valid Table for this object
+    // Which contains a valid value in this slot
+    EndianScalar::from_little_endian(unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[25..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<<bool as EndianScalar>::Scalar>(),
+      );
+      mem.assume_init()
+    })
+  }
+
+  pub fn set_has_sprite(&mut self, x: bool) {
+    let x_le = x.to_little_endian();
+    // Safety:
+    // Created from a valid Table for this object
+    // Which contains a valid value in this slot
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const _ as *const u8,
+        self.0[25..].as_mut_ptr(),
+        core::mem::size_of::<<bool as EndianScalar>::Scalar>(),
       );
     }
   }

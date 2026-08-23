@@ -151,6 +151,12 @@ export const useI18nStore = defineStore('i18n', () => {
     function itemName(id: number): string | null {
         return lookup.value?.items.get(id) ?? null;
     }
+    function evolutionTriggerName(id: number): string | null {
+        return lookup.value?.evolutionTriggers.get(id) ?? null;
+    }
+    function regionName(id: number): string | null {
+        return lookup.value?.regions.get(id) ?? null;
+    }
     function natureName(id: number): string | null {
         return lookup.value?.natures.get(id) ?? null;
     }
@@ -185,6 +191,8 @@ export const useI18nStore = defineStore('i18n', () => {
         abilityName,
         eggGroupName,
         itemName,
+        evolutionTriggerName,
+        regionName,
         natureName,
         typeName,
     };

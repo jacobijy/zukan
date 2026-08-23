@@ -5,8 +5,8 @@
 
 use crate::fb::generated::pokemon_types_generated::pokeapi::fb::*;
 use crate::fb::generated::pokemon_abilities_generated::pokeapi::fb::*;
-use crate::fb::generated::pokemon_stats_generated::pokeapi::fb::*;
 use crate::fb::generated::pokemon_base_generated::pokeapi::fb::*;
+use crate::fb::generated::pokemon_stats_generated::pokeapi::fb::*;
 use crate::fb::generated::pokemon_egg_groups_generated::pokeapi::fb::*;
 use core::mem;
 use core::cmp::Ordering;
@@ -19,8 +19,8 @@ pub mod pokeapi {
 
   use crate::fb::generated::pokemon_types_generated::pokeapi::fb::*;
   use crate::fb::generated::pokemon_abilities_generated::pokeapi::fb::*;
-  use crate::fb::generated::pokemon_stats_generated::pokeapi::fb::*;
   use crate::fb::generated::pokemon_base_generated::pokeapi::fb::*;
+  use crate::fb::generated::pokemon_stats_generated::pokeapi::fb::*;
   use crate::fb::generated::pokemon_egg_groups_generated::pokeapi::fb::*;
   use core::mem;
   use core::cmp::Ordering;
@@ -32,8 +32,8 @@ pub mod fb {
 
   use crate::fb::generated::pokemon_types_generated::pokeapi::fb::*;
   use crate::fb::generated::pokemon_abilities_generated::pokeapi::fb::*;
-  use crate::fb::generated::pokemon_stats_generated::pokeapi::fb::*;
   use crate::fb::generated::pokemon_base_generated::pokeapi::fb::*;
+  use crate::fb::generated::pokemon_stats_generated::pokeapi::fb::*;
   use crate::fb::generated::pokemon_egg_groups_generated::pokeapi::fb::*;
   use core::mem;
   use core::cmp::Ordering;

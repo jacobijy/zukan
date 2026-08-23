@@ -6,6 +6,10 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 
+pub mod evolution_bundle_generated;
+pub mod evolution_detail_generated;
+pub mod evolution_edge_generated;
+pub mod evolution_species_generated;
 pub mod i18n_flavor_bundle_generated;
 pub mod i18n_names_bundle_generated;
 pub mod move_flag_pair_generated;

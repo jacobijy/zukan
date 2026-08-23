@@ -1,0 +1,27 @@
+// tools/schemas/evolution_bundle.fbs
+//
+// 进化数据顶层 bundle —— 全代合并为单个 evolution.bin（进化树结构跨代稳定，
+// 版本组差异在 EvolutionDetail 内表达，不按代拆分）。
+//
+// 三张紧密数组（零拷贝，按下标直取）：
+//   species[i]   按 species_id-1 下标（species_id 1..1025 连续，含不进化的孤立物种）
+//   edges        每个物种的进化分支，被 species[i].edge_start/count 切分
+//   details      每个分支的触发条件，被 edge.detail_start/count 切分
+//
+// 从一只宝可梦取进化链：PokemonBase.species_id → species[id-1]，
+// 沿 parent_species 上溯到根，再逐层读 edges 即可展开整棵树。
+
+include "evolution_species.fbs";
+include "evolution_edge.fbs";
+include "evolution_detail.fbs";
+
+namespace pokeapi.fb;
+
+table EvolutionBundle {
+  species: [EvolutionSpecies];  // 1025 行，species_id = index + 1
+  edges: [EvolutionEdge];
+  details: [EvolutionDetail];
+}
+
+root_type EvolutionBundle;
+file_identifier "EVO1";

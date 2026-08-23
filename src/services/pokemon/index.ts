@@ -3,3 +3,4 @@
  */
 export { fetchPokemonList, genForPokemonId } from './pokemon';
 export { loadMovesForPokemon } from './moves';
+export { loadEvolutionChain, buildEvolutionChain, type EvolutionResolvers } from './evolution';

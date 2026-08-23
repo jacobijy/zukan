@@ -1,0 +1,19 @@
+// tools/schemas/evolution_species.fbs
+//
+// 每个物种一行，按 species_id 升序紧密排列（species_id 1..1025 连续，
+// 因此可直接用 species[i-1] 下标定位，无需查找）。
+//
+// 通过 parent_species 形成进化树：根物种 parent=0；每条 parent→child 同时
+// 也作为 parent 的一条 edge 出现，二者互为冗余、方便双向遍历。
+
+include "evolution_edge.fbs";
+
+namespace pokeapi.fb;
+
+struct EvolutionSpecies {
+  parent_species: uint16;    // 由何物种进化而来（evolves_from_species_id）；0=链根/无前置
+  chain_id: uint16;          // 所属进化链 id（pokemon_species.evolution_chain_id）
+  edge_start: uint16;        // 在 edges 数组中的起始下标（无进化目标时等于 edge_end）
+  edge_count: uint8;         // 该物种可进化出的分支数
+  pad: uint8;
+}

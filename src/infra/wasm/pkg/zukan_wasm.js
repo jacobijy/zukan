@@ -230,6 +230,21 @@ export function createDamageInput(level, attack, defense, base_power, move_type,
 }
 
 /**
+ * 解码 `evolution.bin` (fid = `EVO1`) —— 全代进化树（species/edges/details）
+ * @param {Uint8Array} data
+ * @returns {EvolutionBundle}
+ */
+export function decodeEvolutionBundle(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decodeEvolutionBundle(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
  * 解码 `I18nFlavorBundle` (fid = `PKFL`) —— 单语言描述组
  * （图鉴/技能/特性/道具描述）。传输层的字符串池在解码时解析为内联字符串。
  * @param {Uint8Array} data

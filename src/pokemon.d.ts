@@ -56,6 +56,20 @@ interface MoveRecord {
     level?: number;
 }
 
+/** 进化链展示节点：id 用于加载立绘与名称，level/triggerText 描述触发条件 */
+interface EvolutionStage {
+    /** 进化目标物种的默认形态 pokemon id（用于立绘与点击跳转） */
+    id: number;
+    /** 物种显示名；i18n 未就绪时由组件回落 NO.xxx */
+    name?: string;
+    /** 升级进化的最低等级；其他触发方式为 undefined */
+    level?: number;
+    /** 除等级外的触发条件文本（道具/亲密度/交换…），已本地化 */
+    triggerText?: string;
+    /** 该节点可进化出的分支；线性链每节点仅一个 child */
+    children?: EvolutionStage[];
+}
+
 interface IPokemonBaseModel {
     id: number;
     /** 同 species 分组 key；缺席视为等于 id（单形态） */
@@ -64,6 +78,8 @@ interface IPokemonBaseModel {
     isDefault?: boolean;
     /** 形态显示名（"攻击形态" / "阿罗拉形态"…），缺席 UI 用 `形态 #{id}` 占位 */
     formLabel?: string;
+    /** 该形态是否有正面立绘；false 时 UI 应屏蔽该形态（不进卡片/详情左右切换） */
+    hasSprite?: boolean;
     name: string;
     types: string[];
     abilities: string[];
@@ -74,7 +90,7 @@ interface IPokemonBaseModel {
     stats: { name: string; value: number }[];
     description: string;
     moves: MoveRecord[];
-    evolutionChain: number[];
+    evolutionChain: EvolutionStage[];
     height?: number;
     weight?: number;
     category?: string;

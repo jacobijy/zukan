@@ -32,12 +32,14 @@ import {
     decodeMovesDataBundle,
     decodeI18nNamesBundle,
     decodeI18nFlavorBundle,
+    decodeEvolutionBundle,
     type PokemonGenBundle,
     type PokemonVgMovesBundle,
     type PokemonMovesBundle,
     type MovesDataBundle,
     type I18nNamesBundle,
     type I18nFlavorBundle,
+    type EvolutionBundle,
 } from '@/infra/wasm';
 import { fetchBinary, BinaryRequestError } from '@/services/http';
 import { getKey, clearKeyCache } from '@/services/session/key';
@@ -266,6 +268,14 @@ function specI18nFlavor(lang: string): BundleSpec {
     };
 }
 
+/** 全代合并的单文件进化树（不按世代拆分） */
+function specEvolution(): BundleSpec {
+    return {
+        cacheKey: `${currentCacheKeyPrefix()}:evolution`,
+        remotePath: `/assets/encrypted/fb/evolution.bin`,
+    };
+}
+
 // ─────────────────────────────────────────────────────────
 // 公共 API
 // ─────────────────────────────────────────────────────────
@@ -296,6 +306,10 @@ export const resourceManager = {
     getI18nFlavor(lang: string): Promise<I18nFlavorBundle> {
         return loadBundle(specI18nFlavor(lang), decodeI18nFlavorBundle);
     },
+    /** 全代进化树（EVO1，单文件）—— 旧后端未产出时 404，调用方应静默降级 */
+    getEvolution(): Promise<EvolutionBundle> {
+        return loadBundle(specEvolution(), decodeEvolutionBundle);
+    },
 
     // ── 预取（与 get* 共享 inflight 去重；错误静默） ──
     prefetchPokemonGen(genId: number): void {
@@ -315,6 +329,9 @@ export const resourceManager = {
     },
     prefetchI18nFlavor(lang: string): void {
         silence(this.getI18nFlavor(lang), `i18n-flavor-${lang}`);
+    },
+    prefetchEvolution(): void {
+        silence(this.getEvolution(), 'evolution');
     },
 
     // ── 运维 ──

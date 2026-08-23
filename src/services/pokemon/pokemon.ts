@@ -42,8 +42,7 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
     const abilityById = new Map(bundle.abilityEntries.map((a) => [a.id, a]));
     const eggGroupById = new Map(bundle.eggGroupEntries.map((e) => [e.id, e]));
 
-    const resolveAbility = (id: number): string =>
-        names?.ability(id) ?? String(id);
+    const resolveAbility = (id: number): string => names?.ability(id) ?? String(id);
 
     return bundle.baseEntries.map((b): IPokemonBaseModel => {
         const s = statById.get(b.id);
@@ -69,9 +68,9 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
         // 蛋组：egg_group_1 恒有值（未发现组=15），egg_group_2 为 0 表示无第二蛋组。
         const eggGroups: string[] = [];
         if (e) {
-            const g1 = e.eggGroup1Id ? names?.eggGroup(e.eggGroup1Id) ?? null : null;
+            const g1 = e.eggGroup1Id ? (names?.eggGroup(e.eggGroup1Id) ?? null) : null;
             if (g1) eggGroups.push(g1);
-            const g2 = e.eggGroup2Id ? names?.eggGroup(e.eggGroup2Id) ?? null : null;
+            const g2 = e.eggGroup2Id ? (names?.eggGroup(e.eggGroup2Id) ?? null) : null;
             if (g2) eggGroups.push(g2);
         }
 
@@ -97,6 +96,7 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
             id: b.id,
             speciesId: b.speciesId,
             isDefault: b.isDefault,
+            hasSprite: b.hasSprite,
             formLabel,
             name,
             types,

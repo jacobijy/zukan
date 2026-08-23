@@ -34,6 +34,8 @@ export async function bootPrefetch(): Promise<void> {
         // 预取最新世代 + 用户内容语言名称组（inflight 去重；错误静默）。
         // 两者并发，互不依赖；i18n store 内部会用同一份内存缓存把名称映射到宝可梦列表。
         resourceManager.prefetchPokemonGen(LATEST_GEN_ID);
+        // 全代进化树单文件 ~30KB，详情页必用；旧后端未产出时 404 被 silence 吞掉
+        resourceManager.prefetchEvolution();
         const lang = resolveContentLang();
         resourceManager.prefetchI18nNames(lang);
         // 若首选语言非英文，同时预取英文基线（回落叠加需要）

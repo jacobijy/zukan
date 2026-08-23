@@ -1,0 +1,35 @@
+// tools/schemas/evolution_detail.fbs
+//
+// 一条进化触发条件（pokemon_evolution.csv 的一行投影，纯数值）。
+// 同一对 from→to 可能因版本组不同有多条 detail —— 由 EvolutionEdge 聚合。
+// 所有 id 类字段 0 表示"无/不限"；相对物理攻防用枚举而非 int8 以避开 0 歧义。
+
+namespace pokeapi.fb;
+
+struct EvolutionDetail {
+  trigger_item: uint16;          // evolution_trigger_props 用道具
+  held_item: uint16;             // 升级时携带
+  known_move: uint16;            // 需知晓的招式
+  party_species: uint16;         // 同行的另一只物种
+  trade_species: uint16;         // 通信交换对象物种
+  location: uint16;             // 升级地点
+  minimum_steps: uint16;        // 需走路数
+  minimum_damage_taken: uint16; // 需承受伤害（某幽灵系进化）
+  evolved_form: uint16;         // 进化后的形态 id
+  base_form: uint16;            // 进化起点形态限制
+  version_group_id: uint8;
+  trigger_id: uint8;            // 1=升级 2=交换 3=使用道具 4=蜕皮 ...（evolution_triggers，i18n 有名字）
+  known_move_type: uint8;
+  party_type: uint8;
+  gender: uint8;                // 1=雌性 2=雄性 0=不限
+  time_of_day: uint8;           // 0=不限 1=day 2=night 3=dusk 4=full-moon
+  minimum_level: uint8;
+  minimum_happiness: uint8;
+  minimum_beauty: uint8;
+  minimum_affection: uint8;
+  relative_physical_stats: uint8;  // 0=不限 1=攻击<防御 2=相等 3=攻击>防御
+  minimum_move_count: uint8;
+  region: uint8;                  // 地区形态限制（7=阿罗拉 8=伽勒尔 9=洗翠，0=不限）
+  flags: uint8;                    // bit0=rain bit1=turn_upside_down bit2=multiplayer
+                                   // bit3=near_special_rock bit4=该 VG 默认路径
+}

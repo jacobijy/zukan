@@ -42,4 +42,5 @@ struct PokemonBase {
   color_id: uint8;
   shape_id: uint8;
   habitat_id: uint8;
+  has_sprite: bool;  // assets/public/pokemon/<id>/ 下是否有任一正面图（artwork/home/shiny）；false 表示前端可暂时屏蔽该形态
 }

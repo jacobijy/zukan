@@ -7,8 +7,9 @@
 //! 迁到本 crate 的 `tests/fixtures/` 目录并把 `include_bytes!` 路径改成本地。
 
 use zukan_wasm::fb::decode::{
-    decode_i18n_flavor_bundle, decode_i18n_names_bundle, decode_moves_data_bundle,
-    decode_pokemon_gen_bundle, decode_pokemon_moves_bundle, decode_pokemon_vg_moves_bundle,
+    decode_evolution_bundle, decode_i18n_flavor_bundle, decode_i18n_names_bundle,
+    decode_moves_data_bundle, decode_pokemon_gen_bundle, decode_pokemon_moves_bundle,
+    decode_pokemon_vg_moves_bundle,
 };
 use zukan_wasm::fb::FbDecodeError;
 
@@ -25,6 +26,7 @@ const I18N_ZH_FLAVOR: &[u8] =
     include_bytes!("../../../../../zukan-server/assets/fb/i18n/zh-hans/flavor.bin");
 const I18N_EN_FLAVOR: &[u8] =
     include_bytes!("../../../../../zukan-server/assets/fb/i18n/en/flavor.bin");
+const EVOLUTION: &[u8] = include_bytes!("../../../../../zukan-server/assets/fb/evolution.bin");
 
 #[test]
 fn decodes_pokemon_gen_bundle_gen3() {
@@ -46,6 +48,56 @@ fn decodes_pokemon_gen_bundle_gen3() {
         .find(|t| t.id == 35)
         .expect("Clefairy in type_entries");
     assert_eq!(clefairy_type.type_1_id, 1, "Clefairy in gen-3 应为 Normal(1)");
+
+    // has_sprite：普通形态（妙蛙种子）应为 true；文档列的 8 个无立绘形态（10264–10271）应为 false
+    let bulba = &b.base_entries[0];
+    assert!(bulba.has_sprite, "Bulbasaur(id=1) 有正面立绘");
+    let sprite_missing = b
+        .base_entries
+        .iter()
+        .filter(|e| e.has_sprite == false)
+        .map(|e| e.id)
+        .collect::<Vec<_>>();
+    assert!(
+        sprite_missing.iter().all(|id| (10264..=10271).contains(id)),
+        "无立绘形态应落在 10264..=10271，实际: {:?}",
+        sprite_missing
+    );
+}
+
+#[test]
+fn decodes_evolution_bundle() {
+    let b = decode_evolution_bundle(EVOLUTION).expect("evolution.bin decode");
+
+    // species 按 species_id-1 下标：1..1025 连续
+    assert_eq!(b.species.len(), 1025, "全物种行数");
+
+    // 妙蛙种子（species 1）：链根（parent=0），有一条指向 2 的 edge
+    let bulba = &b.species[0];
+    assert_eq!(bulba.parent_species, 0, "妙蛙种子是链根");
+    assert_eq!(bulba.edge_count, 1);
+    let edge = &b.edges[bulba.edge_start as usize];
+    assert_eq!(edge.target_species, 2, "妙蛙种子 → 妙蛙草");
+
+    // 妙蛙草（2）→ 妙蛙花（3），默认 detail minimumLevel=32
+    let ivysaur = &b.species[1];
+    assert_eq!(ivysaur.parent_species, 1);
+    let to_venusaur = &b.edges[ivysaur.edge_start as usize];
+    assert_eq!(to_venusaur.target_species, 3);
+    let detail = &b.details[to_venusaur.detail_start as usize];
+    assert_eq!(detail.minimum_level, 32, "妙蛙草 → 妙蛙花 Lv.32");
+
+    // 伊布（133）有 8 条进化分支
+    let eevee = &b.species[132];
+    assert_eq!(eevee.edge_count, 8, "伊布 8 分支");
+    // 水伊布（134）默认 detail：triggerId=3(道具)、triggerItem=84(水之石)
+    let to_vaporeon = b.edges[eevee.edge_start as usize..]
+        .iter()
+        .find(|e| e.target_species == 134)
+        .expect("水伊布分支");
+    let vaporeon_detail = &b.details[to_vaporeon.detail_start as usize];
+    assert_eq!(vaporeon_detail.trigger_id, 3);
+    assert_eq!(vaporeon_detail.trigger_item, 84);
 }
 
 #[test]

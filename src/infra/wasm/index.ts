@@ -262,12 +262,17 @@ export type {
     MovesDataBundle,
     I18nNamesBundle,
     I18nFlavorBundle,
+    EvolutionBundle,
     // PKMB 表行
     PokemonBase,
     PokemonStat,
     PokemonType,
     PokemonAbility,
     PokemonEggGroup,
+    // EVO1 进化树
+    EvolutionSpecies,
+    EvolutionEdge,
+    EvolutionDetail,
     // PMOV / PMSB
     PokemonMove,
     PokemonMoveSet,
@@ -298,6 +303,7 @@ import type {
     MovesDataBundle,
     I18nNamesBundle,
     I18nFlavorBundle,
+    EvolutionBundle,
 } from './pkg/zukan_wasm';
 
 /**
@@ -355,4 +361,14 @@ export function decodeI18nNamesBundle(data: Uint8Array): I18nNamesBundle {
 export function decodeI18nFlavorBundle(data: Uint8Array): I18nFlavorBundle {
     assertWasmReady();
     return wasmModule!.decodeI18nFlavorBundle(data);
+}
+
+/**
+ * 解码 `evolution.bin` (fid = `EVO1`) —— 全代进化树。
+ * 三张定长 struct 数组（species/edges/details），全部按下标寻址。
+ * 注意：旧后端可能尚未产出该文件（下载 404），调用方应静默降级为空进化链。
+ */
+export function decodeEvolutionBundle(data: Uint8Array): EvolutionBundle {
+    assertWasmReady();
+    return wasmModule!.decodeEvolutionBundle(data);
 }

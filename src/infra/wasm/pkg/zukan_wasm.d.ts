@@ -86,6 +86,104 @@ export interface NamedTextEntry {
     name: string;
 }
 
+export interface EvolutionBundle {
+    species: EvolutionSpecies[];
+    edges: EvolutionEdge[];
+    details: EvolutionDetail[];
+}
+
+export interface EvolutionDetail {
+    triggerItem: number;
+    heldItem: number;
+    knownMove: number;
+    partySpecies: number;
+    tradeSpecies: number;
+    location: number;
+    minimumSteps: number;
+    minimumDamageTaken: number;
+    /**
+     * 进化后的形态 id；`0` = 不限
+     */
+    evolvedForm: number;
+    /**
+     * 进化起点形态限制；`0` = 不限
+     */
+    baseForm: number;
+    /**
+     * 该条件适用的版本组
+     */
+    versionGroupId: number;
+    /**
+     * evolution_trigger_id：1=升级 2=交换 3=使用道具 4=蜕皮…（名字查 PKNM evolution_triggers）
+     */
+    triggerId: number;
+    knownMoveType: number;
+    partyType: number;
+    /**
+     * `0`=不限 `1`=雌性 `2`=雄性
+     */
+    gender: number;
+    /**
+     * `0`=不限 `1`=day `2`=night `3`=dusk `4`=full-moon
+     */
+    timeOfDay: number;
+    /**
+     * `0` = 无等级要求
+     */
+    minimumLevel: number;
+    minimumHappiness: number;
+    minimumBeauty: number;
+    minimumAffection: number;
+    /**
+     * `0`=不限 `1`=攻击<防御 `2`=相等 `3`=攻击>防御
+     */
+    relativePhysicalStats: number;
+    minimumMoveCount: number;
+    /**
+     * `0`=不限 `7`=阿罗拉 `8`=伽勒尔 `9`=洗翠
+     */
+    region: number;
+    /**
+     * 位域：bit0=rain bit1=turn_upside_down bit2=multiplayer
+     * bit3=near_special_rock bit4=该版本组默认路径
+     */
+    flags: number;
+}
+
+export interface EvolutionEdge {
+    /**
+     * 进化目标物种 id
+     */
+    targetSpecies: number;
+    /**
+     * 在 `details` 中的起始下标
+     */
+    detailStart: number;
+    /**
+     * 该分支的触发条件条数（多为 1；跨版本组不同时 >1）
+     */
+    detailCount: number;
+}
+
+export interface EvolutionSpecies {
+    /**
+     * 由何物种进化而来（evolves_from_species_id）；`0` = 链根 / 无前置
+     */
+    parentSpecies: number;
+    /**
+     * 所属进化链 id（仅用于同链分组，寻址用下标即可）
+     */
+    chainId: number;
+    /**
+     * 在 `edges` 中的起始下标（无进化目标时 edge_count = 0）
+     */
+    edgeStart: number;
+    /**
+     * 该物种可进化出的分支数
+     */
+    edgeCount: number;
+}
+
 export interface I18nFlavorBundle {
     languageId: number;
     language: string;
@@ -281,6 +379,11 @@ export interface PokemonBase {
     colorId: number;
     shapeId: number;
     habitatId: number;
+    /**
+     * 该 pokemon id 下是否有任一正面立绘（artwork/home/shiny）；
+     * `false` 表示官方暂无可展示正面图，前端可屏蔽该形态而非等 404 回退。
+     */
+    hasSprite: boolean;
 }
 
 export interface PokemonEggGroup {
@@ -433,6 +536,11 @@ export function calculateStat(level: number, base: number, iv: number, ev: numbe
 export function createDamageInput(level: number, attack: number, defense: number, base_power: number, move_type: number, move_category: number, attacker_type1: number, attacker_type2: number, defender_type1: number, defender_type2: number, weather: number, terrain: number, attacker_ability: number, defender_ability: number, is_critical: number, is_burned: number, move_flags: number): DamageInput;
 
 /**
+ * 解码 `evolution.bin` (fid = `EVO1`) —— 全代进化树（species/edges/details）
+ */
+export function decodeEvolutionBundle(data: Uint8Array): EvolutionBundle;
+
+/**
  * 解码 `I18nFlavorBundle` (fid = `PKFL`) —— 单语言描述组
  * （图鉴/技能/特性/道具描述）。传输层的字符串池在解码时解析为内联字符串。
  */
@@ -527,6 +635,7 @@ export interface InitOutput {
     readonly damageinput_withDefenderSpdStage: (a: number, b: number) => void;
     readonly damageinput_withItemMod: (a: number, b: number) => void;
     readonly damageinput_withSeed: (a: number, b: number) => void;
+    readonly decodeEvolutionBundle: (a: number, b: number) => [number, number, number];
     readonly decodeI18nFlavorBundle: (a: number, b: number) => [number, number, number];
     readonly decodeI18nNamesBundle: (a: number, b: number) => [number, number, number];
     readonly decodeMovesDataBundle: (a: number, b: number) => [number, number, number];

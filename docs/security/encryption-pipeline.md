@@ -65,7 +65,7 @@
 
 | 命令 | 脚本 | 产物 |
 |------|------|------|
-| `make sync-fb` | `tools/sync-fb.py` | 明文 `assets/fb/gen-N.bin`、`moves/`、`moves_data/`、`pokemon_moves/` |
+| `make sync-fb` | `tools/sync-fb.py` | 明文 `assets/fb/gen-N.bin`、`evolution.bin`、`moves/`、`moves_data/`、`pokemon_moves/` |
 | `make sync-i18n` | `tools/sync-i18n.py` | 明文 `assets/fb/i18n/<lang>/{names,flavor}.bin`（form 名有 id 重映射，见第 7 节） |
 | `make encrypt-fb` | `crates/server/src/bin/encrypt-fb.rs` | `assets/encrypted-assets/fb/**`（跳过 schemas/_generated） |
 | `make encrypt` | `crates/server/src/bin/encrypt-assets.rs` | `assets/encrypted-assets/**`，PNG → `.bin`，保留层级 |
@@ -126,7 +126,10 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 | `pokemon_moves/special/vg-NN.bin` | `PMSB` | 同上 | 独立表，不合并 common（kind=2） |
 | `moves_data/common.bin` | `MDAT` | `decodeMovesDataBundle` | 招式定义（moves + 4 张关联表） |
 | `moves_data/vg-NN.bin` | `MDAT` | 同上 | 该版本组招式覆写（仅 moves 表） |
+| `evolution.bin` | `EVO1` | `decodeEvolutionBundle`（**待前端接入**） | 全代进化树（species/edges/details），结构见 [../data/bundle-decode.md](../data/bundle-decode.md#evo1-进化树-evolutionbundle) |
 | `i18n/<lang>/{names,flavor}.bin` | `PKNM`/`PKFL` | `decodeI18n*Bundle` | 单语言文本，见 [../i18n/i18n-bundle.md](../i18n/i18n-bundle.md) |
+
+> 另：`gen-N.bin` 的 `PokemonBase` 末位新增 `hasSprite: bool`（该形态是否有正面立绘，`false` 前端可屏蔽）；字段清单见 [../data/bundle-decode.md](../data/bundle-decode.md)。
 
 > **`gen-N.bin` 是「全物种在第 N 世代的数值快照」**（约 1351 形态 / 1025 默认形态，id 从 1 起），
 > 不是「第 N 世代新增」。默认世代 9。建模与 join 见 [../data/bundle-decode.md](../data/bundle-decode.md)。

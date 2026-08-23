@@ -1,0 +1,15 @@
+// tools/schemas/evolution_edge.fbs
+//
+// 一条进化分支：从某物种进化到 target_species，触发方式可能跨版本组有多条。
+// 进化树由 parent_species_id（见 EvolutionSpecies）+ 本结构的 target 共同表达：
+// 子节点的 parent 指向 from，from 的 edge 区间列出所有可进化到的子节点。
+
+include "evolution_detail.fbs";
+
+namespace pokeapi.fb;
+
+struct EvolutionEdge {
+  target_species: uint16;    // 进化目标物种 id
+  detail_start: uint16;      // details 数组起始下标
+  detail_count: uint8;       // 该分支的触发条件条数（多为 1，少数跨版本组 >1）
+}

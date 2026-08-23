@@ -23,6 +23,14 @@ use super::generated::pokemon_types_generated::pokeapi::fb as gen_type;
 use super::generated::i18n_names_bundle_generated::pokeapi::fb as gen_names;
 use super::generated::i18n_flavor_bundle_generated::pokeapi::fb as gen_flavor;
 
+// —— evolution 类型来源模块 ——
+use super::generated::evolution_bundle_generated::pokeapi::fb::{
+    EVOLUTION_BUNDLE_IDENTIFIER, root_as_evolution_bundle,
+};
+use super::generated::evolution_detail_generated::pokeapi::fb as gen_evo_detail;
+use super::generated::evolution_edge_generated::pokeapi::fb as gen_evo_edge;
+use super::generated::evolution_species_generated::pokeapi::fb as gen_evo_species;
+
 // —— 四个 root：identifier 常量 + root_as_* 函数 ——
 use super::generated::moves_data_bundle_generated::pokeapi::fb::{
     MOVES_DATA_BUNDLE_IDENTIFIER, root_as_moves_data_bundle,
@@ -118,6 +126,7 @@ fn base_to_owned(b: &gen_base::PokemonBase) -> owned::PokemonBase {
         color_id: b.color_id(),
         shape_id: b.shape_id(),
         habitat_id: b.habitat_id(),
+        has_sprite: b.has_sprite(),
     }
 }
 
@@ -507,4 +516,74 @@ pub fn decode_i18n_flavor_bundle(buf: &[u8]) -> Result<owned::I18nFlavorBundle, 
         ability_effects: effects(root.ability_effects()),
         move_effects: effects(root.move_effects()),
     })
+}
+
+// ────────── EvolutionBundle → owned ──────────
+
+pub fn decode_evolution_bundle(buf: &[u8]) -> Result<owned::EvolutionBundle, FbDecodeError> {
+    check_identifier(buf, EVOLUTION_BUNDLE_IDENTIFIER)?;
+    let root = root_as_evolution_bundle(buf)
+        .map_err(|e| FbDecodeError::ParseFailed(e.to_string()))?;
+
+    // 三张表都是定长 struct 数组，迭代器直接产出 Copy 的 struct，无 Option。
+    let species = root
+        .species()
+        .map(|v| v.iter().map(evolution_species_to_owned).collect())
+        .unwrap_or_default();
+    let edges = root
+        .edges()
+        .map(|v| v.iter().map(evolution_edge_to_owned).collect())
+        .unwrap_or_default();
+    let details = root
+        .details()
+        .map(|v| v.iter().map(evolution_detail_to_owned).collect())
+        .unwrap_or_default();
+
+    Ok(owned::EvolutionBundle { species, edges, details })
+}
+
+fn evolution_species_to_owned(s: &gen_evo_species::EvolutionSpecies) -> owned::EvolutionSpecies {
+    owned::EvolutionSpecies {
+        parent_species: s.parent_species(),
+        chain_id: s.chain_id(),
+        edge_start: s.edge_start(),
+        edge_count: s.edge_count(),
+    }
+}
+
+fn evolution_edge_to_owned(e: &gen_evo_edge::EvolutionEdge) -> owned::EvolutionEdge {
+    owned::EvolutionEdge {
+        target_species: e.target_species(),
+        detail_start: e.detail_start(),
+        detail_count: e.detail_count(),
+    }
+}
+
+fn evolution_detail_to_owned(d: &gen_evo_detail::EvolutionDetail) -> owned::EvolutionDetail {
+    owned::EvolutionDetail {
+        trigger_item: d.trigger_item(),
+        held_item: d.held_item(),
+        known_move: d.known_move(),
+        party_species: d.party_species(),
+        trade_species: d.trade_species(),
+        location: d.location(),
+        minimum_steps: d.minimum_steps(),
+        minimum_damage_taken: d.minimum_damage_taken(),
+        evolved_form: d.evolved_form(),
+        base_form: d.base_form(),
+        version_group_id: d.version_group_id(),
+        trigger_id: d.trigger_id(),
+        known_move_type: d.known_move_type(),
+        party_type: d.party_type(),
+        gender: d.gender(),
+        time_of_day: d.time_of_day(),
+        minimum_level: d.minimum_level(),
+        minimum_happiness: d.minimum_happiness(),
+        minimum_beauty: d.minimum_beauty(),
+        minimum_affection: d.minimum_affection(),
+        relative_physical_stats: d.relative_physical_stats(),
+        minimum_move_count: d.minimum_move_count(),
+        region: d.region(),
+        flags: d.flags(),
+    }
 }

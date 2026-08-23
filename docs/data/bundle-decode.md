@@ -19,6 +19,7 @@
 | `pokemon_moves/special/vg-NN.bin` | `PMSB` | 同上 | 独立表，不合并 common（kind=2） |
 | `moves_data/common.bin` | `MDAT` | `decodeMovesDataBundle` | 招式定义（moves + 4 张关联表，含 `move_flag_map`） |
 | `moves_data/vg-NN.bin` | `MDAT` | 同上 | 该版本组的招式覆写（仅 moves 表） |
+| `evolution.bin` | `EVO1` | （新增）`EvolutionBundle` | 全代进化树：species/edges/details 三表，见[下文](#evo1-进化树-evolutionbundle) |
 | `i18n/<lang>/names.bin` | `PKNM` | `decodeI18nNamesBundle` | 单语言短文本，见 [../i18n/i18n-bundle.md](../i18n/i18n-bundle.md) |
 | `i18n/<lang>/flavor.bin` | `PKFL` | `decodeI18nFlavorBundle` | 单语言长文本 |
 
@@ -34,11 +35,17 @@ PKMB 是五张**并行表**，都按 pokemon id 对齐：
 
 | 表 | 字段 |
 |----|------|
-| `baseEntries` | id, speciesId, isDefault, height, weight |
+| `baseEntries` | id, speciesId, isDefault, height, weight, **hasSprite** |
 | `statEntries` | id, hp/attack/defense/specialAttack/specialDefense/speed |
 | `typeEntries` | id, type1Id, type2Id |
 | `abilityEntries` | id, ability1Id, ability2Id, abilityHiddenId |
 | `eggGroupEntries` | id, eggGroup1Id, eggGroup2Id |
+
+- **`hasSprite: bool`**（`PokemonBase` 末位字段）：该 pokemon id 下是否有任一正面立绘
+  （打包时判定 `assets/public/pokemon/<id>/` 下存在 `artwork.png` / `home.png` / `shiny.png` 任一）。
+  `false` 表示官方暂无可展示正面图，当前共 8 个，全是故勒顿/密勒顿的 build/mode 形态：
+  **10264–10271**（其中 10265–10267、10269–10271 无任何资源目录；10264、10268 仅有 `versions/9/scarlet-violet.png` 世代小图，无正面立绘）。
+  前端可据此在卡片/详情里**暂时屏蔽或隐藏**该形态，而非等图片 404 再回退。这是数据层判定，比运行时 404 更早、更确定。
 
 `pokemon.ts` 用 Map 按 id 把后四张表 join 到 `baseEntries` 上，输出 `IPokemonBaseModel`。
 
@@ -83,6 +90,106 @@ PokeAPI 有三个容易混淆的 id：
 - `pokemon_species.id`（全国编号）**不**用于拼图片路径，只用于查名/分类/世代。
 - 不是每个 pokemon id 都有 `home.bin`，404 走默认占位，属于正常缺口（缺图清单见
   [../security/encryption-pipeline.md](../security/encryption-pipeline.md) 第 4.3 节）。
+- 数据层可用 `baseEntries[i].hasSprite` 提前判定该形态是否有正面立绘（`false` 建议直接屏蔽，见上文 PKMB 表）。
+
+<a id="evo1-进化树-evolutionbundle"></a>
+## EVO1 进化树（`EvolutionBundle`）
+
+`evolution.bin`（fid `EVO1`）是**全代合并的单文件**（进化树结构跨代稳定，不按世代拆分），
+约 30 KB。由三张紧密排列的 struct 数组组成，全部用**数组下标**寻址，零拷贝、无需查表：
+
+| 顶层 vector | 行数 | 对齐/索引方式 |
+|-------------|-----|---------------|
+| `species` | 1025 | **按 `species_id - 1` 直接下标定位**（species_id 1..1025 连续，含不进化的孤立物种） |
+| `edges` | 484 | 被 `species[i].edgeStart / edgeCount` 切分 |
+| `details` | 550 | 被 `edge.detailStart / detailCount` 切分 |
+
+### 三个 struct 的字段（按内存顺序）
+
+```text
+EvolutionSpecies {        // species[id-1]，每个物种一行
+  parentSpecies: u16      // 由何物种进化而来（evolves_from_species_id）；0 = 链根/无前置
+  chainId: u16            // 所属进化链 id（pokemon_species.evolution_chain_id），仅用于同链分组
+  edgeStart: u16          // 在 edges[] 中的起始下标（无进化目标时 edgeCount=0）
+  edgeCount: u8           // 该物种可进化出的分支数
+  pad: u8
+}
+
+EvolutionEdge {           // 一条进化分支（from = 拥有该 edge 的物种）
+  targetSpecies: u16      // 进化目标物种 id
+  detailStart: u16        // 在 details[] 中的起始下标
+  detailCount: u8         // 该分支的触发条件条数（多为 1；跨版本组不同时 >1）
+}
+
+EvolutionDetail {         // 一条触发条件（pokemon_evolution.csv 的一行，纯数值）
+  triggerItem: u16        // 触发道具（进化石等）；0=无
+  heldItem: u16           // 升级时携带的道具；0=无
+  knownMove: u16          // 需知晓的招式；0=无
+  partySpecies: u16       // 同行的另一只物种；0=无
+  tradeSpecies: u16       // 通信交换对象物种；0=无
+  location: u16           // 升级地点 id；0=无
+  minimumSteps: u16       // 需走路数；0=无
+  minimumDamageTaken: u16 // 需承受伤害（某幽灵系进化）；0=无
+  evolvedForm: u16        // 进化后的形态 id；0=不限
+  baseForm: u16           // 进化起点形态限制；0=不限
+  versionGroupId: u8      // 该条件适用的版本组
+  triggerId: u8           // evolution_trigger_id：1=升级 2=交换 3=使用道具 4=蜕皮…（名字查 PKNM evolution_triggers）
+  knownMoveType: u8       // 0=无
+  partyType: u8           // 0=无
+  gender: u8              // 0=不限 1=雌性 2=雄性
+  timeOfDay: u8           // 0=不限 1=day 2=night 3=dusk 4=full-moon
+  minimumLevel: u8        // 0=无等级要求
+  minimumHappiness: u8
+  minimumBeauty: u8
+  minimumAffection: u8
+  relativePhysicalStats: u8  // 0=不限 1=攻击<防御 2=相等 3=攻击>防御
+  minimumMoveCount: u8
+  region: u8              // 0=不限 7=阿罗拉 8=伽勒尔 9=洗翠
+  flags: u8               // 位域，见下
+}
+```
+
+**所有 id 类字段 `0` 表示「无 / 不限」**（名称一律走 PKNM i18n bundle 按 id 查，不进进化 bundle）。
+
+`flags` 位定义：
+
+| bit | 掩码 | 含义 |
+|-----|------|------|
+| 0 | `0x01` | `needs_overworld_rain` 需在户外下雨时升级 |
+| 1 | `0x02` | `turn_upside_down` 需倒置主机 |
+| 2 | `0x04` | `needs_multiplayer` 需附近有其他玩家 |
+| 3 | `0x08` | `near_special_rock` 需在特殊岩石/磁场附近 |
+| 4 | `0x10` | `is_default` 该版本组下的**默认**进化路径（展示优先取这条） |
+
+### 关联与遍历
+
+```text
+pokemon_id ──(PKMB base.speciesId)──▶ species_id
+                                            │
+                          species = bundle.species(species_id - 1)
+                                            │
+                 上溯链根：while species.parentSpecies != 0 { … }
+                 下钻子树：edges[species.edgeStart .. +edgeCount]
+                              └─ edge.targetSpecies  → 孩子物种
+                                 details[edge.detailStart .. +detailCount]
+                                    └─ 各版本组的触发条件
+```
+
+- **父→子和子→父是双向冗余的**：孩子的 `parentSpecies` 指向 from，from 的 `edges` 列出所有孩子。
+- 同一进化边可能有多条 `EvolutionDetail`（如叶伊布在旧版本组是「苔藓岩石附近升级」、
+  新版本组追加「叶之石」）。前端可按 `versionGroupId` 过滤到当前版本组，
+  或取 `flags & 0x10`（is_default）那条作为默认展示，其余作为「其他版本/方式」。
+- `chainId` 仅用于把同一进化链的物种分组（如伊布一家同链），寻址用下标即可，不需要它。
+
+### 抽样校验数据（实现自测用）
+
+- 妙蛙种子（species 1）：`parentSpecies=0`、`chainId=1`；它的 edge 指向 2（妙蛙草）。
+- 妙蛙草（2）→ 妙蛙花（3）的默认 detail：`minimumLevel=32`。
+- 伊布（species 133）：`edgeCount=8`（水/雷/火/太阳/月亮/叶/冰/仙子伊布）；
+  水伊布（134）的 detail `triggerId=3`（道具）、`triggerItem=84`（水之石）。
+- 叶伊布（470）：`detailCount >= 2`（跨版本组多种触发方式）。
+
+> 当前 `IPokemonBaseModel.evolutionChain` 还是空数组占位；接入 EVO1 后由本 bundle 替换。
 
 ## 关键文件
 

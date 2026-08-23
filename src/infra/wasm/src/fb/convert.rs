@@ -48,6 +48,9 @@ pub struct PokemonBase {
     pub color_id: u8,
     pub shape_id: u8,
     pub habitat_id: u8,
+    /// 该 pokemon id 下是否有任一正面立绘（artwork/home/shiny）；
+    /// `false` 表示官方暂无可展示正面图，前端可屏蔽该形态而非等 404 回退。
+    pub has_sprite: bool,
 }
 
 #[derive(Serialize, Tsify)]
@@ -411,4 +414,88 @@ pub struct ProseEffect {
     pub id: u32,
     pub short_effect: String,
     pub effect: String,
+}
+
+// ────────── EvolutionBundle (fid = EVO1) ──────────
+//
+// 全代合并的单文件进化树（不按世代拆分），三张紧密 struct 数组，按下标寻址：
+// - `species[species_id - 1]` 定位每个物种
+// - `edges` 被 `species[i].edge_start / edge_count` 切分
+// - `details` 被 `edge.detail_start / detail_count` 切分
+// 所有 id 类字段 `0` 表示「无 / 不限」，名称走 PKNM i18n bundle 按 id 查。
+
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct EvolutionBundle {
+    pub species: Vec<EvolutionSpecies>,
+    pub edges: Vec<EvolutionEdge>,
+    pub details: Vec<EvolutionDetail>,
+}
+
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct EvolutionSpecies {
+    /// 由何物种进化而来（evolves_from_species_id）；`0` = 链根 / 无前置
+    pub parent_species: u16,
+    /// 所属进化链 id（仅用于同链分组，寻址用下标即可）
+    pub chain_id: u16,
+    /// 在 `edges` 中的起始下标（无进化目标时 edge_count = 0）
+    pub edge_start: u16,
+    /// 该物种可进化出的分支数
+    pub edge_count: u8,
+}
+
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct EvolutionEdge {
+    /// 进化目标物种 id
+    pub target_species: u16,
+    /// 在 `details` 中的起始下标
+    pub detail_start: u16,
+    /// 该分支的触发条件条数（多为 1；跨版本组不同时 >1）
+    pub detail_count: u8,
+}
+
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct EvolutionDetail {
+    pub trigger_item: u16,
+    pub held_item: u16,
+    pub known_move: u16,
+    pub party_species: u16,
+    pub trade_species: u16,
+    pub location: u16,
+    pub minimum_steps: u16,
+    pub minimum_damage_taken: u16,
+    /// 进化后的形态 id；`0` = 不限
+    pub evolved_form: u16,
+    /// 进化起点形态限制；`0` = 不限
+    pub base_form: u16,
+    /// 该条件适用的版本组
+    pub version_group_id: u8,
+    /// evolution_trigger_id：1=升级 2=交换 3=使用道具 4=蜕皮…（名字查 PKNM evolution_triggers）
+    pub trigger_id: u8,
+    pub known_move_type: u8,
+    pub party_type: u8,
+    /// `0`=不限 `1`=雌性 `2`=雄性
+    pub gender: u8,
+    /// `0`=不限 `1`=day `2`=night `3`=dusk `4`=full-moon
+    pub time_of_day: u8,
+    /// `0` = 无等级要求
+    pub minimum_level: u8,
+    pub minimum_happiness: u8,
+    pub minimum_beauty: u8,
+    pub minimum_affection: u8,
+    /// `0`=不限 `1`=攻击<防御 `2`=相等 `3`=攻击>防御
+    pub relative_physical_stats: u8,
+    pub minimum_move_count: u8,
+    /// `0`=不限 `7`=阿罗拉 `8`=伽勒尔 `9`=洗翠
+    pub region: u8,
+    /// 位域：bit0=rain bit1=turn_upside_down bit2=multiplayer
+    /// bit3=near_special_rock bit4=该版本组默认路径
+    pub flags: u8,
 }

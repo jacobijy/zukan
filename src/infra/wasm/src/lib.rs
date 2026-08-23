@@ -149,8 +149,8 @@ pub fn create_damage_input(
 // 字段类型/命名对齐 `assets/fb/README.md` §Field Reference。
 
 use fb::convert::{
-    I18nFlavorBundle, I18nNamesBundle, MovesDataBundle, PokemonGenBundle, PokemonMovesBundle,
-    PokemonVgMovesBundle,
+    EvolutionBundle, I18nFlavorBundle, I18nNamesBundle, MovesDataBundle, PokemonGenBundle,
+    PokemonMovesBundle, PokemonVgMovesBundle,
 };
 
 /// 解码 `PokemonGenBundle` (fid = `PKMB`) —— 宝可梦基础参数（按世代打包）
@@ -189,4 +189,10 @@ pub fn decode_i18n_names_bundle(data: &[u8]) -> Result<I18nNamesBundle, JsValue>
 #[wasm_bindgen(js_name = decodeI18nFlavorBundle)]
 pub fn decode_i18n_flavor_bundle(data: &[u8]) -> Result<I18nFlavorBundle, JsValue> {
     Ok(fb::decode::decode_i18n_flavor_bundle(data)?)
+}
+
+/// 解码 `evolution.bin` (fid = `EVO1`) —— 全代进化树（species/edges/details）
+#[wasm_bindgen(js_name = decodeEvolutionBundle)]
+pub fn decode_evolution_bundle(data: &[u8]) -> Result<EvolutionBundle, JsValue> {
+    Ok(fb::decode::decode_evolution_bundle(data)?)
 }

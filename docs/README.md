@@ -8,7 +8,7 @@
 | 架构 | [architecture/testing.md](architecture/testing.md) | vitest 约定、测试数据盲区、门禁命令 |
 | UI | [ui/component-conventions.md](ui/component-conventions.md) | 先建组件再写页面、目录划分、scoped CSS 陷阱、`<script setup>` 单例陷阱 |
 | UI | [ui/virtual-list.md](ui/virtual-list.md) | VirtualGrid 定高虚拟化的耦合与改动注意 |
-| 数据 | [data/bundle-decode.md](data/bundle-decode.md) | FlatBuffers bundle 清单、五表 join、三套 id 空间与 form 重映射 |
+| 数据 | [data/bundle-decode.md](data/bundle-decode.md) | FlatBuffers bundle 清单、五表 join、`hasSprite` 资源标记、EVO1 进化树、三套 id 空间与 form 重映射 |
 | 数据 | [data/filtering-sort.md](data/filtering-sort.md) | 图鉴筛选/排序、收藏、世代快照语义 |
 | 多语言 | [i18n/i18n-bundle.md](i18n/i18n-bundle.md) | names/flavor 两类 bundle、UI 语言与内容语言、回落策略 |
 | 功能 | [features/calc-engine.md](features/calc-engine.md) | 伤害计算器数据流、slug→id、招式 flags、WASM 硬编码 |

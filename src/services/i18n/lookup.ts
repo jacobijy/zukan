@@ -22,6 +22,8 @@ export interface NamesLookup {
     eggGroups: Map<number, string>;
     regions: Map<number, string>;
     moveAilments: Map<number, string>;
+    /** evolution_triggers 表：1=升级 2=交换 3=使用道具 … */
+    evolutionTriggers: Map<number, string>;
 }
 
 /** 把 `{id, name}` 形态的数组收成 Map；空名不覆盖已有值 */
@@ -58,6 +60,7 @@ export function buildNamesLookup(b: I18nNamesBundle): NamesLookup {
         eggGroups: toNamedMap(b.eggGroups),
         regions: toNamedMap(b.regions),
         moveAilments: toNamedMap(b.moveAilments),
+        evolutionTriggers: toNamedMap(b.evolutionTriggers),
     };
 }
 
@@ -96,5 +99,6 @@ export function overlay(base: NamesLookup, preferred: NamesLookup): NamesLookup 
         eggGroups: mergeMap(base.eggGroups, preferred.eggGroups),
         regions: mergeMap(base.regions, preferred.regions),
         moveAilments: mergeMap(base.moveAilments, preferred.moveAilments),
+        evolutionTriggers: mergeMap(base.evolutionTriggers, preferred.evolutionTriggers),
     };
 }
