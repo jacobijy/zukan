@@ -142,6 +142,42 @@
                 </view>
             </view>
         </scroll-view>
+
+        <!-- 宝可梦选择（攻/防共用一个面板，按 side 分发） -->
+        <OptionSheet
+            v-model:visible="pokemonSheetOpen"
+            :title="pokemonSheetSide === 'attacker' ? t('calc.attacker') : t('calc.defender')"
+            :options="pokemonOptions"
+            :model-value="currentPokemonId"
+            @update:model-value="onPokemonPick"
+        />
+
+        <!-- 招式选择（攻击方技能池） -->
+        <OptionSheet
+            v-model:visible="moveSheetOpen"
+            :title="t('calc.move')"
+            :options="moveOptions"
+            :model-value="currentMoveId"
+            @update:model-value="onMovePick"
+        />
+
+        <!-- 特性选择（攻/防共用） -->
+        <OptionSheet
+            v-model:visible="abilitySheetOpen"
+            :title="t('calc.side.ability')"
+            :options="abilityOptions"
+            :model-value="currentAbility"
+            @update:model-value="onAbilityPick"
+        />
+
+        <!-- 道具选择（攻击方携带） -->
+        <OptionSheet
+            v-model:visible="itemSheetOpen"
+            :title="t('calc.item')"
+            :options="itemOptions"
+            :model-value="attackerItemId"
+            @update:model-value="onItemPick"
+        />
     </view>
 </template>
 
@@ -157,6 +193,7 @@ import CalcCard from '@/components/calc/CalcCard.vue';
 import ChipRow from '@/components/calc/ChipRow.vue';
 import DamageResultCard from '@/components/calc/DamageResultCard.vue';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
+import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import { getTypeShort } from '@/constants/pokemonTypes';
 import {
@@ -187,34 +224,48 @@ const attackerPokemon = ref<{ name: string; types: string[]; stats: { name: stri
 const defenderPokemon = ref<{ name: string; types: string[]; stats: { name: string; value: number }[] } | null>(null);
 // 攻击方 pokemon id：用于拉它的技能池作为招式选项
 const attackerId = ref(0);
+// 防御方 pokemon id：仅用于面板里显示当前选中对勾
+const defenderId = ref(0);
 
-const pokemonNameList = computed(() => pokemonStore.allPokemons.map((p) => p.name));
+// ── 宝可梦选择面板（OptionSheet，带搜索；1000+ 只宝可梦必须可过滤） ──
+const pokemonSheetOpen = ref(false);
+const pokemonSheetSide = ref<'attacker' | 'defender'>('attacker');
+const pokemonOptions = computed<SheetOption[]>(() =>
+    pokemonStore.allPokemons.map((p) => ({
+        id: String(p.id),
+        label: p.name,
+        subtitle: `NO.${String(p.id).padStart(3, '0')}`,
+    })),
+);
+/** 面板打开时当前侧已选的 pokemon id（驱动右侧对勾） */
+const currentPokemonId = computed(() =>
+    pokemonSheetSide.value === 'attacker' ? String(attackerId.value) : String(defenderId.value),
+);
 
 const showPokemonPicker = (side: 'attacker' | 'defender') => {
-    const names = pokemonNameList.value;
-    if (names.length === 0) {
+    if (pokemonOptions.value.length === 0) {
         uni.showToast({ title: t('calc.toast.noData'), icon: 'none' });
         return;
     }
-    uni.showActionSheet({
-        itemList: names,
-        success: (res) => {
-            const pkm = pokemonStore.allPokemons[res.tapIndex];
-            if (!pkm) return;
-            const data = { name: pkm.name, types: pkm.types, stats: pkm.stats };
-            if (side === 'attacker') {
-                attackerPokemon.value = data;
-                // 换攻击方 → 技能池变了，清空已选招式并重新拉取
-                if (pkm.id !== attackerId.value) {
-                    attackerId.value = pkm.id;
-                    selectedMove.value = null;
-                }
-                void loadAttackerMoves(pkm.id);
-            } else {
-                defenderPokemon.value = data;
-            }
-        },
-    });
+    pokemonSheetSide.value = side;
+    pokemonSheetOpen.value = true;
+};
+
+const onPokemonPick = (value: string | string[]) => {
+    const idStr = Array.isArray(value) ? value[0] : value;
+    const pkm = pokemonStore.allPokemons.find((p) => String(p.id) === idStr);
+    if (!pkm) return;
+    const data = { name: pkm.name, types: pkm.types, stats: pkm.stats };
+    if (pokemonSheetSide.value === 'attacker') {
+        attackerPokemon.value = data;
+        // 换攻击方 → 技能池变了，清空已选招式；同一只重选则保留
+        if (pkm.id !== attackerId.value) selectedMove.value = null;
+        attackerId.value = pkm.id;
+        void loadAttackerMoves(pkm.id);
+    } else {
+        defenderPokemon.value = data;
+        defenderId.value = pkm.id;
+    }
 };
 
 // ─── 攻击方技能池 ────────────────────────────────────────
@@ -262,15 +313,23 @@ const selectedTerrain = ref('');
 const attackerAbility = ref('无');
 const defenderAbility = ref('无');
 
+// ── 特性选择面板（攻/防共用；选项较多，带搜索） ──
+const abilitySheetOpen = ref(false);
+const abilitySheetSide = ref<'attacker' | 'defender'>('attacker');
+const abilityOptions = computed<SheetOption[]>(() => COMMON_ABILITIES.map((a) => ({ id: a, label: a })));
+const currentAbility = computed(() =>
+    abilitySheetSide.value === 'attacker' ? attackerAbility.value : defenderAbility.value,
+);
+
 const showAbilityPicker = (side: 'attacker' | 'defender') => {
-    uni.showActionSheet({
-        itemList: COMMON_ABILITIES,
-        success: (res) => {
-            const selected = COMMON_ABILITIES[res.tapIndex];
-            if (side === 'attacker') attackerAbility.value = selected;
-            else defenderAbility.value = selected;
-        },
-    });
+    abilitySheetSide.value = side;
+    abilitySheetOpen.value = true;
+};
+
+const onAbilityPick = (value: string | string[]) => {
+    const name = Array.isArray(value) ? value[0] : value;
+    if (abilitySheetSide.value === 'attacker') attackerAbility.value = name;
+    else defenderAbility.value = name;
 };
 
 // ==============================
@@ -293,22 +352,30 @@ const showMovePicker = () => {
         uni.showToast({ title: t('calc.toast.movesLoading'), icon: 'none' });
         return;
     }
-    const moves = attackerMoves.value;
-    if (moves.length === 0) {
+    if (attackerMoves.value.length === 0) {
         uni.showToast({ title: t('calc.toast.noMoves'), icon: 'none' });
         return;
     }
-    const names = moves.map((m) => {
-        const name = i18nStore.moveName(m.id) ?? m.name;
-        return `${name}  (${m.power} / ${getTypeShort(m.type)})`;
-    });
-    uni.showActionSheet({
-        itemList: names,
-        success: (res) => {
-            selectedMove.value = moves[res.tapIndex];
-        },
-    });
+    moveSheetOpen.value = true;
 };
+
+// ── 招式选择面板（OptionSheet，带搜索；技能池可能上百） ──
+const moveSheetOpen = ref(false);
+const moveOptions = computed<SheetOption[]>(() =>
+    attackerMoves.value.map((m) => ({
+        id: String(m.id),
+        label: i18nStore.moveName(m.id) ?? m.name,
+        subtitle: `${getTypeShort(m.type)} · ${m.power}`,
+    })),
+);
+
+const onMovePick = (value: string | string[]) => {
+    const idStr = Array.isArray(value) ? value[0] : value;
+    const move = attackerMoves.value.find((m) => String(m.id) === idStr);
+    if (move) selectedMove.value = move;
+};
+/** 面板里当前招式对勾 */
+const currentMoveId = computed(() => (selectedMove.value ? String(selectedMove.value.id) : ''));
 
 // ==============================
 // 能力等级
@@ -337,14 +404,17 @@ const incStage = (key: string) => {
 const attackerItemId = ref('none');
 const attackerItemLabel = computed(() => getItemLabel(attackerItemId.value));
 
+// ── 道具选择面板 ──
+const itemSheetOpen = ref(false);
+const itemOptions = computed<SheetOption[]>(() => ITEM_OPTIONS.map((i) => ({ id: i.id, label: i.label })));
+
 const showItemPicker = () => {
-    uni.showActionSheet({
-        itemList: ITEM_OPTIONS.map((i) => i.label),
-        success: (res) => {
-            const opt = ITEM_OPTIONS[res.tapIndex];
-            if (opt) attackerItemId.value = opt.id;
-        },
-    });
+    itemSheetOpen.value = true;
+};
+
+const onItemPick = (value: string | string[]) => {
+    const id = Array.isArray(value) ? value[0] : value;
+    if (id) attackerItemId.value = id;
 };
 
 const selectedStatus = ref<string[]>([]);
@@ -430,6 +500,7 @@ const resetAll = () => {
     defenderPokemon.value = null;
     selectedMove.value = null;
     attackerId.value = 0;
+    defenderId.value = 0;
     attackerMoves.value = [];
     atkStage.value = 0;
     defStage.value = 0;

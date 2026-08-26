@@ -14,6 +14,9 @@ const zhHans = {
         confirm: '确定',
         cancel: '取消',
         processing: '处理中…',
+        search: '搜索…',
+        noResult: '无匹配项',
+        narrowSearch: '共 {count} 项，输入关键词筛选',
     },
     tabs: {
         dex: '图鉴',
@@ -283,6 +286,9 @@ const en: typeof zhHans = {
         confirm: 'OK',
         cancel: 'Cancel',
         processing: 'Processing…',
+        search: 'Search…',
+        noResult: 'No matches',
+        narrowSearch: '{count} matches — type to filter',
     },
     tabs: {
         dex: 'Pokédex',

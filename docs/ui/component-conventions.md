@@ -29,8 +29,12 @@ src/pages/<name>/<name>-options.ts   仅该页用的选项/常量表
 - **详情类页**用 `DetailNavbar` + `SpecimenHero` + `InfoGrid`/`InfoCard`
   （`detail.vue` 就是标准模板）。
 - **列表行**用 `ListRow`（配 `list-row__icon--*` 配色）；**属性徽章**用 `TypeBadge`。
-- **单选/多选设置项**点击后弹 `OptionSheet`（底部滑出，支持对勾、副标题、loading、
-  多选确认按钮条），不要用 `uni.showActionSheet`——后者不支持多选/副标题/自定义样式。
+- **单选/多选设置项**点击后弹 `OptionSheet`（iOS 风格底部面板：标题左、「取消/确定」
+  文字按钮在右；选项是扁平行 + 细分割线，选中项右侧蓝色对勾；点选项只打草稿，**确定
+  才 emit、取消放弃**——所以 `@update:model-value` 只在点确定后触发）。支持副标题、loading、
+  搜索过滤。选项数 ≥ `searchThreshold`（默认 12）时自动出现搜索框，长列表无搜索词时只渲染
+  前 `renderLimit` 项兜底。不要用 `uni.showActionSheet`——后者不支持多选/副标题/自定义样式/
+  搜索过滤。宝可梦（1000+）、招式池这类长列表务必走 OptionSheet 的搜索（参考 `pages/calc/`）。
   非 tab 子页用 `DetailNavbar`，从来源页 `uni.navigateTo` 打开（参考 `pages/settings/`）。
 - **表单/选项分组**用 `CalcCard` + `ChipRow` + `LevelStepper`。
 - 容器样式用 global.css 已有的 `glass-panel`、`archive-section`、`section-label`，
