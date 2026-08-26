@@ -1,7 +1,5 @@
 /** 计算器数据常量。纯数据，不包含 ref/state/emit 等运行时绑定。 */
 
-import { MOVE_FLAG } from './calc-engine';
-
 // ─── 天气 ─────────────────────────────────────────────
 export interface WeatherOption {
     id: string;
@@ -110,113 +108,48 @@ export const getAbilityName = (name: string): string => ABILITY_NAME_MAP[name] |
 
 // ─── 招式 ─────────────────────────────────────────────
 export interface MoveOption {
-    key: string;
+    /** pokeapi 招式 id，calc-engine 据此查 moveFlagMap */
+    id: number;
     name: string;
     power: number;
     type: string;
     category: 'physical' | 'special';
-    flags: number;
 }
 
-export const COMMON_MOVES: MoveOption[] = [
-    { key: 'flamethrower', name: '喷射火焰', power: 90, type: 'fire', category: 'special', flags: 0 },
-    { key: 'fireblast', name: '大字爆炎', power: 110, type: 'fire', category: 'special', flags: 0 },
-    { key: 'flareblitz', name: '闪焰冲锋', power: 120, type: 'fire', category: 'physical', flags: MOVE_FLAG.CONTACT },
-    { key: 'surf', name: '冲浪', power: 90, type: 'water', category: 'special', flags: 0 },
-    { key: 'hydropump', name: '水炮', power: 110, type: 'water', category: 'special', flags: 0 },
-    { key: 'waterfall', name: '攀瀑', power: 80, type: 'water', category: 'physical', flags: MOVE_FLAG.CONTACT },
-    { key: 'liquidation', name: '水流裂破', power: 85, type: 'water', category: 'physical', flags: MOVE_FLAG.CONTACT },
-    { key: 'energyball', name: '能量球', power: 90, type: 'grass', category: 'special', flags: MOVE_FLAG.BULLET },
-    { key: 'gigadrain', name: '终极吸取', power: 75, type: 'grass', category: 'special', flags: MOVE_FLAG.HEAL },
-    { key: 'powerwhip', name: '强力鞭打', power: 120, type: 'grass', category: 'physical', flags: MOVE_FLAG.CONTACT },
-    { key: 'thunderbolt', name: '十万伏特', power: 90, type: 'electric', category: 'special', flags: 0 },
-    { key: 'thunder', name: '打雷', power: 110, type: 'electric', category: 'special', flags: 0 },
-    { key: 'icebeam', name: '冰冻光束', power: 90, type: 'ice', category: 'special', flags: 0 },
-    { key: 'blizzard', name: '暴风雪', power: 110, type: 'ice', category: 'special', flags: 0 },
-    {
-        key: 'closecombat',
-        name: '近身战',
-        power: 120,
-        type: 'fighting',
-        category: 'physical',
-        flags: MOVE_FLAG.CONTACT,
-    },
-    { key: 'aurasphere', name: '波导弹', power: 80, type: 'fighting', category: 'special', flags: MOVE_FLAG.PULSE },
-    {
-        key: 'drainpunch',
-        name: '吸取拳',
-        power: 75,
-        type: 'fighting',
-        category: 'physical',
-        flags: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH | MOVE_FLAG.HEAL,
-    },
-    { key: 'earthquake', name: '地震', power: 100, type: 'ground', category: 'physical', flags: 0 },
-    { key: 'earthpower', name: '大地之力', power: 90, type: 'ground', category: 'special', flags: 0 },
-    { key: 'psychic', name: '精神强念', power: 90, type: 'psychic', category: 'special', flags: 0 },
-    { key: 'shadowball', name: '暗影球', power: 80, type: 'ghost', category: 'special', flags: MOVE_FLAG.BULLET },
-    { key: 'dragonpulse', name: '龙之波动', power: 85, type: 'dragon', category: 'special', flags: MOVE_FLAG.PULSE },
-    { key: 'darkpulse', name: '恶之波动', power: 80, type: 'dark', category: 'special', flags: MOVE_FLAG.PULSE },
-    { key: 'flashcannon', name: '加农光炮', power: 80, type: 'steel', category: 'special', flags: 0 },
-    { key: 'moonblast', name: '月亮之力', power: 95, type: 'fairy', category: 'special', flags: 0 },
-    { key: 'sludgebomb', name: '污泥炸弹', power: 90, type: 'poison', category: 'special', flags: MOVE_FLAG.BULLET },
-    { key: 'hypervoice', name: '巨声', power: 90, type: 'normal', category: 'special', flags: MOVE_FLAG.SOUND },
-    {
-        key: 'thunderpunch',
-        name: '雷电拳',
-        power: 75,
-        type: 'electric',
-        category: 'physical',
-        flags: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    },
-    {
-        key: 'icepunch',
-        name: '冰冻拳',
-        power: 75,
-        type: 'ice',
-        category: 'physical',
-        flags: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    },
-    {
-        key: 'firepunch',
-        name: '火焰拳',
-        power: 75,
-        type: 'fire',
-        category: 'physical',
-        flags: MOVE_FLAG.CONTACT | MOVE_FLAG.PUNCH,
-    },
-    {
-        key: 'crunch',
-        name: '咬碎',
-        power: 80,
-        type: 'dark',
-        category: 'physical',
-        flags: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    },
-    {
-        key: 'icefang',
-        name: '冰冻牙',
-        power: 65,
-        type: 'ice',
-        category: 'physical',
-        flags: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    },
-    {
-        key: 'firefang',
-        name: '火焰牙',
-        power: 65,
-        type: 'fire',
-        category: 'physical',
-        flags: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    },
-    {
-        key: 'psychicfangs',
-        name: '精神之牙',
-        power: 85,
-        type: 'psychic',
-        category: 'physical',
-        flags: MOVE_FLAG.CONTACT | MOVE_FLAG.BITE,
-    },
-];
+/** MoveRecord 显示分类 → 计算引擎分类；状态/未知返回 null（不进计算器） */
+const CATEGORY_TO_ENGINE: Record<string, 'physical' | 'special' | null> = {
+    物理: 'physical',
+    特殊: 'special',
+    状态: null,
+    '—': null,
+};
+
+/**
+ * 把某只宝可梦的技能池（`loadMovesForPokemon` 的 MoveRecord[]）转成计算器
+ * 招式选项：只留物理 / 特殊的伤害招式（威力为正），按 moveId 去重（升级/机器/
+ * 蛋招会重复），名称经 `nameOf` 查 i18n（未就绪回落 `move-{id}`）。
+ * 纯函数，便于单测。
+ */
+export function toCalcMoveOptions(records: MoveRecord[], nameOf: (id: number) => string | null): MoveOption[] {
+    const seen = new Set<number>();
+    const out: MoveOption[] = [];
+    for (const r of records) {
+        const category = CATEGORY_TO_ENGINE[r.category];
+        if (!category) continue;
+        const power = typeof r.power === 'number' ? r.power : Number(r.power);
+        if (!Number.isFinite(power) || power <= 0) continue;
+        if (seen.has(r.id)) continue;
+        seen.add(r.id);
+        out.push({
+            id: r.id,
+            name: nameOf(r.id) ?? `move-${r.id}`,
+            power,
+            type: r.type,
+            category,
+        });
+    }
+    return out;
+}
 
 // ─── 道具 ─────────────────────────────────────────────
 export interface ItemOption {

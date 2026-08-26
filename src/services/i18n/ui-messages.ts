@@ -137,6 +137,9 @@ const zhHans = {
         toast: {
             noData: '暂无宝可梦数据',
             needBoth: '请选择双方宝可梦和招式',
+            noMoves: '该宝可梦没有可用于计算的伤害招式',
+            selectAttackerFirst: '请先选择攻击方宝可梦',
+            movesLoading: '招式加载中…',
             failed: '计算失败',
         },
         side: {
@@ -403,6 +406,9 @@ const en: typeof zhHans = {
         toast: {
             noData: 'No Pokémon data',
             needBoth: 'Select both Pokémon and a move',
+            noMoves: 'This Pokémon has no damaging moves to calculate',
+            selectAttackerFirst: 'Select the attacking Pokémon first',
+            movesLoading: 'Loading moves…',
             failed: 'Calculation failed',
         },
         side: {

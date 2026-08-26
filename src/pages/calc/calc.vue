@@ -1,10 +1,15 @@
 <template>
-    <view class="calc-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
+    <view
+        class="calc-page min-h-screen page-bg"
+        :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }"
+    >
         <DetailNavbar :title="t('calc.title')" @back="goBack" />
 
-        <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6">
+        <scroll-view
+            scroll-y
+            class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6"
+        >
             <view class="mx-auto max-w-[720px] flex flex-col gap-3 pt-3">
-
                 <!-- 攻击方 -->
                 <CalcSideCard
                     :title="t('calc.attacker')"
@@ -19,7 +24,7 @@
                     :stage2Val="spaStage"
                     @select-pokemon="showPokemonPicker('attacker')"
                     @select-ability="showAbilityPicker('attacker')"
-                    @adjust-level="(d:number) => adjustLevel('attacker', d)"
+                    @adjust-level="(d: number) => adjustLevel('attacker', d)"
                     @dec-stage1="decStage('atk')"
                     @inc-stage1="incStage('atk')"
                     @dec-stage2="decStage('spa')"
@@ -42,7 +47,7 @@
                     :stage2Val="spdStage"
                     @select-pokemon="showPokemonPicker('defender')"
                     @select-ability="showAbilityPicker('defender')"
-                    @adjust-level="(d:number) => adjustLevel('defender', d)"
+                    @adjust-level="(d: number) => adjustLevel('defender', d)"
                     @dec-stage1="decStage('def')"
                     @inc-stage1="incStage('def')"
                     @dec-stage2="decStage('spd')"
@@ -52,7 +57,15 @@
                 <!-- 招式 -->
                 <CalcCard :title="t('calc.move')" iconClass="calc-head__icon--violet">
                     <template #icon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="h-4 w-4"
+                        >
                             <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"></path>
                         </svg>
                     </template>
@@ -62,9 +75,15 @@
                         </view>
                         <view v-else class="calc-row__main">
                             <view class="flex items-center gap-2">
-                                <text class="calc-pkm-name">{{ selectedMove.name }}</text>
+                                <text class="calc-pkm-name">{{ selectedMoveName }}</text>
                                 <TypeBadge :type="selectedMove.type" size="xs" variant="chip" />
-                                <text class="text-[12px] font-bold" :class="selectedMove.category === 'physical' ? 'text-[#e74c3c]' : 'text-[#3498db]'">{{ selectedMove.category === 'physical' ? t('calc.physical') : t('calc.special') }}</text>
+                                <text
+                                    class="text-[12px] font-bold"
+                                    :class="selectedMove.category === 'physical' ? 'text-[#e74c3c]' : 'text-[#3498db]'"
+                                    >{{
+                                        selectedMove.category === 'physical' ? t('calc.physical') : t('calc.special')
+                                    }}</text
+                                >
                             </view>
                             <view class="flex items-center gap-3 mt-1">
                                 <view class="flex items-center gap-1">
@@ -73,14 +92,32 @@
                                 </view>
                             </view>
                         </view>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#c4c7cf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 flex-shrink-0"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#c4c7cf"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="h-5 w-5 flex-shrink-0"
+                        >
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
                     </view>
                 </CalcCard>
 
                 <!-- 战场条件 -->
                 <CalcCard :title="t('calc.field')" iconClass="calc-head__icon--gold">
                     <template #icon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="h-4 w-4"
+                        >
                             <path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.7 1.5A4 4 0 0 0 6 19z"></path>
                         </svg>
                     </template>
@@ -111,8 +148,10 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { calcDamage, calcStat, getBaseStat, type CalcResult, type CalcParams, MOVE_FLAG } from './calc-engine';
+import { calcDamage, calcStat, getBaseStat, type CalcResult, type CalcParams } from './calc-engine';
 import { usePokemonStore } from '@/store/pokemon';
+import { useI18nStore } from '@/store/i18n';
+import { loadMovesForPokemon } from '@/services/pokemon';
 import CalcSideCard from '@/components/calc/CalcSideCard.vue';
 import CalcCard from '@/components/calc/CalcCard.vue';
 import ChipRow from '@/components/calc/ChipRow.vue';
@@ -121,14 +160,24 @@ import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import { getTypeShort } from '@/constants/pokemonTypes';
 import {
-    WEATHER_OPTIONS, TERRAIN_OPTIONS, COMMON_ABILITIES,
-    COMMON_MOVES, ITEM_OPTIONS, SCREEN_OPTIONS, STATUS_OPTIONS,
-    getAbilityName, getItemMod, getItemLabel,
+    WEATHER_OPTIONS,
+    TERRAIN_OPTIONS,
+    COMMON_ABILITIES,
+    ITEM_OPTIONS,
+    SCREEN_OPTIONS,
+    STATUS_OPTIONS,
+    getAbilityName,
+    getItemMod,
+    getItemLabel,
+    toCalcMoveOptions,
     type MoveOption,
 } from './calc-options';
 
 const { t } = useI18n();
 const pokemonStore = usePokemonStore();
+const i18nStore = useI18nStore();
+// 招式名走 i18n 名称表；深链进入时 boot 可能未跑完，确保加载后选项响应式刷新。
+void i18nStore.ensureLoaded();
 
 // ==============================
 // 宝可梦选择
@@ -136,8 +185,10 @@ const pokemonStore = usePokemonStore();
 
 const attackerPokemon = ref<{ name: string; types: string[]; stats: { name: string; value: number }[] } | null>(null);
 const defenderPokemon = ref<{ name: string; types: string[]; stats: { name: string; value: number }[] } | null>(null);
+// 攻击方 pokemon id：用于拉它的技能池作为招式选项
+const attackerId = ref(0);
 
-const pokemonNameList = computed(() => pokemonStore.allPokemons.map(p => p.name));
+const pokemonNameList = computed(() => pokemonStore.allPokemons.map((p) => p.name));
 
 const showPokemonPicker = (side: 'attacker' | 'defender') => {
     const names = pokemonNameList.value;
@@ -151,11 +202,41 @@ const showPokemonPicker = (side: 'attacker' | 'defender') => {
             const pkm = pokemonStore.allPokemons[res.tapIndex];
             if (!pkm) return;
             const data = { name: pkm.name, types: pkm.types, stats: pkm.stats };
-            if (side === 'attacker') attackerPokemon.value = data;
-            else defenderPokemon.value = data;
-        }
+            if (side === 'attacker') {
+                attackerPokemon.value = data;
+                // 换攻击方 → 技能池变了，清空已选招式并重新拉取
+                if (pkm.id !== attackerId.value) {
+                    attackerId.value = pkm.id;
+                    selectedMove.value = null;
+                }
+                void loadAttackerMoves(pkm.id);
+            } else {
+                defenderPokemon.value = data;
+            }
+        },
     });
 };
+
+// ─── 攻击方技能池 ────────────────────────────────────────
+const attackerMoves = ref<MoveOption[]>([]);
+const movesLoading = ref(false);
+let movesToken = 0;
+
+/** 拉攻击方实际能学会的招式，过滤成伤害招式选项；竞态守卫防快速切换串数据 */
+async function loadAttackerMoves(pokemonId: number) {
+    const token = ++movesToken;
+    movesLoading.value = true;
+    try {
+        const records = await loadMovesForPokemon(pokemonId);
+        if (token !== movesToken) return;
+        attackerMoves.value = toCalcMoveOptions(records, (id) => i18nStore.moveName(id));
+    } catch (err) {
+        console.warn('[calc] 招式池加载失败', err);
+        if (token === movesToken) attackerMoves.value = [];
+    } finally {
+        if (token === movesToken) movesLoading.value = false;
+    }
+}
 
 // ==============================
 // 等级
@@ -188,7 +269,7 @@ const showAbilityPicker = (side: 'attacker' | 'defender') => {
             const selected = COMMON_ABILITIES[res.tapIndex];
             if (side === 'attacker') attackerAbility.value = selected;
             else defenderAbility.value = selected;
-        }
+        },
     });
 };
 
@@ -196,12 +277,36 @@ const showAbilityPicker = (side: 'attacker' | 'defender') => {
 // 招式选择
 // ==============================
 const selectedMove = ref<MoveOption | null>(null);
+// 已选招式的显示名：i18n 名称表可能晚于选择到达，响应式查表刷新
+const selectedMoveName = computed(() => {
+    const m = selectedMove.value;
+    if (!m) return '';
+    return i18nStore.moveName(m.id) ?? m.name;
+});
 
 const showMovePicker = () => {
-    const names = COMMON_MOVES.map(m => `${m.name}  (${m.power} / ${getTypeShort(m.type)})`);
+    if (!attackerPokemon.value) {
+        uni.showToast({ title: t('calc.toast.selectAttackerFirst'), icon: 'none' });
+        return;
+    }
+    if (movesLoading.value) {
+        uni.showToast({ title: t('calc.toast.movesLoading'), icon: 'none' });
+        return;
+    }
+    const moves = attackerMoves.value;
+    if (moves.length === 0) {
+        uni.showToast({ title: t('calc.toast.noMoves'), icon: 'none' });
+        return;
+    }
+    const names = moves.map((m) => {
+        const name = i18nStore.moveName(m.id) ?? m.name;
+        return `${name}  (${m.power} / ${getTypeShort(m.type)})`;
+    });
     uni.showActionSheet({
         itemList: names,
-        success: (res) => { selectedMove.value = COMMON_MOVES[res.tapIndex]; }
+        success: (res) => {
+            selectedMove.value = moves[res.tapIndex];
+        },
     });
 };
 
@@ -269,9 +374,11 @@ const doCalculate = async () => {
 
         // 光墙/反射壁: 折叠进 itemMod
         let itemMod = getItemMod(attackerItemId.value);
-        if (reflectScreen.value === 'reflect' && selectedMove.value.category === 'physical') itemMod = Math.round(itemMod * 50 / 100);
-        if (reflectScreen.value === 'lightscreen' && selectedMove.value.category === 'special') itemMod = Math.round(itemMod * 50 / 100);
-        if (reflectScreen.value === 'auroraveil') itemMod = Math.round(itemMod * 50 / 100);
+        if (reflectScreen.value === 'reflect' && selectedMove.value.category === 'physical')
+            itemMod = Math.round((itemMod * 50) / 100);
+        if (reflectScreen.value === 'lightscreen' && selectedMove.value.category === 'special')
+            itemMod = Math.round((itemMod * 50) / 100);
+        if (reflectScreen.value === 'auroraveil') itemMod = Math.round((itemMod * 50) / 100);
 
         const params: CalcParams = {
             attackerLevel: attackerLevel.value,
@@ -290,7 +397,7 @@ const doCalculate = async () => {
             movePower: selectedMove.value.power,
             moveType: selectedMove.value.type,
             moveCategory: selectedMove.value.category,
-            moveName: selectedMove.value.key,
+            moveId: selectedMove.value.id,
             weather: selectedWeather.value || null,
             terrain: selectedTerrain.value || null,
             critical: isCritical.value,
@@ -313,12 +420,21 @@ const doCalculate = async () => {
 };
 
 const resetAll = () => {
-    attackerLevel.value = 50; defenderLevel.value = 50;
-    selectedWeather.value = ''; selectedTerrain.value = '';
-    attackerAbility.value = '无'; defenderAbility.value = '无';
-    attackerPokemon.value = null; defenderPokemon.value = null;
+    attackerLevel.value = 50;
+    defenderLevel.value = 50;
+    selectedWeather.value = '';
+    selectedTerrain.value = '';
+    attackerAbility.value = '无';
+    defenderAbility.value = '无';
+    attackerPokemon.value = null;
+    defenderPokemon.value = null;
     selectedMove.value = null;
-    atkStage.value = 0; defStage.value = 0; spaStage.value = 0; spdStage.value = 0;
+    attackerId.value = 0;
+    attackerMoves.value = [];
+    atkStage.value = 0;
+    defStage.value = 0;
+    spaStage.value = 0;
+    spdStage.value = 0;
     attackerItemId.value = 'none';
     selectedStatus.value = [];
     reflectScreen.value = 'none';
@@ -331,15 +447,60 @@ const goBack = () => {
 </script>
 
 <style scoped>
-.calc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 0 14px; }
-.calc-row__title { font-size: 14px; font-weight: 600; color: #24262b; flex-shrink: 0; }
-.calc-row__main { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.calc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 14px;
+}
+.calc-row__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #24262b;
+    flex-shrink: 0;
+}
+.calc-row__main {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+}
 
-.calc-pkm-name { font-size: 15px; font-weight: 800; color: #24262b; }
+.calc-pkm-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: #24262b;
+}
 
-.calc-divider { height: 1px; margin: 0 14px; background: #f1f2f6; }
+.calc-divider {
+    height: 1px;
+    margin: 0 14px;
+    background: #f1f2f6;
+}
 
-.calc-action { flex: 1; height: 46px; line-height: 46px; border-radius: 16px; color: #ffffff; font-size: 15px; font-weight: 800; background: linear-gradient(135deg, #73b7ff, #357df4); box-shadow: 0 10px 22px rgba(53, 125, 244, 0.22); }
-.calc-action--reset { flex: 0 0 auto; width: auto; padding: 0 20px; background: #eef0f5; color: #6f7682; box-shadow: none; }
-.calc-action::after { border: none !important; }
+.calc-action {
+    flex: 1;
+    height: 46px;
+    line-height: 46px;
+    border-radius: 16px;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #73b7ff, #357df4);
+    box-shadow: 0 10px 22px rgba(53, 125, 244, 0.22);
+}
+.calc-action--reset {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 0 20px;
+    background: #eef0f5;
+    color: #6f7682;
+    box-shadow: none;
+}
+.calc-action::after {
+    border: none !important;
+}
 </style>

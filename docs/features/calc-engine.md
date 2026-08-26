@@ -7,13 +7,15 @@
 ```
 calc.vue                     用户在页面上选宝可梦 / 招式 / 天气 / 场地
    │
+   │  攻击方选定后：loadMovesForPokemon(attackerId)
+   │    → toCalcMoveOptions(records, i18n.moveName)  ↓ 招式下拉只列该宝可梦的技能池
    ▼
 calc-engine.ts::calcDamage(params)
    ├─ 属性 slug         → TYPE_IDS       (types.json)
    ├─ 特性 slug         → ABILITY_IDS    (abilities.json，slug 去连字符归一化)
    ├─ 天气 slug         → WEATHER_IDS    (weathers.json，同上)
    ├─ 场地 slug         → TERRAIN_IDS    (terrains.json)
-   └─ 招式 name         → lookupMoveFlags() ─┐
+   └─ 招式 moveId       → getMoveFlagsById() ─┐
                                               ▼
                                           见「招式 flags 专题」
    │
@@ -23,6 +25,9 @@ wasm.calculateDamageBatch(input)   ← Rust 侧读枚举常量做修正因子
 ```
 
 WASM 侧只认数字 ID（`u8`/`u16`），所有 slug→id 翻译在 JS 侧完成。
+**招式选项不再是硬编码的通用招式表**，而是选中攻击方后拉它实际能学会的招式
+（`pokemon_moves/common.bin` + `moves_data/common.bin`），过滤出物理/特殊伤害招，
+因此拿到的每条招式天然带着 pokeapi moveId，flags 直接按 id 查，无需 slug 反查。
 
 ## 数据源
 
@@ -30,25 +35,19 @@ WASM 侧只认数字 ID（`u8`/`u16`），所有 slug→id 翻译在 JS 侧完�
 | --- | --- | --- | --- |
 | 属性 slug → id | `src/static/enums/types.json` | 模块 import（打包进 JS） | 换 JSON 后前端重打包（不改代码） |
 | 特性 slug → id | `src/static/enums/abilities.json` | 同上 | 同上 |
-| 招式 slug → moveId | `src/static/enums/moves.json` | 同上 | 同上 |
 | 招式 flag slug → flag id | `src/static/enums/move_flags.json` | 同上 | 同上（pokeapi 定义） |
 | 天气 slug → id | `src/static/enums/weathers.json` | 同上 | 换 JSON（也要同步改 Rust `WEATHER_*` 常量，见下）|
 | 场地 slug → id | `src/static/enums/terrains.json` | 同上 | 同上 |
+| 攻击方技能池 | `/assets/encrypted/fb/pokemon_moves/common.bin`（每宝可梦 4 类学习方式）+ `moves_data/common.bin`（招式 type/power/category） | 选中攻击方后 `loadMovesForPokemon` 懒加载（resourceManager 三层缓存） | 换 CDN 上的 bin，前端下次拉取自动生效 |
 | moveId → flag id 列表 | `/assets/encrypted/fb/moves_data/common.bin` 里的 `move_flag_map` 表 | `resourceManager.getMovesData('common')` 首次调用（懒加载，缓存至内存） | 换 CDN 上的 bin，前端下次拉取自动生效 |
 | WASM 枚举常量（`TYPE_*`/`WEATHER_*`/`TERRAIN_*`/`ABILITY_*`） | `src/infra/wasm/build.rs` 编译期从 `src/static/enums/*.json` 生成 | Rust 编译期 include | 改 JSON 后 `cargo build` 会通过 `rerun-if-changed` 自动重编 |
 
-## 招式 flags 专题（`lookupMoveFlags`）
+## 招式 flags 专题（`getMoveFlagsById`）
 
-调用方传的是英文 slug（`"firepunch"` / `"fire-punch"` / `"Fire Punch"` 均可），最终得到一个 `u16` 位掩码传给 WASM。
+攻击方的招式选项由真实技能池构建，每条都带 pokeapi moveId，最终得到一个 `u16`
+位掩码传给 WASM。不再经过 slug：
 
-**① slug → moveId** — `calc-engine.ts::MOVE_ID_BY_SLUG`
-
-启动时从 `moves.json` 建表，key 是去连字符/空格的 lowercase：
-```
-"firepunch" → 7
-```
-
-**② moveId → 位掩码** — `calc-engine.ts::getMoveFlagMask()`
+**① moveId → 位掩码** — `calc-engine.ts::getMoveFlagsById()`
 
 懒加载，首次调用时：
 1. `resourceManager.getMovesData('common')` 拉 CDN 的 `moves_data/common.bin`（FlatBuffers `MovesDataBundle`）
@@ -57,14 +56,18 @@ WASM 侧只认数字 ID（`u8`/`u16`），所有 slug→id 翻译在 JS 侧完�
 4. 整个 `Map<moveId, u16>` 缓存在闭包里，后续命中不再拉 bin
 5. 拉取失败静默降级为空 Map（计算不阻塞，但铁拳/强壮之颚等 flag 敏感的特性触发失灵）
 
-**③ FLAG_ID_TO_BIT 是怎么建的** — `calc-engine.ts::WASM_FLAG_BITS`
+> 招式下拉本身的选项（名称/威力/属性/分类）来自 `loadMovesForPokemon`（见
+> `docs/data/` 的五表 join）：`pokemon_moves/common.bin` 给出该宝可梦能学的
+> moveId 集合，`moves_data/common.bin` 给出招式定义，`toCalcMoveOptions`
+> 只留物理/特殊、威力为正的伤害招并按 id 去重。
+
+**② FLAG_ID_TO_BIT 是怎么建的** — `calc-engine.ts::WASM_FLAG_BITS`
 
 `move_flags.json` 给了 21 种 pokeapi flag slug → id。WASM 只关心其中 8 种（`contact`/`punch`/`bite`/`sound`/`pulse`/`powder`/`ballistics`/`heal`），`WASM_FLAG_BITS` 手写了这 8 种到位序的对应关系。两表 join 得 `Map<pokeapi flag id, WASM bit>`。
 
 **具体例子：**
 ```
-"firepunch"
-  → moveId 7                (moves.json)
+攻击方选了「火焰拳」(moveId 7)
   → moveFlagMap[7] = [1, 8, 11]           (contact / punch / defrost)
   → FLAG_ID_TO_BIT: 1→CONTACT(bit0), 8→PUNCH(bit1), 11→undefined 跳过
   → mask = 0b00000011 = 3
@@ -89,7 +92,7 @@ WASM 侧只认数字 ID（`u8`/`u16`），所有 slug→id 翻译在 JS 侧完�
 | 场景 | 需要动的东西 | 需要重编 WASM 吗 |
 | --- | --- | --- |
 | 新增/修改招式（威力、类别、flag 归属） | CDN 上的 `moves_data/common.bin` | ❌ 前端下次加载自动生效 |
-| 新增招式 slug | `moves.json` + `common.bin` | ❌ 前端重打包即可 |
+| 宝可梦能学的招式集合变化 | CDN 上的 `pokemon_moves/common.bin` | ❌ 前端下次加载自动生效 |
 | pokeapi 改了某特性/招式的 id | 对应 `*.json` | ✅ Rust 常量随 JSON 重生成，需 `cargo build` |
 | 新增一个 WASM 特性行为（比如支持 "Rocky Payload"） | `calculator.rs`（新增 match 分支） | ✅ |
 | 新增一种 WASM 关心的招式 flag | `calculator.rs`（新增位）+ `calc-engine.ts::WASM_FLAG_BITS/MOVE_FLAG` | ✅ |

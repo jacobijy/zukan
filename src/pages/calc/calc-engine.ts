@@ -13,7 +13,6 @@
 import type { DamageInput, BatchDamageResult } from '@/infra/wasm/pkg/zukan_wasm';
 import typeIds from '@/static/enums/types.json';
 import abilitiesJson from '@/static/enums/abilities.json';
-import movesJson from '@/static/enums/moves.json';
 import moveFlagsJson from '@/static/enums/move_flags.json';
 import weathersJson from '@/static/enums/weathers.json';
 import terrainsJson from '@/static/enums/terrains.json';
@@ -54,14 +53,6 @@ const ABILITY_IDS: Record<string, number> = Object.fromEntries(
 );
 
 /**
- * 招式 slug（无连字符）→ 招式 id
- * 用于把 `firepunch` 这种归一化输入映射到 `moves.json` 里的数字 id。
- */
-const MOVE_ID_BY_SLUG: Map<string, number> = new Map(
-    Object.entries(movesJson).map(([slug, id]) => [slug.replace(/-/g, ''), id as number]),
-);
-
-/**
  * pokeapi flag id (1..21) → WASM 位掩码 bit
  * 与 `src/infra/wasm/src/calculator.rs` 的 `MOVE_FLAG_*` 保持同步。
  */
@@ -82,8 +73,8 @@ const FLAG_ID_TO_BIT: Map<number, number> = new Map(
 );
 
 /**
- * 懒加载：moveId → WASM bitmask 索引
- * 首次调用时从 `moves_data/common.bin` 拉 `moveFlagMap`（跨 detail 页复用同一 bundle）；
+ * 懒加载：pokeapi moveId → WASM bitmask 索引
+ * 首次调用时从 `moves_data/common.bin` 拉 `moveFlagMap`（跨详情页复用同一 bundle）；
  * 失败静默降级为空 map（所有招式 flags=0，特性触发缺失但不阻塞计算）。
  */
 let moveFlagMaskPromise: Promise<Map<number, number>> | null = null;
@@ -109,12 +100,9 @@ function getMoveFlagMask(): Promise<Map<number, number>> {
     return moveFlagMaskPromise;
 }
 
-/** 招式 slug（可含空格/连字符）→ WASM bitmask；未命中或 bundle 未就绪时返回 0 */
-async function lookupMoveFlags(moveName: string | undefined): Promise<number> {
-    if (!moveName) return 0;
-    const key = moveName.toLowerCase().replace(/[\s-]/g, '');
-    const moveId = MOVE_ID_BY_SLUG.get(key);
-    if (moveId === undefined) return 0;
+/** pokeapi moveId → WASM 招式 bitmask；bundle 未就绪 / 未命中返回 0 */
+export async function getMoveFlagsById(moveId: number | undefined): Promise<number> {
+    if (!moveId) return 0;
     const mask = await getMoveFlagMask();
     return mask.get(moveId) ?? 0;
 }
@@ -289,7 +277,7 @@ export interface CalcParams {
     movePower: number;
     moveType: string;
     moveCategory: 'physical' | 'special';
-    moveName?: string; // 用于查找招式标志位（接触/拳/啃咬等）
+    moveId?: number; // pokeapi 招式 id，用于查 moveFlagMap（接触/拳/啃咬等）
 
     /* 战场 */
     weather?: string | null;
@@ -366,8 +354,8 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
     const attackStat = params.moveCategory === 'physical' ? params.attackerAtk : params.attackerSpA;
     const defenseStat = params.moveCategory === 'physical' ? params.defenderDef : params.defenderSpD;
 
-    // 招式标志位（从 moves_data/common.bin 的 moveFlagMap 派生；首次调用触发懒加载）
-    const moveFlags = await lookupMoveFlags(params.moveName);
+    // 招式标志位（按 pokeapi moveId 从 moves_data/common.bin 的 moveFlagMap 派生）
+    const moveFlags = await getMoveFlagsById(params.moveId);
 
     // 创建 WASM DamageInput
     const input = new wasm.DamageInput(
