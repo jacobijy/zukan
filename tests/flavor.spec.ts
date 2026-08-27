@@ -3,14 +3,11 @@
  *
  * 两个重点：
  * - 同一物种在 flavor bundle 里按 version_id 存了多条，构建时只留最新版本；
- * - 回落叠加与名称组同构：首选语言缺失的物种保留英文基线。
+ * - 描述组为空的语言（cs / pt-br / ja-roma）构建出空 Map（`size === 0`），
+ *   store 据此回落英文基线——避免为每个用户都下载 ~2.7MB 英文 flavor 包。
  */
 import { describe, expect, it } from 'vitest';
-import {
-    buildSpeciesFlavor,
-    cleanFlavorText,
-    overlayFlavor,
-} from '@/services/i18n/flavor';
+import { buildSpeciesFlavor, cleanFlavorText } from '@/services/i18n/flavor';
 import type { I18nFlavorBundle } from '@/infra/wasm';
 
 function bundle(partial: Partial<I18nFlavorBundle>): I18nFlavorBundle {
@@ -81,7 +78,7 @@ describe('buildSpeciesFlavor', () => {
         expect(m.get(25)).toBe('NEW');
     });
 
-    it('空文本条目不进表（避免空串覆盖英文基线）', () => {
+    it('空文本条目不进表（完整语言也可能个别物种缺描述）', () => {
         const m = buildSpeciesFlavor(
             bundle({
                 species: [
@@ -93,45 +90,9 @@ describe('buildSpeciesFlavor', () => {
         expect(m.has(1)).toBe(false);
         expect(m.get(2)).toBe('has text');
     });
-});
 
-describe('overlayFlavor 回落叠加', () => {
-    it('首选语言的非空描述覆盖英文', () => {
-        const en = buildSpeciesFlavor(
-            bundle({ species: [{ id: 1, text: 'English text', version: 40 }] }),
-        );
-        const ja = buildSpeciesFlavor(
-            bundle({ species: [{ id: 1, text: '日本語の説明文', version: 40 }] }),
-        );
-        const merged = overlayFlavor(en, ja);
-        expect(merged.get(1)).toBe('日本語の説明文');
-    });
-
-    it('首选语言缺该物种（ja-roma / cs / pt-br）时保留英文', () => {
-        const en = buildSpeciesFlavor(
-            bundle({
-                species: [
-                    { id: 1, text: 'English one', version: 40 },
-                    { id: 25, text: 'English pika', version: 40 },
-                ],
-            }),
-        );
-        // ja-roma 仅有物种名、描述组为空
-        const roma = buildSpeciesFlavor(bundle({}));
-        const merged = overlayFlavor(en, roma);
-        expect(merged.get(1)).toBe('English one');
-        expect(merged.get(25)).toBe('English pika');
-    });
-
-    it('不修改入参（返回新 Map）', () => {
-        const en = buildSpeciesFlavor(
-            bundle({ species: [{ id: 1, text: 'English', version: 1 }] }),
-        );
-        const ja = buildSpeciesFlavor(
-            bundle({ species: [{ id: 1, text: '日本語', version: 1 }] }),
-        );
-        const merged = overlayFlavor(en, ja);
-        expect(merged.get(1)).toBe('日本語');
-        expect(en.get(1)).toBe('English');
+    it('描述组整体为空（cs / pt-br / ja-roma）→ 空 Map，供 store 回落英文', () => {
+        const m = buildSpeciesFlavor(bundle({}));
+        expect(m.size).toBe(0);
     });
 });

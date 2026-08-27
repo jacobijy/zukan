@@ -19,7 +19,7 @@
  */
 import { resourceManager } from '@/services/resources/resourceManager';
 import { buildNamesLookup, overlay, type NamesLookup } from '@/services/i18n/lookup';
-import { buildSpeciesFlavor, overlayFlavor, type SpeciesFlavor } from '@/services/i18n/flavor';
+import { buildSpeciesFlavor, type SpeciesFlavor } from '@/services/i18n/flavor';
 import {
     FALLBACK_LANGUAGE,
     getStoredContentLang,
@@ -151,18 +151,18 @@ export const useI18nStore = defineStore('i18n', () => {
     }
 
     async function loadFlavorFor(lang: string): Promise<SpeciesFlavor> {
-        // 英文基线：首选语言缺失的物种（ja-roma / cs / pt-br）由它补齐
-        const [fallback, preferred] = await Promise.all([
-            resourceManager.getI18nFlavor(FALLBACK_LANGUAGE),
-            lang === FALLBACK_LANGUAGE
-                ? Promise.resolve(null)
-                : resourceManager.getI18nFlavor(lang).catch((err) => {
-                      console.warn(`[i18n] ${lang} 描述组加载失败，回落英文`, err);
-                      return null;
-                  }),
-        ]);
-        const base = buildSpeciesFlavor(fallback);
-        return preferred ? overlayFlavor(base, buildSpeciesFlavor(preferred)) : base;
+        // 首选语言直接取：完整语言（zh-hans/ja/… 11 种）物种描述齐全，
+        // 英文 flavor 包 ~2.7MB，绝不为每个用户都强拉做基线。
+        if (lang !== FALLBACK_LANGUAGE) {
+            try {
+                const preferred = buildSpeciesFlavor(await resourceManager.getI18nFlavor(lang));
+                if (preferred.size > 0) return preferred;
+                // 描述组为空（cs / pt-br / ja-roma）→ 回落英文基线
+            } catch (err) {
+                console.warn(`[i18n] ${lang} 描述组加载失败，回落英文`, err);
+            }
+        }
+        return buildSpeciesFlavor(await resourceManager.getI18nFlavor(FALLBACK_LANGUAGE));
     }
 
     /**

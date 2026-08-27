@@ -80,15 +80,18 @@
 `pokemon/PokedexEntry.vue` 按需触发：
 
 - 纯函数在 `src/services/i18n/flavor.ts`：`buildSpeciesFlavor(bundle)` 把
-  `species: FlavorText[]` 收成 `speciesId → 文本`，`overlayFlavor(base, preferred)`
-  做英文回落叠加（与名称组同构）。
+  `species: FlavorText[]` 收成 `speciesId → 文本`。
 - **同一物种按 version_id 存了多条**（每个游戏版本一条），构建时只保留
   **version 最大**（最新）的一条；打包顺序不保证升序，故显式比较而非取最后。
 - 文本经 `cleanFlavorText` 清理：去软连字符 U+00AD、把游戏内换行
   （`\n`/`\f`/`\r`）折成空格。
-- store 侧：`ensureFlavor()` 并发去重加载当前语言（先 en 基线再叠加首选），
-  `speciesFlavorText(speciesId)` 同步查询；切换内容语言时 `flavor` 置空，
-  下次进详情重载。描述是 **species 级**，用 `speciesId` 查（形态共享）。
+- store 侧：`ensureFlavor()` 并发去重加载当前语言，`speciesFlavorText(speciesId)`
+  同步查询；切换内容语言时 `flavor` 置空，下次进详情重载。描述是 **species 级**，
+  用 `speciesId` 查（形态共享）。
+- **回落按整包而非逐 id**：英文 flavor 包 ~2.7MB（多版本×全表），故完整语言
+  （zh-hans / ja / … 11 种）直接用首选包、**不拉英文**；仅当首选包构建出空 Map
+  （cs / pt-br / ja-roma 描述组为空）时才回落英文。这与名称组「总是先载英文基线
+  再 overlay」不同——名称包小，flavor 包大。
 
 ## UI 静态文案
 
