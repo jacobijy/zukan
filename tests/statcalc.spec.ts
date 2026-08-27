@@ -11,13 +11,28 @@ import {
     calcStat,
     calcHp,
     calcOtherStat,
+    calcChampStat,
+    calcChampHp,
+    calcChampOtherStat,
+    clampSp,
+    MAX_SP_TOTAL,
+    MAX_SP_PER_STAT,
     getBaseStat,
     clampIv,
     clampEv,
     MAX_EV_TOTAL,
     type StatKey,
 } from '@/pages/statcalc/statcalc-engine';
-import { NATURES, natureModFor, getNature, STAT_KEYS } from '@/pages/statcalc/statcalc-options';
+import {
+    NATURES,
+    natureModFor,
+    getNature,
+    STAT_KEYS,
+    CHAMPION_ALIGNMENTS,
+    getChampAlignment,
+    champAlignmentMod,
+    DEFAULT_CHAMP_ALIGNMENT_ID,
+} from '@/pages/statcalc/statcalc-options';
 
 // 喷火龙种族值
 const CHARIZARD = { hp: 78, atk: 84, def: 78, spa: 109, spd: 85, spe: 100 };
@@ -133,5 +148,94 @@ describe('EV 总量约束（页面层规则的不变量）', () => {
 
     it('六项 STAT_KEYS 覆盖 hp/atk/def/spa/spd/spe', () => {
         expect(STAT_KEYS).toEqual(['hp', 'atk', 'def', 'spa', 'spd', 'spe']);
+    });
+});
+
+// ─── Pokémon Champions 能力点（SP）模式 ─────────────────────────────
+describe('Champions SP 公式（base 100 锚点）', () => {
+    it('非 HP：base100 / SP0 / 中性 = 120（满个体 Lv50 无努力）', () => {
+        // floor((2*100+31)*0.5)+5 = 115+5 = 120
+        expect(calcChampOtherStat(100, 0, 100)).toBe(120);
+    });
+
+    it('1 SP 在 Lv50 恰好 +1 能力（线性、无 4:1 换算）', () => {
+        expect(calcChampOtherStat(100, 1, 100)).toBe(121);
+        expect(calcChampOtherStat(100, 32, 100)).toBe(152);
+    });
+
+    it('性格 +10% 作用在含 SP 的最终值上：SP0 中性 120 → +10% = 132', () => {
+        expect(calcChampOtherStat(100, 0, 110)).toBe(132);
+        // floor((120+32)*1.1) = floor(167.2) = 167
+        expect(calcChampOtherStat(100, 32, 110)).toBe(167);
+    });
+
+    it('HP：base100 / SP0 = 175；1 SP 同样 +1', () => {
+        // floor((2*100+31)*0.5)+60 = 115+60 = 175
+        expect(calcChampHp(100, 0)).toBe(175);
+        expect(calcChampHp(100, 32)).toBe(207);
+    });
+
+    it('HP 不受性格倾向修正', () => {
+        expect(calcChampStat('hp', 100, 0, 90)).toBe(calcChampHp(100, 0));
+        expect(calcChampStat('hp', 100, 0, 110)).toBe(calcChampHp(100, 0));
+    });
+
+    it('SP 钳制：单项封顶 32、负值归零', () => {
+        expect(clampSp(50)).toBe(32);
+        expect(clampSp(-3)).toBe(0);
+        expect(MAX_SP_PER_STAT).toBe(32);
+        expect(MAX_SP_TOTAL).toBe(66);
+    });
+});
+
+describe('Champions Stat Alignments', () => {
+    it('共 21 种（25 性格去掉 Hardy/Docile/Bashful/Quirky 四个中性）', () => {
+        expect(CHAMPION_ALIGNMENTS).toHaveLength(21);
+        const removed = ['hardy', 'docile', 'bashful', 'quirky'];
+        for (const slug of removed) {
+            expect(CHAMPION_ALIGNMENTS.some((a) => a.slug === slug)).toBe(false);
+        }
+    });
+
+    it('Serious 是唯一中性，且为默认选项', () => {
+        const serious = getChampAlignment(DEFAULT_CHAMP_ALIGNMENT_ID);
+        expect(serious.slug).toBe('serious');
+        expect(Object.keys(serious.mods)).toHaveLength(0);
+        // 其余 20 种都有 +110 / -90
+        const nonNeutral = CHAMPION_ALIGNMENTS.filter((a) => a.slug !== 'serious');
+        expect(nonNeutral).toHaveLength(20);
+        for (const a of nonNeutral) {
+            const mods = Object.values(a.mods);
+            expect(mods).toContain(110);
+            expect(mods).toContain(90);
+        }
+    });
+
+    it('Jolly = +速度 -特攻（钉死，复用修正过的性格表）', () => {
+        const jolly = CHAMPION_ALIGNMENTS.find((a) => a.slug === 'jolly')!;
+        expect(jolly.mods).toEqual({ spe: 110, spa: 90 });
+        expect(champAlignmentMod(jolly.id, 'spe')).toBe(110);
+        expect(champAlignmentMod(jolly.id, 'spa')).toBe(90);
+        expect(champAlignmentMod(jolly.id, 'hp')).toBe(100);
+    });
+});
+
+describe('Champions 实战锚点（烈咬陆鲨 Jolly：32 攻 / 32 速 / 2 HP）', () => {
+    // Garchomp 种族值：HP108 攻130 速102 特攻80
+    it('速度 32SP + Jolly(+速) = 169', () => {
+        const jolly = CHAMPION_ALIGNMENTS.find((a) => a.slug === 'jolly')!;
+        // core = floor((2*102+31)*0.5)+5+32 = 117+37 = 154；×1.1 = floor(169.4) = 169
+        expect(calcChampStat('spe', 102, 32, champAlignmentMod(jolly.id, 'spe'))).toBe(169);
+    });
+
+    it('特攻 0SP + Jolly(-特攻) = 90', () => {
+        const jolly = CHAMPION_ALIGNMENTS.find((a) => a.slug === 'jolly')!;
+        // core = floor((2*80+31)*0.5)+5 = 95+5 = 100；×0.9 = 90
+        expect(calcChampStat('spa', 80, 0, champAlignmentMod(jolly.id, 'spa'))).toBe(90);
+    });
+
+    it('HP 2SP 中性 = 185', () => {
+        // floor((2*108+31)*0.5)+60+2 = 123+62 = 185
+        expect(calcChampHp(108, 2)).toBe(185);
     });
 });

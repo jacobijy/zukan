@@ -68,3 +68,38 @@ export function natureModFor(natureId: number, key: StatKey): number {
     if (key === 'hp') return 100;
     return getNature(natureId).mods[key] ?? 100;
 }
+
+// ─── Pokémon Champions：Stat Alignments（性格的 Champions 版本） ───────
+// Champions 把性格改名 Stat Alignment，仍是 +10%/−10%，但删掉 4 个中性性格
+// （Hardy/Docile/Bashful/Quirky），只保留 Serious 作为唯一中性，共 21 种。
+
+/** Champions 移除的 4 个中性性格 slug */
+const CHAMPION_REMOVED_SLUGS = new Set(['hardy', 'docile', 'bashful', 'quirky']);
+
+export interface ChampAlignmentDef {
+    /** champion 模式本地 id（0..20），供 OptionSheet 选中 */
+    id: number;
+    /** pokeapi 性格 id，查 i18n 名称 */
+    pokeId: number;
+    /** 英文 slug，bundle 缺失时回落 */
+    slug: string;
+    /** 修正：提升项 110 / 降低项 90；Serious 为空对象 */
+    mods: Partial<Record<StatKey, number>>;
+}
+
+export const CHAMPION_ALIGNMENTS: ChampAlignmentDef[] = NATURES.filter((n) => !CHAMPION_REMOVED_SLUGS.has(n.slug)).map(
+    (n, i) => ({ id: i, pokeId: n.pokeId, slug: n.slug, mods: n.mods }),
+);
+
+/** 默认 Stat Alignment：Serious（唯一中性） */
+export const DEFAULT_CHAMP_ALIGNMENT_ID = CHAMPION_ALIGNMENTS.findIndex((a) => a.slug === 'serious');
+
+export function getChampAlignment(id: number): ChampAlignmentDef {
+    return CHAMPION_ALIGNMENTS.find((a) => a.id === id) ?? CHAMPION_ALIGNMENTS[DEFAULT_CHAMP_ALIGNMENT_ID];
+}
+
+/** 某 Stat Alignment 对某项能力的修正值（90/100/110）；HP 恒 100 */
+export function champAlignmentMod(alignmentId: number, key: StatKey): number {
+    if (key === 'hp') return 100;
+    return getChampAlignment(alignmentId).mods[key] ?? 100;
+}

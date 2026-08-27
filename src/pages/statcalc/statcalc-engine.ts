@@ -102,3 +102,46 @@ export function calcAllStats(
     }
     return result;
 }
+
+// ─── Pokémon Champions 能力点（SP）模式 ─────────────────────────────
+// Champions 取消 IV（恒为满个体 31）、取消等级差（对战固定 Lv50），
+// 努力值改为「能力点 SP」：每只 66 SP、单项上限 32，1 SP 在 Lv50 直接 +1 能力。
+// 性格改名 Stat Alignment，仍是 ±10%。来源：champsdex 攻略，公式为社区推断口径。
+
+/** 能力点固定对战等级 */
+export const CHAMPION_LEVEL = 50;
+/** 每只宝可梦可分配的 SP 总量 */
+export const MAX_SP_TOTAL = 66;
+/** 单项 SP 硬上限 */
+export const MAX_SP_PER_STAT = 32;
+/** SP 1:1 加到能力值上，步进为 1 */
+export const SP_STEP = 1;
+
+export function clampSp(sp: number): number {
+    return Math.max(0, Math.min(MAX_SP_PER_STAT, Math.round(sp)));
+}
+
+/**
+ * Champions HP：
+ *   floor((2*base + 31) * 50 / 100) + 50 + 10 + SP
+ * 即满个体 Lv50 的传统 HP（无努力）再 1:1 加 SP。
+ */
+export function calcChampHp(base: number, sp: number): number {
+    return Math.floor(((2 * (base | 0) + 31) * CHAMPION_LEVEL) / 100) + CHAMPION_LEVEL + 10 + clampSp(sp);
+}
+
+/**
+ * Champions 非 HP 能力：
+ *   floor((floor((2*base + 31) * 50 / 100) + 5 + SP) * alignment / 100)
+ * SP 先加进核心值，再整体乘性格修正（与传统 IV/EV 公式同构，ev 项恒为 0）。
+ */
+export function calcChampOtherStat(base: number, sp: number, alignmentMod: number): number {
+    const core = Math.floor(((2 * (base | 0) + 31) * CHAMPION_LEVEL) / 100) + 5 + clampSp(sp);
+    return Math.floor((core * (alignmentMod | 0)) / 100);
+}
+
+/** 按短键分派 Champions 能力值（HP 不受 alignment 修正） */
+export function calcChampStat(key: StatKey, base: number, sp: number, alignmentMod = 100): number {
+    if (key === 'hp') return calcChampHp(base, sp);
+    return calcChampOtherStat(base, sp, alignmentMod);
+}
