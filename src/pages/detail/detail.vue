@@ -16,6 +16,8 @@
                     @switch-form="switchForm"
                 />
 
+                <PokedexEntry :species-id="pokemon.speciesId ?? pokemon.id" />
+
                 <InfoGrid>
                     <InfoCard :label="t('detail.info.height')" :value="`${pokemon.height || 0}m`" icon-class="info-card__icon--green">
                         <template #icon>
@@ -99,6 +101,7 @@ import TabBar from '@/components/TabBar.vue'
 import DetailNavbar from '@/components/shared/DetailNavbar.vue'
 import FavoriteButton from '@/components/shared/FavoriteButton.vue'
 import SpecimenHero from '@/components/pokemon/SpecimenHero.vue'
+import PokedexEntry from '@/components/pokemon/PokedexEntry.vue'
 import InfoGrid from '@/components/pokemon/InfoGrid.vue'
 import InfoCard from '@/components/pokemon/InfoCard.vue'
 import { usePokemonStore } from '@/store/pokemon'

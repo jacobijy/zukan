@@ -19,6 +19,7 @@
  */
 import { resourceManager } from '@/services/resources/resourceManager';
 import { buildNamesLookup, overlay, type NamesLookup } from '@/services/i18n/lookup';
+import { buildSpeciesFlavor, overlayFlavor, type SpeciesFlavor } from '@/services/i18n/flavor';
 import {
     FALLBACK_LANGUAGE,
     getStoredContentLang,
@@ -46,6 +47,16 @@ export const useI18nStore = defineStore('i18n', () => {
     const lookup = ref<NamesLookup | null>(null);
     const loading = ref(false);
     let loadPromise: Promise<void> | null = null;
+
+    /**
+     * 物种图鉴描述（speciesId → 文本）。描述组体积占 i18n 约 90%，
+     * **不随名称预取**，仅在详情页需要时 `ensureFlavor()` 按需加载。
+     * `flavorLang` 记录已加载语言，切换内容语言后置 null 触发重载。
+     */
+    const flavor = ref<SpeciesFlavor | null>(null);
+    const flavorReady = computed(() => flavor.value !== null);
+    let flavorPromise: Promise<void> | null = null;
+    let flavorLang: string | null = null;
 
     async function loadFor(lang: string): Promise<NamesLookup> {
         // 基线语言与首选语言相同（en）时无需叠加两次
@@ -97,6 +108,9 @@ export const useI18nStore = defineStore('i18n', () => {
         loading.value = true;
         try {
             lookup.value = await loadFor(nextLang);
+            // 描述组按语言缓存，语言切换后置空，下次详情页按需重载
+            flavor.value = null;
+            flavorLang = null;
             refreshPokemonIfLoaded();
         } finally {
             loading.value = false;
@@ -109,6 +123,46 @@ export const useI18nStore = defineStore('i18n', () => {
         setStoredUiLang(setting);
         uiLang.value = setting;
         syncUiLocale(resolveUiLocale(setting));
+    }
+
+    /**
+     * 按需加载当前语言的图鉴描述（含英文回落）。并发调用共享同一次 promise；
+     * 已加载且语言未变时直接复用。描述组体积大，不随 boot / 名称预取。
+     */
+    function ensureFlavor(): Promise<void> {
+        const lang = currentLang.value;
+        if (flavor.value && flavorLang === lang) return Promise.resolve();
+        if (flavorPromise && flavorLang === lang) return flavorPromise;
+
+        flavorLang = lang;
+        flavorPromise = loadFlavorFor(lang)
+            .then((table) => {
+                flavor.value = table;
+            })
+            .catch((err) => {
+                // 失败不缓存语言标记，允许下次进入详情重试
+                flavorLang = null;
+                console.warn('[i18n] 描述组加载失败', err);
+            })
+            .finally(() => {
+                flavorPromise = null;
+            });
+        return flavorPromise;
+    }
+
+    async function loadFlavorFor(lang: string): Promise<SpeciesFlavor> {
+        // 英文基线：首选语言缺失的物种（ja-roma / cs / pt-br）由它补齐
+        const [fallback, preferred] = await Promise.all([
+            resourceManager.getI18nFlavor(FALLBACK_LANGUAGE),
+            lang === FALLBACK_LANGUAGE
+                ? Promise.resolve(null)
+                : resourceManager.getI18nFlavor(lang).catch((err) => {
+                      console.warn(`[i18n] ${lang} 描述组加载失败，回落英文`, err);
+                      return null;
+                  }),
+        ]);
+        const base = buildSpeciesFlavor(fallback);
+        return preferred ? overlayFlavor(base, buildSpeciesFlavor(preferred)) : base;
     }
 
     /**
@@ -135,6 +189,10 @@ export const useI18nStore = defineStore('i18n', () => {
     }
     function speciesGenus(speciesId: number): string | null {
         return lookup.value?.species.get(speciesId)?.genus ?? null;
+    }
+    /** 物种图鉴描述；描述组未加载或该物种无文本时返回 null。 */
+    function speciesFlavorText(speciesId: number): string | null {
+        return flavor.value?.get(speciesId) ?? null;
     }
     function formLabel(formId: number): string | null {
         return lookup.value?.forms.get(formId)?.formName ?? null;
@@ -183,6 +241,10 @@ export const useI18nStore = defineStore('i18n', () => {
         ensureLoaded,
         setContentLang,
         setUiLang,
+        // 图鉴描述（按需加载）
+        flavorReady,
+        ensureFlavor,
+        speciesFlavorText,
         // 查询
         speciesName,
         speciesGenus,

@@ -66,6 +66,10 @@ const zhHans = {
     },
     detail: {
         titleFallback: '宝可梦详情',
+        pokedex: {
+            title: '图鉴描述',
+            loading: '正在翻阅图鉴…',
+        },
         info: {
             height: '身高',
             weight: '体重',
@@ -365,6 +369,10 @@ const en: typeof zhHans = {
     },
     detail: {
         titleFallback: 'Pokémon details',
+        pokedex: {
+            title: 'Pokédex entry',
+            loading: 'Reading the Pokédex…',
+        },
         info: {
             height: 'Height',
             weight: 'Weight',
