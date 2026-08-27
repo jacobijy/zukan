@@ -2,18 +2,39 @@
     <view v-if="visible" class="sheet-root">
         <view class="sheet-mask" @click="onMaskClick" @touchmove.stop.prevent></view>
 
-        <view class="sheet-panel" @touchmove.stop>
-            <view class="sheet-grip"></view>
+        <view
+            class="sheet-panel"
+            :class="{ 'sheet-panel--dragging': isDragging }"
+            :style="panelStyle"
+            @touchmove.stop
+        >
+            <view
+                class="sheet-grab"
+                @touchstart="onGrabStart"
+                @touchmove="onGrabMove"
+                @touchend="onGrabEnd"
+                @touchcancel="onGrabEnd"
+            >
+                <view class="sheet-grip"></view>
 
-            <view class="sheet-header">
-                <text class="sheet-title">{{ title }}</text>
-                <view class="sheet-header__actions">
-                    <button class="sheet-text-btn sheet-text-btn--cancel" @click="close">
-                        {{ t('common.cancel') }}
-                    </button>
-                    <button class="sheet-text-btn sheet-text-btn--confirm" @click="confirm">
-                        {{ t('common.confirm') }}
-                    </button>
+                <view class="sheet-header">
+                    <text class="sheet-title">{{ title }}</text>
+                    <view class="sheet-header__actions">
+                        <button
+                            class="sheet-text-btn sheet-text-btn--cancel"
+                            @touchstart.stop
+                            @click="close"
+                        >
+                            {{ t('common.cancel') }}
+                        </button>
+                        <button
+                            class="sheet-text-btn sheet-text-btn--confirm"
+                            @touchstart.stop
+                            @click="confirm"
+                        >
+                            {{ t('common.confirm') }}
+                        </button>
+                    </view>
                 </view>
             </view>
 
@@ -239,6 +260,56 @@ function onMaskClick() {
     if (props.maskClosable) close();
 }
 
+// ── 顶部下拉关闭手势 ───────────────────────────────────
+// 按住顶部把手/标题区向下拖：panel 跟手下移（带阻尼），松手越过阈值或快速
+// 甩动即关闭，否则弹回。手势区只覆盖顶部，不干扰下方选项列表的滚动。
+const DRAG_CLOSE_DISTANCE = 90; // 越过该位移关闭（px）
+const DRAG_FLING_VELOCITY = 0.5; // 向下快速甩动阈值（px/ms）
+
+const dragOffset = ref(0); // 跟手位移（px，≥0）
+const isDragging = ref(false);
+let dragStartY = 0;
+let dragLastY = 0;
+let dragLastT = 0;
+let dragVelocity = 0;
+
+const panelStyle = computed(() => {
+    if (dragOffset.value <= 0) return undefined;
+    return { transform: `translateY(${dragOffset.value}px)` };
+});
+
+function onGrabStart(e: any) {
+    const t = e.touches?.[0];
+    if (!t) return;
+    isDragging.value = true;
+    dragStartY = t.clientY;
+    dragLastY = t.clientY;
+    dragLastT = Date.now();
+    dragVelocity = 0;
+}
+
+function onGrabMove(e: any) {
+    if (!isDragging.value) return;
+    const t = e.touches?.[0];
+    if (!t) return;
+    const now = Date.now();
+    const dt = now - dragLastT;
+    if (dt > 0) dragVelocity = (t.clientY - dragLastY) / dt; // px/ms，向下为正
+    dragLastY = t.clientY;
+    dragLastT = now;
+    const raw = t.clientY - dragStartY;
+    // 只响应向下；越往下阻尼越强（橡皮筋），向上不偏移
+    dragOffset.value = raw > 0 ? raw * 0.55 : 0;
+}
+
+function onGrabEnd() {
+    if (!isDragging.value) return;
+    const shouldClose = dragOffset.value > DRAG_CLOSE_DISTANCE || dragVelocity > DRAG_FLING_VELOCITY;
+    isDragging.value = false;
+    dragOffset.value = 0; // 关闭即 v-if 卸载；保留则弹回原位
+    if (shouldClose) close();
+}
+
 // uni <input> 编译成 uni-input，input 事件值在 e.detail.value（H5 回落 e.target.value）
 function onQueryInput(e: any) {
     query.value = e.detail?.value ?? e.target?.value ?? '';
@@ -278,6 +349,12 @@ function onQueryInput(e: any) {
     border-radius: 26px 26px 0 0;
     box-shadow: 0 -24px 60px rgba(48, 55, 72, 0.22);
     animation: sheet-slide-up 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+    /* 下拉关闭：松手未达阈值时平滑弹回；拖拽中由 --dragging 关掉过渡以跟手 */
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+    &--dragging {
+        transition: none;
+    }
 }
 
 @keyframes sheet-fade {
@@ -290,6 +367,19 @@ function onQueryInput(e: any) {
 @keyframes sheet-slide-up {
     from {
         transform: translateY(100%);
+    }
+}
+
+/* 顶部下拉手势区（把手 + 标题栏）：禁用浏览器滚动手势与文本选中，保证 touch 跟手 */
+.sheet-grab {
+    flex-shrink: 0;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+
+    &:active {
+        cursor: grabbing;
     }
 }
 
