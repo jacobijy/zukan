@@ -4,7 +4,6 @@
 
         <view class="specimen-hero__image-wrap">
             <view class="specimen-hero__image-frame">
-                <!-- <view class="absolute inset-3 rounded-[26px] border border-dashed border-[#c9ced8]"></view> -->
                 <EncryptedSprite
                     :pokemon-id="pokemon.id"
                     variant="home"
