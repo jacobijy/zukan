@@ -215,7 +215,7 @@ const pokemonOptions = computed<SheetOption[]>(() =>
     pokemonStore.allPokemons.map((p) => ({
         id: String(p.id),
         label: p.name,
-        subtitle: `NO.${String(p.id).padStart(3, '0')}`,
+        trailing: `NO.${String(p.id).padStart(3, '0')}`,
     })),
 );
 

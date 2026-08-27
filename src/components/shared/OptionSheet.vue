@@ -68,8 +68,9 @@
                     }"
                     @click="onSelect(opt)"
                 >
-                    <view class="min-w-0 flex-1">
+                    <view class="min-w-0 flex-1" :class="{ 'sheet-option__main--inline': opt.trailing }">
                         <text class="sheet-option__label">{{ opt.label }}</text>
+                        <text v-if="opt.trailing" class="sheet-option__trailing">{{ opt.trailing }}</text>
                         <text v-if="opt.subtitle" class="sheet-option__subtitle">{{ opt.subtitle }}</text>
                     </view>
 
@@ -108,7 +109,10 @@ import { useI18n } from 'vue-i18n';
 export interface SheetOption {
     id: string;
     label: string;
+    /** 主标签下方的辅助说明（独立成行，如「攻击↑ · 防御↓」） */
     subtitle?: string;
+    /** 紧跟主标签同一行右侧的短文本（如编号 NO.006）；存在时主标签行横向排列 */
+    trailing?: string;
     disabled?: boolean;
 }
 
@@ -165,6 +169,7 @@ const filteredOptions = computed<SheetOption[]>(() => {
     if (!q) return [...props.options];
     return props.options.filter((o) => {
         if (normalize(o.label).includes(q)) return true;
+        if (o.trailing && normalize(o.trailing).includes(q)) return true;
         if (o.subtitle && normalize(o.subtitle).includes(q)) return true;
         return false;
     });
@@ -381,6 +386,30 @@ function onQueryInput(e: any) {
     font-size: 16px;
     font-weight: 700;
     color: #24262b;
+}
+
+/* 有 trailing（编号）时：名称 + 编号同一行，名称过长省略，编号不缩 */
+.sheet-option__main--inline {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.sheet-option__main--inline .sheet-option__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sheet-option__trailing {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #b0b5bf;
 }
 
 .sheet-option__subtitle {

@@ -234,7 +234,7 @@ const pokemonOptions = computed<SheetOption[]>(() =>
     pokemonStore.allPokemons.map((p) => ({
         id: String(p.id),
         label: p.name,
-        subtitle: `NO.${String(p.id).padStart(3, '0')}`,
+        trailing: `NO.${String(p.id).padStart(3, '0')}`,
     })),
 );
 /** 面板打开时当前侧已选的 pokemon id（驱动右侧对勾） */
