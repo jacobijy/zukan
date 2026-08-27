@@ -238,11 +238,6 @@ const zhHans = {
             abilities: '特性记录',
             abilitiesDesc: '包含常见对战特性与说明。',
         },
-        popular: {
-            electricType: '电属性',
-            fireFlyingType: '火 / 飞行',
-            waterType: '水属性',
-        },
     },
     features: {
         title: '其他功能',
@@ -542,11 +537,6 @@ const en: typeof zhHans = {
             movesDesc: 'Covering battle calculation and move lookup.',
             abilities: 'Abilities',
             abilitiesDesc: 'Common battle abilities and descriptions.',
-        },
-        popular: {
-            electricType: 'Electric',
-            fireFlyingType: 'Fire / Flying',
-            waterType: 'Water',
         },
     },
     features: {

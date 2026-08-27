@@ -56,10 +56,12 @@ import { useI18n } from 'vue-i18n';
 import TabPageShell from "@/components/shared/TabPageShell.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 import { useI18nStore } from '@/store/i18n';
+import { getTypeName } from '@/constants/pokemonTypes';
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();
-// 热门样本名称走 i18n 名称表：深链/冷启动时名称可能未到，到达后自动刷新。
+// 热门样本名称与属性都走 i18n 内容 bundle：随「宝可梦内容语言」切换，
+// 深链/冷启动时名称可能未到，到达后自动刷新。
 void i18nStore.ensureLoaded();
 
 const overviewItems = computed(() => [
@@ -69,17 +71,17 @@ const overviewItems = computed(() => [
     { value: '300+', label: t('data.overview.abilities'), desc: t('data.overview.abilitiesDesc'), icon: 'cube', iconClass: 'list-row__icon--violet' }
 ]);
 
-// 物种名按 species id 查名称表，未就绪时回落中文名占位。
+// 物种名按 species id 查内容名称表；属性走 typeName（随内容语言），未就绪回落常量中文名。
 const popularDefs = [
-    { id: 25, speciesId: 25, fallback: '皮卡丘', typeKey: 'electricType' as const, markClass: 'pokemon-mark--gold' },
-    { id: 6, speciesId: 6, fallback: '喷火龙', typeKey: 'fireFlyingType' as const, markClass: 'pokemon-mark--red' },
-    { id: 9, speciesId: 9, fallback: '水箭龟', typeKey: 'waterType' as const, markClass: 'pokemon-mark--blue' }
+    { id: 25, speciesId: 25, fallback: '皮卡丘', types: ['electric'], markClass: 'pokemon-mark--gold' },
+    { id: 6, speciesId: 6, fallback: '喷火龙', types: ['fire', 'flying'], markClass: 'pokemon-mark--red' },
+    { id: 9, speciesId: 9, fallback: '水箭龟', types: ['water'], markClass: 'pokemon-mark--blue' }
 ];
 const popularPokemons = computed(() =>
     popularDefs.map(p => ({
         id: p.id,
         name: i18nStore.speciesName(p.speciesId) ?? p.fallback,
-        type: t(`data.popular.${p.typeKey}`),
+        type: p.types.map(slug => i18nStore.typeName(slug) ?? getTypeName(slug)).join(' / '),
         markClass: p.markClass,
     }))
 );
