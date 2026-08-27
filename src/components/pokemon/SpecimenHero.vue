@@ -4,7 +4,7 @@
 
         <view class="specimen-hero__image-wrap">
             <view class="specimen-hero__image-frame">
-                <view class="absolute inset-3 rounded-[26px] border border-dashed border-[#c9ced8]"></view>
+                <!-- <view class="absolute inset-3 rounded-[26px] border border-dashed border-[#c9ced8]"></view> -->
                 <EncryptedSprite
                     :pokemon-id="pokemon.id"
                     variant="home"
@@ -51,9 +51,9 @@
 </template>
 
 <script lang="ts" setup>
-import { useI18n } from 'vue-i18n';
-import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
+import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
+import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 

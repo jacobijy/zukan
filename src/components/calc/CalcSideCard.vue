@@ -91,10 +91,10 @@
 </template>
 
 <script lang="ts" setup>
+import TypeBadge from '@/components/pokemon/TypeBadge.vue';
+import { calcStat, getBaseStat } from '@/pages/calc/calc-engine';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { calcStat, getBaseStat } from '@/pages/calc/calc-engine';
-import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 
 const { t } = useI18n();
 
@@ -232,7 +232,7 @@ const statsList = computed(() => {
 .calc-stepper {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 2px;
     flex-shrink: 0;
 }
 

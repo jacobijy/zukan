@@ -5,7 +5,7 @@
 
             <view class="relative z-10 flex items-center gap-3">
                 <view class="specimen-card__portrait relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-[20px] border border-[#e5e7ee] bg-[#f5f6fa] shadow-[inset_0_1px_0_#ffffff,0_12px_22px_rgba(48,55,72,0.08)] sm:h-20 sm:w-20">
-                    <view class="absolute inset-2 rounded-[15px] border border-dashed border-[#c9ced8]"></view>
+                    <!-- <view class="absolute inset-2 rounded-[15px] border border-dashed border-[#c9ced8]"></view> -->
                     <EncryptedSprite
                       :pokemon-id="props.pokemon.id"
                       variant="home"
@@ -45,10 +45,10 @@
 </template>
 
 <script lang="ts" setup>
+import TypeBadge from '@/components/pokemon/TypeBadge.vue';
+import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 import { usePokemonStore } from '@/store/pokemon';
 import { computed } from 'vue';
-import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
-import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 
 interface Props {
     pokemon: IPokemonCardModel;
