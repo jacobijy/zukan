@@ -388,11 +388,12 @@ function onQueryInput(e: any) {
     color: #24262b;
 }
 
-/* 有 trailing（编号）时：名称 + 编号同一行，名称过长省略，编号不缩 */
+/* 有 trailing（编号）时：名称 + 编号同一行，编号紧跟名称、中间留一点空隙；
+ * 名称过长省略，编号不缩。 */
 .sheet-option__main--inline {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 10px;
 }
 
 .sheet-option__main--inline .sheet-option__label {
@@ -404,7 +405,6 @@ function onQueryInput(e: any) {
 
 .sheet-option__trailing {
     flex-shrink: 0;
-    margin-left: auto;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 12px;
     font-weight: 700;
