@@ -58,7 +58,8 @@ tools/                         # 数据处理脚本（python / typescript）
 
 ## 分层
 
-1. **页面层**：`pages.json` 控制路由。页面只做数据获取、页面级状态编排、组件组装，控制在 ~300 行。
+1. **页面层**：`pages.json` 控制路由。页面只做数据获取、页面级状态编排、组件组装；
+   拆分判据是「数据隔离 / 可复用」而非行数（见 [../ui/component-conventions.md](../ui/component-conventions.md)）。
    页面专属选项表放 `pages/<name>/<name>-options.ts`。
 2. **组件层**：按业务上下文分目录，跨页面通用骨架放 `shared/`。详见
    [../ui/component-conventions.md](../ui/component-conventions.md)。
@@ -111,7 +112,8 @@ DEK 走鉴权接口 `/api/v1/zukan/key`，由 `services/session/key.ts::getKey()
   缓存 / 连接池 / 引用计数必须放独立 `.ts` 模块。
 - **数据表单一来源**：属性走 `constants/pokemonTypes.ts`，世代号段走 `constants/generations.ts`，
   不要在页面里复制 map。
-- **页面文件 ≤ ~300 行**，超了先拆组件。
+- **拆组件看数据隔离 / 可复用，不看行数**：能靠 props 进、events 出闭环一片状态，
+  或会被第二个地方复用，就抽组件；页面始终只做数据获取、状态编排、组件组装。
 
 ## 命名约定
 
