@@ -146,7 +146,6 @@ const zhHans = {
             failed: '计算失败',
         },
         side: {
-            pokemon: '宝可梦',
             statsHint: '选择宝可梦后显示能力值',
             ability: '特性',
         },
@@ -446,7 +445,6 @@ const en: typeof zhHans = {
             failed: 'Calculation failed',
         },
         side: {
-            pokemon: 'Pokémon',
             statsHint: 'Stats appear after selecting a Pokémon',
             ability: 'Ability',
         },

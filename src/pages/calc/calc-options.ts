@@ -172,6 +172,27 @@ export const ITEM_OPTIONS: ItemOption[] = [
 export const getItemMod = (id: string): number => ITEM_OPTIONS.find((i) => i.id === id)?.mod ?? 100;
 export const getItemLabel = (id: string): string => ITEM_OPTIONS.find((i) => i.id === id)?.label ?? '无';
 
+// ─── 防御方道具 ─────────────────────────────────────────
+// 攻击道具走 itemMod 平乘伤害；防御道具是带触发条件的行为（加防能力值 / 克制减伤），
+// 逻辑在 WASM 内（calculator.rs）。这里只存 string id ↔ Rust DEF_ITEM_* 数字 id 的映射，
+// wasmId 是 Rust↔JS ABI，新增时必须与 calculator.rs 的 DEF_ITEM_* 常量对齐。
+export interface DefItemOption {
+    id: string;
+    label: string;
+    /** Rust DEF_ITEM_* 常量值 */
+    wasmId: number;
+}
+
+export const DEF_ITEM_OPTIONS: DefItemOption[] = [
+    { id: 'none', label: '无', wasmId: 0 },
+    { id: 'eviolite', label: '进化奇石', wasmId: 1 },
+    { id: 'assaultvest', label: '突击背心', wasmId: 2 },
+    { id: 'resistberry', label: '抗性树果', wasmId: 3 },
+];
+
+export const getDefItemWasmId = (id: string): number => DEF_ITEM_OPTIONS.find((i) => i.id === id)?.wasmId ?? 0;
+export const getDefItemLabel = (id: string): string => DEF_ITEM_OPTIONS.find((i) => i.id === id)?.label ?? '无';
+
 // ─── 防护 ─────────────────────────────────────────────
 export interface ScreenOption {
     id: string;

@@ -125,6 +125,8 @@ export interface DamageInput {
     /** 能力等级: 防御方特防 (-6 ~ 6) */
     defenderSpdStage?: number;
     itemMod?: number; // 100=1x
+    /** 防御方道具 id（Rust DEF_ITEM_*：0=无,1=进化奇石,2=突击背心,3=抗性树果） */
+    defenderItem?: number;
     seed?: number; // 随机种子 0-15
 }
 
@@ -165,6 +167,10 @@ export function calculateDamage(input: DamageInput): number {
         wasmInput.withItemMod(input.itemMod);
     }
 
+    if (input.defenderItem !== undefined) {
+        wasmInput.withDefenderItem(input.defenderItem);
+    }
+
     return wasmModule!.calculateDamage(wasmInput);
 }
 
@@ -196,6 +202,10 @@ export function calculateDamageBatch(input: DamageInput): BatchDamageResult {
 
     if (input.itemMod !== undefined) {
         wasmInput.withItemMod(input.itemMod);
+    }
+
+    if (input.defenderItem !== undefined) {
+        wasmInput.withDefenderItem(input.defenderItem);
     }
 
     // 设置能力等级

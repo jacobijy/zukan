@@ -285,6 +285,8 @@ export interface CalcParams {
     critical?: boolean;
     isBurned?: boolean;
     itemMod?: number; // 100=1x
+    /** 防御方道具 id（Rust DEF_ITEM_*：0=无,1=进化奇石,2=突击背心,3=抗性树果） */
+    defenderItem?: number;
 
     /* 能力等级 (默认 0, 范围 -6 ~ 6) */
     attackerAtkStage?: number;
@@ -386,6 +388,8 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
 
     // 道具修正
     if (params.itemMod !== undefined) input.withItemMod(params.itemMod);
+    // 防御方道具（进化奇石/突击背心/抗性树果，行为在 WASM 内）
+    if (params.defenderItem !== undefined) input.withDefenderItem(params.defenderItem);
 
     // 执行批量计算（16 个随机种子）
     const result: BatchDamageResult = wasm.calculateDamageBatch(input);

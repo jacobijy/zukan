@@ -27,6 +27,18 @@ pub const MOVE_FLAG_BULLET: u16 = 1 << 6;   // 子弹类
 pub const MOVE_FLAG_HEAL: u16 = 1 << 7;     // 回复类
 
 // ============================================================
+// 防御方道具 (Defender item)
+// 与攻击方道具不同：攻击道具走 item_mod 平乘伤害（前端 calc-options 硬编码倍率），
+// 防御道具是带触发条件的行为（加防能力值 / 克制时减伤），在公式内按 id 分支处理。
+// 无 pokeapi 道具表入库，这里是 Rust↔JS 的 ABI 契约（同 MOVE_FLAG），
+// 数字 id 必须与 `src/pages/calc/calc-options.ts::DEF_ITEM_OPTIONS.wasmId` 对齐。
+// ============================================================
+pub const DEF_ITEM_NONE: u8 = 0;
+pub const DEF_ITEM_EVIOLITE: u8 = 1;      // 进化奇石：物防 ×1.5 且 特防 ×1.5
+pub const DEF_ITEM_ASSAULT_VEST: u8 = 2;  // 突击背心：仅特防 ×1.5
+pub const DEF_ITEM_RESIST_BERRY: u8 = 3;  // 抗性树果：被克制时受到伤害 ×0.5
+
+// ============================================================
 // 属性克制表
 // 索引: [defender_pm_id][attacker_pm_id]
 // 值: 0=1x, 1=2x(弱), 2=0.5x(抵抗), 3=0x(免疫)
@@ -116,6 +128,8 @@ pub struct DamageInput {
 
     /// 道具修正 (100=1x, 50=0.5x, 等)
     item_mod: u8,
+    /// 防御方道具 id (DEF_ITEM_*；0=无)
+    defender_item: u8,
     /// 随机种子 (0-15, 对应 85-100%)
     seed: u8,
 }
@@ -156,6 +170,7 @@ impl DamageInput {
             defender_spd_stage: 0,
             move_flags,
             item_mod: 100,
+            defender_item: DEF_ITEM_NONE,
             seed: 0,
         }
     }
@@ -187,6 +202,12 @@ impl DamageInput {
     #[wasm_bindgen(js_name = withItemMod)]
     pub fn with_item_mod(&mut self, item_mod: u8) {
         self.item_mod = item_mod;
+    }
+
+    /// 设置防御方道具 id（DEF_ITEM_*）
+    #[wasm_bindgen(js_name = withDefenderItem)]
+    pub fn with_defender_item(&mut self, defender_item: u8) {
+        self.defender_item = defender_item;
     }
 
     #[wasm_bindgen(js_name = withSeed)]
@@ -462,7 +483,17 @@ pub fn calculate_damage(input: &DamageInput) -> u16 {
     let effective_def_stage = def_stage;
 
     let a = u32::from(input.attack) * u32::from(stat_stage_multiplier(effective_atk_stage)) / 100;
-    let d = u32::from(input.defense) * u32::from(stat_stage_multiplier(effective_def_stage)) / 100;
+
+    // 防御道具的能力值加成：进化奇石(物防+特防 ×1.5) / 突击背心(仅特防 ×1.5)。
+    // input.defense 已是按招式类别选好的防御值（物防 or 特防），故突击背心只在
+    // 特殊招式（move_category==1，命中特防）时生效；加成作用于能力值，再叠能力等级。
+    let def_item_stat_mod: u16 = match input.defender_item {
+        DEF_ITEM_EVIOLITE => 150,
+        DEF_ITEM_ASSAULT_VEST if input.move_category == 1 => 150,
+        _ => 100,
+    };
+    let def_with_item = u32::from(input.defense) * u32::from(def_item_stat_mod) / 100;
+    let d = def_with_item * u32::from(stat_stage_multiplier(effective_def_stage)) / 100;
     let p = u32::from(input.base_power);
     let seed = u32::from(input.seed);
 
@@ -505,6 +536,12 @@ pub fn calculate_damage(input: &DamageInput) -> u16 {
         is_super_effective,
     );
     damage = damage * u32::from(def_ability_mod) / 100;
+
+    // ─── 防御道具：抗性树果（被克制时受伤 ×0.5） ───
+    // 只在效果绝佳（type_eff ≥ 2×）时触发；与攻击道具的 item_mod 独立。
+    if input.defender_item == DEF_ITEM_RESIST_BERRY && is_super_effective {
+        damage = damage * 50 / 100;
+    }
 
     // ─── 会心一击 (×1.5) ───
     if input.is_critical != 0 {

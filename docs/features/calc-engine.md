@@ -75,9 +75,34 @@ WASM 侧只认数字 ID（`u8`/`u16`），所有 slug→id 翻译在 JS 侧完�
 
 `calculator.rs::lookup_attacker_ability` 里 `(move_flags & MOVE_FLAG_PUNCH) != 0` 就能触发铁拳 (+20% 拳类)。
 
+## 道具专题
+
+攻击方与防御方道具走**两条完全不同的路径**，别混：
+
+| | 攻击方道具 | 防御方道具 |
+| --- | --- | --- |
+| 数据/行为 | 纯数据：一个伤害倍率 | 带触发条件的行为 |
+| 前端表 | `calc-options.ts::ITEM_OPTIONS`（`{id,label,mod}`，硬编码倍率） | `calc-options.ts::DEF_ITEM_OPTIONS`（`{id,label,wasmId}`） |
+| 进 WASM 的方式 | `getItemMod()` → `itemMod`（100=1×），公式末尾**平乘伤害** | `getDefItemWasmId()` → `defenderItem` 数字 id，公式内**按 id 分支** |
+| Rust 侧 | 无（只读 `item_mod`） | `DEF_ITEM_*` 常量 + match 分支 |
+
+**攻击方 `itemMod` 是个「出手伤害总倍率」合并槽**：先取道具倍率（生命宝珠 130、讲究头带/眼镜/围巾 150…），
+光墙/反射壁/极光幕也折进同一个槽（×50，见 `calc.vue::doCalculate`）。它不碰攻击能力值，末尾平乘一次
+（`calculator.rs` 道具修正段）。
+
+**防御方道具是 ABI 常量**（同 `MOVE_FLAG`，不从 JSON 派生）：Rust 定义 `DEF_ITEM_NONE/EVIOLITE/ASSAULT_VEST/RESIST_BERRY`
+（0/1/2/3），TS 侧 `DEF_ITEM_OPTIONS.wasmId` 必须与之一一对应。行为在公式里：
+
+- **进化奇石**（1）：防御能力值 ×1.5，**物理和特殊都生效**（作用在按招式类别选好的 `input.defense` 上，再叠能力等级）。
+- **突击背心**（2）：仅**特殊招式**（`move_category==1`，命中特防）时防御 ×1.5。
+- **抗性树果**（3）：仅在**效果绝佳**（`type_eff ≥ 200`）时受伤 ×0.5，在防御方特性修正之后判定。
+
+加防能力值的道具乘在 `d`（防御值）上而不是平乘伤害 —— 与游戏「加能力值」的真实算法一致
+（对低伤害段、与能力等级叠乘都更准）。
+
 ## 代码里的硬编码
 
-以下两处**不**从 JSON 生成，改它们需要连同 Rust 一起改：
+以下**不**从 JSON 生成，改它们需要连同 Rust 一起改（或至少两侧对齐）：
 
 **1. WASM 招式 flag 位序**（`calc-engine.ts::MOVE_FLAG` + `calculator.rs::MOVE_FLAG_*`）
 
@@ -86,6 +111,10 @@ WASM 侧只认数字 ID（`u8`/`u16`），所有 slug→id 翻译在 JS 侧完�
 **2. pokeapi flag slug → WASM bit 的映射**（`calc-engine.ts::WASM_FLAG_BITS`）
 
 只有 8 项，映射 pokeapi 定义到 WASM 关心的位。新增 flag 到 WASM 逻辑时同时改这里 + `calculator.rs` 里的 `MOVE_FLAG_*` + 位敏感的 match 分支。
+
+**3. 防御方道具 ABI**（`calculator.rs::DEF_ITEM_*` + `calc-options.ts::DEF_ITEM_OPTIONS.wasmId`）
+
+道具没有 pokeapi 表入库，是手写的小固定集。数字 id 是 Rust↔JS 契约：加一个带行为的防御道具，要在 Rust 加常量 + match 分支（重编 WASM），并在 `DEF_ITEM_OPTIONS` 里让 `wasmId` 对齐。攻击方道具（`ITEM_OPTIONS`）则纯前端、纯倍率，不进 WASM 行为（见「道具专题」）。
 
 ## 常见更新场景
 
@@ -97,6 +126,8 @@ WASM 侧只认数字 ID（`u8`/`u16`），所有 slug→id 翻译在 JS 侧完�
 | 新增一个 WASM 特性行为（比如支持 "Rocky Payload"） | `calculator.rs`（新增 match 分支） | ✅ |
 | 新增一种 WASM 关心的招式 flag | `calculator.rs`（新增位）+ `calc-engine.ts::WASM_FLAG_BITS/MOVE_FLAG` | ✅ |
 | 新增天气/场地效果 | `calculator.rs::calc_weather_mod/calc_terrain_mod` + 若是新 slug 还要加进 `weathers.json`/`terrains.json` | ✅ |
+| 新增攻击方道具（纯伤害倍率） | `calc-options.ts::ITEM_OPTIONS` 加一项 `{id,label,mod}`（光墙类折进 `itemMod` 见 `calc.vue`） | ❌ |
+| 新增防御方道具（带行为） | `calculator.rs` 加 `DEF_ITEM_*` 常量 + match 分支（重编 WASM）+ `calc-options.ts::DEF_ITEM_OPTIONS` 对齐 `wasmId` | ✅ |
 
 ## 设计动机
 

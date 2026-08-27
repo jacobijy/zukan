@@ -497,6 +497,10 @@ export class DamageInput {
      */
     withDefenderDefStage(stage: number): void;
     /**
+     * 设置防御方道具 id（DEF_ITEM_*）
+     */
+    withDefenderItem(defender_item: number): void;
+    /**
      * 设置防御方特防等级
      */
     withDefenderSpdStage(stage: number): void;
@@ -632,6 +636,7 @@ export interface InitOutput {
     readonly damageinput_withAttackerAtkStage: (a: number, b: number) => void;
     readonly damageinput_withAttackerSpaStage: (a: number, b: number) => void;
     readonly damageinput_withDefenderDefStage: (a: number, b: number) => void;
+    readonly damageinput_withDefenderItem: (a: number, b: number) => void;
     readonly damageinput_withDefenderSpdStage: (a: number, b: number) => void;
     readonly damageinput_withItemMod: (a: number, b: number) => void;
     readonly damageinput_withSeed: (a: number, b: number) => void;

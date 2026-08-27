@@ -1,6 +1,7 @@
 <template>
     <view class="calc-card">
-        <view class="calc-head">
+        <!-- 标题行：角色标签 + 等级步进器 + 宝可梦选择（整行点击开选择器） -->
+        <view class="calc-head" @click="$emit('select-pokemon')">
             <view class="calc-head__icon" :class="iconClass">
                 <slot name="icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
@@ -10,26 +11,37 @@
                 </slot>
             </view>
             <text class="calc-head__title">{{ title }}</text>
-        </view>
 
-        <!-- 宝可梦 + 等级 -->
-        <view class="calc-row" @click="$emit('select-pokemon')">
-            <view class="calc-row__main">
-                <text class="calc-row__title">{{ t('calc.side.pokemon') }}</text>
-                <view class="flex items-center gap-2 mt-1">
-                    <text class="calc-pkm-name">{{ pokemon?.name ?? placeholderText }}</text>
-                    <view v-if="pokemon" class="flex gap-1">
-                        <TypeBadge v-for="t in pokemon.types" :key="t" :type="t" size="sm" variant="chip" />
-                    </view>
-                </view>
-            </view>
-            <view class="calc-stepper">
+            <!-- 等级步进器：夹在角色标签与宝可梦之间，阻止冒泡避免触发行选择 -->
+            <view class="calc-stepper" @click.stop>
                 <view class="calc-stepper__btn" @click.stop="$emit('adjust-level', -1)">−</view>
                 <view class="calc-stepper__value--wrap">
                     <text class="calc-stepper__label">Lv</text>
                     <text class="calc-stepper__value">{{ level }}</text>
                 </view>
                 <view class="calc-stepper__btn" @click.stop="$emit('adjust-level', 1)">+</view>
+            </view>
+
+            <!-- 宝可梦：贴最右，名字过长省略 -->
+            <view class="calc-head__pokemon">
+                <template v-if="pokemon">
+                    <text class="calc-head__name">{{ pokemon.name }}</text>
+                    <view class="flex flex-shrink-0 gap-1">
+                        <TypeBadge v-for="ty in pokemon.types" :key="ty" :type="ty" size="xs" variant="chip" />
+                    </view>
+                </template>
+                <text v-else class="calc-head__placeholder">{{ placeholderText }}</text>
+                <svg
+                    class="calc-head__chevron"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <polyline points="9 6 15 12 9 18"></polyline>
+                </svg>
             </view>
         </view>
 
@@ -143,10 +155,15 @@ const statsList = computed(() => {
 .calc-head {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     padding: 10px 14px;
     border-bottom: 1px solid #eef0f5;
     background: #fafbfd;
+    cursor: pointer;
+
+    &:active {
+        background: #f1f3f8;
+    }
 }
 
 .calc-head__icon {
@@ -157,6 +174,7 @@ const statsList = computed(() => {
     height: 26px;
     border-radius: 8px;
     color: #ffffff;
+    flex-shrink: 0;
 }
 
 .calc-head__icon--green {
@@ -172,36 +190,42 @@ const statsList = computed(() => {
     font-weight: 800;
     letter-spacing: 0.04em;
     color: #3b3f48;
-}
-
-.calc-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 44px;
-    padding: 10px 14px;
-}
-
-.calc-row__title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #24262b;
     flex-shrink: 0;
 }
 
-.calc-row__main {
+/* 宝可梦选择：贴最右；名字过长省略，徽章与箭头不缩 */
+.calc-head__pokemon {
     display: flex;
-    flex-direction: column;
-    gap: 1px;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
     min-width: 0;
-    flex: 1;
+    margin-left: auto;
 }
 
-.calc-pkm-name {
+.calc-head__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 15px;
     font-weight: 800;
     color: #24262b;
+}
+
+.calc-head__placeholder {
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 700;
+    color: #9da2ad;
+}
+
+.calc-head__chevron {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-left: 2px;
+    color: #b0b5bf;
 }
 
 /* 等级步进器 */

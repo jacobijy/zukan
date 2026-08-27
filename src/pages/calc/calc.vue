@@ -30,7 +30,7 @@
                     @dec-stage2="decStage('spa')"
                     @inc-stage2="incStage('spa')"
                     :item="attackerItemLabel"
-                    @select-item="showItemPicker"
+                    @select-item="showItemPicker('attacker')"
                 />
 
                 <!-- 防御方 -->
@@ -52,6 +52,8 @@
                     @inc-stage1="incStage('def')"
                     @dec-stage2="decStage('spd')"
                     @inc-stage2="incStage('spd')"
+                    :item="defenderItemLabel"
+                    @select-item="showItemPicker('defender')"
                 />
 
                 <!-- 招式 -->
@@ -170,12 +172,12 @@
             @update:model-value="onAbilityPick"
         />
 
-        <!-- 道具选择（攻击方携带） -->
+        <!-- 道具选择（攻击方=伤害增益道具，防御方=防御向道具） -->
         <OptionSheet
             v-model:visible="itemSheetOpen"
             :title="t('calc.item')"
             :options="itemOptions"
-            :model-value="attackerItemId"
+            :model-value="itemSheetSide === 'attacker' ? attackerItemId : defenderItemId"
             @update:model-value="onItemPick"
         />
     </view>
@@ -201,11 +203,14 @@ import {
     TERRAIN_OPTIONS,
     COMMON_ABILITIES,
     ITEM_OPTIONS,
+    DEF_ITEM_OPTIONS,
     SCREEN_OPTIONS,
     STATUS_OPTIONS,
     getAbilityName,
     getItemMod,
     getItemLabel,
+    getDefItemWasmId,
+    getDefItemLabel,
     toCalcMoveOptions,
     type MoveOption,
 } from './calc-options';
@@ -399,22 +404,33 @@ const incStage = (key: string) => {
 };
 
 // ==============================
-// 道具（攻击方携带）/ 状态
+// 道具（攻击方=伤害增益 / 防御方=防御向）/ 状态
 // ==============================
 const attackerItemId = ref('none');
 const attackerItemLabel = computed(() => getItemLabel(attackerItemId.value));
+const defenderItemId = ref('none');
+const defenderItemLabel = computed(() => getDefItemLabel(defenderItemId.value));
 
-// ── 道具选择面板 ──
+// ── 道具选择面板（按当前打开的一侧切换选项集与选中值） ──
 const itemSheetOpen = ref(false);
-const itemOptions = computed<SheetOption[]>(() => ITEM_OPTIONS.map((i) => ({ id: i.id, label: i.label })));
+const itemSheetSide = ref<'attacker' | 'defender'>('attacker');
+const itemOptions = computed<SheetOption[]>(() =>
+    (itemSheetSide.value === 'attacker' ? ITEM_OPTIONS : DEF_ITEM_OPTIONS).map((i) => ({
+        id: i.id,
+        label: i.label,
+    })),
+);
 
-const showItemPicker = () => {
+const showItemPicker = (side: 'attacker' | 'defender' = 'attacker') => {
+    itemSheetSide.value = side;
     itemSheetOpen.value = true;
 };
 
 const onItemPick = (value: string | string[]) => {
     const id = Array.isArray(value) ? value[0] : value;
-    if (id) attackerItemId.value = id;
+    if (!id) return;
+    if (itemSheetSide.value === 'attacker') attackerItemId.value = id;
+    else defenderItemId.value = id;
 };
 
 const selectedStatus = ref<string[]>([]);
@@ -473,6 +489,7 @@ const doCalculate = async () => {
             critical: isCritical.value,
             isBurned: isBurned.value,
             itemMod: itemMod,
+            defenderItem: getDefItemWasmId(defenderItemId.value),
             attackerAtkStage: atkStage.value,
             attackerSpaStage: spaStage.value,
             defenderDefStage: defStage.value,
@@ -507,6 +524,7 @@ const resetAll = () => {
     spaStage.value = 0;
     spdStage.value = 0;
     attackerItemId.value = 'none';
+    defenderItemId.value = 'none';
     selectedStatus.value = [];
     reflectScreen.value = 'none';
     result.value = null;

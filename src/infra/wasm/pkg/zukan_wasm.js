@@ -120,6 +120,13 @@ export class DamageInput {
         wasm.damageinput_withDefenderDefStage(this.__wbg_ptr, stage);
     }
     /**
+     * 设置防御方道具 id（DEF_ITEM_*）
+     * @param {number} defender_item
+     */
+    withDefenderItem(defender_item) {
+        wasm.damageinput_withDefenderItem(this.__wbg_ptr, defender_item);
+    }
+    /**
      * 设置防御方特防等级
      * @param {number} stage
      */
