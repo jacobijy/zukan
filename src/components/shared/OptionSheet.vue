@@ -370,8 +370,11 @@ function onQueryInput(e: any) {
     }
 }
 
-/* 顶部下拉手势区（把手 + 标题栏）：禁用浏览器滚动手势与文本选中，保证 touch 跟手 */
+/* 顶部下拉手势区（把手 + 标题栏）：禁用浏览器滚动手势与文本选中，保证 touch 跟手。
+ * flex column 让内部横条的 align-self:center 继续生效（横条保持居中、标题栏占满宽）。 */
 .sheet-grab {
+    display: flex;
+    flex-direction: column;
     flex-shrink: 0;
     cursor: grab;
     touch-action: none;
