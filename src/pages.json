@@ -45,6 +45,13 @@
       }
     },
     {
+      "path": "pages/statcalc/statcalc",
+      "style": {
+        "navigationBarTitleText": "能力值计算器",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/simulate/simulate",
       "style": {
         "navigationBarTitleText": "对战模拟器",

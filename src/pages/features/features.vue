@@ -24,6 +24,10 @@
                     <svg v-else-if="item.icon === 'chart'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                         <path d="M4 19V5"></path><path d="M8.5 19v-6"></path><path d="M13 19V8"></path><path d="M17.5 19v-9"></path><path d="M3.5 19h17"></path>
                     </svg>
+                    <svg v-else-if="item.icon === 'sliders'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                        <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"></path>
+                        <path d="M1 14h6M9 8h6M17 16h6"></path>
+                    </svg>
                     <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                         <rect x="3.5" y="5" width="17" height="14" rx="3"></rect><path d="m4.5 7.5 7.5 5.25 7.5-5.25"></path>
                     </svg>
@@ -43,6 +47,7 @@ const { t } = useI18n();
 
 const featureItems = computed(() => [
     { title: t('features.calc.title'), desc: t('features.calc.desc'), meta: t('features.calc.meta'), url: '/pages/calc/calc', icon: 'target', iconClass: 'list-row__icon--green' },
+    { title: t('features.statcalc.title'), desc: t('features.statcalc.desc'), meta: t('features.statcalc.meta'), url: '/pages/statcalc/statcalc', icon: 'sliders', iconClass: 'list-row__icon--gold' },
     { title: t('features.simulate.title'), desc: t('features.simulate.desc'), meta: t('features.simulate.meta'), url: '/pages/simulate/simulate', icon: 'grid', iconClass: 'list-row__icon--blue' },
     { title: t('features.stats.title'), desc: t('features.stats.desc'), meta: t('features.stats.meta'), url: '/pages/data/data', icon: 'chart', iconClass: 'list-row__icon--violet' },
 ]);

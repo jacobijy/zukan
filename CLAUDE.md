@@ -47,6 +47,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 资料中心 | `pages/data/data` | 键页 |
 | 个人中心 | `pages/mine/mine` | 键页 |
 | 伤害计算器 | `pages/calc/calc` | 键页（计算引擎在 `calc-engine.ts`） |
+| 能力值计算器 | `pages/statcalc/statcalc` | 键页（纯 TS 能力值公式在 `statcalc-engine.ts`，性格表在 `statcalc-options.ts`） |
 | 对战模拟器 | `pages/simulate/simulate` | **UI 骨架**（`noop` 占位，无实际交互） |
 | 设置 | `pages/settings/settings` | 子页（`DetailNavbar`，语言等系统设置；点选项弹 `OptionSheet`） |
 
@@ -158,7 +159,7 @@ src/components/
   dex/       图鉴列表上下文：DexToolbar、FilterBar、GenerationDrawer、
              DexEmptyState、FavoritesBanner、VirtualGrid
   calc/      计算器上下文：CalcCard、ChipRow、LevelStepper、
-             DamageResultCard、CalcSideCard
+             DamageResultCard、CalcSideCard、StatInputRow
   sprite/    图片加载：EncryptedSprite
   (根目录)    NavBar、TabBar（跨页面底栏 / 顶栏，非 shared 子目录）
 src/constants/   跨文件共享的数据表（pokemonTypes、generations）
