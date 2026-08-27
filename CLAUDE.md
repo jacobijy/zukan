@@ -114,8 +114,10 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 ### 当前已知的占位 / 模拟数据
 
 - `pokemon.ts:mergeBundleToModel` 的 `image` 为 `/static/default.png`（卡面图走 `EncryptedSprite`），
-  `description` 为空，`moves`/`evolutionChain` 为空数组。物种名/形态名/特性名已接通 i18n
-  名称组（见 `docs/i18n/`），i18n 未就绪时回落 `pokemon-{id}` / `form-{id}` 占位。
+  `description` 字段为空、`moves`/`evolutionChain` 为空数组。图鉴描述不进 model，
+  而是详情页 `PokedexEntry.vue` 按 `speciesId` 从 i18n **描述组**（flavor.bin，按需
+  `ensureFlavor()`，多版本取最新、英文回落）取，见 `docs/i18n/`。物种名/形态名/特性名
+  已接通 i18n 名称组，i18n 未就绪时回落 `pokemon-{id}` / `form-{id}` 占位。
 - `simulate.vue` 是纯 UI 骨架，所有交互 handler 都是 `noop`。
 - `src/core/data/typechart.ts` 被 `calc-engine.ts` 动态 import，是移除的服务端模块的残留。
 
@@ -155,7 +157,8 @@ src/components/
   shared/    跨页面通用：TabPageShell、ListRow、DetailNavbar、
              FavoriteButton、PokeballLogo、LoginModal、OptionSheet
   pokemon/   宝可梦领域：PokemonCard、TypeBadge、SpecimenHero、
-             InfoGrid/InfoCard、StatsChart、MovesList、MoveCard、EvolutionChain
+             InfoGrid/InfoCard、StatsChart、MovesList、MoveCard、EvolutionChain、
+             PokedexEntry（图鉴描述，按需取 flavor）
   dex/       图鉴列表上下文：DexToolbar、FilterBar、GenerationDrawer、
              DexEmptyState、FavoritesBanner、VirtualGrid
   calc/      计算器上下文：CalcCard、ChipRow、LevelStepper、
