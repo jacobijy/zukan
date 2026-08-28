@@ -29,7 +29,7 @@
 | 招式/特性/道具描述 | PKFL 描述组 moves/abilities/items 表 | `i18nStore.moveFlavorText/abilityFlavorText/itemFlavorText` |
 | 特性/招式效果简述 | PKFL `abilityEffects/moveEffects`（**仅英文**） | `i18nStore.abilityEffect/moveEffect`，非英文语言隐藏效果段 |
 | 招式分类/目标名 | PKNM `moveDamageClasses`/`moveTargets` 表 | `i18nStore.moveDamageClassName/moveTargetName`（lookup 已收这两张表） |
-| 道具图标 | 本地静态 `src/static/img/Artwork Items/aitem_<id>.png`（390 张） | `constants/itemIcons.ts::itemIconUrl(id)`，无图返回 null → 占位盒 |
+| 道具图标 | 加密资源 `encrypted-assets/items/<id>.bin`（ZKDX 密文，明文 30×30 PNG） | `resources/itemImage.ts`（与 sprite 同一套 `imageCache`/`imagePersist` 引擎的 item 实例）；404 无资源 → 中性占位盒 |
 
 聚合纯函数（`buildMoveList`/`buildAbilityIndex`/`buildTypePokemonIndex`）
 不碰网络，测试在 `tests/archiveIndex.spec.ts`；相克在 `tests/typeMatchup.spec.ts`；
@@ -43,10 +43,11 @@ flavor 多表构建在 `tests/flavor.spec.ts`。
   窗口算术复用 `utils/virtualWindow.ts::computeVirtualWindow`（columns=1）。
   属性只有 18 行，不虚拟化。`ArchiveListShell` 用 flex 布局给 VirtualList
   确定高度，不嵌套 scroll-view。
-- **道具图标 manifest**：`src/static` 不经过 vite 模块图（原样拷贝），
-  不能用 `import.meta.glob`；`scripts/gen-item-icons.mjs` 扫描目录生成
-  `constants/itemIcons.ts`（id 集合 + URL，目录空格 encode 为 `%20`），
-  增删图标后跑 `pnpm gen:item-icons`。无图道具显示中性占位盒。
+- **道具图标走加密资源通道**：`ItemIcon` 不是本地静态图，而是和宝可梦立绘
+  同一条管线 —— 服务器 `encrypted-assets/items/<id>.bin`（扁平、无 variant），
+  经 `resources/itemImage.ts`（`imageCache`/`imagePersist` 的 item 实例）下载 /
+  解密 / 缓存，视口懒加载与引用配对复用 `composables/useEncryptedImage.ts`。
+  服务器无该道具（404）回落中性占位盒。缓存不变量见 [../caching/sprite-cache.md](../caching/sprite-cache.md)。
 - **描述按需加载**：`FlavorTextCard` 与 `PokedexEntry` 同模式——
   watch id immediate → `ensureFlavor()`，文本直接读 store（语言切换自动刷新）。
   描述组回落英文的判定是四张 flavor 表**总 size 为 0**（cs/pt-br/ja-roma），

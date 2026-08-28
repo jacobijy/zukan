@@ -46,6 +46,7 @@ import { getKey, clearKeyCache } from '@/services/session/key';
 import { buildCdnUrl } from '@/services/resources/cdn';
 import { currentDataVersion } from '@/services/resources/dataVersion';
 import { pruneSpriteVersions } from '@/services/resources/spritePersist';
+import { pruneItemIconVersions } from '@/services/resources/itemImage';
 import { binaryStorage } from '@/infra/storage/binaryStorage';
 
 // ─────────────────────────────────────────────────────────
@@ -353,6 +354,9 @@ export const resourceManager = {
         memoryCache.clear();
         await pruneSpriteVersions(keepVersion).catch((err) =>
             console.warn('[resourceManager] sprite 旧版本清理失败', err),
+        );
+        await pruneItemIconVersions(keepVersion).catch((err) =>
+            console.warn('[resourceManager] 道具图标旧版本清理失败', err),
         );
     },
     stats(): ResourceStats {

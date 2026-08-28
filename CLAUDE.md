@@ -60,7 +60,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `src/store/pokemon.ts` 用 setup 风格 Pinia store 封装：**对 `defaultPokemons`（按 species 去重后的 ~1025 条）筛选排序**得到 `matchedPokemons`（`src/utils/dexFilter.ts`），**不分页**——列表渲染交给 `dex/VirtualGrid.vue` 定高虚拟化，DOM 只保留视口附近的行。页面只通过 `setCriteria()` 推条件（全量替换，不是 merge）。历史坑：早先是"先分页再筛选"，选任意非第一世代会把首页 20 条全滤掉 → 列表空 → 容器无内容 → 滚动不触发 → 死锁。收藏走 `uni.getStorageSync`（兼容小程序），并兼容早期裸 `localStorage` 写下的 JSON 字符串。默认 gen 是 9（`DEFAULT_GEN_ID = 9`），与 `LATEST_GEN_ID = 9`（`boot.ts`）保持一致。
 
-sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存 / 解密 / Blob URL 生命周期在 `src/services/resources/spriteCache.ts` —— **模块级共享 + 引用计数**，`refs > 0` 的条目不会被 LRU 撤销（撤销即裂图）。列表默认懒加载（进视口前不下载，首屏约 6 张卡可见，一屏 20 张约 2.5 MB），必然可见的场景传 `eager`。跨刷新缓存由 `spritePersist.ts` 补充（IndexedDB 存 ZKDX 密文，非 IDB 后端 no-op）。
+sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存 / 解密 / Blob URL 生命周期在 `src/services/resources/spriteCache.ts` —— **模块级共享 + 引用计数**，`refs > 0` 的条目不会被 LRU 撤销（撤销即裂图）。列表默认懒加载（进视口前不下载，首屏约 6 张卡可见，一屏 20 张约 2.5 MB），必然可见的场景传 `eager`。跨刷新缓存由 `spritePersist.ts` 补充（IndexedDB 存 ZKDX 密文，非 IDB 后端 no-op）。**道具图标走同一条加密图片通道**：引擎已泛化为种类无关的 `imageCache.ts`（限流/引用计数/LRU/离屏取消）+ `imagePersist.ts`（密文持久化）工厂，差异（远端路径 / MIME / 持久化前缀 / 预算）由 `imageKind.ts` 的 `ImageKindSpec` 注入；`spriteCache.ts`/`spritePersist.ts` 是 pokemon 实例的薄封装（原名不变），道具实例在 `itemImage.ts`（远端 `/assets/encrypted/items/<id>.bin`，扁平无 variant）。视口懒加载/引用配对两组件共用 `composables/useEncryptedImage.ts`，`archive/ItemIcon.vue` 是道具侧组件（404 回落中性占位盒）。详见 `docs/caching/sprite-cache.md`。
 
 ### 缓存层级总览
 
@@ -68,34 +68,37 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 |------|------|------|--------|----------|
 | FB bundle 解码结果 | `resourceManager.ts` | 内存 LRU（12 条） | — | 版本号变化 |
 | FB bundle 密文 | `resourceManager.ts` via `binaryStorage` | IndexedDB | 跨刷新 | `pruneOtherVersions` |
-| sprite Blob URL | `spriteCache.ts` | 内存 LRU（200 条） | — | 刷新即清空 |
-| sprite 密文 | `spritePersist.ts` via `binaryStorage` | IndexedDB（仅 IDB 后端） | 跨刷新 | `pruneSpriteVersions` |
+| sprite Blob URL | `spriteCache.ts`（`imageCache` pokemon 实例） | 内存 LRU（200 条） | — | 刷新即清空 |
+| sprite 密文 | `spritePersist.ts`（`imagePersist` pokemon 实例）via `binaryStorage` | IndexedDB（仅 IDB 后端） | 跨刷新 | `pruneSpriteVersions` |
+| 道具图标 Blob URL | `itemImage.ts`（`imageCache` item 实例） | 内存 LRU（200 条） | — | 刷新即清空 |
+| 道具图标密文 | `itemImage.ts`（`imagePersist` item 实例，前缀 `item-img:`）via `binaryStorage` | IndexedDB（仅 IDB 后端） | 跨刷新 | `pruneItemIconVersions` |
 | 密钥 DEK | `session/key.ts` | 内存单例 | — | 登出 / 403 重签 |
 
-### sprite 下载调度（spriteCache 三条不变量）
+### 加密图片下载调度（imageCache 三条不变量，sprite 与道具共用）
 
 1. **限流 4 并发**。不限流时几十个请求同时丢给浏览器，浏览器 FIFO 排队，
    当前视口排在已划过去的行后面。
 2. **批内 FIFO，批间 LIFO**。`batch` 每帧自增，取任务时 batch 最大优先、
    同批 seq 最小优先。纯 LIFO 会让首屏「从下往上」冒；纯 FIFO 则退回原 bug。
-3. **离屏取消**。`EncryptedSprite` 的 IntersectionObserver **不是一次性的** ——
+3. **离屏取消**。组件的 IntersectionObserver **不是一次性的** ——
    滑出视口要 abort 腾出槽位（不取消的话已划走的下载会占槽 100–300ms）。
    多 waiter 时只有 waiters 归零才真取消，否则列表卡片卸载会连累详情页。
 
-### sprite 跨刷新缓存（spritePersist 四条不变量）
+### 加密图片跨刷新缓存（imagePersist 四条不变量，sprite 与道具各自独立实例）
 
-1. **落盘的是 ZKDX 密文，不是解密后的 PNG。** 存明文等于把加密资源以可直接使用的
+1. **落盘的是 ZKDX 密文，不是解密后的图片。** 存明文等于把加密资源以可直接使用的
    形式留在用户磁盘上，加密链路白做。
 2. **只在 `storageBackend === 'idb'` 启用。** 小程序 `uni.setStorage` 总量约 10MB，
-   塞 sprite 会把 FB 主数据顶出配额；非 IDB 时全模块 no-op。
+   塞图片会把 FB 主数据顶出配额；非 IDB 时全模块 no-op。
 3. **索引（localStorage）与数据（IDB）是两条独立写入，必然会不一致。** 两个方向都要兜：
    索引有数据没有 → 按 miss 走网络并摘掉幽灵项；数据有索引没有 → `reconcile()` 开局对账删孤儿。
-4. **`clearSpriteCache()`（登出）刻意不清磁盘** —— 密文没 DEK 解不开，不构成泄露，
-   留着下次登录还能命中。版本升级走 `resourceManager.pruneOtherVersions`。
+4. **内存 `clear*()`（登出）刻意不清磁盘** —— 密文没 DEK 解不开，不构成泄露，
+   留着下次登录还能命中。版本升级走 `resourceManager.pruneOtherVersions`（sprite 与道具
+   各清各的前缀：`pruneSpriteVersions` / `pruneItemIconVersions`）。
 
 ### 认证与会话（`src/services/session/`）
 
-`getKey()` 是全 app 拿 DEK 的唯一入口（boot、resourceManager、spriteCache 共 3 个调用点，403 重试时各再调一次）。
+`getKey()` 是全 app 拿 DEK 的唯一入口（boot、resourceManager、加密图片引擎 `imageCache` 共 3 类调用点——后者同时服务 sprite 与道具图标，403 重试时各再调一次）。
 401 恢复策略收敛在这里，而不是散在每个调用点：
 
 ```
@@ -164,13 +167,15 @@ src/components/
              DexEmptyState、FavoritesBanner、VirtualGrid（定高网格）、
              VirtualList（单列定高虚拟列表，scroll-view 根元素，archive 列表用）
   archive/   资料中心图鉴栏目：MoveRow/AbilityRow/ItemRow/TypeRow、
-             ItemIcon、FlavorTextCard（招式/特性/道具描述，按需取 flavor）、
+             ItemIcon（道具图标，走加密图片通道）、FlavorTextCard（招式/特性/道具描述，按需取 flavor）、
              TypeMatchupCard（相克表）、PokemonMiniList/PokemonMiniRow、
              ArchiveListShell（列表页骨架）
   calc/      计算器上下文：CalcCard、ChipRow、LevelStepper、
              DamageResultCard、CalcSideCard、StatInputRow
-  sprite/    图片加载：EncryptedSprite
+  sprite/    图片加载：EncryptedSprite（宝可梦立绘，走加密图片通道）
   (根目录)    NavBar、TabBar（跨页面底栏 / 顶栏，非 shared 子目录）
+src/composables/ 跨组件复用的组合式逻辑：useEncryptedImage（加密图片的视口懒加载 /
+             离屏取消 / 引用配对，EncryptedSprite 与 ItemIcon 共用）
 src/constants/   跨文件共享的数据表（pokemonTypes、generations）
 src/pages/<name>/<name>-options.ts   仅该页用的选项/常量表
 ```
@@ -266,8 +271,9 @@ setup(__props) {
 
 1. `pnpm type-check` —— 必须 0 error
 2. `pnpm test` —— 必须全绿；改了 `src/utils/dexFilter.ts`、`src/store/pokemon.ts`、
-   `src/constants/generations.ts`、`src/services/resources/spriteCache.ts` 或
-   `src/services/resources/spritePersist.ts` 时尤其别跳过
+   `src/constants/generations.ts`、或加密图片资源层（`src/services/resources/imageCache.ts`、
+   `imagePersist.ts`、`imageKind.ts`、`spriteCache.ts`、`spritePersist.ts`、`itemImage.ts`、
+   `src/composables/useEncryptedImage.ts`）时尤其别跳过
 3. `pnpm dev:h5` 起服务后用**移动端 UA** curl 一遍改动的页面与组件，确认 200：
    ```bash
    UA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)'
