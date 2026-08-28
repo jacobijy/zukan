@@ -12,7 +12,7 @@
         >
             <template #tools>
                 <SearchBar v-model="keyword" :placeholder="t('archive.searchMoves')" />
-                <view class="mt-2 flex gap-2">
+                <view class="mt-2 flex items-center gap-2">
                     <FilterChipButton
                         :label="categoryLabel"
                         :active="categoryId !== 0"
@@ -24,6 +24,17 @@
                         :dot-color="typeSlug ? getTypeColor(typeSlug) : undefined"
                         @click="typeSheetOpen = true"
                     />
+                    <button
+                        v-if="hasFilters"
+                        class="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full bg-[#eaf2ff] px-3 text-xs font-extrabold text-[#357df4] transition-transform active:scale-95 [&::after]:border-none"
+                        @click="resetFilters"
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5">
+                            <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+                            <path d="M3 3v5h5"></path>
+                        </svg>
+                        <text>{{ t('archive.reset') }}</text>
+                    </button>
                 </view>
             </template>
 
@@ -136,6 +147,16 @@ const typeLabel = computed(() =>
 );
 const onTypeChange = (value: string | string[]) => {
     typeSlug.value = value === 'all' ? '' : String(value);
+};
+
+// 任一筛选（关键词/分类/属性）生效时显示「重置」
+const hasFilters = computed(
+    () => keyword.value.trim() !== '' || categoryId.value !== 0 || typeSlug.value !== '',
+);
+const resetFilters = () => {
+    keyword.value = '';
+    categoryId.value = 0;
+    typeSlug.value = '';
 };
 
 const goDetail = (id: number) => {
