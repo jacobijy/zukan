@@ -11,7 +11,7 @@ interface Props {
     /** 属性 slug：'fire' / 'grass' / ... */
     type: string;
     /** sm 用于紧凑行内（计算器），md 为列表/招式卡默认，lg 用于详情页 */
-    size?: 'xs' | 'sm' | 'md' | 'lg';
+    size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
     /** pill = 圆角胶囊 + 渐变；chip = 小方角 + 纯色（计算器行内） */
     variant?: 'pill' | 'chip';
     /** 文案用全名还是单字；默认 chip 用单字、pill 用全名 */
@@ -82,6 +82,14 @@ const badgeStyle = computed(() =>
     padding: 7px 16px;
     font-size: 14px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.type-badge--pill.type-badge--xl {
+    min-width: 76px;
+    padding: 10px 20px;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.14);
 }
 
 /* ── chip：小方角 + 纯色，计算器行内 ── */
