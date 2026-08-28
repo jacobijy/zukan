@@ -116,12 +116,12 @@ export interface MoveOption {
     category: 'physical' | 'special';
 }
 
-/** MoveRecord 显示分类 → 计算引擎分类；状态/未知返回 null（不进计算器） */
-const CATEGORY_TO_ENGINE: Record<string, 'physical' | 'special' | null> = {
-    物理: 'physical',
-    特殊: 'special',
-    状态: null,
-    '—': null,
+/** MoveRecord.categoryId（move_damage_classes）→ 计算引擎分类；状态/未知返回 null（不进计算器） */
+const CATEGORY_TO_ENGINE: Record<number, 'physical' | 'special' | null> = {
+    2: 'physical',
+    3: 'special',
+    1: null,
+    0: null,
 };
 
 /**
@@ -134,7 +134,7 @@ export function toCalcMoveOptions(records: MoveRecord[], nameOf: (id: number) =>
     const seen = new Set<number>();
     const out: MoveOption[] = [];
     for (const r of records) {
-        const category = CATEGORY_TO_ENGINE[r.category];
+        const category = CATEGORY_TO_ENGINE[r.categoryId];
         if (!category) continue;
         const power = typeof r.power === 'number' ? r.power : Number(r.power);
         if (!Number.isFinite(power) || power <= 0) continue;

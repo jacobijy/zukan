@@ -24,6 +24,10 @@ export interface NamesLookup {
     moveAilments: Map<number, string>;
     /** evolution_triggers 表：1=升级 2=交换 3=使用道具 … */
     evolutionTriggers: Map<number, string>;
+    /** move_damage_classes：1=状态 2=物理 3=特殊 */
+    moveDamageClasses: Map<number, string>;
+    /** move_targets：招式目标（自身/对手/全体…） */
+    moveTargets: Map<number, string>;
 }
 
 /** 把 `{id, name}` 形态的数组收成 Map；空名不覆盖已有值 */
@@ -61,6 +65,8 @@ export function buildNamesLookup(b: I18nNamesBundle): NamesLookup {
         regions: toNamedMap(b.regions),
         moveAilments: toNamedMap(b.moveAilments),
         evolutionTriggers: toNamedMap(b.evolutionTriggers),
+        moveDamageClasses: toNamedMap(b.moveDamageClasses),
+        moveTargets: toNamedMap(b.moveTargets),
     };
 }
 
@@ -100,5 +106,7 @@ export function overlay(base: NamesLookup, preferred: NamesLookup): NamesLookup 
         regions: mergeMap(base.regions, preferred.regions),
         moveAilments: mergeMap(base.moveAilments, preferred.moveAilments),
         evolutionTriggers: mergeMap(base.evolutionTriggers, preferred.evolutionTriggers),
+        moveDamageClasses: mergeMap(base.moveDamageClasses, preferred.moveDamageClasses),
+        moveTargets: mergeMap(base.moveTargets, preferred.moveTargets),
     };
 }

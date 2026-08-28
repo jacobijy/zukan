@@ -37,6 +37,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "oxlint --config oxlintrc.json",
+    "gen:item-icons": "node scripts/gen-item-icons.mjs && prettier --write src/constants/itemIcons.ts",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "format:write": "prettier --write \"src/**/*.ts\""
   },

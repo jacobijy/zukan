@@ -15,13 +15,6 @@ import { resourceManager } from '@/services/resources/resourceManager';
 import { typeStrs } from '@/utils/helpers';
 import type { Move, PokemonMoveSet } from '@/infra/wasm';
 
-/** `Move.damageClassId` → 中文分类；未命中显示 '—' */
-const CATEGORY_MAP: Record<number, string> = {
-    1: '状态',
-    2: '物理',
-    3: '特殊',
-};
-
 let moveIndexPromise: Promise<Map<number, Move>> | null = null;
 
 async function getMoveIndex(): Promise<Map<number, Move>> {
@@ -52,7 +45,8 @@ function toRecord(
         // 名称表异步到达 / 切换语言时自动刷新）。这里留空串占位。
         name: '',
         type: m ? (typeStrs[m.typeId] ?? 'normal') : 'normal',
-        category: m ? (CATEGORY_MAP[m.damageClassId] ?? '—') : '—',
+        // 分类名不在数据层拼接：MoveCard 按 id 响应式查 i18n moveDamageClasses 表
+        categoryId: m ? m.damageClassId : 0,
         power: m && m.power > 0 ? m.power : '—',
         accuracy: m && m.accuracy > 0 ? m.accuracy : '—',
         learnMethod,

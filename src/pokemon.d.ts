@@ -44,8 +44,8 @@ interface MoveRecord {
     name: string;
     /** 属性 slug：'fire' / 'grass' / ... 与 typeStrs 一致 */
     type: string;
-    /** 显示分类：'物理' / '特殊' / '状态' / '—' */
-    category: string;
+    /** 分类 id（move_damage_classes）：1=状态 2=物理 3=特殊；0=未知，显示 '—' */
+    categoryId: number;
     /** 招式威力；0（如吼叫）显示 '—' */
     power: number | string;
     /** 命中率；0（如剑舞、Swift 必中）显示 '—' */

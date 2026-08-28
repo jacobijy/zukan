@@ -82,14 +82,14 @@ const typeSlug = computed(() => props.move.type || 'normal')
 // 名称表异步到达 / 切换语言时自动更新，无需重拉招式数据。
 const displayName = computed(() => i18n.moveName(props.move.id) ?? t('moves.unknown'))
 
-// ── 分类：'物理' / '特殊' / '状态' / '—' → slug + 配色 ──
-const CATEGORY_SLUGS: Record<string, 'physical' | 'special' | 'status'> = {
-  物理: 'physical',
-  特殊: 'special',
-  状态: 'status',
+// ── 分类：damageClassId 1=状态 2=物理 3=特殊 → slug + 配色 ──
+const CATEGORY_SLUGS: Record<number, 'physical' | 'special' | 'status'> = {
+  2: 'physical',
+  3: 'special',
+  1: 'status',
 }
 
-const categorySlug = computed(() => CATEGORY_SLUGS[props.move.category ?? ''] ?? null)
+const categorySlug = computed(() => CATEGORY_SLUGS[props.move.categoryId] ?? null)
 
 const categoryBadgeClass = computed(() => {
   switch (categorySlug.value) {
@@ -104,7 +104,10 @@ const categoryBadgeClass = computed(() => {
   }
 })
 
-const displayCategory = computed(() => props.move.category || '—')
+// 分类名响应式查 i18n moveDamageClasses 表（随内容语言切换）
+const displayCategory = computed(
+  () => (props.move.categoryId && i18n.moveDamageClassName(props.move.categoryId)) || '—',
+)
 const displayPower = computed(() => props.move.power || '—')
 const displayAccuracy = computed(() => props.move.accuracy || '—')
 </script>

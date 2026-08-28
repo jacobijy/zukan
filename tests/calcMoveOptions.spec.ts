@@ -11,7 +11,7 @@ function rec(partial: Partial<MoveRecord> & Pick<MoveRecord, 'id'>): MoveRecord 
     return {
         name: '',
         type: 'normal',
-        category: '特殊',
+        categoryId: 3, // 特殊（move_damage_classes：1=状态 2=物理 3=特殊）
         power: 80,
         accuracy: 100,
         learnMethod: 'level-up',
@@ -25,8 +25,8 @@ describe('toCalcMoveOptions', () => {
     it('把物理/特殊伤害招映射成选项，并转换分类', () => {
         const out = toCalcMoveOptions(
             [
-                rec({ id: 1, category: '物理', power: 120, type: 'fire' }),
-                rec({ id: 2, category: '特殊', power: 90, type: 'water' }),
+                rec({ id: 1, categoryId: 2, power: 120, type: 'fire' }),
+                rec({ id: 2, categoryId: 3, power: 90, type: 'water' }),
             ],
             nameOf,
         );
@@ -38,11 +38,11 @@ describe('toCalcMoveOptions', () => {
     it('滤掉状态招、未知分类与威力非正的招', () => {
         const out = toCalcMoveOptions(
             [
-                rec({ id: 10, category: '状态' }), // 剑舞之类，无伤害
-                rec({ id: 11, category: '—' }),
-                rec({ id: 12, category: '特殊', power: '—' }), // 威力显示 '—'（如反击）
-                rec({ id: 13, category: '特殊', power: 0 }),
-                rec({ id: 14, category: '物理', power: 65 }),
+                rec({ id: 10, categoryId: 1 }), // 剑舞之类，无伤害
+                rec({ id: 11, categoryId: 0 }),
+                rec({ id: 12, categoryId: 3, power: '—' }), // 威力显示 '—'（如反击）
+                rec({ id: 13, categoryId: 3, power: 0 }),
+                rec({ id: 14, categoryId: 2, power: 65 }),
             ],
             nameOf,
         );
@@ -52,9 +52,9 @@ describe('toCalcMoveOptions', () => {
     it('同一 moveId 跨学习方式去重，保留首次出现', () => {
         const out = toCalcMoveOptions(
             [
-                rec({ id: 5, category: '特殊', power: 90, learnMethod: 'level-up' }),
-                rec({ id: 5, category: '特殊', power: 90, learnMethod: 'machine' }),
-                rec({ id: 5, category: '特殊', power: 90, learnMethod: 'egg' }),
+                rec({ id: 5, categoryId: 3, power: 90, learnMethod: 'level-up' }),
+                rec({ id: 5, categoryId: 3, power: 90, learnMethod: 'machine' }),
+                rec({ id: 5, categoryId: 3, power: 90, learnMethod: 'egg' }),
             ],
             nameOf,
         );
@@ -63,7 +63,7 @@ describe('toCalcMoveOptions', () => {
 
     it('名称优先查 nameOf，查不到回落 move-{id}', () => {
         const out = toCalcMoveOptions(
-            [rec({ id: 7, category: '物理', power: 75 }), rec({ id: 999, category: '特殊', power: 80 })],
+            [rec({ id: 7, categoryId: 2, power: 75 }), rec({ id: 999, categoryId: 3, power: 80 })],
             nameOf,
         );
         expect(out[0].name).toBe('火焰拳');

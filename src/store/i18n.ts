@@ -19,7 +19,7 @@
  */
 import { resourceManager } from '@/services/resources/resourceManager';
 import { buildNamesLookup, overlay, type NamesLookup } from '@/services/i18n/lookup';
-import { buildSpeciesFlavor, type SpeciesFlavor } from '@/services/i18n/flavor';
+import { buildFlavorBundle, flavorSize, type ArchiveFlavor } from '@/services/i18n/flavor';
 import {
     FALLBACK_LANGUAGE,
     getStoredContentLang,
@@ -49,11 +49,12 @@ export const useI18nStore = defineStore('i18n', () => {
     let loadPromise: Promise<void> | null = null;
 
     /**
-     * 物种图鉴描述（speciesId → 文本）。描述组体积占 i18n 约 90%，
-     * **不随名称预取**，仅在详情页需要时 `ensureFlavor()` 按需加载。
-     * `flavorLang` 记录已加载语言，切换内容语言后置 null 触发重载。
+     * 描述组（物种图鉴描述 + 招式/特性/道具说明 + 英文效果简述）。
+     * 描述组体积占 i18n 约 90%，**不随名称预取**，仅在详情页需要时
+     * `ensureFlavor()` 按需加载。`flavorLang` 记录已加载语言，切换内容
+     * 语言后置 null 触发重载。
      */
-    const flavor = ref<SpeciesFlavor | null>(null);
+    const flavor = ref<ArchiveFlavor | null>(null);
     const flavorReady = computed(() => flavor.value !== null);
     let flavorPromise: Promise<void> | null = null;
     let flavorLang: string | null = null;
@@ -150,19 +151,20 @@ export const useI18nStore = defineStore('i18n', () => {
         return flavorPromise;
     }
 
-    async function loadFlavorFor(lang: string): Promise<SpeciesFlavor> {
-        // 首选语言直接取：完整语言（zh-hans/ja/… 11 种）物种描述齐全，
+    async function loadFlavorFor(lang: string): Promise<ArchiveFlavor> {
+        // 首选语言直接取：完整语言（zh-hans/ja/… 11 种）描述齐全，
         // 英文 flavor 包 ~2.7MB，绝不为每个用户都强拉做基线。
         if (lang !== FALLBACK_LANGUAGE) {
             try {
-                const preferred = buildSpeciesFlavor(await resourceManager.getI18nFlavor(lang));
-                if (preferred.size > 0) return preferred;
-                // 描述组为空（cs / pt-br / ja-roma）→ 回落英文基线
+                const preferred = buildFlavorBundle(await resourceManager.getI18nFlavor(lang));
+                // 四类 flavor 表全空（cs / pt-br / ja-roma）→ 回落英文基线；
+                // 部分缺失（如某表个别 id）由查询处回落 null，不整包换英文。
+                if (flavorSize(preferred) > 0) return preferred;
             } catch (err) {
                 console.warn(`[i18n] ${lang} 描述组加载失败，回落英文`, err);
             }
         }
-        return buildSpeciesFlavor(await resourceManager.getI18nFlavor(FALLBACK_LANGUAGE));
+        return buildFlavorBundle(await resourceManager.getI18nFlavor(FALLBACK_LANGUAGE));
     }
 
     /**
@@ -192,7 +194,37 @@ export const useI18nStore = defineStore('i18n', () => {
     }
     /** 物种图鉴描述；描述组未加载或该物种无文本时返回 null。 */
     function speciesFlavorText(speciesId: number): string | null {
-        return flavor.value?.get(speciesId) ?? null;
+        return flavor.value?.species.get(speciesId) ?? null;
+    }
+    /** 招式说明；未加载或无文本时返回 null。 */
+    function moveFlavorText(moveId: number): string | null {
+        return flavor.value?.moves.get(moveId) ?? null;
+    }
+    /** 特性说明；未加载或无文本时返回 null。 */
+    function abilityFlavorText(abilityId: number): string | null {
+        return flavor.value?.abilities.get(abilityId) ?? null;
+    }
+    /** 道具说明；未加载或无文本时返回 null。 */
+    function itemFlavorText(itemId: number): string | null {
+        return flavor.value?.items.get(itemId) ?? null;
+    }
+    /**
+     * 特性/招式效果简述（ProseEffect）。上游仅英文 bundle 有数据，
+     * 非英文语言返回 null，调用方应隐藏效果段。
+     */
+    function abilityEffect(abilityId: number): string | null {
+        return flavor.value?.abilityEffects.get(abilityId) ?? null;
+    }
+    function moveEffect(moveId: number): string | null {
+        return flavor.value?.moveEffects.get(moveId) ?? null;
+    }
+    /** 招式分类名（物理/特殊/状态），未就绪返回 null 由调用方回落。 */
+    function moveDamageClassName(id: number): string | null {
+        return lookup.value?.moveDamageClasses.get(id) ?? null;
+    }
+    /** 招式目标名，未就绪返回 null。 */
+    function moveTargetName(id: number): string | null {
+        return lookup.value?.moveTargets.get(id) ?? null;
     }
     function formLabel(formId: number): string | null {
         return lookup.value?.forms.get(formId)?.formName ?? null;
@@ -245,6 +277,13 @@ export const useI18nStore = defineStore('i18n', () => {
         flavorReady,
         ensureFlavor,
         speciesFlavorText,
+        moveFlavorText,
+        abilityFlavorText,
+        itemFlavorText,
+        abilityEffect,
+        moveEffect,
+        moveDamageClassName,
+        moveTargetName,
         // 查询
         speciesName,
         speciesGenus,
