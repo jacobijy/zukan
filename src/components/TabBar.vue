@@ -14,7 +14,12 @@
         :class="{ 'tab-item--active': currentTab === index }"
         @click="switchTab(index)"
       >
-        <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <svg
+          class="tab-icon"
+          :class="{ 'tab-icon--pop': currentTab === index }"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
           <g
             v-if="currentTab !== index"
             fill="none"
@@ -30,6 +35,7 @@
             :key="`f-${i}`"
             :d="d"
             fill="currentColor"
+            fill-rule="evenodd"
           />
         </svg>
         <text class="tab-label">{{ tab.label }}</text>
@@ -59,45 +65,56 @@ interface TabDef {
   iconFill: string[]
 }
 
-// SF Symbols 风格：未选中线框、选中填充。
+// SF Symbols 风格：未选中线框、选中填充。线框与填充外轮廓同构，切换不跳动。
+// 填充态用 fill-rule="evenodd" 镂空内部细节（书的丝带），透出底色而非画白线。
+const roundedSquare = (x: number, y: number, size: number, r: number) =>
+  `M${x + r} ${y}h${size - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${size - 2 * r}a${r} ${r} 0 0 1 -${r} ${r}H${x + r}a${r} ${r} 0 0 1 -${r} -${r}V${y + r}a${r} ${r} 0 0 1 ${r} -${r}z`
+
 const ICONS = {
   book: {
+    // 手册：封面 + 右上角丝带书签
     icon: [
-      'M4 19.5A2.5 2.5 0 0 1 6.5 17H20',
-      'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z',
-      'M8.5 7.5h7',
-      'M8.5 11h5',
+      'M6.5 2.5H20v19H6.5A2.5 2.5 0 0 1 4 19V5A2.5 2.5 0 0 1 6.5 2.5z',
+      'M15.4 2.5v5.1l1.6-1.2 1.6 1.2V2.5',
     ],
     iconFill: [
-      'M6.5 2A2.5 2.5 0 0 0 4 4.5v15A2.5 2.5 0 0 0 6.5 22H20V2H6.5zm2 4.5h7a.7.7 0 0 1 0 1.4h-7a.7.7 0 1 1 0-1.4zm0 3.7h5a.7.7 0 0 1 0 1.4h-5a.7.7 0 1 1 0-1.4z',
+      'M6.5 2.5H20v19H6.5A2.5 2.5 0 0 1 4 19V5A2.5 2.5 0 0 1 6.5 2.5z' +
+        'M16.1 2.5v3.5l0.9-0.68 0.9 0.68V2.5z',
     ],
   },
   grid: {
+    // 四个独立圆角方块：线框是方格、填充是圆点感方块，读作"功能矩阵"
     icon: [
-      'M4 4h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z',
-      'M14 4h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z',
-      'M4 12h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z',
-      'M14 12h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z',
+      roundedSquare(4, 4, 6.2, 1.9),
+      roundedSquare(13.8, 4, 6.2, 1.9),
+      roundedSquare(4, 13.8, 6.2, 1.9),
+      roundedSquare(13.8, 13.8, 6.2, 1.9),
     ],
     iconFill: [
-      'M4 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H4zm10 0a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-6zM4 13a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H4zm10 0a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-6z',
+      roundedSquare(4, 4, 6.2, 1.9),
+      roundedSquare(13.8, 4, 6.2, 1.9),
+      roundedSquare(4, 13.8, 6.2, 1.9),
+      roundedSquare(13.8, 13.8, 6.2, 1.9),
     ],
   },
   folder: {
+    // 纯净文件夹，内部不加线（25px 下短线会读作减号）
     icon: [
-      'M3 6.5A2.5 2.5 0 0 1 5.5 4h4.2a1 1 0 0 1 .78.38l1.34 1.62H18.5A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5v-11z',
+      'M3.5 6.8A2.3 2.3 0 0 1 5.8 4.5h4a1 1 0 0 1 .78.37l1.36 1.63h6.66A2.3 2.3 0 0 1 20.9 8.8v8.9a2.3 2.3 0 0 1-2.3 2.3H5.8a2.3 2.3 0 0 1-2.3-2.3V6.8z',
     ],
     iconFill: [
-      'M3 6.5A2.5 2.5 0 0 1 5.5 4h4.2a1 1 0 0 1 .78.38L11.82 6H18.5A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5v-11z',
+      'M3.5 6.8A2.3 2.3 0 0 1 5.8 4.5h4a1 1 0 0 1 .78.37l1.36 1.63h6.66A2.3 2.3 0 0 1 20.9 8.8v8.9a2.3 2.3 0 0 1-2.3 2.3H5.8a2.3 2.3 0 0 1-2.3-2.3V6.8z',
     ],
   },
   person: {
+    // 头环 + 宽肩弧，填充态头肩连成一个整体人像
     icon: [
-      'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-      'M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6',
+      'M12 12.2a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0 0 8.4z',
+      'M5 20.4c0-3.7 3.1-6.3 7-6.3s7 2.6 7 6.3',
     ],
     iconFill: [
-      'M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-4.6 0-8 2.5-8 6v.5c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V20c0-3.5-3.4-6-8-6z',
+      'M12 3.8a4.2 4.2 0 1 0 0 8.4 4.2 4.2 0 0 0 0-8.4z' +
+        'M12 14.1c-3.9 0-7 2.6-7 6.3v.3c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-.3c0-3.7-3.1-6.3-7-6.3z',
     ],
   },
 }
@@ -239,6 +256,26 @@ onMounted(() => {
   width: 25px;
   height: 25px;
   flex: 0 0 auto;
+}
+
+/* 选中落位时图标轻弹一下，与指示器滑动同期 */
+.tab-icon--pop {
+  animation: tab-icon-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes tab-icon-pop {
+  0% {
+    transform: scale(0.72);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-icon--pop {
+    animation: none;
+  }
 }
 
 .tab-label {
