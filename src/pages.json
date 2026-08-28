@@ -64,6 +64,62 @@
         "navigationBarTitleText": "设置",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/archive/types",
+      "style": {
+        "navigationBarTitleText": "属性图鉴",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/archive/type-detail",
+      "style": {
+        "navigationBarTitleText": "属性详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/archive/moves",
+      "style": {
+        "navigationBarTitleText": "招式图鉴",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/archive/move-detail",
+      "style": {
+        "navigationBarTitleText": "招式详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/archive/abilities",
+      "style": {
+        "navigationBarTitleText": "特性图鉴",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/archive/ability-detail",
+      "style": {
+        "navigationBarTitleText": "特性详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/archive/items",
+      "style": {
+        "navigationBarTitleText": "道具图鉴",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/archive/item-detail",
+      "style": {
+        "navigationBarTitleText": "道具详情",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

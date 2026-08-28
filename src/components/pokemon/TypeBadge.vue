@@ -64,6 +64,13 @@ const badgeStyle = computed(() =>
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
 }
 
+.type-badge--pill.type-badge--sm {
+    min-width: 34px;
+    padding: 3px 7px;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+}
+
 .type-badge--pill.type-badge--md {
     min-width: 44px;
     padding: 5px 9px;

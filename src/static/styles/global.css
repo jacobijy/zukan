@@ -126,3 +126,64 @@ input {
         transform: rotate(360deg);
     }
 }
+
+/* ─── 资料中心图鉴列表行（archive） ─────────────────
+ * 列表行不套 glass-panel（虚拟滚动里每行行底分隔线即视觉分组）。
+ * 基础规则与变体都放全局：行组件经 scoped 使用，变体 class 由数据派生，
+ * 若基础规则留在 scoped 里 (0,2,0) 会盖掉全局变体——同 list-row__icon 的教训。
+ */
+.archive-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 68px;
+    padding: 0 14px;
+    border-bottom: 1px solid rgba(222, 225, 232, 0.86);
+    background: transparent;
+    transition: background-color 0.18s ease, transform 0.18s ease;
+}
+
+.archive-row:active {
+    background: rgba(241, 243, 248, 0.9);
+    transform: scale(0.995);
+}
+
+.archive-row__main {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.archive-row__title {
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #24262b;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.archive-row__sub {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 20px;
+}
+
+.archive-row__meta {
+    flex-shrink: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 800;
+    color: #8d929c;
+}
+
+.archive-row__chevron {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: #c4c7cf;
+}

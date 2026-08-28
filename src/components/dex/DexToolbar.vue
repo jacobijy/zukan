@@ -2,26 +2,12 @@
     <view class="px-3 pt-2 sm:px-5 sm:pt-3">
         <view class="mx-auto max-w-[1400px] overflow-hidden rounded-[24px] border border-[#e5e7ee] bg-white p-2.5 shadow-[0_14px_34px_rgba(48,55,72,0.08)] sm:rounded-[28px] sm:p-3">
             <view class="flex items-center gap-2 sm:gap-3">
-                <view class="relative h-10 min-w-0 flex-1 sm:h-11">
-                    <input
-                        type="text"
+                <view class="min-w-0 flex-1">
+                    <SearchBar
+                        :model-value="search"
                         :placeholder="t('dex.searchPlaceholder')"
-                        class="h-10 w-full rounded-[20px] border border-[#e1e4eb] bg-[#f5f6fa] pl-10 pr-9 text-sm font-semibold text-[#24262b] shadow-[inset_0_1px_0_#ffffff] outline-none placeholder:text-[#9da2ad] focus:border-[#357df4] focus:bg-white focus:shadow-[0_0_0_4px_rgba(53,125,244,0.12)] sm:h-11 sm:rounded-[22px] sm:pl-11 sm:pr-10"
-                        :value="search"
-                        @input="onSearchInput"
+                        @update:model-value="emit('update:search', $event)"
                     />
-                    <view class="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#8d929c] sm:left-4 sm:h-5 sm:w-5">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
-                        </svg>
-                    </view>
-                    <view v-if="search" class="absolute right-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 cursor-pointer text-[#90997f] sm:right-4 sm:h-5 sm:w-5" @click="clearSearch">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </view>
                 </view>
 
                 <button
@@ -86,6 +72,7 @@
 
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n';
+import SearchBar from '@/components/shared/SearchBar.vue';
 const { t } = useI18n();
 
 interface Props {
@@ -119,11 +106,6 @@ const emit = defineEmits<{
     'toggle-type-filter': [];
 }>();
 
-const onSearchInput = (e: any) => {
-    emit('update:search', e.detail?.value ?? e.target?.value ?? '');
-};
-
-const clearSearch = () => emit('update:search', '');
 </script>
 
 <style lang="scss" scoped>

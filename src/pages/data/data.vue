@@ -4,13 +4,14 @@
         <view class="data-list glass-panel">
             <ListRow
                 v-for="(item, index) in overviewItems"
-                :key="item.label"
+                :key="item.key"
                 :title="item.label"
                 :desc="item.desc"
                 :meta="item.value"
                 :iconClass="item.iconClass"
                 :last="index === overviewItems.length - 1"
-                @click="() => {}"
+                showChevron
+                @click="goOverview(item)"
             >
                 <template #icon>
                     <svg v-if="item.icon === 'book'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
@@ -21,6 +22,9 @@
                     </svg>
                     <svg v-else-if="item.icon === 'bolt'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                         <polygon points="13 2.5 4 14 12 14 11 21.5 20 10 12 10 13 2.5"></polygon>
+                    </svg>
+                    <svg v-else-if="item.icon === 'bag'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                        <path d="M6 7h12l1 13H5L6 7z"></path><path d="M9 7a3 3 0 0 1 6 0"></path>
                     </svg>
                     <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                         <path d="M12 3.5 19.5 8v8L12 20.5 4.5 16V8L12 3.5z"></path><path d="M12 12 19.5 8M12 12v8.5M12 12 4.5 8"></path>
@@ -61,14 +65,31 @@ import { getTypeName } from '@/constants/pokemonTypes';
 const { t } = useI18n();
 const i18nStore = useI18nStore();
 // 热门样本名称与属性都走 i18n 内容 bundle：随「宝可梦内容语言」切换，
-// 深链/冷启动时名称可能未到，到达后自动刷新。
+// 深链/冷启动时名称可能未到，到达后自动刷新。概览计数也依赖名称组就绪。
 void i18nStore.ensureLoaded();
 
-const overviewItems = computed(() => [
-    { value: '1010', label: t('data.overview.total'), desc: t('data.overview.totalDesc'), icon: 'book', iconClass: 'list-row__icon--green' },
-    { value: '18', label: t('data.overview.types'), desc: t('data.overview.typesDesc'), icon: 'spark', iconClass: 'list-row__icon--gold' },
-    { value: '400+', label: t('data.overview.moves'), desc: t('data.overview.movesDesc'), icon: 'bolt', iconClass: 'list-row__icon--blue' },
-    { value: '300+', label: t('data.overview.abilities'), desc: t('data.overview.abilitiesDesc'), icon: 'cube', iconClass: 'list-row__icon--violet' }
+interface OverviewEntry {
+    key: string;
+    value: string;
+    label: string;
+    desc: string;
+    icon: 'book' | 'spark' | 'bolt' | 'cube' | 'bag';
+    iconClass: string;
+    /** tab 页用 reLaunch，子页用 navigateTo */
+    url: string;
+    tab?: boolean;
+}
+
+// 招式/特性/道具计数：名称组就绪后用真实条目数，未就绪回落静态串
+const countOr = (n: number | undefined, fallback: string) =>
+    n && n > 0 ? String(n) : fallback;
+
+const overviewItems = computed<OverviewEntry[]>(() => [
+    { key: 'pokemon', value: '1025', label: t('data.overview.total'), desc: t('data.overview.totalDesc'), icon: 'book', iconClass: 'list-row__icon--green', url: '/pages/index/index', tab: true },
+    { key: 'types', value: '18', label: t('data.overview.types'), desc: t('data.overview.typesDesc'), icon: 'spark', iconClass: 'list-row__icon--gold', url: '/pages/archive/types' },
+    { key: 'moves', value: countOr(i18nStore.lookup?.moves.size, '400+'), label: t('data.overview.moves'), desc: t('data.overview.movesDesc'), icon: 'bolt', iconClass: 'list-row__icon--blue', url: '/pages/archive/moves' },
+    { key: 'abilities', value: countOr(i18nStore.lookup?.abilities.size, '300+'), label: t('data.overview.abilities'), desc: t('data.overview.abilitiesDesc'), icon: 'cube', iconClass: 'list-row__icon--violet', url: '/pages/archive/abilities' },
+    { key: 'items', value: countOr(i18nStore.lookup?.items.size, '—'), label: t('data.overview.items'), desc: t('data.overview.itemsDesc'), icon: 'bag', iconClass: 'list-row__icon--gray', url: '/pages/archive/items' },
 ]);
 
 // 物种名按 species id 查内容名称表；属性走 typeName（随内容语言），未就绪回落常量中文名。
@@ -85,6 +106,15 @@ const popularPokemons = computed(() =>
         markClass: p.markClass,
     }))
 );
+
+const goOverview = (item: OverviewEntry) => {
+    if (item.tab) {
+        // tab 页不能压栈（TabBar 用 reLaunch 切换）
+        uni.reLaunch({ url: item.url });
+    } else {
+        uni.navigateTo({ url: item.url });
+    }
+};
 
 const goToDetail = (id: number) => {
     uni.navigateTo({
