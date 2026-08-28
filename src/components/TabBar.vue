@@ -21,22 +21,14 @@
           aria-hidden="true"
         >
           <g
-            v-if="currentTab !== index"
+            class="tab-icon__paths"
             fill="none"
             stroke="currentColor"
-            stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
             <path v-for="(d, i) in tab.icon" :key="i" :d="d" />
           </g>
-          <path
-            v-for="(d, i) in tab.iconFill"
-            :key="`f-${i}`"
-            :d="d"
-            fill="currentColor"
-            fill-rule="evenodd"
-          />
         </svg>
         <text class="tab-label">{{ tab.label }}</text>
       </view>
@@ -62,59 +54,47 @@ interface TabDef {
   key: string
   label: string
   icon: string[]
-  iconFill: string[]
 }
 
-// SF Symbols 风格：未选中线框、选中填充。线框与填充外轮廓同构，切换不跳动。
-// 填充态用 fill-rule="evenodd" 镂空内部细节（书的丝带），透出底色而非画白线。
-const roundedSquare = (x: number, y: number, size: number, r: number) =>
-  `M${x + r} ${y}h${size - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${size - 2 * r}a${r} ${r} 0 0 1 -${r} ${r}H${x + r}a${r} ${r} 0 0 1 -${r} -${r}V${y + r}a${r} ${r} 0 0 1 ${r} -${r}z`
+// 线条型（仿 SF Symbols outline）：两态都用线框，选中只改颜色并略微加粗
+// （SF regular → medium 的字重变化），不做填充切换。
+const roundedRect = (x: number, y: number, w: number, h: number, r: number) =>
+  `M${x + r} ${y}h${w - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${h - 2 * r}a${r} ${r} 0 0 1 -${r} ${r}H${x + r}a${r} ${r} 0 0 1 -${r} -${r}V${y + r}a${r} ${r} 0 0 1 ${r} -${r}z`
+
+// book.closed：封面闭合轮廓（左侧上下弧接书脊竖边）
+const bookOutline = 'M6.5 2.5H20v19H6.5A2.5 2.5 0 0 1 4 19V5A2.5 2.5 0 0 1 6.5 2.5z'
 
 const ICONS = {
   book: {
-    // 手册：封面 + 右上角丝带书签
     icon: [
-      'M6.5 2.5H20v19H6.5A2.5 2.5 0 0 1 4 19V5A2.5 2.5 0 0 1 6.5 2.5z',
-      'M15.4 2.5v5.1l1.6-1.2 1.6 1.2V2.5',
-    ],
-    iconFill: [
-      'M6.5 2.5H20v19H6.5A2.5 2.5 0 0 1 4 19V5A2.5 2.5 0 0 1 6.5 2.5z' +
-        'M16.1 2.5v3.5l0.9-0.68 0.9 0.68V2.5z',
+      // 书页底沿：书脊竖边底端弧接到封面，再横到翻口
+      'M4 19A2.5 2.5 0 0 1 6.5 16.5H20',
+      bookOutline,
+      // 书页线靠左、长度递减、位置偏上 —— 读作书页而非等号
+      'M8.8 8h5.4',
+      'M8.8 10.8h4',
     ],
   },
   grid: {
-    // 四个独立圆角方块：线框是方格、填充是圆点感方块，读作"功能矩阵"
+    // square.grid.2x2：饱满方块，圆角约为方块边长的 0.27（SF 比例）
     icon: [
-      roundedSquare(4, 4, 6.2, 1.9),
-      roundedSquare(13.8, 4, 6.2, 1.9),
-      roundedSquare(4, 13.8, 6.2, 1.9),
-      roundedSquare(13.8, 13.8, 6.2, 1.9),
-    ],
-    iconFill: [
-      roundedSquare(4, 4, 6.2, 1.9),
-      roundedSquare(13.8, 4, 6.2, 1.9),
-      roundedSquare(4, 13.8, 6.2, 1.9),
-      roundedSquare(13.8, 13.8, 6.2, 1.9),
+      roundedRect(4, 4, 6.5, 6.5, 1.8),
+      roundedRect(13.5, 4, 6.5, 6.5, 1.8),
+      roundedRect(4, 13.5, 6.5, 6.5, 1.8),
+      roundedRect(13.5, 13.5, 6.5, 6.5, 1.8),
     ],
   },
   folder: {
-    // 纯净文件夹，内部不加线（25px 下短线会读作减号）
+    // folder：扁宽比例，tab 更矮，圆角柔和
     icon: [
-      'M3.5 6.8A2.3 2.3 0 0 1 5.8 4.5h4a1 1 0 0 1 .78.37l1.36 1.63h6.66A2.3 2.3 0 0 1 20.9 8.8v8.9a2.3 2.3 0 0 1-2.3 2.3H5.8a2.3 2.3 0 0 1-2.3-2.3V6.8z',
-    ],
-    iconFill: [
-      'M3.5 6.8A2.3 2.3 0 0 1 5.8 4.5h4a1 1 0 0 1 .78.37l1.36 1.63h6.66A2.3 2.3 0 0 1 20.9 8.8v8.9a2.3 2.3 0 0 1-2.3 2.3H5.8a2.3 2.3 0 0 1-2.3-2.3V6.8z',
+      'M3.5 7.2A2.2 2.2 0 0 1 5.7 5h4a1 1 0 0 1 .78.37l1.36 1.63h6.76A2.2 2.2 0 0 1 20.8 9.2v8.1a2.2 2.2 0 0 1-2.2 2.2H5.7a2.2 2.2 0 0 1-2.2-2.2V7.2z',
     ],
   },
   person: {
-    // 头环 + 宽肩弧，填充态头肩连成一个整体人像
+    // person：头环 + 饱满宽肩弧（两端接近画布边缘）
     icon: [
-      'M12 12.2a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0 0 8.4z',
-      'M5 20.4c0-3.7 3.1-6.3 7-6.3s7 2.6 7 6.3',
-    ],
-    iconFill: [
-      'M12 3.8a4.2 4.2 0 1 0 0 8.4 4.2 4.2 0 0 0 0-8.4z' +
-        'M12 14.1c-3.9 0-7 2.6-7 6.3v.3c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-.3c0-3.7-3.1-6.3-7-6.3z',
+      'M12 12.3a4.3 4.3 0 1 0 0-8.6 4.3 4.3 0 0 0 0 8.6z',
+      'M4.2 20.5c0-3.9 3.4-6.5 7.8-6.5s7.8 2.6 7.8 6.5',
     ],
   },
 }
@@ -256,6 +236,16 @@ onMounted(() => {
   width: 25px;
   height: 25px;
   flex: 0 0 auto;
+}
+
+.tab-icon__paths {
+  stroke-width: 1.8;
+  transition: stroke-width 0.18s ease;
+}
+
+/* 线条型选中态：SF regular → medium 的字重变化 */
+.tab-item--active .tab-icon__paths {
+  stroke-width: 2.2;
 }
 
 /* 选中落位时图标轻弹一下，与指示器滑动同期 */
