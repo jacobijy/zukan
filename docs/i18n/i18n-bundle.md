@@ -76,22 +76,30 @@
 
 ## 图鉴描述（flavor）的按需加载
 
-描述组不随 boot / 名称预取（体积占 i18n 约 90%），由详情页的
-`pokemon/PokedexEntry.vue` 按需触发：
+描述组不随 boot / 名称预取（体积占 i18n 约 90%），由详情页按需触发：
+宝可梦详情的 `pokemon/PokedexEntry.vue`（species）与资料中心图鉴栏目的
+`archive/FlavorTextCard.vue`（moves/abilities/items）。
 
-- 纯函数在 `src/services/i18n/flavor.ts`：`buildSpeciesFlavor(bundle)` 把
-  `species: FlavorText[]` 收成 `speciesId → 文本`。
-- **同一物种按 version_id 存了多条**（每个游戏版本一条），构建时只保留
-  **version 最大**（最新）的一条；打包顺序不保证升序，故显式比较而非取最后。
+- 纯函数在 `src/services/i18n/flavor.ts`：`buildFlavorBundle(bundle)` 一次构建
+  六张查找表——四类 flavor（species/moves/abilities/items）各为
+  `id → 文本`，两类效果（abilityEffects/moveEffects）为 `id → shortEffect`。
+- **同一实体按 version / version_group 存了多条**（每个游戏版本一条），
+  构建时只保留 **version 最大**（最新）的一条；打包顺序不保证升序，故显式
+  比较而非取最后。空文本条目不进表。
 - 文本经 `cleanFlavorText` 清理：去软连字符 U+00AD、把游戏内换行
   （`\n`/`\f`/`\r`）折成空格。
-- store 侧：`ensureFlavor()` 并发去重加载当前语言，`speciesFlavorText(speciesId)`
-  同步查询；切换内容语言时 `flavor` 置空，下次进详情重载。描述是 **species 级**，
-  用 `speciesId` 查（形态共享）。
+- store 侧：`ensureFlavor()` 并发去重加载当前语言，同步查询有
+  `speciesFlavorText / moveFlavorText / abilityFlavorText / itemFlavorText /
+  abilityEffect / moveEffect`；切换内容语言时 `flavor` 置空，下次进详情重载。
+  物种描述是 **species 级**（形态共享）；效果简述（ProseEffect）**仅英文包有
+  数据**，非英文语言查询返回 null，调用方隐藏效果段。
 - **回落按整包而非逐 id**：英文 flavor 包 ~2.7MB（多版本×全表），故完整语言
-  （zh-hans / ja / … 11 种）直接用首选包、**不拉英文**；仅当首选包构建出空 Map
-  （cs / pt-br / ja-roma 描述组为空）时才回落英文。这与名称组「总是先载英文基线
-  再 overlay」不同——名称包小，flavor 包大。
+  （zh-hans / ja / … 11 种）直接用首选包、**不拉英文**；仅当首选包四张 flavor
+  表**总 size 为 0**（`flavorSize()`，cs / pt-br / ja-roma 描述组为空）时才
+  回落英文。单表个别 id 缺失不整包回落（查询处得 null）。这与名称组「总是先载
+  英文基线再 overlay」不同——名称包小，flavor 包大。
+
+资料中心四个图鉴栏目的完整数据流见 [../features/archive.md](../features/archive.md)。
 
 ## UI 静态文案
 

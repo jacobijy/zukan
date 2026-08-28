@@ -50,6 +50,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 能力值计算器 | `pages/statcalc/statcalc` | 键页（纯 TS 能力值公式在 `statcalc-engine.ts`，性格表在 `statcalc-options.ts`） |
 | 对战模拟器 | `pages/simulate/simulate` | **UI 骨架**（`noop` 占位，无实际交互） |
 | 设置 | `pages/settings/settings` | 子页（`DetailNavbar`，语言等系统设置；点选项弹 `OptionSheet`） |
+| 属性/招式/特性/道具图鉴 | `pages/archive/*` | 资料中心四个栏目，列表页 + 详情页共 8 个（`types`/`type-detail`、`moves`/`move-detail`、`abilities`/`ability-detail`、`items`/`item-detail`）；数据流见 `docs/features/archive.md` |
 
 `src/pages/` 下没有其他游离页面文件。
 
@@ -155,12 +156,17 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 ```
 src/components/
   shared/    跨页面通用：TabPageShell、ListRow、DetailNavbar、
-             FavoriteButton、PokeballLogo、LoginModal、OptionSheet
+             FavoriteButton、PokeballLogo、LoginModal、OptionSheet、SearchBar
   pokemon/   宝可梦领域：PokemonCard、TypeBadge、SpecimenHero、
              InfoGrid/InfoCard、StatsChart、MovesList、MoveCard、EvolutionChain、
              PokedexEntry（图鉴描述，按需取 flavor）
   dex/       图鉴列表上下文：DexToolbar、FilterBar、GenerationDrawer、
-             DexEmptyState、FavoritesBanner、VirtualGrid
+             DexEmptyState、FavoritesBanner、VirtualGrid（定高网格）、
+             VirtualList（单列定高虚拟列表，scroll-view 根元素，archive 列表用）
+  archive/   资料中心图鉴栏目：MoveRow/AbilityRow/ItemRow/TypeRow、
+             ItemIcon、FlavorTextCard（招式/特性/道具描述，按需取 flavor）、
+             TypeMatchupCard（相克表）、PokemonMiniList/PokemonMiniRow、
+             ArchiveListShell（列表页骨架）
   calc/      计算器上下文：CalcCard、ChipRow、LevelStepper、
              DamageResultCard、CalcSideCard、StatInputRow
   sprite/    图片加载：EncryptedSprite
