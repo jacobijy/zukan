@@ -24,9 +24,8 @@
                         :dot-color="typeSlug ? getTypeColor(typeSlug) : undefined"
                         @click="typeSheetOpen = true"
                     />
-                    <button
-                        v-if="hasFilters"
-                        class="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full bg-[#eaf2ff] px-3 text-xs font-extrabold text-[#357df4] transition-transform active:scale-95 [&::after]:border-none"
+                    <view
+                        class="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full bg-[#eaf2ff] px-3 text-xs font-extrabold text-[#357df4] transition-transform active:scale-95"
                         @click="resetFilters"
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5">
@@ -34,7 +33,7 @@
                             <path d="M3 3v5h5"></path>
                         </svg>
                         <text>{{ t('archive.reset') }}</text>
-                    </button>
+                    </view>
                 </view>
             </template>
 
@@ -61,18 +60,18 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { onLoad } from '@dcloudio/uni-app';
 import ArchiveListShell from '@/components/archive/ArchiveListShell.vue';
-import SearchBar from '@/components/shared/SearchBar.vue';
 import FilterChipButton from '@/components/archive/FilterChipButton.vue';
 import MoveRow from '@/components/archive/MoveRow.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
+import SearchBar from '@/components/shared/SearchBar.vue';
+import { ALL_TYPE_SLUGS, getTypeColor, getTypeMeta } from '@/constants/pokemonTypes';
 import { loadMoveList, type MoveListRow } from '@/services/pokemon/archive';
 import { useI18nStore } from '@/store/i18n';
-import { ALL_TYPE_SLUGS, getTypeColor, getTypeMeta } from '@/constants/pokemonTypes';
 import { typeStrs } from '@/utils/helpers';
+import { onLoad } from '@dcloudio/uni-app';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();
