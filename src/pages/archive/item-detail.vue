@@ -9,9 +9,7 @@
             <view class="mx-auto flex max-w-[720px] flex-col gap-3 pt-3">
                 <!-- 头部：大图标 + 名称 -->
                 <view class="glass-panel flex items-center gap-4 px-5 py-5">
-                    <view class="flex h-28 w-28 flex-shrink-0 items-center justify-center rounded-3xl bg-[#f5f6fa] shadow-[inset_0_1px_0_#fff]">
-                        <ItemIcon :id="itemId" size="lg" eager />
-                    </view>
+                    <ItemIcon :id="itemId" size="lg" eager />
                     <view class="min-w-0 flex-1">
                         <text class="block text-xl font-black leading-6 tracking-[-0.02em] text-[#24262b]">{{ name }}</text>
                         <text class="mt-1 block text-[12px] font-bold text-[#8d929c]">#{{ String(itemId).padStart(4, '0') }}</text>

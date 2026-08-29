@@ -67,6 +67,7 @@
 |------|------|------|
 | `make sync-fb` | `tools/sync-fb.py` | 明文 `assets/fb/gen-N.bin`、`evolution.bin`、`moves/`、`moves_data/`、`pokemon_moves/` |
 | `make sync-i18n` | `tools/sync-i18n.py` | 明文 `assets/fb/i18n/<lang>/{names,flavor}.bin`（form 名有 id 重映射，见第 7 节） |
+| `python3 tools/sync-sprites.py` | `tools/sync-sprites.py` | 明文图片 `assets/public/{pokemon,items,badges,types}/...`（源/目标目录在 `tools/sync-sprites.ini` 配置，见 4.4） |
 | `make encrypt-fb` | `crates/server/src/bin/encrypt-fb.rs` | `assets/encrypted-assets/fb/**`（跳过 schemas/_generated） |
 | `make encrypt` | `crates/server/src/bin/encrypt-assets.rs` | `assets/encrypted-assets/**`，PNG → `.bin`，保留层级 |
 
@@ -166,6 +167,32 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 > 想让无 home 的形态回退 artwork 而非占位，需要数据层加「形态→可回退 variant」判断，再让
 > `EncryptedSprite` 按顺序尝试，目前未实现。
 
+### 4.4 道具 / 徽章 / 属性图标（`/assets/encrypted/{items,badges,types}/`）
+
+除精灵立绘外，`make encrypt` 同样加密三类静态图标，解密后都是 PNG、用法与精灵图一致
+（拿密文 → WASM 解密 → Blob URL 喂 `<image>`）：
+
+| 资源 | 远端路径 | 文件名 id | 数量 | id 含义 |
+|------|----------|-----------|------|---------|
+| 道具 | `/assets/encrypted/items/{itemId}.bin` | **PokeAPI item id** | 862 | `items.csv` 的 `id`（数字），**不是**道具英文名 |
+| 徽章 | `/assets/encrypted/badges/{n}.bin` | 道馆徽章序号 | 77 | poke-sprites 源文件名（1 起） |
+| 属性 | `/assets/encrypted/types/{typeId}.bin` | **PokeAPI type id** | 19 | `types` 表 id（1–19，朱紫图标） |
+
+**道具 id 映射（重点）**：上游 poke-sprites 用英文 slug 命名（`master-ball.png`、
+`choice-scarf.png`…），后端 `tools/sync-sprites.py` 在 sync 阶段读 **`items.csv`**
+（`id,identifier,...`）把 `<identifier>.png` 重命名为 `<id>.png`，再加密成 `<id>.bin`。
+前端要用某个道具，直接按 **PokeAPI item id** 请求 `items/{id}.bin` 即可，无需 slug 映射。
+
+- 道具**只加密有精灵图的**：`items.csv` 共约 2221 个道具，其中 **862** 个在 sprite 源里有
+  `<identifier>.png`；其余（多数剧情/钥匙道具、按编号的 `tm01..tm100` 等）无独立图，**不产出**，
+  请求会 **404**，前端应像 4.3 那样回退占位图。
+- TM/HM 在源里是按属性复用的单图（`tm-fire.png`、`hm-water.png` 等），不对应单个 item id，故未纳入。
+- 徽章/属性文件名在 sync 时保持源文件名不变（属性源本就按 type id 命名）。
+
+> ⚠️ **历史坑**：道具早期用一张手写白名单重命名，其数字 key **不是** PokeAPI 真实 item id
+> （旧表 `1=pretty-wing`，实际 `pretty-wing` 是 612、`1` 是 `master-ball`）。现已改为 `items.csv`
+> 真实 id。若本地缓存里有旧编号道具图，属错误命名，清缓存即可。
+
 ## 5. 三套 id 空间
 
 图/数据排查核心，详见 [../data/bundle-decode.md](../data/bundle-decode.md)。一句话：
@@ -210,6 +237,7 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 | 重新加密资源（内容变更） | 决定是否 bump 版本；强制刷新就得 bump + 重编 WASM（1.1 / 6.3） |
 | 新增 FB bundle 类型 | ① schema + flatc 重生成 ② sync-*.py 打包 ③ WASM convert.rs 加解码器 + index.ts 导出 ④ resourceManager 加 spec/getter/prefetch ⑤ 本文 4.1 |
 | 新增 sprite variant | ① encrypt-assets 产物 ② EncryptedSprite variant 传值 ③ 缺失兜底 ④ 本文 4.2 |
+| 改道具图 / 道具 id 映射 | ① `tools/sync-sprites.py`（读 `items.csv` 真实 id）② 重跑 `sync-sprites.py` + `make encrypt` ③ **加密是增量、不删旧密文**：道具改名/删除后须手动清掉 `encrypted-assets/items/` 再重建，否则残留错误编号 `.bin` ④ 本文 4.4 |
 | 改 form / 名称映射 | sync-i18n.py 重映射；重打包 PKNM 重加密；清缓存 |
 | 改缓存调度 / 引用计数 | 跑 `pnpm test`（spriteCache/spritePersist）；别破坏 caching 文档里的不变量 |
 | 接 CDN 签名 | 后端 `/zukan/key` 响应加 `cdn` 对象；前端 `buildCdnUrl` 已就绪 |
