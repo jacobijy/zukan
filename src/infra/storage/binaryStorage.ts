@@ -178,10 +178,53 @@ const uniStorage: BinaryStorage = {
 };
 
 // ─────────────────────────────────────────────────────────
+// 内存后端（仅 dev）
+// ─────────────────────────────────────────────────────────
+
+/**
+ * dev 专用：进程内 Map，刷新即清空。换源重打包后刷新页面就是最新数据，
+ * 不必 bump 数据版本号 / 手动清 IndexedDB。图片持久层据 `storageBackend`
+ * （非 'idb'）整体 no-op，连内存里也不留密文。
+ */
+const memoryMap = new Map<string, Uint8Array>();
+
+const memoryStorage: BinaryStorage = {
+    async get(key) {
+        return memoryMap.get(key) ?? null;
+    },
+    async put(key, data) {
+        memoryMap.set(key, data);
+    },
+    async delete(key) {
+        memoryMap.delete(key);
+    },
+    async clear(prefix) {
+        for (const k of memoryMap.keys()) {
+            if (!prefix || k.startsWith(prefix)) memoryMap.delete(k);
+        }
+    },
+    async keys(prefix) {
+        const all = [...memoryMap.keys()];
+        return prefix ? all.filter((k) => k.startsWith(prefix)) : all;
+    },
+};
+
+// ─────────────────────────────────────────────────────────
 // 后端选择
 // ─────────────────────────────────────────────────────────
 
+/**
+ * dev 下默认**不跨刷新持久化**：`pnpm dev:h5` 时二进制缓存走内存 Map、
+ * 图片密文干脆不写盘，重新打包后刷新即拉最新，省掉 bump 版本号 / 清站点数据。
+ * 需要在 dev 里验证缓存失效 / prune 时，控制台设
+ * `localStorage['zukan:dev-persist'] = '1'` 后刷新，即恢复真实 IndexedDB。
+ * 正式构建（`import.meta.env.DEV === false`）不受影响。
+ */
+const forcePersistInDev = typeof localStorage !== 'undefined' && localStorage.getItem('zukan:dev-persist') === '1';
+const devNoPersist = import.meta.env.DEV && !forcePersistInDev;
+
 function pickBackend(): BinaryStorage {
+    if (devNoPersist) return memoryStorage;
     // H5：优先 IndexedDB
     if (typeof indexedDB !== 'undefined') return idbStorage;
     // 其它平台走 uni-storage
@@ -192,8 +235,12 @@ function pickBackend(): BinaryStorage {
  * 当前后端类型。调用方据此决定「值不值得往里塞大批数据」：
  * IDB 有几十上百 MB 配额，`uni.setStorage` 只有约 10MB 总量 ——
  * 把上千张 sprite 塞进后者会把 FB bundle 顶出去，得不偿失
- * （见 `spritePersist.ts`）。
+ * （见 `imagePersist.ts`）。`memory` 仅 dev，等同「不持久化」。
  */
-export const storageBackend: 'idb' | 'uni' = typeof indexedDB !== 'undefined' ? 'idb' : 'uni';
+export const storageBackend: 'idb' | 'uni' | 'memory' = devNoPersist
+    ? 'memory'
+    : typeof indexedDB !== 'undefined'
+      ? 'idb'
+      : 'uni';
 
 export const binaryStorage: BinaryStorage = pickBackend();
