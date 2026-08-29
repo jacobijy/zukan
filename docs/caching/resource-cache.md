@@ -41,6 +41,18 @@ fb:v{version}:<kind>:<...>
 
 各缓存的失效时机见加密文档第 6.4 节的版本失效总览表。
 
+## dev 下的两层缓存都不跨刷新
+
+本地开发换源重打包时，不想 bump 版本号 / 手动清站点数据，故 dev 把两层缓存都关掉：
+
+1. **应用缓存**（`binaryStorage`）：`import.meta.env.DEV` 下后端选用进程内 `Map`、
+   `storageBackend` 报 `'memory'`，刷新即空；图片密文持久层据 `storageBackend !== 'idb'`
+   整体 no-op。控制台设 `localStorage['zukan:dev-persist']='1'` 可恢复真实 IndexedDB。
+2. **浏览器 HTTP 缓存**：服务端对 `/assets/encrypted/*` 下发 `immutable, max-age=31536000`。
+   生产靠 CDN 签名 token（`?sign&t`）换 URL 绕开；**本地 dev 无 token、URL 固定**，普通刷新
+   仍可能命中磁盘 HTTP 缓存。故 `binaryRequest.buildUrl` 在 dev 下给 URL 加每次页面加载
+   变化的 `_dc=<ts>` 参数强制重新校验（ServeDir 忽略 query；小程序端无害）。
+
 ## 新增 bundle 类型
 
 ① FlatBuffers schema + `flatc` 重生成 ② 后端 `sync-*.py` 打包 ③ WASM 加解码器 + `index.ts` 导出

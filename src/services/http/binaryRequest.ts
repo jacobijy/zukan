@@ -8,6 +8,18 @@
 const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? '') as string;
 
 /**
+ * dev 下绕开浏览器 HTTP 缓存的 cache-busting 参数。
+ *
+ * 服务端对 `/assets/encrypted/*` 下发 `immutable, max-age=31536000`，而本地 dev
+ * **无 CDN 签名 token**（生产靠 `?sign&t` 换 URL 来 bust 缓存），URL 固定 → 换源
+ * 重打包后普通刷新仍可能命中浏览器磁盘缓存里的旧字节，与 dev「应用缓存走内存、
+ * 刷新即拉新」（见 `binaryStorage`）相悖。dev 下给 URL 加每次页面加载变化的
+ * `_dc` 参数即可；ServeDir 忽略 query string，小程序端同样无害。
+ * 模块加载时取一次：会话内恒定（应用缓存本就去重），刷新即变（强制重新校验）。
+ */
+const devCacheBust = import.meta.env.DEV ? `_dc=${Date.now()}` : '';
+
+/**
  * 注意：这里**不加** `/api/v1` 前缀（`request.ts` 里加）。
  *
  * 二进制资源全部是 `/assets/encrypted/*`，后端刻意把静态资源留在根路径 ——
@@ -15,7 +27,10 @@ const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? '') as string;
  */
 const buildUrl = (path: string): string => {
     if (/^https?:\/\//.test(path)) return path;
-    return `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+    const url = `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+    // dev 固定 URL + immutable 会卡在浏览器 HTTP 缓存；加一次性参数强制重新校验
+    if (!devCacheBust) return url;
+    return `${url}${url.includes('?') ? '&' : '?'}${devCacheBust}`;
 };
 
 export class BinaryRequestError extends Error {

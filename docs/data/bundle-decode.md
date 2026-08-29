@@ -14,7 +14,7 @@
 |----------|-----|--------|------|
 | `gen-N.bin`（N=1..9） | `PKMB` | `decodePokemonGenBundle` | 第 N 世代全物种数值快照：base/stat/type/ability/eggGroup 五张并行表 |
 | `moves/vg-NN.bin` | `PMOV` | `decodePokemonVgMovesBundle` | 招式学习记录（原始行式） |
-| `pokemon_moves/common.bin` | `PMSB` | `decodePokemonMovesBundle` | 招式聚合表（baseline） |
+| `pokemon_moves/common.bin` | `PMSB` | `decodePokemonMovesBundle` | 招式聚合表（**全物种最新主线基线**，见[下文](#招式基线-common-的并集语义)） |
 | `pokemon_moves/mainline/vg-NN.bin` | `PMSB` | 同上 | 主线相对 common 的整行覆盖（kind=1） |
 | `pokemon_moves/special/vg-NN.bin` | `PMSB` | 同上 | 独立表，不合并 common（kind=2） |
 | `moves_data/common.bin` | `MDAT` | `decodeMovesDataBundle` | 招式定义（moves + 4 张关联表，含 `move_flag_map`） |
@@ -28,6 +28,23 @@
 **`gen-N.bin` 是「全物种在第 N 世代的数值快照」**，不是「第 N 世代新增的宝可梦」。
 约 1351 条形态 / 1025 个默认形态，id 从 1 起。默认世代是 9（`boot.ts::LATEST_GEN_ID`、
 store 里 `DEFAULT_GEN_ID = 9`）。
+
+### 招式基线 common 的并集语义（重要）
+
+前端详情页 / 伤害计算器**只读** `pokemon_moves/common.bin`（`loadMovesForPokemon`），
+从不回退 mainline/special。所以 common 必须覆盖**全部形态**，不能只含某一代图鉴：
+
+- common 是「每只宝可梦**最新主线世代**招式表」的并集：vg-25（朱紫）打底（867 条），
+  凡朱紫图鉴没有的形态，按主线版本组从新到旧（vg-23 → vg-01）回填它最新一代的**完整**
+  招式表（+401，共 1268 条）。例：尼多后（id=31）不在朱紫，回退到 vg-23（BDSP）。
+- mainline `vg-NN.bin`（diff，kind=1）只写「相对 common 整行不同」的宝可梦；被回填进
+  common 的形态与其来源代同值，故不会重复出现在该代 diff 里。特殊 VG
+  （Colosseum/XD/阿尔宙斯/日版初代/Champions，kind=2）**不参与**基线——实测没有任何
+  形态「只在特殊代、主线/朱紫都没有」，不丢覆盖。
+- 仅外传独有的形态（24 条）在任何正作代都无招式数据，不进 common，前端按「无招式」空态。
+
+打包在 `zukan-server/tools/upstream/aggregate_pokemon_moves.py`（朱紫打底 + 主线回填）；
+**前端不做 vg 选择**，vg 选择完全固化在打包侧。
 
 ## PKMB 五表 join（`mergeBundleToModel`）
 

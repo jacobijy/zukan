@@ -3,8 +3,11 @@
  *
  * 给定 pokemonId → 返回 UI 消费的 `MoveRecord[]`（升级 / 机器 / 蛋 / 教授四类）。
  *
- * 数据源（vg-25 朱紫基线，不做 merge、不做 gen→vg 映射）：
- * - `pokemon_moves/common.bin` → 每宝可梦聚合的 4 类学习方式向量
+ * 数据源（只读 `common` 全物种基线，不做 merge、不做 gen→vg 映射）：
+ * - `pokemon_moves/common.bin` → 每宝可梦聚合的 4 类学习方式向量。
+ *   common 是**全物种最新主线世代招式表的并集**（服务端打包：vg-25 朱紫打底，
+ *   朱紫图鉴没有的形态按主线版本组从新到旧回填它最新一代的完整招式表），故非朱紫
+ *   物种（如尼多后 31，回退 vg-23）也有招式；仅外传独有的形态才为空。
  * - `moves_data/common.bin`   → 全量 `Move` 定义（type / power / accuracy / category）
  *
  * ## 缓存
