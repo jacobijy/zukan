@@ -86,6 +86,39 @@ describe('buildNamesLookup', () => {
         expect(lk.moves.has(1)).toBe(false);
         expect(lk.species.has(1)).toBe(false);
     });
+
+    it('forms 收成 id → { formName, pokemonName }', () => {
+        const lk = buildNamesLookup(
+            bundle({
+                forms: [{ id: 10033, formName: '超级妙蛙花', pokemonName: '超级妙蛙花' }],
+            }),
+        );
+        expect(lk.forms.get(10033)).toEqual({ formName: '超级妙蛙花', pokemonName: '超级妙蛙花' });
+    });
+
+    it('forms：form_name 为空但 pokemon_name 有全名仍进表（getter 据此回落全名，而非「形态 #id」）', () => {
+        // 图腾 / 羁绊变身等形态 form_name 在所有语言都为空，全名只在 pokemon_name
+        const lk = buildNamesLookup(
+            bundle({
+                forms: [{ id: 10093, formName: '', pokemonName: 'Totem Alolan Raticate' }],
+            }),
+        );
+        const f = lk.forms.get(10093);
+        expect(f).toBeDefined();
+        expect(f?.formName).toBe('');
+        expect(f?.pokemonName).toBe('Totem Alolan Raticate');
+        // getter 的回落契约：formName || pokemonName
+        expect(f?.formName || f?.pokemonName).toBe('Totem Alolan Raticate');
+    });
+
+    it('forms：form_name 与 pokemon_name 皆空才跳过', () => {
+        const lk = buildNamesLookup(
+            bundle({
+                forms: [{ id: 999, formName: '', pokemonName: '' }],
+            }),
+        );
+        expect(lk.forms.has(999)).toBe(false);
+    });
 });
 
 describe('overlay 回落叠加', () => {

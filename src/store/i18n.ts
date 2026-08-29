@@ -226,8 +226,14 @@ export const useI18nStore = defineStore('i18n', () => {
     function moveTargetName(id: number): string | null {
         return lookup.value?.moveTargets.get(id) ?? null;
     }
+    /**
+     * 形态名，未就绪返回 null。优先 `form_name`（形态描述，如「攻击形态」）；
+     * 部分形态（图腾、羁绊变身甲贺忍蛙等）该列在所有语言都为空，回落 `pokemon_name`
+     * 完整形态名（含物种名，如 Totem Alolan Raticate），避免显示「形态 #id」占位。
+     */
     function formLabel(formId: number): string | null {
-        return lookup.value?.forms.get(formId)?.formName ?? null;
+        const f = lookup.value?.forms.get(formId);
+        return f?.formName || f?.pokemonName || null;
     }
     function moveName(id: number): string | null {
         return lookup.value?.moves.get(id) ?? null;

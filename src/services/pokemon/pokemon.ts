@@ -89,7 +89,10 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
         const name = names?.species(b.speciesId) ?? `pokemon-${b.id}`;
         // 分类（genus，如「种子宝可梦」）：查 i18n species.genus
         const category = names?.genus(b.speciesId) ?? '';
-        // 形态名：默认形态无标签；非默认形态查 i18n，未就绪回落 form-<id>
+        // 形态名（切换胶囊用）：默认形态无标签；非默认形态取 i18n 完整形态名
+        // （form_name，缺失时 store getter 回落 pokemon_name，如「超级妙蛙花」
+        // 「攻击形态」「Totem Alolan Raticate」），中文缺失由 overlay 回落英文；
+        // i18n 未就绪回落 form-<id>
         const formLabel = b.isDefault ? '' : (names?.form(b.id) ?? `form-${b.id}`);
 
         return {
