@@ -32,32 +32,38 @@
 | 偏移 | 长度 | 字段 | 说明 |
 |------|------|------|------|
 | 0 | 4 | magic | ASCII `ZKDX` |
-| 4 | 1 | version | **DEK/格式版本号**，当前恒为 `1`，由 `ZUKAN_DEK_VERSION` 写入 |
+| 4 | 1 | version | **密文格式版本**，恒为 `1`（`FORMAT_VERSION`）。**与 `ZUKAN_DEK_VERSION` 无关**，见 1.1 |
 | 5 | 12 | nonce | AES-GCM IV，每次加密随机生成，**绝不复用** |
 | 17 | N−17 | ciphertext+tag | AES-256-GCM 输出，末尾 16 字节是认证标签 |
 
 最小合法文件 33 B。常量在四处定义，**必须保持一致**：前端 `src/infra/wasm/src/crypto.rs`、
-后端 `crates/wasm-crypto/src/lib.rs`、两个加密 CLI。
+后端 `crates/wasm-crypto/src/lib.rs`、后端 `features/zukan/service.rs`（加密 CLI 共用的
+`build_zkdx` 与校验都在这里）。
 
-### 1.1 ⚠️ version 字节的两个身份（最容易踩的坑）
+### 1.1 ⚠️ 两个版本号必须分清（曾踩，全站资源解不开）
 
-同一个字节被两套机制使用，当前值都是 `1`，但语义不同：
+名字都带 version，但**是两套独立机制，不要混**：
 
-1. **解密侧硬校验**：前端 `crypto.rs::decrypt_zukan` 读到 `version != FORMAT_VERSION`(=1) 直接
-   抛 `ZKDX: unsupported version: N`，**拒绝解密**。
-2. **缓存侧版本键**：前端把 `/zukan/key` 返回的 `version` 写进存储（`zukan_data_version`），
-   所有密文缓存 key 带前缀 `fb:v{N}:`（数据）和 `sprite:v{N}:`（图片）。版本变化时
-   `boot.ts` 调 `resourceManager.pruneOtherVersions(newVersion)` 清旧前缀。
+| | 格式版本 `FORMAT_VERSION` | 密钥/缓存版本 `ZUKAN_DEK_VERSION` |
+|---|---|---|
+| 值 | 恒 `1`（改动即 ZKDX 格式不兼容变更） | 由 `.env` 配置，可 bump（当前 `2`） |
+| 位置 | **写进文件头第 5 字节** | **不进文件头**；经 `GET /zukan/key` 下发给客户端 |
+| 作用 | 前端 WASM 硬校验，`!= 1` 抛 `ZKDX: unsupported version: N` 拒绝解密 | 派生客户端缓存 key 前缀 `fb:v{N}:` / `sprite:v{N}:` / `item-img:v{N}:` |
+| 何时改 | 只有 ZKDX 二进制格式本身变了（需同步重编 WASM） | DEK 轮换**或数据内容变更**，让客户端弃用旧缓存 |
 
-**后果**：只重新加密资源但**不 bump `ZUKAN_DEK_VERSION`**，version 仍是 1、缓存前缀仍是 `fb:v1:`，
-前端 cache-first 会一直命中旧缓存，**永远不重下**。
+**历史事故**：两个加密 CLI 曾把 `ZUKAN_DEK_VERSION` 当格式版本写进头。`.env` 是 1 时两者
+恰好相同、看不出问题；bump 成 2 后重新加密，头里成了 `version=2` → 前端 WASM 全线报
+`ZKDX: unsupported version: 2`，**所有** bundle 解不开（不只是新改的那个）。
+现在头字节只由 `service.rs::build_zkdx` 一处写入，并有回归单测
+（`build_zkdx_writes_format_version_not_dek_version`）守着 —— 这类 bug `cargo build` 抓不到。
 
-要强制所有客户端拉新字节，必须**同时**做三件事：
-1. 后端 `ZUKAN_DEK_VERSION` 改成 `2`；
-2. 用新 DEK + version=2 重加密全部产物（`make encrypt-fb` / `make encrypt`）；
-3. **前端 `FORMAT_VERSION` 升到 2 并重编 WASM**，否则旧 WASM 拒绝解 version=2。
+**数据热更新的正确做法**（不涉及格式版本、不用重编 WASM）：
+1. 重新生成明文 + `make encrypt-fb` / `make encrypt`（头里仍是 `version=1`）；
+2. 部署环境 `ZUKAN_DEK_VERSION` +1，让客户端缓存前缀变化、`boot.ts` 调
+   `pruneOtherVersions` 清旧字节重下。
 
-> 当前架构下「数据热更新」和「DEK 轮换」是同一个开关。只换资源内容不动密钥，没有轻量缓存击穿手段。
+> 内容没变就不要 bump——bump 会让所有客户端弃用全部缓存重新下载。
+> 本地 dev 无需 bump：两层缓存都不跨刷新（见 [../caching/resource-cache.md](../caching/resource-cache.md)）。
 
 ## 2. 后端构建管线（zukan-server）
 
@@ -72,8 +78,9 @@
 | `make encrypt` | `crates/server/src/bin/encrypt-assets.rs` | `assets/encrypted-assets/**`，PNG → `.bin`，保留层级 |
 
 CLI 算法：`nonce=random(12B)`；`ciphertext=AES-256-GCM(DEK, nonce, plaintext)`；
-拼 `b"ZKDX" + VERSION + nonce + ciphertext`。DEK 从 `ZUKAN_DEK`（64 hex = 32 字节），
-版本从 `ZUKAN_DEK_VERSION`（缺省 1），Makefile 从 `.env` 取。
+拼 `b"ZKDX" + FORMAT_VERSION(=1) + nonce + ciphertext`（统一走
+`features/zukan/service.rs::build_zkdx`）。DEK 从 `ZUKAN_DEK`（64 hex = 32 字节），
+Makefile 从 `.env` 取；`ZUKAN_DEK_VERSION` 只打印提示，**不写进文件头**（见 1.1）。
 
 ### 2.1 运行时分发（只读，不解密）
 
@@ -211,14 +218,22 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 
 ### 6.2 解密失败 / invalid magic / unsupported version / tag 失败
 - `invalid magic` → 拿到的不是 ZKDX（HTML 404 页、未加密明文 FB、JSON 错误体）。查远端路径。
-- `unsupported version: N` → version 字节 ≠ 前端 `FORMAT_VERSION`，见 1.1。
+- `unsupported version: N` → 头第 5 字节 ≠ 前端 `FORMAT_VERSION`(=1)。**最常见原因是加密时
+  把 `ZUKAN_DEK_VERSION` 误写进头**（见 1.1 的历史事故）。核查方式：
+  `head -c5 <文件> | xxd` 应为 `5a4b4458 01`；批量核查
+  `find assets/encrypted-assets -name '*.bin' | while read f; do head -c5 "$f" | tail -c1 | xxd -p; done | sort | uniq -c`
+  应只有 `01`。修法是修加密器后**重新加密全部产物**（坏文件无法就地修补）。
 - GCM tag 失败 → DEK 与密文不匹配或字节损坏。确认 `ZUKAN_DEK` 一致；删本地缓存重下
   （resourceManager 自动删持久字节重试一次；sprite 走 `dropSpriteBytes`）。
 - 解码抛 `unknown fid` → 解密成功但 FlatBuffers 头不是预期 fid，路径对错了 bundle。
 
 ### 6.3 改了数据/图片，浏览器不刷新
-前端 cache-first 且资源 `immutable`。本地：清 IndexedDB（`zukan-fb`）+ sprite 索引，硬刷新。
-强制全量：按 1.1 三步同时 bump 版本 + 重加密 + 重编 WASM。
+前端 cache-first 且资源 `immutable`。
+- **本地 dev**：两层缓存都已关掉（应用缓存走内存、URL 带 `_dc` 绕开 HTTP 缓存），
+  普通刷新即拉新；不用 bump 版本号，也不用清站点数据。见
+  [../caching/resource-cache.md](../caching/resource-cache.md)。
+- **线上强制全量**：重加密（头仍 `version=1`）+ 部署环境 `ZUKAN_DEK_VERSION` +1。
+  **不需要**动 `FORMAT_VERSION` / 重编 WASM —— 那是格式变更才做的事（1.1）。
 
 ### 6.4 形态名不对 / 显示 form-{id}
 - 非默认形态名错位 → 查 `sync-i18n.py::load_form_pokemon_map` 重映射是否还在。
@@ -233,8 +248,8 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 
 | 改动 | 必须同步 |
 |------|----------|
-| ZKDX 格式 / 加算法 | 四处常量（前端 crypto.rs、后端 wasm-crypto、两个 CLI）；版本分派；本文第 1、1.1 节 |
-| 重新加密资源（内容变更） | 决定是否 bump 版本；强制刷新就得 bump + 重编 WASM（1.1 / 6.3） |
+| ZKDX 格式 / 加算法 | 常量三处（前端 crypto.rs、后端 wasm-crypto、后端 zukan/service.rs）+ `build_zkdx`；`FORMAT_VERSION` 同步升级并重编 WASM；本文第 1、1.1 节 |
+| 重新加密资源（内容变更） | 决定是否 bump `ZUKAN_DEK_VERSION`（仅缓存信号，**不进文件头**）；勿动 `FORMAT_VERSION`（1.1 / 6.3） |
 | 新增 FB bundle 类型 | ① schema + flatc 重生成 ② sync-*.py 打包 ③ WASM convert.rs 加解码器 + index.ts 导出 ④ resourceManager 加 spec/getter/prefetch ⑤ 本文 4.1 |
 | 新增 sprite variant | ① encrypt-assets 产物 ② EncryptedSprite variant 传值 ③ 缺失兜底 ④ 本文 4.2 |
 | 改道具图 / 道具 id 映射 | ① `tools/sync-sprites.py`（读 `items.csv` 真实 id）② 重跑 `sync-sprites.py` + `make encrypt` ③ **加密是增量、不删旧密文**：道具改名/删除后须手动清掉 `encrypted-assets/items/` 再重建，否则残留错误编号 `.bin` ④ 本文 4.4 |
