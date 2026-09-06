@@ -62,7 +62,18 @@ PKMB 是五张**并行表**，都按 pokemon id 对齐：
   （打包时判定 `assets/public/pokemon/<id>/` 下存在 `artwork.png` / `home.png` / `shiny.png` 任一）。
   `false` 表示官方暂无可展示正面图，当前共 8 个，全是故勒顿/密勒顿的 build/mode 形态：
   **10264–10271**（其中 10265–10267、10269–10271 无任何资源目录；10264、10268 仅有 `versions/9/scarlet-violet.png` 世代小图，无正面立绘）。
-  前端可据此在卡片/详情里**暂时屏蔽或隐藏**该形态，而非等图片 404 再回退。这是数据层判定，比运行时 404 更早、更确定。
+  这是数据层判定，比运行时 404 更早、更确定。**两个消费方**：
+  - `detail.vue` 的形态左右切换：`hasSprite === false` 的形态不进切换列表
+    （当前形态自身无图时仍保留自身，否则会无形态可显）；
+  - `EncryptedSprite`（经 `hasSprite` prop）：直接显示占位图，**一个请求都不发**，
+    省掉那次必然 404 的往返。传值点是 `PokemonCard` 与 `SpecimenHero`；
+    `EvolutionNode` 的 `EvolutionStage` 无此字段，靠 sprite 侧的 404 回落链兜。
+    回落链见 [../caching/sprite-cache.md](../caching/sprite-cache.md)。
+
+  > 注意 `hasSprite` 的口径含 `shiny`，而回落链只试 `home`/`artwork`/`front`，
+  > 两者不完全等价 —— 理论上存在「`hasSprite=true` 但回落链全 404」的形态。
+  > 实测当前数据没有这种情况（缺 home 的 10 个里 8 个有 artwork，
+  > 剩下 10264/10268 的 `hasSprite` 本就是 false），所以两条路径结论一致。
 
 `pokemon.ts` 用 Map 按 id 把后四张表 join 到 `baseEntries` 上，输出 `IPokemonBaseModel`。
 
@@ -105,9 +116,11 @@ PokeAPI 有三个容易混淆的 id：
 
 - 图片请求**永远用 pokemon id**：`/assets/encrypted/pokemon/{b.id}/home.bin`。
 - `pokemon_species.id`（全国编号）**不**用于拼图片路径，只用于查名/分类/世代。
-- 不是每个 pokemon id 都有 `home.bin`，404 走默认占位，属于正常缺口（缺图清单见
+- 不是每个 pokemon id 都有 `home.bin`。前端按 `home → artwork → front` 回落，
+  **整条链都 404** 才走默认占位，属于正常缺口（缺图清单见
   [../security/encryption-pipeline.md](../security/encryption-pipeline.md) 第 4.3 节）。
-- 数据层可用 `baseEntries[i].hasSprite` 提前判定该形态是否有正面立绘（`false` 建议直接屏蔽，见上文 PKMB 表）。
+- 数据层可用 `baseEntries[i].hasSprite` 提前判定该形态是否有正面立绘（`false` 时
+  `EncryptedSprite` 直接落占位、不发请求；`detail.vue` 也据此屏蔽形态切换，见上文 PKMB 表）。
 
 <a id="evo1-进化树-evolutionbundle"></a>
 ## EVO1 进化树（`EvolutionBundle`）

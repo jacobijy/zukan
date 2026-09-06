@@ -73,7 +73,7 @@
 |------|------|------|
 | `make sync-fb` | `tools/sync-fb.py` | 明文 `assets/fb/gen-N.bin`、`evolution.bin`、`moves/`、`moves_data/`、`pokemon_moves/` |
 | `make sync-i18n` | `tools/sync-i18n.py` | 明文 `assets/fb/i18n/<lang>/{names,flavor}.bin`（form 名有 id 重映射，见第 7 节） |
-| `python3 tools/sync-sprites.py` | `tools/sync-sprites.py` | 明文图片 `assets/public/{pokemon,items,badges,types}/...`（源/目标目录在 `tools/sync-sprites.ini` 配置，见 4.4） |
+| `python3 tools/sync-sprites.py` | `tools/sync-sprites.py` | 明文图片 `assets/public/{pokemon,items,badges,types}/...`（源/目标目录在 `tools/sync-sprites.ini` 配置，见 4.5） |
 | `make encrypt-fb` | `crates/server/src/bin/encrypt-fb.rs` | `assets/encrypted-assets/fb/**`（跳过 schemas/_generated） |
 | `make encrypt` | `crates/server/src/bin/encrypt-assets.rs` | `assets/encrypted-assets/**`，PNG → `.bin`，保留层级 |
 
@@ -144,44 +144,101 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 
 ### 4.2 精灵图片（`/assets/encrypted/pokemon/`）
 
-路径 `/assets/encrypted/pokemon/{pokemonId}/{variant}.bin`，解密后 PNG。`EncryptedSprite` 默认 `home.bin`。
+路径 `/assets/encrypted/pokemon/{pokemonId}/{variant}.bin`，解密后 PNG。`EncryptedSprite` 默认 `home`。
 
 | variant | 含义 |
 |---------|------|
 | `home` | **默认** Pokémon HOME 立绘 |
 | `home-shiny` / `home-female` | HOME 闪光 / 雌性 |
 | `artwork` / `artwork-shiny` | 官方插画 |
+| `front` | 图鉴像素正面图（上游 REST 的 `sprites.front_default`），**2026-09-05 起可用** |
 | `shiny` / `female` | 图鉴像素闪光 / 雌性 |
 | `back` | 背面像素图 |
 | `dream` | Dreamworld 立绘 |
 | `versions/<gen>/...` | 按世代历史美术（**前端当前不读取**） |
 
+> ⚠️ **`front` 是新增的**：此前 sync 脚本把主正面图写成 `<id>/.png`（空 basename 的隐藏
+> 文件），而加密器按扩展名过滤时 Rust 的 `Path::extension()` 对 `".png"` 返回 `None`
+> （按 Unix 惯例视为隐藏文件而非 png 扩展名），导致 **1532 张正面图从未被加密下发**。
+> 现已改名 `front.png` → `front.bin`，与 `back` 对称。加密器也加了「非白名单文件」
+> 的显式警告，不再静默丢弃。
+
+#### 体积对照（决定前端怎么用，实测于 encrypted-assets）
+
+只统计**数字 id 目录**（前端只按数字 id 请求，见 4.5）：
+
+| variant | 明文尺寸 | 命中 id 数 | 密文合计 | 密文均值 |
+|---------|---------|-----------|---------|---------|
+| `front` | 96×96 像素图 | 1341 | **1 MB** | **1.9 KB** |
+| `home` | 512×512 渲染图 | 1336 | 159 MB | 122 KB |
+| `artwork` | 475×475 官方插画 | 1339 | 162 MB | 124 KB |
+
+**差了约 65 倍**，而列表卡只渲染 64–70px 的槽。因此前端采用**渐进式两段加载**：
+进视口先拉 `front` 点亮（一屏 20 张约 38 KB），再后台换 `home`（约 2.4 MB）。
+调度上 preview 走高优先级，**整屏低清全部跑完才轮到高清** —— 否则第一张卡的高清
+会插到其余卡的 preview 前面，退化成「第一张先高清、其余仍黑着」。
+
+常量收敛在 `src/constants/spriteVariants.ts`（`SPRITE_PREVIEW` / `SPRITE_FALLBACKS`），
+编排在 `src/services/resources/spriteLoader.ts`，不变量见
+[../caching/sprite-cache.md](../caching/sprite-cache.md)。
+
 详情主图传 `eager`（必然可见，不懒加载）。
 
-### 4.3 已知图片缺口（404 正常）
+### 4.3 已知图片缺口与回落链
 
-部分形态官方无 HOME 立绘，前端 404 回退 `/static/default.png`，404 单独打 `[EncryptedSprite] 无立绘资源`，
-不误报解密失败。1351 个 id 中 `home.bin` 缺失 16 个：
+部分形态官方无 HOME 立绘。前端**不再直接落占位图**，而是按
+`home → artwork → front → /static/default.png` 逐个尝试（只有 404 才继续下一个；
+解密失败等真故障立即抛出，不伪装成数据缺口）。
 
-| 类型 | id | 形态 |
-|------|----|------|
-| 无任何目录 | 10265–10267 | 故勒顿 冲刺/游泳/滑翔 |
-| 无任何目录 | 10269–10271 | 密勒顿 驱动/水上/滑翔 |
-| 有目录无 home（也无 artwork） | 10264 / 10268 | 故勒顿限定 / 密勒顿低电量 |
-| 有目录无 home（**有 artwork**） | 10080–10085 | 角色扮演皮卡丘 |
-| 有目录无 home（**有 artwork**） | 10158 / 10159 | 搭档皮卡丘 / 搭档伊布 |
+数字 id 口径（前端只请求这些，见 4.5）缺 `home` 的共 **10 个**，8 个能回落：
 
-> 想让无 home 的形态回退 artwork 而非占位，需要数据层加「形态→可回退 variant」判断，再让
-> `EncryptedSprite` 按顺序尝试，目前未实现。
+| id | 形态 | home | artwork | front | 实际显示 |
+|----|------|------|---------|-------|---------|
+| 10080–10085 | 角色扮演皮卡丘 | ❌ | ✅ | ✅ | artwork |
+| 10158 / 10159 | 搭档皮卡丘 / 搭档伊布 | ❌ | ✅ | ❌ | artwork |
+| 10264 / 10268 | 故勒顿限定 / 密勒顿低电量 | ❌ | ❌ | ❌ | **占位图** |
+| 10301 | （有 home 无 front） | ✅ | ✅ | ❌ | home（preview 静默跳过） |
 
-### 4.4 道具 / 徽章 / 属性图标（`/assets/encrypted/{items,badges,types}/`）
+> `10265–10267`、`10269–10271`（故勒顿/密勒顿的冲刺/游泳/滑翔等）**连资源目录都没有**，
+> 与 10264/10268 同样必须占位。这 8 个正是 PKMB `hasSprite === false` 的全集。
+
+**`hasSprite` 已接入**：`EncryptedSprite` 收到 `hasSprite === false` 时直接显示占位图，
+**不发那次必然 404 的请求**（数据层判定比运行时 404 更早、更确定）。字段缺席按「可能有」
+处理，仍走回落链。调用点：`PokemonCard`、`SpecimenHero`；`EvolutionNode` 的
+`EvolutionStage` 无此字段，靠回落链兜。
+
+404 不算解密失败：单独打 `[EncryptedSprite] 无资源`（warn），真失败才 `解密失败`（error）。
+
+### 4.4 前端请求不到的密文（体积治理）
+
+`encrypted-assets/pokemon/` 下有两类产物**没有任何前端调用路径**，排查体积时别误判：
+
+| 类型 | 数量 | 体积 | 为什么取不到 |
+|------|------|------|-------------|
+| 非数字目录（`201-a`、`869-vanilla-cream-*`、`egg`、`substitute`…） | 332 | 88 MB | 前端一律按**数字 pokemon id** 请求，slug 目录永远不会被拼出来 |
+| 各 id 下的 `versions/<gen>/...` | — | 330 MB | 按世代历史美术，前端当前不读取（见 4.2 表末行） |
+
+合计约 **418 MB**。核对命令：
+
+```bash
+cd assets/encrypted-assets/pokemon
+# 非数字目录
+ls -d */ | sed 's#/##' | grep -vE '^[0-9]+$' | wc -l
+# versions 占用
+du -sch */versions 2>/dev/null | tail -1
+```
+
+要不要清由部署侧决定（留着不影响正确性，只占磁盘与镜像体积）；
+若将来接 CDN，这部分不值得回源预热。
+
+### 4.5 道具 / 徽章 / 属性图标（`/assets/encrypted/{items,badges,types}/`）
 
 除精灵立绘外，`make encrypt` 同样加密三类静态图标，解密后都是 PNG、用法与精灵图一致
 （拿密文 → WASM 解密 → Blob URL 喂 `<image>`）：
 
 | 资源 | 远端路径 | 文件名 id | 数量 | id 含义 |
 |------|----------|-----------|------|---------|
-| 道具 | `/assets/encrypted/items/{itemId}.bin` | **PokeAPI item id** | 862 | `items.csv` 的 `id`（数字），**不是**道具英文名 |
+| 道具 | `/assets/encrypted/items/{itemId}.bin` | **PokeAPI item id** | 1093 | `items.csv` 的 `id`（数字），**不是**道具英文名 |
 | 徽章 | `/assets/encrypted/badges/{n}.bin` | 道馆徽章序号 | 77 | poke-sprites 源文件名（1 起） |
 | 属性 | `/assets/encrypted/types/{typeId}.bin` | **PokeAPI type id** | 19 | `types` 表 id（1–19，朱紫图标） |
 
@@ -190,10 +247,21 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 （`id,identifier,...`）把 `<identifier>.png` 重命名为 `<id>.png`，再加密成 `<id>.bin`。
 前端要用某个道具，直接按 **PokeAPI item id** 请求 `items/{id}.bin` 即可，无需 slug 映射。
 
-- 道具**只加密有精灵图的**：`items.csv` 共约 2221 个道具，其中 **862** 个在 sprite 源里有
-  `<identifier>.png`；其余（多数剧情/钥匙道具、按编号的 `tm01..tm100` 等）无独立图，**不产出**，
-  请求会 **404**，前端应像 4.3 那样回退占位图。
-- TM/HM 在源里是按属性复用的单图（`tm-fire.png`、`hm-water.png` 等），不对应单个 item id，故未纳入。
+- 道具**只加密有精灵图的**：`items.csv` 共约 2221 个道具，其中 **1093** 个能取到图；
+  其余 1128 个（多数剧情/钥匙道具）无图，**不产出**，请求会 **404**，前端回落中性占位盒
+  （道具无 variant，故没有 4.3 那样的回落链）。
+- **技能机 / 秘传机（2026-09-05 起纳入）**：`tm01`..`tm100` 等共 238 个编号道具，源仓库
+  没有逐编号的图，统一回落到通用图 `tm-normal.png` / `hm-normal.png`，因此这批 id
+  **有图可取但图案相同**（只是一个"技能机"图标，不区分招式）。前端若要区分具体招式，
+  需自行叠加招式属性色/文字，不能指望图片本身。
+  - 例外：源里存在 `hm01.png`..`hm07.png` **七张独立秘传机图**，这 7 个 id（397–403）
+    用各自的图；只有 `hm08`(404) 回落通用图。所以实际回落通用图的是 **231** 个而非 238。
+  - `tm-case`(550) / `tmv-pass`(744) 有各自独立的图，不受归一化影响（正则要求 `tm`/`hm`
+    后紧跟数字）。
+  - ⚠️ 源里 `tm-normal.png` 与 `hm-normal.png` **内容完全相同**，故 `hm08` 与所有 tm
+    拿到的是同一张图。
+  - 与上游 PokeAPI 的差异：上游 `build.py` 无条件把 `^tm[0-9]`/`^hm[0-9]` 全归一化到通用图，
+    会连 hm01–hm07 的独立图一起丢掉；本仓库**优先用独立图**，仅在缺图时才回落。
 - 徽章/属性文件名在 sync 时保持源文件名不变（属性源本就按 type id 命名）。
 
 > ⚠️ **历史坑**：道具早期用一张手写白名单重命名，其数字 key **不是** PokeAPI 真实 item id
@@ -210,11 +278,17 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 ## 6. 排障清单
 
 ### 6.1 图裂 / 显示默认图
-1. Network 看请求的 pokemon id、variant（默认 home）。
-2. 状态码：**404** → 对照 4.3 缺口表，不在表里查 `encrypt-assets` 是否跑过；
-   **403** → CDN 签名过期（自动清 key 重签重下一次）；**200 但解密抛错** → 见 6.2。
-3. 控制台 `无立绘资源` = 404 正常；`解密失败` = 真错误。
+1. Network 看请求的 pokemon id、variant。**渐进式加载下一张卡有两个请求**：
+   先 `front`（preview，约 2 KB）再 `home`（高清）；只看到 front 说明高清还在跑或全 404。
+2. 状态码：**404** → 对照 4.3 缺口表；不在表里且整条链（home/artwork/front）都 404，
+   查 `encrypt-assets` 是否跑过。**403** → CDN 签名过期（自动清 key 重签重下一次）；
+   **200 但解密抛错** → 见 6.2。
+3. 控制台 `无资源` = 整条回落链都 404，正常；`解密失败` = 真错误。
+   注意 preview 的 404 是**静默**的（不打日志），如 10301 无 front —— 不是 bug。
 4. 快滑时闪骨架 = 离屏取消 + 进视口重下，正常。
+5. 先出低清、随后变清晰 = 渐进式两段加载的预期行为，不是缓存错乱。
+6. 该形态直接显示占位图且**一个请求都没发** → `hasSprite === false`（数据层判定），
+   见 4.3；确认 `gen-N.bin` 里该 id 的标记是否符合预期。
 
 ### 6.2 解密失败 / invalid magic / unsupported version / tag 失败
 - `invalid magic` → 拿到的不是 ZKDX（HTML 404 页、未加密明文 FB、JSON 错误体）。查远端路径。
@@ -251,8 +325,8 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 | ZKDX 格式 / 加算法 | 常量三处（前端 crypto.rs、后端 wasm-crypto、后端 zukan/service.rs）+ `build_zkdx`；`FORMAT_VERSION` 同步升级并重编 WASM；本文第 1、1.1 节 |
 | 重新加密资源（内容变更） | 决定是否 bump `ZUKAN_DEK_VERSION`（仅缓存信号，**不进文件头**）；勿动 `FORMAT_VERSION`（1.1 / 6.3） |
 | 新增 FB bundle 类型 | ① schema + flatc 重生成 ② sync-*.py 打包 ③ WASM convert.rs 加解码器 + index.ts 导出 ④ resourceManager 加 spec/getter/prefetch ⑤ 本文 4.1 |
-| 新增 sprite variant | ① encrypt-assets 产物 ② EncryptedSprite variant 传值 ③ 缺失兜底 ④ 本文 4.2 |
-| 改道具图 / 道具 id 映射 | ① `tools/sync-sprites.py`（读 `items.csv` 真实 id）② 重跑 `sync-sprites.py` + `make encrypt` ③ **加密是增量、不删旧密文**：道具改名/删除后须手动清掉 `encrypted-assets/items/` 再重建，否则残留错误编号 `.bin` ④ 本文 4.4 |
+| 新增 sprite variant | ① encrypt-assets 产物 ② `EncryptedSprite` variant 传值 ③ 缺失兜底 ④ 若要进 preview / 回落链，改 `src/constants/spriteVariants.ts`（**唯一定义处**，别在组件里各写一份）并跑 `tests/spriteVariants.spec.ts` ⑤ 本文 4.2 / 4.3 |
+| 改道具图 / 道具 id 映射 | ① `tools/sync-sprites.py`（读 `items.csv` 真实 id，`sprite_slug()` 决定回落规则）② 重跑 `sync-sprites.py` + `make encrypt` ③ **加密是增量、且靠 mtime 判定**：`copy_items()` 会 rmtree 明文目录，但**加密侧不清场**；而 `shutil.copy2` 保留源 mtime，改了映射后新明文可能比旧密文还"旧"而被跳过，导致残留旧图。改映射后须手动删掉受影响的 `encrypted-assets/items/*.bin` 再重建 ④ 本文 4.5 |
 | 改 form / 名称映射 | sync-i18n.py 重映射；重打包 PKNM 重加密；清缓存 |
 | 改缓存调度 / 引用计数 | 跑 `pnpm test`（spriteCache/spritePersist）；别破坏 caching 文档里的不变量 |
 | 接 CDN 签名 | 后端 `/zukan/key` 响应加 `cdn` 对象；前端 `buildCdnUrl` 已就绪 |
@@ -265,6 +339,9 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 **前端**：`src/infra/wasm/src/crypto.rs`、`src/infra/wasm/index.ts`、
 `src/services/http/binaryRequest.ts`、`src/services/resources/cdn.ts`、
 `src/services/session/{key,authGate}.ts`、`src/services/resources/{resourceManager,dataVersion,spriteCache,spritePersist}.ts`、
+`src/services/resources/spriteLoader.ts`（preview + 回落链编排）、
+`src/constants/spriteVariants.ts`（variant 常量唯一定义处）、
+`src/composables/useEncryptedImage.ts`、
 `src/infra/storage/binaryStorage.ts`、`src/services/pokemon/pokemon.ts`、
 `src/components/sprite/EncryptedSprite.vue`、`src/services/boot.ts`。
 
