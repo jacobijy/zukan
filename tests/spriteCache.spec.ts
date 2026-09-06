@@ -199,15 +199,15 @@ async function fill(mod: SpriteCacheModule, from: number, to: number) {
 describe('LRU 淘汰', () => {
     it('超过上限后撤销最旧的空闲条目', async () => {
         const mod = await freshModule();
+        const cap = mod.SPRITE_MAX_ENTRIES;
 
-        // MAX_ENTRIES = 200
-        await fill(mod, 1, 200);
-        expect(mod.spriteCacheStats().entries).toBe(200);
+        await fill(mod, 1, cap);
+        expect(mod.spriteCacheStats().entries).toBe(cap);
         expect(revokedUrls).toEqual([]);
 
-        // 第 201 条触发淘汰
-        await mod.acquireSprite(201, 'home');
-        expect(mod.spriteCacheStats().entries).toBe(200);
+        // 第 cap+1 条触发淘汰
+        await mod.acquireSprite(cap + 1, 'home');
+        expect(mod.spriteCacheStats().entries).toBe(cap);
         expect(revokedUrls).toHaveLength(1);
         // 撤销的是最早插入的那个
         expect(revokedUrls[0]).toBe(createdUrls[0]);
@@ -218,7 +218,7 @@ describe('LRU 淘汰', () => {
 
         // 第 1 条保持持有（模拟正显示在屏幕上）
         const pinned = await mod.acquireSprite(1, 'home');
-        await fill(mod, 2, 250);
+        await fill(mod, 2, mod.SPRITE_MAX_ENTRIES + 50);
 
         expect(revokedUrls).not.toContain(pinned);
         // 被 pin 住的条目仍可命中
@@ -227,28 +227,47 @@ describe('LRU 淘汰', () => {
 
     it('全部在屏时缓存可短暂超限，但不误撤销', async () => {
         const mod = await freshModule();
+        const over = mod.SPRITE_MAX_ENTRIES + 10;
 
-        for (let id = 1; id <= 210; id += 1) {
+        for (let id = 1; id <= over; id += 1) {
             // eslint-disable-next-line no-await-in-loop -- 同上：顺序即 LRU 顺序
             await mod.acquireSprite(id, 'home'); // 不 release
         }
 
-        expect(mod.spriteCacheStats().entries).toBe(210);
+        expect(mod.spriteCacheStats().entries).toBe(over);
         expect(revokedUrls).toEqual([]);
     });
 
     it('命中会刷新 LRU 位置，最旧的不再是它', async () => {
         const mod = await freshModule();
+        const cap = mod.SPRITE_MAX_ENTRIES;
 
-        await fill(mod, 1, 200);
+        await fill(mod, 1, cap);
         // 重新取用第 1 条 → 移到末尾，再 release 使其可淘汰
         await mod.acquireSprite(1, 'home');
         mod.releaseSprite(1, 'home');
 
-        await mod.acquireSprite(201, 'home');
+        await mod.acquireSprite(cap + 1, 'home');
 
         // 淘汰的应是第 2 条（现存最旧），而不是刚刷新过的第 1 条
         expect(revokedUrls).toEqual([createdUrls[1]]);
+    });
+
+    it('渐进式加载下一屏卡不会自相淘汰 —— preview 与 full 是两个 key', async () => {
+        const mod = await freshModule();
+
+        // 一屏 20 张卡，每张先 preview 后 full，全部保持在屏（不 release）
+        for (let id = 1; id <= 20; id += 1) {
+            // eslint-disable-next-line no-await-in-loop -- 顺序即 LRU 顺序
+            await mod.acquireSprite(id, 'front');
+            // eslint-disable-next-line no-await-in-loop
+            await mod.acquireSprite(id, 'home');
+        }
+
+        expect(mod.spriteCacheStats().entries).toBe(40);
+        expect(revokedUrls).toEqual([]);
+        // 上限必须容得下一屏的两倍，否则 preview 刚点亮就被自己的 full 挤掉
+        expect(mod.SPRITE_MAX_ENTRIES).toBeGreaterThanOrEqual(40);
     });
 });
 
@@ -335,6 +354,8 @@ describe('CDN 403 重签', () => {
  */
 interface Deferred {
     id: number;
+    /** 该次请求的 variant（渐进式加载要区分 preview 与高清两条任务） */
+    variant: string;
     signal?: AbortSignal;
     done: boolean;
     resolve: () => void;
@@ -350,12 +371,18 @@ function idFromUrl(url: string): number {
     return match ? Number(match[1]) : -1;
 }
 
+function variantFromUrl(url: string): string {
+    const match = /\/pokemon\/\d+\/(.+)\.bin$/.exec(url);
+    return match ? match[1]! : '';
+}
+
 function useDeferredFetch(): void {
     pendingFetches = [];
     fetchBinary.mockReset().mockImplementation((url: string, opts?: { signal?: AbortSignal }) => {
         return new Promise<Uint8Array>((resolve, reject) => {
             const entry: Deferred = {
                 id: idFromUrl(url),
+                variant: variantFromUrl(url),
                 signal: opts?.signal,
                 done: false,
                 resolve: () => {
@@ -404,10 +431,22 @@ function startedIds(): number[] {
     return pendingFetches.map((f) => f.id);
 }
 
+/** 已发出下载的 `id/variant` 列表（顺序即调度顺序） */
+function startedKeys(): string[] {
+    return pendingFetches.map((f) => `${f.id}/${f.variant}`);
+}
+
 /** 结算某张图。取消过的那次不算 —— 重试会是同 id 的新条目。 */
 function settle(id: number): void {
     const entry = pendingFetches.find((f) => f.id === id && !f.done);
     if (!entry) throw new Error(`no pending fetch for id ${id}`);
+    entry.resolve();
+}
+
+/** 结算指定 id + variant 的那次请求 */
+function settleKey(id: number, variant: string): void {
+    const entry = pendingFetches.find((f) => f.id === id && f.variant === variant && !f.done);
+    if (!entry) throw new Error(`no pending fetch for ${id}/${variant}`);
     entry.resolve();
 }
 
@@ -507,6 +546,135 @@ describe('调度顺序', () => {
         settle(2);
         await flush();
         expect(startedIds()[5]).toBe(101);
+    });
+});
+
+/**
+ * 渐进式两段加载的调度：`priority` 必须**凌驾于 batch 之上**。
+ *
+ * 这是三级排序键存在的唯一理由。只按 (batch, seq) 排的话，第 1 张卡的 preview
+ * 一结算就立刻入队它的高清图 —— 而那是个**更新的 batch**，会插到还在排队的
+ * 第 5..20 张 preview 前面，退化成「第一张先高清、其余仍黑着」，恰好毁掉
+ * 「先用 2 KB 的低清点亮整屏」的目的。
+ */
+describe('调度优先级（渐进式两段加载）', () => {
+    it('priority 高的插到队首，压过同批先到的普通任务', async () => {
+        const mod = await freshModule();
+        useDeferredFetch();
+
+        // 同一帧：4 张高清占满槽位，5..10 的高清排队
+        for (let id = 1; id <= 10; id += 1) {
+            void mod.acquireSprite(id, 'home').catch(() => undefined);
+        }
+        // 同一批里再插一个 preview（priority=1）
+        void mod.acquireSprite(50, 'front', { priority: 1 }).catch(() => undefined);
+        await flush();
+        expect(startedIds()).toEqual([1, 2, 3, 4]);
+
+        // 腾出槽位 —— 该跑的是 priority=1 的 preview，不是同批 seq 更小的 5
+        settle(1);
+        await flush();
+        expect(startedKeys()[4]).toBe('50/front');
+    });
+
+    it('priority 压过 batch —— 后来的高清不得抢在先前排队的 preview 之前', async () => {
+        const mod = await freshModule();
+        useDeferredFetch();
+
+        // 一屏 6 张卡的 preview 同批入队：前 4 占槽，5、6 排队
+        for (let id = 1; id <= 6; id += 1) {
+            void mod.acquireSprite(id, 'front', { priority: 1 }).catch(() => undefined);
+        }
+        await flush();
+        expect(startedKeys()).toEqual(['1/front', '2/front', '3/front', '4/front']);
+
+        // 下一帧：第 1 张的 preview 到手，组件接着要它的高清（普通优先级、更新的 batch）
+        await nextFrame();
+        void mod.acquireSprite(1, 'home').catch(() => undefined);
+        await flush();
+
+        // 腾出一个槽 —— 必须先跑还在排队的 preview（5/front），
+        // 而不是 batch 更新的 1/home。只按 (batch, seq) 排就会取后者。
+        settleKey(1, 'front');
+        await flush();
+        expect(startedKeys()[4]).toBe('5/front');
+
+        settleKey(2, 'front');
+        await flush();
+        expect(startedKeys()[5]).toBe('6/front');
+
+        // preview 全部放行后，高清才轮到
+        settleKey(3, 'front');
+        await flush();
+        expect(startedKeys()[6]).toBe('1/home');
+    });
+
+    it('同 priority 内仍按「批间 LIFO、批内 FIFO」 —— 没破坏原有不变量', async () => {
+        const mod = await freshModule();
+        useDeferredFetch();
+
+        for (let id = 1; id <= 10; id += 1) {
+            void mod.acquireSprite(id, 'front', { priority: 1 }).catch(() => undefined);
+        }
+        await flush();
+
+        await nextFrame();
+        void mod.acquireSprite(100, 'front', { priority: 1 }).catch(() => undefined);
+        await flush();
+
+        // 同为 priority=1：新批的 100 抢在旧批排头的 5 之前
+        settleKey(1, 'front');
+        await flush();
+        expect(startedKeys()[4]).toBe('100/front');
+
+        // 新批跑完，回到旧批的 seq 最小者
+        settleKey(2, 'front');
+        await flush();
+        expect(startedKeys()[5]).toBe('5/front');
+    });
+
+    it('同一张图被不同 priority 同时要时取 max —— 急件不被先到的低优先级压在队尾', async () => {
+        const mod = await freshModule();
+        useDeferredFetch();
+
+        // 占满槽位，让后续任务只能排队
+        for (let id = 1; id <= 4; id += 1) {
+            void mod.acquireSprite(id, 'home').catch(() => undefined);
+        }
+        // 同一帧里以普通优先级排队 77/front（模拟列表里先入队的一张）
+        void mod.acquireSprite(77, 'front').catch(() => undefined);
+        await flush();
+        expect(startedIds()).toEqual([1, 2, 3, 4]);
+
+        // 下一帧：别的行入队（更新的 batch，本来会压过 77/front），
+        // 同时有人以高优先级要同一张 77/front —— 该 job 必须被提权。
+        await nextFrame();
+        for (let id = 200; id <= 203; id += 1) {
+            void mod.acquireSprite(id, 'home').catch(() => undefined);
+        }
+        void mod.acquireSprite(77, 'front', { priority: 1 }).catch(() => undefined);
+        await flush();
+
+        // 提权生效：priority=1 压过新批的 200。
+        // 不提权的话 77/front 仍是旧批 priority=0，会输给 200/home。
+        settle(1);
+        await flush();
+        expect(startedKeys()[4]).toBe('77/front');
+    });
+
+    it('不传 priority 的调用行为不变（道具图标等既有调用点）', async () => {
+        const mod = await freshModule();
+        useDeferredFetch();
+
+        for (let id = 1; id <= 6; id += 1) {
+            void mod.acquireSprite(id, 'home').catch(() => undefined);
+        }
+        await flush();
+        expect(startedIds()).toEqual([1, 2, 3, 4]);
+
+        settle(1);
+        await flush();
+        expect(startedIds()[4]).toBe(5);
     });
 });
 

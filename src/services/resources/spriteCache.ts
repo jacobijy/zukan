@@ -9,23 +9,34 @@
  * 三条调度不变量（实现见 `imageCache.ts` 文件头）：
  * 1. **限流 4 并发** —— 不限流时几十个请求丢给浏览器 FIFO 排队，当前视口排在
  *    已划过去的行后面。
- * 2. **批内 FIFO，批间 LIFO** —— `batch` 每帧自增，取任务时 batch 最大优先、
- *    同批 seq 最小优先；纯 LIFO 首屏会「从下往上」冒，纯 FIFO 退回原 bug。
+ * 2. **优先级 → 批间 LIFO → 批内 FIFO** —— `priority` 大优先（渐进式 preview 走 1）、
+ *    再比 `batch` 大、同批 `seq` 小；纯 LIFO 首屏会「从下往上」冒，纯 FIFO 退回原 bug。
  * 3. **离屏取消** —— IntersectionObserver 不是一次性的，滑出视口要 abort 腾槽；
  *    多 waiter 时只有 waiters 归零才真取消，否则列表卡片卸载连累详情页。
  *
  * 持久层复用 `spritePersist` 的 pokemon 单例 —— load/save/drop 与版本清理
  * （`pruneSpriteVersions`）必须共享同一份内存索引状态。
  */
-import { createImageCache, ImageAbortError, isImageAbortError } from '@/services/resources/imageCache';
+import {
+    createImageCache,
+    ImageAbortError,
+    isImageAbortError,
+    type ImageAcquireOptions,
+} from '@/services/resources/imageCache';
 import { imageKindSpec } from '@/services/resources/imageKind';
 import { pokemonImagePersist } from '@/services/resources/spritePersist';
 
 /**
- * 内存 LRU 条目上限。sprite 解密后是完整 PNG（实测 76–190 KB），200 条约
- * 20–30 MB，已是移动端可接受的上界。
+ * 内存 LRU 条目上限。
+ *
+ * sprite 解密后是完整 PNG（home 实测 76–190 KB），但渐进式加载让一张卡最多占
+ * **两个** key（96×96 的 `front` preview 约 2 KB + 高清 full），条目数按 2× 算 ——
+ * 200 会让一屏 20 张卡的 preview 刚点亮就被自己的 full 挤掉。320 条的内存上界
+ * 仍由 full 主导（preview 那半几乎不占），约 20–30 MB，移动端可接受。
+ *
+ * 导出给用例用：写死数字的断言会在这里一改就集体变红，实际踩过。
  */
-const MAX_ENTRIES = 200;
+export const SPRITE_MAX_ENTRIES = 320;
 
 /**
  * 同时在途的 sprite 下载数。H5 单域 6 连接要留余量给 FB bundle；
@@ -34,7 +45,7 @@ const MAX_ENTRIES = 200;
 const MAX_CONCURRENT = 4;
 
 const engine = createImageCache('pokemon', imageKindSpec('pokemon'), pokemonImagePersist, {
-    maxEntries: MAX_ENTRIES,
+    maxEntries: SPRITE_MAX_ENTRIES,
     maxConcurrent: MAX_CONCURRENT,
     // 中止错误用 SpriteAbortError，保持 `err instanceof SpriteAbortError`（历史用例与组件约定）
     abortError: (key) => new SpriteAbortError(key),
@@ -57,12 +68,9 @@ export function spriteCacheKey(pokemonId: number, variant: string): string {
  * **调用方必须在不再使用时 `releaseSprite`**，否则该条目永不被淘汰（等价泄漏）。
  * 组件里配对写在 `onUnmounted` / props 变化处。传 `signal` 可在滑出视口 / 卸载时
  * 取消，取消时抛 `SpriteAbortError`，用 `isSpriteAbortError` 与真失败区分。
+ * 传 `priority`（默认 0）可插队，渐进式加载的低清 preview 用 1。
  */
-export function acquireSprite(
-    pokemonId: number,
-    variant: string,
-    options: { signal?: AbortSignal } = {},
-): Promise<string> {
+export function acquireSprite(pokemonId: number, variant: string, options: ImageAcquireOptions = {}): Promise<string> {
     return engine.acquire(pokemonId, variant, options);
 }
 

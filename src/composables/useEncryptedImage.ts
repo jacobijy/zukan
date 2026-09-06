@@ -10,6 +10,11 @@
  * - 拿到 Blob URL 后登记引用，卸载 / id 变化时归还（引擎按引用计数决定能否淘汰）；
  * - 不支持 IntersectionObserver（小程序 / 老浏览器）或传 `eager` 时退化为立即加载。
  *
+ * 「先低清后高清」与「404 回落链」的编排不在这里，而在
+ * `services/resources/spriteLoader.ts`（纯函数，无 Vue 依赖，可在 node 测试环境
+ * 直接跑）。本文件只把它的结果映射成渲染状态。道具走同一条路径，只是 plan 退化
+ * 为「无 preview、单项 chain」。
+ *
  * 返回的状态交给组件渲染：`blobUrl` 有值显示图片；`loading` 为真显示骨架；
  * 两者都否（`failed`）显示组件自己的兜底图 / 占位盒。
  */
@@ -17,6 +22,7 @@ import { ref, onMounted, onUnmounted, watch, type Ref } from 'vue';
 import { acquireSprite, releaseSprite } from '@/services/resources/spriteCache';
 import { acquireItemIcon, releaseItemIcon } from '@/services/resources/itemImage';
 import { isImageAbortError } from '@/services/resources/imageCache';
+import { loadSpriteChain } from '@/services/resources/spriteLoader';
 import { BinaryRequestError } from '@/services/http';
 import type { ImageKind } from '@/services/resources/imageKind';
 
@@ -24,7 +30,7 @@ export interface EncryptedImageState {
     blobUrl: Ref<string | null>;
     /** 没有最终结果时为真；离屏取消后保持为真（等下次进视口重试，仍显示骨架） */
     loading: Ref<boolean>;
-    /** 真失败（含 404 无资源）；离屏取消不算 */
+    /** 真失败（含全链 404 无资源）；离屏取消不算 */
     failed: Ref<boolean>;
     /** 挂到根元素上供 IntersectionObserver 观察 */
     wrapperRef: Ref<unknown>;
@@ -38,12 +44,24 @@ interface UseEncryptedImageOptions {
     variant?: () => string;
     /** 关掉懒加载、挂载即下载（详情页主图这类必然可见的场景） */
     eager?: () => boolean;
+    /** 低清先行 variant（如 `front`）；返回 null 关掉渐进式 */
+    preview?: () => string | null;
+    /** 主 variant 404 后的尝试顺序（含主 variant 自身）；缺省只试主 variant */
+    chain?: () => string[];
+    /** 数据层已知没图（`hasSprite === false`）：不发请求，直接判失败 */
+    skip?: () => boolean;
     /** 日志前缀，便于排障 */
     logTag?: string;
 }
 
-function acquire(kind: ImageKind, id: number, variant: string, signal: AbortSignal | undefined): Promise<string> {
-    return kind === 'pokemon' ? acquireSprite(id, variant, { signal }) : acquireItemIcon(id, { signal });
+function acquire(
+    kind: ImageKind,
+    id: number,
+    variant: string,
+    priority: number,
+    signal: AbortSignal | undefined,
+): Promise<string> {
+    return kind === 'pokemon' ? acquireSprite(id, variant, { signal, priority }) : acquireItemIcon(id, { signal });
 }
 
 function release(kind: ImageKind, id: number, variant: string): void {
@@ -51,8 +69,21 @@ function release(kind: ImageKind, id: number, variant: string): void {
     else releaseItemIcon(id);
 }
 
+function isNotFound(err: unknown): boolean {
+    return err instanceof BinaryRequestError && err.statusCode === 404;
+}
+
 export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedImageState {
-    const { kind, id: getId, variant: getVariant, eager: getEager, logTag = 'EncryptedImage' } = options;
+    const {
+        kind,
+        id: getId,
+        variant: getVariant,
+        eager: getEager,
+        preview: getPreview,
+        chain: getChain,
+        skip: getSkip,
+        logTag = 'EncryptedImage',
+    } = options;
 
     const curVariant = (): string => getVariant?.() ?? 'icon';
     const isEager = (): boolean => getEager?.() ?? false;
@@ -62,7 +93,14 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
     const failed = ref(false);
     const wrapperRef = ref<unknown>(null);
 
-    /** 当前已登记引用的目标，用于配对 release（id 变化时要释放旧的那一个） */
+    /**
+     * 当前**由本 composable 持有**引用的图。
+     *
+     * 加载途中的 preview 引用归 `loadSpriteChain` 所有，不进这里 —— 两边都记的话，
+     * 「preview 已上屏 → 组件卸载」会走成 `releaseHeld()` 与 `loadSpriteChain` 各
+     * 归还一次，把别人的引用扣成 0 导致在屏图被 revoke（裂图）。所有权在
+     * `loadSpriteChain` 返回的那一刻单向移交给这里。
+     */
     let held: { id: number; variant: string } | null = null;
     let observer: IntersectionObserver | null = null;
     /** 组件已卸载：异步回来后不要再写 ref，也要立刻归还引用 */
@@ -92,35 +130,74 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
             return;
         }
 
+        // 数据层已判定这个形态没有正面立绘 —— 直接落兜底，省一次必然 404 的往返
+        if (getSkip?.()) {
+            blobUrl.value = null;
+            failed.value = true;
+            loading.value = false;
+            return;
+        }
+
         const ac = typeof AbortController === 'function' ? new AbortController() : null;
         controller = ac;
 
-        try {
-            const url = await acquire(kind, targetId, targetVariant, ac?.signal);
+        /** 目标变了 / 组件没了：spriteLoader 据此提前收手并归还引用 */
+        const isStale = (): boolean => disposed || targetId !== getId() || targetVariant !== curVariant();
 
-            // 等待期间组件被卸载 / 目标又变了 —— 立刻归还，避免引用泄漏
-            if (disposed || targetId !== getId() || targetVariant !== curVariant()) {
-                release(kind, targetId, targetVariant);
+        try {
+            const result = await loadSpriteChain(
+                {
+                    preview: getPreview?.() ?? null,
+                    chain: getChain?.() ?? [targetVariant],
+                },
+                {
+                    acquire: (variant, priority) => acquire(kind, targetId, variant, priority, ac?.signal),
+                    release: (variant) => release(kind, targetId, variant),
+                    isStale,
+                    onPreview: (previewRef) => {
+                        // 低清先上屏：此刻就收起骨架，整屏在几十毫秒内点亮。
+                        // 只改渲染状态，**不碰 `held`** —— 这一段的引用仍归
+                        // loadSpriteChain 管，它会在 stale / 换高清时自己归还。
+                        blobUrl.value = previewRef.url;
+                        loading.value = false;
+                    },
+                    isNotFound,
+                },
+            );
+
+            if (result.status === 'stale') {
+                // 引用已由 loadSpriteChain 全部归还，这里什么都不持有
                 return;
             }
 
+            if (result.status === 'missing') {
+                if (result.preview) {
+                    // 高清全 404 但低清有（罕见）：留着低清，好过灰占位。
+                    // 所有权在此移交，卸载时由 releaseHeld 归还。
+                    releaseHeld();
+                    held = { id: targetId, variant: result.preview.variant };
+                    blobUrl.value = result.preview.url;
+                } else {
+                    console.warn(`[${logTag}] 无资源:`, kind, targetId, targetVariant);
+                    blobUrl.value = null;
+                    failed.value = true;
+                }
+                return;
+            }
+
+            // 高清到手：接管它的引用，归还上一轮的旧图与这一轮的 preview
             releaseHeld();
-            held = { id: targetId, variant: targetVariant };
-            blobUrl.value = url;
+            held = { id: targetId, variant: result.full.variant };
+            blobUrl.value = result.full.url;
+            if (result.preview) release(kind, targetId, result.preview.variant);
             // 拿到图了，不必再观察
             observer?.disconnect();
             observer = null;
         } catch (err) {
             if (disposed) return;
             // 主动取消是正常路径（滑出视口）：保持骨架屏，等下次进视口重来
-            if (isImageAbortError(err)) return;
-            // 404 = 服务端没有该资源（如故勒顿骑行立绘 / 无图道具），不是解密失败，
-            // 降级为 warn 避免误导。
-            if (err instanceof BinaryRequestError && err.statusCode === 404) {
-                console.warn(`[${logTag}] 无资源:`, kind, targetId, targetVariant);
-            } else {
-                console.error(`[${logTag}] 解密失败:`, kind, targetId, targetVariant, err);
-            }
+            if (isImageAbortError(err) || (err instanceof BinaryRequestError && err.aborted)) return;
+            console.error(`[${logTag}] 解密失败:`, kind, targetId, targetVariant, err);
             blobUrl.value = null;
             failed.value = true;
         } finally {
@@ -180,6 +257,8 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
         ([nextId, nextVariant], [prevId, prevVariant]) => {
             if (nextId === prevId && nextVariant === prevVariant) return;
             abortInflight();
+            // 旧目标的图不会再显示了，两槽都归还
+            releaseHeld();
             blobUrl.value = null;
             failed.value = false;
             // 已在观察中的话让新的一轮接管

@@ -25,11 +25,19 @@
  * - 引擎（限流 / 引用计数 / LRU / 三层缓存）：`services/resources/spriteCache.ts`
  *   （泛化实现见 `imageCache.ts`）
  * - 懒加载 / 离屏取消 / 引用配对：`composables/useEncryptedImage.ts`
+ * - 「低清先行 + 404 回落链」的编排：`services/resources/spriteLoader.ts`
+ *
+ * 默认行为是**渐进式两段加载**：先拉 96×96 的 `front`（约 2 KB）点亮，再换
+ * 512×512 的 `home`（约 122 KB）。主 variant 404 时按 `fallbacks` 顺序回落，
+ * 全链都没有才落 `/static/default.png`。体积对照与缺口清单见
+ * `@/constants/spriteVariants`。
  *
  * 本组件只负责把状态渲染成图片 / 骨架 / 默认图。道具图标用同一 composable 的
  * item 种类，见 `archive/ItemIcon.vue`。
  */
-import { useEncryptedImage } from '@/composables/useEncryptedImage';
+import { computed } from 'vue'
+import { useEncryptedImage } from '@/composables/useEncryptedImage'
+import { SPRITE_PREVIEW, SPRITE_FALLBACKS, buildSpriteChain } from '@/constants/spriteVariants'
 
 interface Props {
   pokemonId: number
@@ -38,6 +46,15 @@ interface Props {
   skeletonClass?: string
   /** 关掉懒加载，挂载即开始下载（详情页主图这类必然可见的场景用） */
   eager?: boolean
+  /** 渐进式低清先行；传 false 关掉（只在意最终画质、不在意首屏速度的场景） */
+  preview?: boolean
+  /** 主 variant 404 时的回落顺序；传 [] 关掉回落 */
+  fallbacks?: readonly string[]
+  /**
+   * 数据层的 `hasSprite`（PKMB 字段）。明确为 false 时直接显示默认图，
+   * 不发那次必然 404 的请求。字段缺席（undefined）按"可能有"处理。
+   */
+  hasSprite?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -45,13 +62,20 @@ const props = withDefaults(defineProps<Props>(), {
   imgClass: '',
   skeletonClass: '',
   eager: false,
+  preview: true,
+  fallbacks: () => SPRITE_FALLBACKS,
 })
+
+const chain = computed(() => buildSpriteChain(props.variant, props.fallbacks))
 
 const { blobUrl, loading, failed, wrapperRef } = useEncryptedImage({
   kind: 'pokemon',
   id: () => props.pokemonId,
   variant: () => props.variant,
   eager: () => props.eager,
+  preview: () => (props.preview ? SPRITE_PREVIEW : null),
+  chain: () => chain.value,
+  skip: () => props.hasSprite === false,
   logTag: 'EncryptedSprite',
 })
 </script>

@@ -20,23 +20,29 @@
  * `refs > 0` 的条目**不会**被淘汰 —— 它正显示在屏幕上，撤销即裂图。因此在屏
  * 图片超过 `maxEntries` 时缓存会短暂超出上限，这是有意的取舍。
  *
- * ## 调度：批内 FIFO + 批间 LIFO + 离屏取消
+ * ## 调度：优先级 → 批间 LIFO → 批内 FIFO + 离屏取消
  *
  * 每次 `acquire` 立刻发请求时，快速滑动会让几十个请求同时丢给浏览器，而浏览器按
  * **FIFO** 排队（H5 单域 6 连接）—— 当前视口那几张排在一堆早已划过去的图后面，
  * 表现为「从前往后逐一下载，当前页面加载很慢」。
  *
- * 所以入队限流，并给每个任务打两个标记决定出队顺序：
+ * 所以入队限流，并给每个任务打三个标记决定出队顺序：
  *
+ * - `priority` 调用方指定，默认 0；数值越大越先跑
  * - `batch` 每帧自增一次，同一帧入队的任务同批（IntersectionObserver 的投递与
  *   Vue 的挂载 flush 天然同帧）
  * - `seq` 全局单调自增
  *
- * 取任务时选 **`batch` 最大**的，同批内选 **`seq` 最小**的：
+ * 取任务时依次比 **`priority` 最大** → **`batch` 最大** → **`seq` 最小**：
  *
  * - 首屏约 10 张同批 ⇒ 按 index 顺序出图（自上而下，符合直觉）。
  *   纯 LIFO 会让首屏「从下往上」冒，所以批内必须 FIFO。
  * - 滑动新入队的行属于更新的批 ⇒ 抢在旧批之前，当前视口优先。
+ * - `priority` 凌驾于 batch 之上，是为渐进式两段加载而设：sprite 先拉 96×96 的
+ *   低清 preview（约 2 KB）点亮整屏，再后台换 512×512 的高清图（约 122 KB）。
+ *   若只按 batch 排，第一张卡的高清任务（batch 更新）会插到其余卡的 preview
+ *   前面，退化成「第一张先高清、其余仍黑着」，恰好毁掉"先全屏点亮"的目的。
+ *   所以 preview 走 priority=1，高清走 0：**所有** preview 先跑完再换高清。
  *
  * 取消同样重要：不取消在途请求的话，一个已划走的下载会占着连接槽直到自己下完
  * （实测 100–300ms × 4 槽），当前视口仍得等。排队中取消则连 `fetchBinary` 都不调。
@@ -80,6 +86,8 @@ interface Job {
     key: string;
     id: number;
     variant: string;
+    /** 出队优先级，越大越先跑；同 key 多调用方取 max（见 `acquire`） */
+    priority: number;
     /** 入队所在帧；越大越新，优先服务 */
     batch: number;
     /** 全局单调序号；同批内越小越先 */
@@ -96,10 +104,19 @@ interface Job {
     promise: Promise<string>;
 }
 
+export interface ImageAcquireOptions {
+    signal?: AbortSignal;
+    /**
+     * 出队优先级，默认 0，越大越先跑。渐进式加载的低清 preview 传 1，
+     * 让整屏的 preview 都跑在任何高清图之前（理由见文件头「调度」）。
+     */
+    priority?: number;
+}
+
 export interface ImageCache {
     cacheKey: (id: number, variant: string) => string;
     /** 取得图片 Blob URL 并登记一次引用；调用方必须在不用时 `release` */
-    acquire: (id: number, variant: string, options?: { signal?: AbortSignal }) => Promise<string>;
+    acquire: (id: number, variant: string, options?: ImageAcquireOptions) => Promise<string>;
     /** 释放一次引用（归零后条目仍留缓存，真正 revoke 发生在 LRU 淘汰时） */
     release: (id: number, variant: string) => void;
     /** 清空内存缓存并撤销所有 URL（登出 / DEK 轮换）；不动磁盘密文 */
@@ -242,7 +259,7 @@ export function createImageCache(
     }
 
     /**
-     * 挑下一个该跑的任务：`batch` 最大优先，同批内 `seq` 最小优先。
+     * 挑下一个该跑的任务：`priority` 最大优先 → `batch` 最大优先 → 同批 `seq` 最小优先。
      * 队列规模最多几百且 pump 只在任务结算时触发，线性扫描的开销可忽略。
      */
     function takeNext(): Job | undefined {
@@ -252,6 +269,10 @@ export function createImageCache(
         for (let i = 1; i < queue.length; i += 1) {
             const candidate = queue[i]!;
             const best = queue[bestIndex]!;
+            if (candidate.priority !== best.priority) {
+                if (candidate.priority > best.priority) bestIndex = i;
+                continue;
+            }
             if (candidate.batch > best.batch || (candidate.batch === best.batch && candidate.seq < best.seq)) {
                 bestIndex = i;
             }
@@ -280,7 +301,7 @@ export function createImageCache(
      * 建任务并入队。闸门（gate promise）在 `pump()` 放行前不 resolve，
      * 因此排队中取消时 `fetchBytes` 根本不会被调用。
      */
-    function createJob(key: string, id: number, variant: string): Job {
+    function createJob(key: string, id: number, variant: string, priority: number): Job {
         let releaseGate!: () => void;
         let cancelGate!: () => void;
         const gate = new Promise<void>((resolve, reject) => {
@@ -292,6 +313,7 @@ export function createImageCache(
             key,
             id,
             variant,
+            priority,
             batch: currentBatch(),
             seq: (seqCounter += 1),
             started: false,
@@ -334,11 +356,7 @@ export function createImageCache(
         return job;
     }
 
-    async function acquire(
-        id: number,
-        variant: string,
-        acquireOptions: { signal?: AbortSignal } = {},
-    ): Promise<string> {
+    async function acquire(id: number, variant: string, acquireOptions: ImageAcquireOptions = {}): Promise<string> {
         const key = cacheKey(id, variant);
 
         // 命中缓存不入队 —— 槽位全忙时也应立刻返回
@@ -349,10 +367,14 @@ export function createImageCache(
             return hit.url;
         }
 
-        const { signal } = acquireOptions;
+        const { signal, priority = 0 } = acquireOptions;
         if (signal?.aborted) throw newAbortError(key);
 
-        const job = jobs.get(key) ?? createJob(key, id, variant);
+        const existing = jobs.get(key);
+        const job = existing ?? createJob(key, id, variant, priority);
+        // 同一张图被不同优先级的调用方同时要（列表的 preview + 详情的高清）：
+        // 取最高的那个，否则先到的低优先级会把后来的急件压在队尾。
+        if (existing && priority > existing.priority) existing.priority = priority;
         job.waiters += 1;
 
         let aborted = false;

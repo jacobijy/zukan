@@ -8,6 +8,7 @@
                     <EncryptedSprite
                       :pokemon-id="props.pokemon.id"
                       variant="home"
+                      :has-sprite="props.pokemon.hasSprite"
                       img-class="relative z-10 h-16 w-16 drop-shadow-[0_10px_10px_rgba(48,55,72,0.14)] sm:h-[70px] sm:w-[70px]"
                       skeleton-class="h-16 w-16 sm:h-[70px] sm:w-[70px]"
                     />

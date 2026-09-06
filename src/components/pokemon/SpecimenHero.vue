@@ -7,6 +7,7 @@
                 <EncryptedSprite
                     :pokemon-id="pokemon.id"
                     variant="home"
+                    :has-sprite="pokemon.hasSprite"
                     eager
                     img-class="relative z-10 h-48 w-48 drop-shadow-[0_18px_18px_rgba(48,55,72,0.16)]"
                     skeleton-class="h-48 w-48"
@@ -64,6 +65,8 @@ defineProps<{
         description?: string;
         isDefault?: boolean;
         formLabel?: string;
+        /** 数据层的 hasSprite：false 表示官方无正面立绘，直接落默认图不发请求 */
+        hasSprite?: boolean;
     };
     formIndex: number;
     formCount: number;
