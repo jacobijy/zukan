@@ -69,8 +69,7 @@ describe('buildSpriteChain：性别回落', () => {
         expect(chain.indexOf('home')).toBeLessThan(chain.indexOf('artwork'));
     });
 
-    it('shiny 刻意不配对：闪光缺失时回落非闪光是显示错的东西，与 female 语义不对称', () => {
-        expect(SPRITE_DEGENDERED).not.toHaveProperty('shiny');
+    it('shiny 刻意不配对：闪光缺失时回落非闪光是显示错的东西，与 female 语义不对称', () => {        expect(SPRITE_DEGENDERED).not.toHaveProperty('shiny');
         expect(SPRITE_DEGENDERED).not.toHaveProperty('home-shiny');
         expect(buildSpriteChain('home-shiny')).toEqual(['home-shiny', 'artwork', 'front']);
     });
@@ -84,5 +83,13 @@ describe('buildSpriteChain：性别回落', () => {
 
     it('自定义回落表也照样先插无性别版本', () => {
         expect(buildSpriteChain('home-female', ['dream'])).toEqual(['home-female', 'home', 'dream']);
+    });
+
+    it('dream-female 回落 dream（只有 592/593 两个数字 id 有）', () => {
+        expect(buildSpriteChain('dream-female')).toEqual(['dream-female', 'dream', 'artwork', 'front']);
+    });
+
+    it('三条性别映射全在表里，一条不落', () => {
+        expect(Object.keys(SPRITE_DEGENDERED).toSorted()).toEqual(['dream-female', 'female', 'home-female']);
     });
 });

@@ -7,7 +7,9 @@
  * 1. **远端路径**：pokemon 是 `<id>/<variant>.bin`（一物种多变体），
  *    item 是扁平的 `<id>.bin`（一道具一图）。与 zukan-server
  *    `assets/encrypted-assets/` 下的目录层级一一对应（pokemon/ 与 items/）。
- * 2. **MIME**：解密后都是 PNG，Blob 用它标注。
+ * 2. **MIME 兜底**：解密后**按字节嗅探**真实格式（`imageMime.ts`），这里的值只在
+ *    嗅探失败时用。曾经是固定 `image/png`，结果 `dream` variant（全是 SVG）被标成
+ *    PNG，而浏览器对 SVG 不做内容嗅探 → 永远裂图。
  * 3. **持久化 key 前缀**：两类各自独立索引 / 预算 / 跨版本清理，互不挤占。
  *    前缀本身已区隔种类，故磁盘 key 不再重复带目录名（保持 pokemon 的
  *    `sprite:v<ver>:<id>/<variant>` 格式不变，避免作废老缓存）。
@@ -16,7 +18,7 @@
 export type ImageKind = 'pokemon' | 'item';
 
 export interface ImageKindSpec {
-    /** 解密后字节的 MIME（当前两类都是 PNG） */
+    /** 嗅探不出格式时的兜底 MIME（正常路径走 `sniffImageMime`，见文件头第 2 条） */
     mime: string;
     /** 持久化 key 公共前缀（不含版本），跨版本清理按此前缀圈定范围 */
     persistRoot: string;

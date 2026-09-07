@@ -154,8 +154,16 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 | `front` | 图鉴像素正面图（上游 REST 的 `sprites.front_default`），**2026-09-05 起可用** |
 | `shiny` / `female` | 图鉴像素闪光 / 雌性（`female` 仅 103 个 id 有，见 4.3） |
 | `back` | 背面像素图 |
-| `dream` | Dreamworld 立绘 |
+| `dream` / `dream-female` | Dreamworld 立绘。**格式是 SVG，不是 PNG**（见下） |
 | `versions/<gen>/...` | 按世代历史美术（**前端当前不读取**） |
+
+> ⚠️ **`dream` 系是 SVG。** 实测 1012 个数字 id 的 `dream` 全部是 SVG（PNG 零个），
+> 头是 `<?xml version='1.0' encoding='utf-8'?>\n<svg …`。这曾是个真 bug：加密图片引擎
+> 原本给所有图打**固定** `image/png`（`ImageKindSpec.mime`），而**浏览器对 SVG 不做
+> 内容嗅探** —— MIME 不是 `image/svg+xml` 就一律不渲染。于是 `dream` 下载、解密、
+> 缓存、引用计数全都对，只是永远显示成裂图。现已改为解密后按字节嗅探
+> （`src/services/resources/imageMime.ts`），`spec.mime` 退化为嗅探失败时的兜底。
+> `dream-female` 只有 592 / 593（哎呀水母）两个数字 id 有。
 
 > ⚠️ **`front` 是新增的**：此前 sync 脚本把主正面图写成 `<id>/.png`（空 basename 的隐藏
 > 文件），而加密器按扩展名过滤时 Rust 的 `Path::extension()` 对 `".png"` 返回 `None`
@@ -219,6 +227,7 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 |------|-----|
 | `home-female` | `home-female → home → artwork → front` |
 | `female` | `female → front → artwork` |
+| `dream-female` | `dream-female → dream → artwork → front` |
 
 回落必然落地 —— 已核对：有 `female` 的 103 个 id 全部有 `front`，有 `home-female` 的
 全部有 `home`（两批 id 不完全重合：902 只有 `home-female`，10033 只有 `female`）。

@@ -46,6 +46,8 @@ vi.mock('@/services/resources/cdn', () => ({
 let createdUrls: string[];
 let revokedUrls: string[];
 let urlSeq: number;
+/** 建 Blob 时传的 `type` —— `dream` 是 SVG，MIME 标错浏览器就不渲染 */
+let blobTypes: (string | undefined)[];
 
 type SpriteCacheModule = typeof import('@/services/resources/spriteCache');
 
@@ -57,6 +59,7 @@ async function freshModule(): Promise<SpriteCacheModule> {
 beforeEach(() => {
     createdUrls = [];
     revokedUrls = [];
+    blobTypes = [];
     urlSeq = 0;
 
     fetchBinary.mockReset().mockResolvedValue(new Uint8Array([1, 2, 3]));
@@ -76,7 +79,9 @@ beforeEach(() => {
         },
     });
     vi.stubGlobal('Blob', class {
-        constructor(readonly parts: unknown[]) {}
+        constructor(readonly parts: unknown[], readonly opts: { type?: string }) {
+            blobTypes.push(opts?.type);
+        }
     });
 });
 
@@ -799,5 +804,52 @@ describe('取消', () => {
         await flush();
         settle(1);
         await expect(retry).resolves.toMatch(/^blob:mock\//);
+    });
+});
+
+/**
+ * Blob 的 MIME 必须按明文字节判定，不能按种类写死。
+ *
+ * 曾经是固定 `image/png`。栅格图无害（浏览器在 `<img>` 里会内容嗅探），但 **SVG 例外：
+ * MIME 不对就一律不渲染**。而 `dream` variant 全部是 SVG（1012 个数字 id），
+ * 于是它解密、缓存、引用计数全对，只是永远显示成裂图。
+ */
+describe('Blob MIME 按内容判定', () => {
+    /** zukan-server 上 dream.svg 的真实开头 */
+    const svgBytes = (): Uint8Array => {
+        const text = `<?xml version='1.0' encoding='utf-8'?>\n<svg xmlns="http://www.w3.org/2000/svg"></svg>`;
+        const out = new Uint8Array(text.length);
+        for (let i = 0; i < text.length; i += 1) out[i] = text.charCodeAt(i);
+        return out;
+    };
+
+    const pngBytes = () => new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]);
+
+    it('dream（SVG 明文）标成 image/svg+xml，不是 image/png', async () => {
+        const { acquireSprite } = await freshModule();
+        decryptZukan.mockReturnValue(svgBytes());
+
+        await acquireSprite(1, 'dream');
+
+        expect(blobTypes).toEqual(['image/svg+xml']);
+    });
+
+    it('PNG 明文仍标成 image/png', async () => {
+        const { acquireSprite } = await freshModule();
+        decryptZukan.mockReturnValue(pngBytes());
+
+        await acquireSprite(1, 'home');
+
+        expect(blobTypes).toEqual(['image/png']);
+    });
+
+    it('嗅探不出格式时退回种类默认 MIME，而不是留空', async () => {
+        const { acquireSprite } = await freshModule();
+        // 既不是图片魔数也不是 SVG 文本
+        decryptZukan.mockReturnValue(new Uint8Array([0x00, 0x01, 0x02, 0x03]));
+
+        await acquireSprite(1, 'home');
+
+        expect(blobTypes).toEqual(['image/png']);
     });
 });

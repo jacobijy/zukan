@@ -23,7 +23,8 @@
   内存 LRU + 离屏取消。每种类一个实例，LRU / 任务队列 / 并发槽互不影响。
 - `imagePersist.ts` — `createImagePersist(spec, maxBytes)`：IndexedDB 密文持久化。
   每种类独立索引 / 预算 / 对账状态，**道具图不挤占 sprite 的 60MB 配额**。
-- `imageKind.ts` — `IMAGE_KINDS.pokemon` / `.item`：远端路径函数、MIME、
+- `imageKind.ts` — `IMAGE_KINDS.pokemon` / `.item`：远端路径函数、MIME 兜底
+  （解密后按字节嗅探真实格式，`spec.mime` 只在嗅探失败时用；详见 `imageMime.ts`）、
   `persistRoot`（磁盘 key 前缀）、`indexStorageKey`（uni storage 索引 key）。
 - `spriteCache.ts` / `spritePersist.ts` — pokemon 实例的**薄封装**，保留
   `acquireSprite` / `releaseSprite` / `clearSpriteCache` / `pruneSpriteVersions` 等
@@ -35,6 +36,11 @@
 - `spriteAvailability.ts` — **仅 sprite**：按版本记住回落链的落点（见下文「可用性记录」）。
   `spriteLoader` **不直接 import 它**，而是由 composable 以 `hint` 注入 ——
   这样编排层仍无平台依赖，node 用例不必 stub 全局 `uni`。
+- `imageMime.ts` — 按明文字节判定图片 MIME（PNG / JPEG / GIF / WebP / **SVG**）。
+  与种类无关，`imageCache` 建 Blob 前调一次。**必须按内容判，不能按种类写死**：
+  `dream` variant 全是 SVG，而浏览器对 SVG **不做内容嗅探** —— MIME 标成 image/png
+  就一律不渲染，整条链其它环节都对也只得到一张裂图。栅格格式标错反而无害（浏览器
+  会嗅探），所以这个 bug 只在 SVG 上暴露，藏了很久。
 
 合起来的链对两类都一样：`内存 Blob URL → IDB 密文 → 网络`。组件不直接碰缓存：
 视口感知 / 懒加载 / 离屏取消 / 引用配对在 `composables/useEncryptedImage.ts`，
@@ -180,12 +186,17 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
 ## 测试
 
 ```bash
-pnpm test -- spriteCache spritePersist itemImage spriteLoader spriteVariants spriteAvailability
+pnpm test -- spriteCache spritePersist itemImage spriteLoader spriteVariants spriteAvailability imageMime
 ```
 
 - `spriteCache.spec.ts` / `spritePersist.spec.ts` —— 引擎的限流 / 调度 / 引用计数 /
   落盘自愈（走 pokemon 薄封装）。**含调度优先级一组**：priority 压过 batch、
   同 priority 内仍 LIFO/FIFO、同 key 取 max、不传 priority 行为不变。
+  **另含 Blob MIME 一组**：SVG 明文标 `image/svg+xml`、PNG 仍标 `image/png`、
+  嗅探不出时退回种类默认值。
+- `imageMime.spec.ts` —— 格式嗅探本身。重点是 SVG（含 BOM / 前导空白 / `<?xml` 声明
+  这些真实产物形态），以及**不能把 HTML 错误页误判成 SVG** —— 把错误页当图渲染会
+  掩盖真故障，比不渲染更糟。
 - `spriteLoader.spec.ts` —— preview + 回落链编排。假 deps，每个用例都对账引用数
   （漏 release = 静默泄漏，多 release = 裂图）。**含 hint 一组**：按记录重排、
   记录过期时仍能靠后续项救回、只在见过 404 时才回写、`noPreview` 跳过低清段。
@@ -209,3 +220,8 @@ pnpm test -- spriteCache spritePersist itemImage spriteLoader spriteVariants spr
 >
 > 可用性记录同样验证过 5 处变异：`reorderByHint` 退化成单元素链 / 过期记录不 `forget` /
 > 无条件回写 `onResolved` / `loadIndex` 跳过版本校验 / 自命中不清除旧结论 —— 均变红。
+>
+> MIME 嗅探验证过 4 处（去掉 SVG 分支 / SVG 给 image/png / 不跳 BOM /
+> `imageCache` 退回写死 `spec.mime`）均变红；**另有 1 处存活**：删掉「第一个非空白
+> 字符必须是 `<`」的守卫后全绿 —— 因为紧随其后的四个前缀检查本身就都以 `<` 开头，
+> 没有任何输入能区分。那句是死代码，已删。这正是变异测试该抓的东西。

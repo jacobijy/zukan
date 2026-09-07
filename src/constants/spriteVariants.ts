@@ -50,6 +50,8 @@ export const SPRITE_FALLBACKS: readonly string[] = ['artwork', SPRITE_PREVIEW];
 export const SPRITE_DEGENDERED: Readonly<Record<string, string>> = {
     female: SPRITE_PREVIEW,
     'home-female': 'home',
+    // 只有 592 / 593（哎呀水母♀♂差异极大）两个数字 id 有
+    'dream-female': 'dream',
 };
 
 /**
@@ -70,7 +72,10 @@ export const SPRITE_VARIANT_CATALOG: readonly string[] = [
     'shiny',
     'female',
     'back',
+    // dream 系是 **SVG**，不是 PNG（1012 个数字 id）。Blob 的 MIME 按字节嗅探，
+    // 写死 image/png 的话浏览器一律不渲染 —— 见 `services/resources/imageMime.ts`
     'dream',
+    'dream-female',
 ];
 
 /**

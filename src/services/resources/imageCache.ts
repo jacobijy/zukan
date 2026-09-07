@@ -61,6 +61,7 @@ import { initWasm, decryptZukan } from '@/infra/wasm';
 import { getKey, clearKeyCache } from '@/services/session';
 import { fetchBinary, BinaryRequestError } from '@/services/http';
 import { buildCdnUrl } from '@/services/resources/cdn';
+import { sniffImageMime } from '@/services/resources/imageMime';
 import type { ImageKindSpec } from '@/services/resources/imageKind';
 import type { ImagePersist } from '@/services/resources/imagePersist';
 
@@ -328,7 +329,11 @@ export function createImageCache(
             .then(async () => {
                 try {
                     const bytes = await fetchBytes(id, variant, job.controller?.signal);
-                    const url = URL.createObjectURL(new Blob([bytes], { type: spec.mime }));
+                    // MIME 按明文字节判定，`spec.mime` 只是兜底：`dream` variant 全是
+                    // SVG，而浏览器对 SVG **不做内容嗅探** —— 标成 image/png 就一律
+                    // 不渲染，整条链其它环节都对也只能得到一张裂图（见 `imageMime.ts`）。
+                    const type = sniffImageMime(bytes) ?? spec.mime;
+                    const url = URL.createObjectURL(new Blob([bytes], { type }));
 
                     // 条目在这里就登记（refs: 0）。若等到 acquire 的 await 之后再建，
                     // 所有调用方都已放弃时这个 URL 就进不了 cache，永远无人 revoke。

@@ -23,9 +23,11 @@
  * WASM 拖进用例。
  */
 
+import { sniffImageFormat } from '@/services/resources/imageMime';
+
 /** 明文类型判定结果 */
 export interface PlainSniff {
-    kind: 'png' | 'jpeg' | 'gif' | 'webp' | 'bundle' | 'unknown';
+    kind: 'png' | 'jpeg' | 'gif' | 'webp' | 'svg' | 'bundle' | 'unknown';
     /**
      * 建 Blob 用的 MIME。**`null` 表示不该建 Blob URL** ——
      * 拿 image/png 去渲染一段 FlatBuffers 只会显示成裂图，
@@ -81,11 +83,6 @@ function ascii(bytes: Uint8Array, from: number, len: number): string {
     return out;
 }
 
-function startsWith(bytes: Uint8Array, sig: readonly number[]): boolean {
-    if (bytes.length < sig.length) return false;
-    return sig.every((b, i) => bytes[i] === b);
-}
-
 /** 明文前 `max` 字节的 hex（空格分隔，小写），字节不够就给多少算多少 */
 export function hexHead(bytes: Uint8Array, max = 32): string {
     const n = Math.min(max, bytes.length);
@@ -95,7 +92,11 @@ export function hexHead(bytes: Uint8Array, max = 32): string {
 }
 
 /**
- * 按魔数判断明文是什么。
+ * 判断明文是什么。
+ *
+ * 图片格式复用生产的 `sniffImageFormat` —— 探测器与真实渲染路径必须用**同一套**判定，
+ * 否则会出现「工具说这是 SVG 能渲染，应用却裂图」这种最难查的分歧。
+ * 本函数只在它之上多加一层 FlatBuffers 识别（诊断专用：应用侧不会把 bundle 当图片）。
  *
  * FlatBuffers 的坑：`file_identifier` 在**偏移 4**，不是 0 —— 文件开头 4 字节是指向
  * root table 的 uoffset（实测 `gen-1.bin` 为 `18 00 00 00 50 4b 4d42`）。按偏移 0 找
@@ -103,18 +104,8 @@ export function hexHead(bytes: Uint8Array, max = 32): string {
  * bundle 的路径，不是图片」。
  */
 export function sniffPlain(bytes: Uint8Array): PlainSniff {
-    if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
-        return { kind: 'png', mime: 'image/png', tag: null };
-    }
-    if (startsWith(bytes, [0xff, 0xd8, 0xff])) {
-        return { kind: 'jpeg', mime: 'image/jpeg', tag: null };
-    }
-    if (startsWith(bytes, [0x47, 0x49, 0x46, 0x38])) {
-        return { kind: 'gif', mime: 'image/gif', tag: null };
-    }
-    if (startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) && ascii(bytes, 8, 4) === 'WEBP') {
-        return { kind: 'webp', mime: 'image/webp', tag: null };
-    }
+    const image = sniffImageFormat(bytes);
+    if (image) return { kind: image.format, mime: image.mime, tag: null };
 
     const fid = ascii(bytes, 4, 4);
     if (FB_IDENTIFIERS.has(fid)) {

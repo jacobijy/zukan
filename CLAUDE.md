@@ -63,9 +63,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存 / 解密 / Blob URL 生命周期在 `src/services/resources/spriteCache.ts` —— **模块级共享 + 引用计数**，`refs > 0` 的条目不会被 LRU 撤销（撤销即裂图）。列表默认懒加载（进视口前不下载），必然可见的场景传 `eager`。跨刷新缓存由 `spritePersist.ts` 补充（IndexedDB 存 ZKDX 密文，非 IDB 后端 no-op）。
 
-**立绘走渐进式两段加载 + 404 回落链**：服务器上 `front`（96×96，约 1.9 KB）与 `home`（512×512，约 122 KB）差约 65 倍，而列表卡只渲染 64–70px。所以先拉 `front` 点亮整屏（一屏 20 张约 38 KB），再后台换 `home`；主 variant 404 时按 `home → artwork → front → /static/default.png` 逐个试（**只有 404 才回落**，解密失败等真故障立即抛出，否则真故障会伪装成数据缺口）。**`female` / `home-female` 的 404 例外**：这两个 variant 只有 103 个 id 有，缺席说明「该形态不分性别」，所以链里给它们插一步无性别版本（`home-female → home`、`female → front`，插在通用回落之前）；`shiny` 刻意不这样配对 —— 闪光缺失时回落非闪光是把错的东西显示出来。variant 常量的唯一定义处是 `src/constants/spriteVariants.ts`（含 `SPRITE_DEGENDERED` 与诊断用的 `SPRITE_VARIANT_CATALOG`），编排在 `src/services/resources/spriteLoader.ts`（纯函数、无 Vue 依赖，因此能在 node 测试环境跑）。数据层的 `hasSprite === false` 时**一个请求都不发**，直接落占位图。回落链的实际落点由 `src/services/resources/spriteAvailability.ts` **按资源版本记在本地 KV**（全平台启用，只记偏离默认的约 9 条、<1 KB），下次刷新直接从对的 variant 开始；**记录只是提示** —— 按记录直取仍 404 就丢弃记录、回到完整链，否则一次偶发 404 会被永久固化成「这张没图」。该模块不被 `spriteLoader` 直接 import，而是由 composable 以 `hint` 注入，好让编排层保持无平台依赖。详见 `docs/caching/sprite-cache.md`。
+**立绘走渐进式两段加载 + 404 回落链**：服务器上 `front`（96×96，约 1.9 KB）与 `home`（512×512，约 122 KB）差约 65 倍，而列表卡只渲染 64–70px。所以先拉 `front` 点亮整屏（一屏 20 张约 38 KB），再后台换 `home`；主 variant 404 时按 `home → artwork → front → /static/default.png` 逐个试（**只有 404 才回落**，解密失败等真故障立即抛出，否则真故障会伪装成数据缺口）。**`female` / `home-female` 的 404 例外**：这两个 variant 只有 103 个 id 有，缺席说明「该形态不分性别」，所以链里给它们插一步无性别版本（`home-female → home`、`female → front`、`dream-female → dream`，插在通用回落之前）；`shiny` 刻意不这样配对 —— 闪光缺失时回落非闪光是把错的东西显示出来。variant 常量的唯一定义处是 `src/constants/spriteVariants.ts`（含 `SPRITE_DEGENDERED` 与诊断用的 `SPRITE_VARIANT_CATALOG`），编排在 `src/services/resources/spriteLoader.ts`（纯函数、无 Vue 依赖，因此能在 node 测试环境跑）。数据层的 `hasSprite === false` 时**一个请求都不发**，直接落占位图。回落链的实际落点由 `src/services/resources/spriteAvailability.ts` **按资源版本记在本地 KV**（全平台启用，只记偏离默认的约 9 条、<1 KB），下次刷新直接从对的 variant 开始；**记录只是提示** —— 按记录直取仍 404 就丢弃记录、回到完整链，否则一次偶发 404 会被永久固化成「这张没图」。该模块不被 `spriteLoader` 直接 import，而是由 composable 以 `hint` 注入，好让编排层保持无平台依赖。详见 `docs/caching/sprite-cache.md`。
 
-**道具图标走同一条加密图片通道**：引擎已泛化为种类无关的 `imageCache.ts`（限流/引用计数/LRU/离屏取消）+ `imagePersist.ts`（密文持久化）工厂，差异（远端路径 / MIME / 持久化前缀 / 预算）由 `imageKind.ts` 的 `ImageKindSpec` 注入；`spriteCache.ts`/`spritePersist.ts` 是 pokemon 实例的薄封装（原名不变），道具实例在 `itemImage.ts`（远端 `/assets/encrypted/items/<id>.bin`，扁平无 variant）。视口懒加载/引用配对两组件共用 `composables/useEncryptedImage.ts`，`archive/ItemIcon.vue` 是道具侧组件（404 回落中性占位盒）。详见 `docs/caching/sprite-cache.md`。
+**道具图标走同一条加密图片通道**：引擎已泛化为种类无关的 `imageCache.ts`（限流/引用计数/LRU/离屏取消）+ `imagePersist.ts`（密文持久化）工厂，差异（远端路径 / MIME 兜底 / 持久化前缀 / 预算）由 `imageKind.ts` 的 `ImageKindSpec` 注入；`spriteCache.ts`/`spritePersist.ts` 是 pokemon 实例的薄封装（原名不变），道具实例在 `itemImage.ts`（远端 `/assets/encrypted/items/<id>.bin`，扁平无 variant）。视口懒加载/引用配对两组件共用 `composables/useEncryptedImage.ts`，`archive/ItemIcon.vue` 是道具侧组件（404 回落中性占位盒）。
+
+**Blob 的 MIME 按明文字节嗅探**（`imageMime.ts`），`spec.mime` 只是兜底 —— `dream` variant 全是 SVG，而**浏览器对 SVG 不做内容嗅探**，标成 `image/png` 就一律不渲染（栅格格式标错反而无害，所以这个 bug 只在 SVG 上暴露）。详见 `docs/caching/sprite-cache.md`。
 
 ### 缓存层级总览
 
@@ -302,7 +304,7 @@ setup(__props) {
 2. `pnpm test` —— 必须全绿；改了 `src/utils/dexFilter.ts`、`src/store/pokemon.ts`、
    `src/constants/generations.ts`、或加密图片资源层（`src/services/resources/imageCache.ts`、
    `imagePersist.ts`、`imageKind.ts`、`spriteCache.ts`、`spritePersist.ts`、`itemImage.ts`、
-   `spriteLoader.ts`、`spriteAvailability.ts`、`src/constants/spriteVariants.ts`、
+   `spriteLoader.ts`、`spriteAvailability.ts`、`imageMime.ts`、`src/constants/spriteVariants.ts`、
    `src/composables/useEncryptedImage.ts`、`src/services/devtools/assetProbe.ts`）时尤其别跳过
 3. `pnpm dev:h5` 起服务后用**移动端 UA** curl 一遍改动的页面与组件，确认 200：
    ```bash
