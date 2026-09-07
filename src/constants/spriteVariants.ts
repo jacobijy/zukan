@@ -34,6 +34,27 @@ export const SPRITE_PREVIEW = 'front';
 export const SPRITE_FALLBACKS: readonly string[] = ['artwork', SPRITE_PREVIEW];
 
 /**
+ * 服务端为每个 id 可能产出的全部 variant（`versions/<gen>/...` 除外，那是按世代的
+ * 历史美术，路径带子目录、前端不读）。
+ *
+ * **只给诊断用**：开发者工具一次扫完，看清某个形态到底有哪几张图 —— 运行时的尝试
+ * 顺序由上面的 `SPRITE_PREVIEW` / `SPRITE_FALLBACKS` 决定，不是这张表。两者答的是
+ * 不同问题（「有什么」vs「按什么顺序试」），但 variant 名字只在本文件定义一次。
+ */
+export const SPRITE_VARIANT_CATALOG: readonly string[] = [
+    'home',
+    'home-shiny',
+    'home-female',
+    'artwork',
+    'artwork-shiny',
+    'front',
+    'shiny',
+    'female',
+    'back',
+    'dream',
+];
+
+/**
  * 构造「主 variant + 回落」的尝试顺序，去重且保持首项为主 variant。
  *
  * 去重是必要的：详情页可能直接传 `variant="artwork"`，不去重的话链里会出现

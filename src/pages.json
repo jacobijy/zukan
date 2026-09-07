@@ -120,6 +120,13 @@
         "navigationBarTitleText": "道具详情",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/devtools/devtools",
+      "style": {
+        "navigationBarTitleText": "开发者工具",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

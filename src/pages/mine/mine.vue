@@ -34,6 +34,9 @@
                     <svg v-else-if="item.icon === 'star'" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                         <polygon points="12 2.8 14.9 8.7 21.4 9.65 16.7 14.25 17.8 20.75 12 17.68 6.2 20.75 7.3 14.25 2.6 9.65 9.1 8.7 12 2.8"></polygon>
                     </svg>
+                    <svg v-else-if="item.icon === 'wrench'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                        <path d="M14.7 6.3a4 4 0 0 0 5 5l-9.4 9.4a2.8 2.8 0 0 1-4-4L15.7 7.3"></path><path d="M14.7 6.3 17.5 3.5"></path>
+                    </svg>
                     <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                         <circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.2 2"></path>
                     </svg>
@@ -70,6 +73,7 @@ import LoginModal from "@/components/shared/LoginModal.vue";
 import PokeballLogo from "@/components/shared/PokeballLogo.vue";
 import { isAuthenticated, clearSession } from '@/services/session';
 import { clearSpriteCache, clearItemIconCache } from '@/services/resources';
+import { devtoolsEnabled } from '@/services/devtools/enabled';
 import { authGate } from '@/services/session/authGate';
 import { usePokemonStore } from '@/store/pokemon';
 import { useI18nStore } from '@/store/i18n';
@@ -137,12 +141,19 @@ async function onLoginSuccess() {
 const menuItems = computed(() => [
     { title: t('mine.menu.settings'), desc: t('mine.menu.settingsDesc'), meta: currentLangLabel.value, icon: 'settings', iconClass: 'list-row__icon--gray' },
     { title: t('mine.menu.favorites'), desc: t('mine.menu.favoritesDesc'), icon: 'star', iconClass: 'list-row__icon--gold', count: favoritesCount.value },
-    { title: t('mine.menu.history'), desc: t('mine.menu.historyDesc'), meta: t('mine.menu.historyMeta'), icon: 'clock', iconClass: 'list-row__icon--blue' }
+    { title: t('mine.menu.history'), desc: t('mine.menu.historyDesc'), meta: t('mine.menu.historyMeta'), icon: 'clock', iconClass: 'list-row__icon--blue' },
+    // dev-only：门禁为假时整行不渲染，生产用户看不到。文案硬编码中文，不进 i18n
+    // （往 ui-messages 的 zh/en 两份里塞只有开发者看得到的键是噪音）
+    ...(devtoolsEnabled
+        ? [{ title: '开发者工具', desc: '探测服务端加密资源并解密预览。', meta: 'dev', icon: 'wrench', iconClass: 'list-row__icon--violet' }]
+        : []),
 ]);
 
 function onMenuTap(item: { icon: string }) {
     if (item.icon === 'settings') {
         uni.navigateTo({ url: '/pages/settings/settings' });
+    } else if (item.icon === 'wrench') {
+        uni.navigateTo({ url: '/pages/devtools/devtools' });
     }
 }
 
