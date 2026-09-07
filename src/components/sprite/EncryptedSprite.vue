@@ -46,8 +46,11 @@ interface Props {
   skeletonClass?: string
   /** 关掉懒加载，挂载即开始下载（详情页主图这类必然可见的场景用） */
   eager?: boolean
-  /** 渐进式低清先行；传 false 关掉（只在意最终画质、不在意首屏速度的场景） */
-  preview?: boolean
+  /**
+   * 渐进式低清先行。true = 默认 `front`；string = 自定义先行 variant
+   * （如闪光目标传 `'shiny'`，避免先闪一下非闪配色）；false 关掉。
+   */
+  preview?: boolean | string
   /** 主 variant 404 时的回落顺序；传 [] 关掉回落 */
   fallbacks?: readonly string[]
   /**
@@ -73,7 +76,7 @@ const { blobUrl, loading, failed, wrapperRef } = useEncryptedImage({
   id: () => props.pokemonId,
   variant: () => props.variant,
   eager: () => props.eager,
-  preview: () => (props.preview ? SPRITE_PREVIEW : null),
+  preview: () => (typeof props.preview === 'string' ? props.preview : props.preview ? SPRITE_PREVIEW : null),
   chain: () => chain.value,
   skip: () => props.hasSprite === false,
   logTag: 'EncryptedSprite',

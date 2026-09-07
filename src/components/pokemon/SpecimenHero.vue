@@ -6,7 +6,9 @@
             <view class="specimen-hero__image-frame">
                 <EncryptedSprite
                     :pokemon-id="pokemon.id"
-                    variant="home"
+                    :variant="renderVariant"
+                    :fallbacks="renderFallbacks"
+                    :preview="renderPreview"
                     :has-sprite="pokemon.hasSprite"
                     eager
                     img-class="relative z-10 h-48 w-48 drop-shadow-[0_18px_18px_rgba(48,55,72,0.16)]"
@@ -32,6 +34,12 @@
             </button>
         </view>
 
+        <SpecimenViewSwitches
+            :gender-rate="pokemon.genderRate"
+            v-model:shiny="shiny"
+            v-model:gender="gender"
+        />
+
         <view class="relative z-10 px-5 pb-5 text-center">
             <view class="mb-2 flex items-center justify-center gap-2">
                 <text class="text-[34px] font-black leading-none tracking-[-0.06em] text-[#24262b]">{{ pokemon.name }}</text>
@@ -53,7 +61,10 @@
 <script lang="ts" setup>
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
+import SpecimenViewSwitches from '@/components/pokemon/SpecimenViewSwitches.vue';
+import { heroVariant, SPRITE_FALLBACKS, SPRITE_SHINY_FALLBACKS } from '@/constants/spriteVariants';
 import { useI18n } from 'vue-i18n';
+import { computed, ref } from 'vue';
 
 const { t } = useI18n();
 
@@ -67,6 +78,8 @@ defineProps<{
         formLabel?: string;
         /** 数据层的 hasSprite：false 表示官方无正面立绘，直接落默认图不发请求 */
         hasSprite?: boolean;
+        /** PokeAPI 性别比例，-1 无性别 / 0 恒雄 / 8 恒雌（详情页性别切换门禁用） */
+        genderRate?: number;
     };
     formIndex: number;
     formCount: number;
@@ -76,6 +89,19 @@ defineProps<{
 defineEmits<{
     'switch-form': [delta: -1 | 1];
 }>();
+
+// ── 闪光 / 性别视图状态 ──
+// 由本组件持有、跨形态保持。gender 的值始终是「有效性别」（SpecimenViewSwitches
+// 在恒雄/恒雌时会把 model 同步成锁定值），hero 直接用 heroVariant 换算图。
+const shiny = ref(false);
+const gender = ref<'male' | 'female'>('male');
+
+/** home 系三选一：闪光时两性共显 home-shiny（上游没有 home-shiny-female） */
+const renderVariant = computed(() => heroVariant(shiny.value, gender.value));
+/** 闪光链只回落闪光变体 —— 回落非闪闪图是显示错的东西 */
+const renderFallbacks = computed(() => (shiny.value ? SPRITE_SHINY_FALLBACKS : SPRITE_FALLBACKS));
+/** 闪光的低清先行也必须是闪光配色，否则先闪一下非闪闪图 */
+const renderPreview = computed(() => (shiny.value ? 'shiny' : true));
 </script>
 
 <style scoped>

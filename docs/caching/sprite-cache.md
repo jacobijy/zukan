@@ -86,7 +86,7 @@ refs 归零才允许 LRU 淘汰（淘汰即 `revokeObjectURL`；在屏的图 ref
 
 | 层 | 文件 | 职责 |
 |----|------|------|
-| 常量 | `constants/spriteVariants.ts` | `SPRITE_PREVIEW` / `SPRITE_FALLBACKS` / `buildSpriteChain`（**唯一定义处**） |
+| 常量 | `constants/spriteVariants.ts` | `SPRITE_PREVIEW` / `SPRITE_FALLBACKS` / `SPRITE_SHINY_FALLBACKS` / `buildSpriteChain` / `heroVariant`（**唯一定义处**） |
 | 编排 | `services/resources/spriteLoader.ts` | `loadSpriteChain`：preview 先行 + 404 回落链。**纯函数、无 Vue 依赖** |
 | 生命周期 | `composables/useEncryptedImage.ts` | 视口懒加载 / 离屏取消 / 引用配对，把编排结果映射成渲染状态 |
 | 渲染 | `components/sprite/EncryptedSprite.vue` | 图片 / 骨架 / 兜底三态 |
@@ -107,7 +107,11 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
    另有一类 404 是**有含义的**：`female` / `home-female` 只有 103 个 id 有，缺席说明
    「该形态不分性别」，所以链里给它们插一步无性别版本（`home-female → home`、
    `female → front`），插在通用回落之前。`shiny` 刻意不这样配对 —— 闪光缺失时回落
-   非闪光是显示错的东西。见 [../security/encryption-pipeline.md](../security/encryption-pipeline.md) 4.3。
+   非闪光是显示错的东西。因此闪光目标单独走 `SPRITE_SHINY_FALLBACKS`
+   （`home-shiny → artwork-shiny → shiny`，全闪光，整链 404 直接落占位）。而详情页
+   hero 的闪光/性别切换由 `heroVariant` 在 home 系三态（`home` / `home-female` /
+   `home-shiny`）间换算，闪光的低清先行也换 `shiny`（否则先闪一下非闪配色）。
+   见 [../security/encryption-pipeline.md](../security/encryption-pipeline.md) 4.3。
 3. **LRU 上限要容得下一屏的两倍**。一张卡最多占两个 key（preview + full），
    `SPRITE_MAX_ENTRIES = 320`（原 200）—— 太小会让 preview 刚点亮就被自己的 full 挤掉。
    该常量已导出，用例断言直接引用它，改一处不会留下写死的数字。
@@ -142,6 +146,7 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
   数字 id 里缺 `home` 的 10 个中有 8 个能靠 artwork 救回来。
   preview 的 404 **静默处理**，不打日志、不影响主图。
   `female` / `home-female` 的 404 是「不分性别」而非缺口，先回落无性别版本。
+  闪光目标走 `SPRITE_SHINY_FALLBACKS`（全闪光链，见上文第 2 条）。
 - **道具图标**：无 variant 概念，404 即回落中性占位盒。
 
 缺口清单与实测口径见

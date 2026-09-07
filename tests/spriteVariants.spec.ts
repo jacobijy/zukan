@@ -8,9 +8,11 @@ import { describe, expect, it } from 'vitest';
 import {
     SPRITE_PREVIEW,
     SPRITE_FALLBACKS,
+    SPRITE_SHINY_FALLBACKS,
     SPRITE_DEGENDERED,
     SPRITE_VARIANT_CATALOG,
     buildSpriteChain,
+    heroVariant,
 } from '@/constants/spriteVariants';
 
 describe('buildSpriteChain', () => {
@@ -91,5 +93,43 @@ describe('buildSpriteChain：性别回落', () => {
 
     it('三条性别映射全在表里，一条不落', () => {
         expect(Object.keys(SPRITE_DEGENDERED).toSorted()).toEqual(['dream-female', 'female', 'home-female']);
+    });
+});
+
+/**
+ * 闪光链单独给一组「全闪光」回落 —— 闪光缺失时回落非闪闪图是显示错的东西
+ *（这是明细写进 SPRITE_DEGENDERED 注释的硬规定），所以 home-shiny 不能走默认
+ * home → artwork → front 那条链。
+ */
+describe('闪光专用回落链', () => {
+    it('闪光链全闪光：home-shiny → artwork-shiny → shiny，绝不落非闪闪图', () => {
+        expect(buildSpriteChain('home-shiny', SPRITE_SHINY_FALLBACKS)).toEqual([
+            'home-shiny',
+            'artwork-shiny',
+            'shiny',
+        ]);
+    });
+
+    it('SPRITE_FALLBACKS 是纯非闪闪图，默认链不会串进闪光变体', () => {
+        expect(SPRITE_FALLBACKS).not.toContain('shiny');
+        expect(SPRITE_SHINY_FALLBACKS).not.toContain(SPRITE_FALLBACKS[0]);
+    });
+
+    it('闪光链里每个 variant 都真实存在于 catalog', () => {
+        for (const v of ['home-shiny', ...SPRITE_SHINY_FALLBACKS]) {
+            expect(SPRITE_VARIANT_CATALOG).toContain(v);
+        }
+    });
+});
+
+describe('heroVariant（详情页 hero 的 home 系三选一）', () => {
+    it('非闪光按性别取 home / home-female', () => {
+        expect(heroVariant(false, 'male')).toBe('home');
+        expect(heroVariant(false, 'female')).toBe('home-female');
+    });
+
+    it('闪光开启时两种性别共显 home-shiny（上游没有 home-shiny-female）', () => {
+        expect(heroVariant(true, 'male')).toBe('home-shiny');
+        expect(heroVariant(true, 'female')).toBe('home-shiny');
     });
 });

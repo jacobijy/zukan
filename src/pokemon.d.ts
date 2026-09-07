@@ -94,6 +94,12 @@ interface IPokemonBaseModel {
     height?: number;
     weight?: number;
     category?: string;
+    /**
+     * PokeAPI 性别比例（species 级，打包自 pokemon_species.gender_rate）：
+     * -1 无性别 / 0 恒雄（0% 雌）… 8 恒雌（100% 雌），female_ratio = rate/8。
+     * 详情页性别切换据此门禁：-1 隐藏开关、0/8 锁定、1–7 可切换。
+     */
+    genderRate?: number;
 }
 
 interface IPokemonCardModel extends IPokemonBaseModel {}

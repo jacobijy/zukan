@@ -34,6 +34,15 @@ export const SPRITE_PREVIEW = 'front';
 export const SPRITE_FALLBACKS: readonly string[] = ['artwork', SPRITE_PREVIEW];
 
 /**
+ * 闪光系主 variant 404 时的回落顺序（不含主 variant）。
+ *
+ * 与 `SPRITE_FALLBACKS` 对称：`home-shiny` 对应 `artwork-shiny`（高清插画）、
+ * `shiny`（96×96 像素闪光图）垫底。**刻意不含非闪闪变体** —— 闪光缺失时回落
+ * 非闪光是把错的东西显示出来（见注释里的 shiny 段落），整条链都 404 就落占位图。
+ */
+export const SPRITE_SHINY_FALLBACKS: readonly string[] = ['artwork-shiny', 'shiny'];
+
+/**
  * 性别专属 variant → 它的无性别版本。
  *
  * **`female` 缺失不是资源缺口，而是「该形态不分性别」。** 上游只在雌性外观确实与
@@ -97,4 +106,14 @@ export function buildSpriteChain(variant: string, fallbacks: readonly string[] =
         if (!chain.includes(f)) chain.push(f);
     }
     return chain;
+}
+
+/**
+ * 详情页 hero 的显示 variant。home 系三选一：
+ * 闪光开启时两种性别共显 `home-shiny`（上游没有 `home-shiny-female`，见 catalog）。
+ * 纯函数便于 node 单测；组件侧的「固定性别锁定」由调用方把 sex 算好再传进来。
+ */
+export function heroVariant(shiny: boolean, gender: 'male' | 'female'): string {
+    if (shiny) return 'home-shiny';
+    return gender === 'female' ? 'home-female' : 'home';
 }

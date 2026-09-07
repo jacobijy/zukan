@@ -114,6 +114,7 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
             height: b.height,
             weight: b.weight,
             category,
+            genderRate: b.genderRate,
         };
     });
 }
