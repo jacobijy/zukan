@@ -34,6 +34,25 @@ export const SPRITE_PREVIEW = 'front';
 export const SPRITE_FALLBACKS: readonly string[] = ['artwork', SPRITE_PREVIEW];
 
 /**
+ * 性别专属 variant → 它的无性别版本。
+ *
+ * **`female` 缺失不是资源缺口，而是「该形态不分性别」。** 上游只在雌性外观确实与
+ * 默认不同时才产出 `female`（皮卡丘♀尾巴是心形，所以有；妙蛙种子没有），因此
+ * 1346 个数字 id 里只有 **103** 个有 `female` / `home-female`。剩下 1243 个的 404
+ * 恰恰说明「默认图就是雌性的样子」—— 回落到默认图不是妥协，是**正确答案**。
+ * 已核对：有 `female` 的 103 个 id 全部有 `front`，有 `home-female` 的全部有 `home`，
+ * 所以这一步回落必然落地（两批 id 不完全重合：902 只有 home-female，10033 只有 female）。
+ *
+ * **shiny 刻意不这样配对。** 闪光缺失时回落到非闪光是把**错的东西**显示出来
+ * （一只闪光宝可梦画成普通配色），而 female 缺失时回落到默认是对的。两者语义不对称，
+ * 别顺手加进来。
+ */
+export const SPRITE_DEGENDERED: Readonly<Record<string, string>> = {
+    female: SPRITE_PREVIEW,
+    'home-female': 'home',
+};
+
+/**
  * 服务端为每个 id 可能产出的全部 variant（`versions/<gen>/...` 除外，那是按世代的
  * 历史美术，路径带子目录、前端不读）。
  *
@@ -57,11 +76,18 @@ export const SPRITE_VARIANT_CATALOG: readonly string[] = [
 /**
  * 构造「主 variant + 回落」的尝试顺序，去重且保持首项为主 variant。
  *
+ * 性别专属 variant 的无性别版本**插在通用回落之前**：请求 `home-female` 时该先试
+ * `home`（同画风同尺寸的同一只），而不是跳到 `artwork`。
+ *
  * 去重是必要的：详情页可能直接传 `variant="artwork"`，不去重的话链里会出现
  * 两次 artwork——第一次 404 后又白试一次，多一个 404 往返。
  */
 export function buildSpriteChain(variant: string, fallbacks: readonly string[] = SPRITE_FALLBACKS): string[] {
     const chain: string[] = [variant];
+
+    const degendered = SPRITE_DEGENDERED[variant];
+    if (degendered && !chain.includes(degendered)) chain.push(degendered);
+
     for (const f of fallbacks) {
         if (!chain.includes(f)) chain.push(f);
     }

@@ -44,7 +44,8 @@ const slotText = computed(() => {
             // 解密成功但明文不是图片：最常见是把 fb bundle 的路径填进来了
             return o.meta.sniff.tag ? `FlatBuffers ${o.meta.sniff.tag}` : '未知明文格式';
         case 'missing':
-            return '服务端无此资源';
+            // 有含义的缺席（如 female 不存在 = 不分性别）说清楚，别一律报「无此资源」
+            return props.row.absentNote ?? '服务端无此资源';
         case 'forbidden':
             return 'CDN 签名过期（未自动重签）';
         case 'not-zukan':

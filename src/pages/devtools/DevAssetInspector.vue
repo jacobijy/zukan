@@ -36,7 +36,7 @@ import { computed, onUnmounted, ref } from 'vue';
 import AssetProbeForm from '@/components/devtools/AssetProbeForm.vue';
 import AssetProbeCard from '@/components/devtools/AssetProbeCard.vue';
 import { probeAsset, type ProbeDeps, type ProbeOutcome } from '@/services/devtools/assetProbe';
-import { probeKind, type ProbeRow } from '@/pages/devtools/devtools-options';
+import { probeKind, absentNoteFor, type ProbeRow } from '@/pages/devtools/devtools-options';
 import { SPRITE_VARIANT_CATALOG } from '@/constants/spriteVariants';
 import { fetchBinary, BinaryRequestError } from '@/services/http';
 import { buildCdnUrl, currentDataVersion } from '@/services/resources';
@@ -75,12 +75,12 @@ function clearRows(): void {
 
 onUnmounted(clearRows);
 
-function toRow(label: string, path: string, outcome: ProbeOutcome): ProbeRow {
+function toRow(label: string, path: string, outcome: ProbeOutcome, absentNote?: string): ProbeRow {
     // 明文不是图片时 mime 为 null：不建 Blob，卡片改显示 hex 头
     const mime = outcome.status === 'ok' ? outcome.meta.sniff.mime : null;
     const blobUrl =
         outcome.status === 'ok' && mime ? URL.createObjectURL(new Blob([outcome.bytes], { type: mime })) : null;
-    return { label, path, outcome, blobUrl };
+    return { label, path, outcome, blobUrl, absentNote };
 }
 
 function errorRow(label: string, path: string, err: unknown): ProbeRow {
@@ -116,6 +116,7 @@ async function runScan(id: number): Promise<void> {
         path: spec.buildPath(id, variant),
         outcome: null,
         blobUrl: null,
+        absentNote: absentNoteFor(variant),
     }));
 
     try {
@@ -127,7 +128,7 @@ async function runScan(id: number): Promise<void> {
             const row = rows.value[i]!;
             // eslint-disable-next-line no-await-in-loop -- 串行是本意，见上
             const outcome = await probeAsset(row.path, deps);
-            rows.value[i] = toRow(row.label, row.path, outcome);
+            rows.value[i] = toRow(row.label, row.path, outcome, row.absentNote);
         }
     } catch (err) {
         console.warn('[devtools] 扫描中断', err);

@@ -8,6 +8,7 @@
  * badge / type 应用层还没消费（见 encryption-pipeline 4.5），路径只在本表定义。
  */
 import { imageKindSpec } from '@/services/resources/imageKind';
+import { SPRITE_DEGENDERED } from '@/constants/spriteVariants';
 import type { ProbeOutcome } from '@/services/devtools/assetProbe';
 
 export type ProbeKindId = 'pokemon' | 'item' | 'badge' | 'type' | 'raw';
@@ -83,14 +84,36 @@ export interface ProbeRow {
     outcome: ProbeOutcome | null;
     /** 仅当 `outcome.status === 'ok'` 且明文确实是图片时才有 */
     blobUrl: string | null;
+    /**
+     * 404 时改用这句话解释，而不是笼统的「服务端无此资源」。
+     *
+     * 有些 variant 的缺席是**有含义的信息**而非缺口：`female` 不存在恰恰说明该形态
+     * 不分性别（1346 个 id 里只有 103 个有）。不区分的话扫描结果里 female / home-female
+     * 会有 1243 次显示成灰色缺口，把真正的缺口淹没掉。
+     */
+    absentNote?: string;
 }
 
-/** 结果配色：绿=有图、灰=服务端没有、红=真故障。批量扫描一眼扫过去就是这三色 */
+/**
+ * 结果配色：绿=有图、灰=服务端没有、红=真故障。批量扫描一眼扫过去就是这三色。
+ *
+ * `absentNote` 只改文案不改配色 —— 「没有」这个事实是一样的，变的是它意味着什么。
+ */
 export function rowTone(outcome: ProbeOutcome | null): 'pending' | 'ok' | 'absent' | 'bad' {
     if (!outcome) return 'pending';
     if (outcome.status === 'ok') return 'ok';
     if (outcome.status === 'missing') return 'absent';
     return 'bad';
+}
+
+/**
+ * 扫描时某个 variant 的 404 该怎么解释。返回 undefined = 就是普通缺口。
+ *
+ * 与 `SPRITE_DEGENDERED` 同源：能回落到无性别版本的，缺席就等于「不分性别」。
+ */
+export function absentNoteFor(variant: string): string | undefined {
+    const base = SPRITE_DEGENDERED[variant];
+    return base ? `不分性别，用 ${base}` : undefined;
 }
 
 /** 字节数转 KB 展示。放模块作用域而不是组件里 —— `<script setup>` 顶层其实落在

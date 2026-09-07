@@ -149,10 +149,10 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 | variant | 含义 |
 |---------|------|
 | `home` | **默认** Pokémon HOME 立绘 |
-| `home-shiny` / `home-female` | HOME 闪光 / 雌性 |
+| `home-shiny` / `home-female` | HOME 闪光 / 雌性（`home-female` 仅 103 个 id 有，见 4.3） |
 | `artwork` / `artwork-shiny` | 官方插画 |
 | `front` | 图鉴像素正面图（上游 REST 的 `sprites.front_default`），**2026-09-05 起可用** |
-| `shiny` / `female` | 图鉴像素闪光 / 雌性 |
+| `shiny` / `female` | 图鉴像素闪光 / 雌性（`female` 仅 103 个 id 有，见 4.3） |
 | `back` | 背面像素图 |
 | `dream` | Dreamworld 立绘 |
 | `versions/<gen>/...` | 按世代历史美术（**前端当前不读取**） |
@@ -189,7 +189,6 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 部分形态官方无 HOME 立绘。前端**不再直接落占位图**，而是按
 `home → artwork → front → /static/default.png` 逐个尝试（只有 404 才继续下一个；
 解密失败等真故障立即抛出，不伪装成数据缺口）。
-
 数字 id 口径（前端只请求这些，见 4.5）缺 `home` 的共 **10 个**，8 个能回落：
 
 | id | 形态 | home | artwork | front | 实际显示 |
@@ -206,6 +205,38 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 **不发那次必然 404 的请求**（数据层判定比运行时 404 更早、更确定）。字段缺席按「可能有」
 处理，仍走回落链。调用点：`PokemonCard`、`SpecimenHero`；`EvolutionNode` 的
 `EvolutionStage` 无此字段，靠回落链兜。
+
+#### `female` 缺失不是缺口
+
+数字 id 里只有 **103** 个有 `female` / `home-female`（全部 1346 个目录）。上游只在雌性
+外观**确实不同**时才产出（皮卡丘♀尾巴是心形，所以有；妙蛙种子没有），因此剩下 1243 个的
+404 恰恰传达了信息：**该形态不分性别，默认图就是雌性的样子**。
+
+所以 `buildSpriteChain` 给性别专属 variant 插一步「无性别版本」，插在通用回落**之前**
+（同一只的默认图优于换画风的 artwork）：
+
+| 请求 | 链 |
+|------|-----|
+| `home-female` | `home-female → home → artwork → front` |
+| `female` | `female → front → artwork` |
+
+回落必然落地 —— 已核对：有 `female` 的 103 个 id 全部有 `front`，有 `home-female` 的
+全部有 `home`（两批 id 不完全重合：902 只有 `home-female`，10033 只有 `female`）。
+
+> **`shiny` 刻意不这样配对。** 闪光缺失时回落非闪光是把**错的东西**显示出来（一只闪光
+> 宝可梦画成普通配色），而 female 缺失时回落默认是对的。两者语义不对称，别顺手加。
+> 映射表在 `src/constants/spriteVariants.ts` 的 `SPRITE_DEGENDERED`。
+
+核对命令：
+
+```bash
+cd assets/encrypted-assets/pokemon
+ls */female.bin      | awk -F/ '$1 ~ /^[0-9]+$/' | wc -l   # 103
+ls */home-female.bin | awk -F/ '$1 ~ /^[0-9]+$/' | wc -l   # 103
+```
+
+探测器（6.0）扫描时会把这两个 variant 的 404 标成「不分性别，用 xxx」而不是
+「服务端无此资源」—— 否则 1243 次灰格会把真正的缺口淹掉。
 
 404 不算解密失败：单独打 `[EncryptedSprite] 无资源`（warn），真失败才 `解密失败`（error）。
 

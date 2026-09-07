@@ -98,6 +98,10 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
 2. **preview 的 404 静默，链上的 404 才回落**。某些 id 有 home 无 front（如 10301），
    preview 失败不该拖累主图、也不该打日志。但**非 404 错误一律立即抛出** ——
    同一把 DEK 解不开 front 就解不开 home，把它当"没图"会把真故障伪装成数据缺口。
+   另有一类 404 是**有含义的**：`female` / `home-female` 只有 103 个 id 有，缺席说明
+   「该形态不分性别」，所以链里给它们插一步无性别版本（`home-female → home`、
+   `female → front`），插在通用回落之前。`shiny` 刻意不这样配对 —— 闪光缺失时回落
+   非闪光是显示错的东西。见 [../security/encryption-pipeline.md](../security/encryption-pipeline.md) 4.3。
 3. **LRU 上限要容得下一屏的两倍**。一张卡最多占两个 key（preview + full），
    `SPRITE_MAX_ENTRIES = 320`（原 200）—— 太小会让 preview 刚点亮就被自己的 full 挤掉。
    该常量已导出，用例断言直接引用它，改一处不会留下写死的数字。
@@ -131,6 +135,7 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
   才由 composable 降级为 warn（`无资源`）并置 `failed` → 回退 `/static/default.png`。
   数字 id 里缺 `home` 的 10 个中有 8 个能靠 artwork 救回来。
   preview 的 404 **静默处理**，不打日志、不影响主图。
+  `female` / `home-female` 的 404 是「不分性别」而非缺口，先回落无性别版本。
 - **道具图标**：无 variant 概念，404 即回落中性占位盒。
 
 缺口清单与实测口径见
@@ -184,7 +189,8 @@ pnpm test -- spriteCache spritePersist itemImage spriteLoader spriteVariants spr
 - `spriteLoader.spec.ts` —— preview + 回落链编排。假 deps，每个用例都对账引用数
   （漏 release = 静默泄漏，多 release = 裂图）。**含 hint 一组**：按记录重排、
   记录过期时仍能靠后续项救回、只在见过 404 时才回写、`noPreview` 跳过低清段。
-- `spriteVariants.spec.ts` —— chain 构造：主 variant 恒为首项、去重。
+- `spriteVariants.spec.ts` —— chain 构造：主 variant 恒为首项、去重、**性别回落**
+  （无性别版本插在通用回落之前、shiny 不配对、回落目标必在 catalog 内）。
 - `spriteAvailability.spec.ts` —— 记录层本身：版本不符整表丢弃、条目空了删 key、
   防抖落盘、坏 JSON / 坏结构回落空表、`forget` 与自命中清除。
   （`environment: 'node'` 没有 uni，用例自行 `vi.stubGlobal('uni', …)` + 假定时器。）

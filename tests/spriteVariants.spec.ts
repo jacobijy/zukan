@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest';
 import {
     SPRITE_PREVIEW,
     SPRITE_FALLBACKS,
+    SPRITE_DEGENDERED,
+    SPRITE_VARIANT_CATALOG,
     buildSpriteChain,
 } from '@/constants/spriteVariants';
 
@@ -43,5 +45,44 @@ describe('buildSpriteChain', () => {
     it('preview 与回落表的常量口径一致（front 既是低清先行也是最后兜底）', () => {
         expect(SPRITE_PREVIEW).toBe('front');
         expect(SPRITE_FALLBACKS).toContain(SPRITE_PREVIEW);
+    });
+});
+
+/**
+ * 性别专属 variant 的回落。
+ *
+ * `female` 缺失不是资源缺口 —— 上游只在雌性外观确实不同时才产出它（1346 个数字 id
+ * 里仅 103 个有），所以 404 恰恰说明「默认图就是雌性的样子」。回落到无性别版本是
+ * 正确答案，不是妥协。
+ */
+describe('buildSpriteChain：性别回落', () => {
+    it('home-female 先回落 home，再走通用回落', () => {
+        expect(buildSpriteChain('home-female')).toEqual(['home-female', 'home', 'artwork', 'front']);
+    });
+
+    it('female 回落到 front（同为像素图），且不因此重复出现 front', () => {
+        expect(buildSpriteChain('female')).toEqual(['female', 'front', 'artwork']);
+    });
+
+    it('无性别版本插在通用回落之前 —— 同一只的默认图优先于换画风的 artwork', () => {
+        const chain = buildSpriteChain('home-female');
+        expect(chain.indexOf('home')).toBeLessThan(chain.indexOf('artwork'));
+    });
+
+    it('shiny 刻意不配对：闪光缺失时回落非闪光是显示错的东西，与 female 语义不对称', () => {
+        expect(SPRITE_DEGENDERED).not.toHaveProperty('shiny');
+        expect(SPRITE_DEGENDERED).not.toHaveProperty('home-shiny');
+        expect(buildSpriteChain('home-shiny')).toEqual(['home-shiny', 'artwork', 'front']);
+    });
+
+    it('每个性别专属 variant 的无性别版本本身在 catalog 里（回落目标必须真实存在）', () => {
+        for (const [gendered, base] of Object.entries(SPRITE_DEGENDERED)) {
+            expect(SPRITE_VARIANT_CATALOG).toContain(gendered);
+            expect(SPRITE_VARIANT_CATALOG).toContain(base);
+        }
+    });
+
+    it('自定义回落表也照样先插无性别版本', () => {
+        expect(buildSpriteChain('home-female', ['dream'])).toEqual(['home-female', 'home', 'dream']);
     });
 });
