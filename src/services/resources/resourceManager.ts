@@ -47,6 +47,7 @@ import { buildCdnUrl } from '@/services/resources/cdn';
 import { currentDataVersion } from '@/services/resources/dataVersion';
 import { pruneSpriteVersions } from '@/services/resources/spritePersist';
 import { pruneItemIconVersions } from '@/services/resources/itemImage';
+import { pruneSpriteAvailability } from '@/services/resources/spriteAvailability';
 import { binaryStorage } from '@/infra/storage/binaryStorage';
 
 // ─────────────────────────────────────────────────────────
@@ -343,8 +344,9 @@ export const resourceManager = {
     /**
      * 清理**除 `keepVersion` 外**所有历史版本的字节缓存。
      * boot 流程发现服务端版本变化时调用；`keepVersion` 是即将写入 `dataVersion` 的新值。
-     * 同时清空内存 LRU（跨版本的解码结果不能保留）与 sprite 密文缓存
-     * （两者共用同一版本号，必须同步失效）。
+     * 同时清空内存 LRU（跨版本的解码结果不能保留）、sprite / 道具密文缓存，
+     * 以及立绘可用性记录（三者共用同一版本号，必须同步失效 ——
+     * 资源换了一版，旧的「哪个 variant 能用」结论不再可信）。
      */
     async pruneOtherVersions(keepVersion: number): Promise<void> {
         const keepPrefix = `fb:v${keepVersion}`;
@@ -358,6 +360,11 @@ export const resourceManager = {
         await pruneItemIconVersions(keepVersion).catch((err) =>
             console.warn('[resourceManager] 道具图标旧版本清理失败', err),
         );
+        try {
+            pruneSpriteAvailability(keepVersion);
+        } catch (err) {
+            console.warn('[resourceManager] 立绘可用性记录清理失败', err);
+        }
     },
     stats(): ResourceStats {
         return {

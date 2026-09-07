@@ -23,6 +23,13 @@ import { acquireSprite, releaseSprite } from '@/services/resources/spriteCache';
 import { acquireItemIcon, releaseItemIcon } from '@/services/resources/itemImage';
 import { isImageAbortError } from '@/services/resources/imageCache';
 import { loadSpriteChain } from '@/services/resources/spriteLoader';
+import {
+    getSpriteHint,
+    recordResolvedVariant,
+    recordNoPreview,
+    recordNoSprite,
+    forgetSprite,
+} from '@/services/resources/spriteAvailability';
 import { BinaryRequestError } from '@/services/http';
 import type { ImageKind } from '@/services/resources/imageKind';
 
@@ -138,6 +145,16 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
             return;
         }
 
+        // 上一轮实测过「整条回落链都没图」（跨刷新记录）—— 同样一个请求都不发。
+        // 与 `skip` 的区别：那个来自后端打包时的 hasSprite，这个来自前端运行时实测。
+        const hint = kind === 'pokemon' ? getSpriteHint(targetId, targetVariant) : null;
+        if (hint?.noSprite) {
+            blobUrl.value = null;
+            failed.value = true;
+            loading.value = false;
+            return;
+        }
+
         const ac = typeof AbortController === 'function' ? new AbortController() : null;
         controller = ac;
 
@@ -154,6 +171,17 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
                     acquire: (variant, priority) => acquire(kind, targetId, variant, priority, ac?.signal),
                     release: (variant) => release(kind, targetId, variant),
                     isStale,
+                    // 跨刷新记录只对 sprite 有意义（道具无 variant、无回落链）
+                    hint: hint
+                        ? {
+                              resolved: hint.resolved,
+                              noPreview: hint.noPreview,
+                              onResolved: (resolved) => recordResolvedVariant(targetId, targetVariant, resolved),
+                              onNoPreview: () => recordNoPreview(targetId, targetVariant),
+                              onNoSprite: () => recordNoSprite(targetId, targetVariant),
+                              forget: () => forgetSprite(targetId, targetVariant),
+                          }
+                        : undefined,
                     onPreview: (previewRef) => {
                         // 低清先上屏：此刻就收起骨架，整屏在几十毫秒内点亮。
                         // 只改渲染状态，**不碰 `held`** —— 这一段的引用仍归

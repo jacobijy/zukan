@@ -24,20 +24,28 @@ interface Harness {
     previews: string[];
     acquired: { variant: string; priority: number }[];
     setStale: () => void;
+    /** 记录层收到的回写调用（顺序即发生顺序） */
+    hintCalls: string[];
 }
 
 /**
  * @param available 哪些 variant 能取到（其余抛 NotFound）
  * @param opts.throwOn 该 variant 抛非 404 错误（模拟解密失败）
  * @param opts.staleAfter 第 N 次 acquire 成功后置为 stale（N 从 1 起）
+ * @param opts.hint 注入的历史结论（resolved / noPreview）
  */
 function harness(
     available: string[],
-    opts: { throwOn?: string; staleAfter?: number } = {},
+    opts: {
+        throwOn?: string;
+        staleAfter?: number;
+        hint?: { resolved?: string; noPreview?: boolean };
+    } = {},
 ): Harness {
     const refs = new Map<string, number>();
     const previews: string[] = [];
     const acquired: { variant: string; priority: number }[] = [];
+    const hintCalls: string[] = [];
     let stale = false;
     let okCount = 0;
 
@@ -60,9 +68,17 @@ function harness(
         isStale: () => stale,
         onPreview: (ref) => previews.push(ref.variant),
         isNotFound: (err) => err instanceof NotFound,
+        hint: {
+            resolved: opts.hint?.resolved,
+            noPreview: opts.hint?.noPreview,
+            onResolved: (r) => hintCalls.push(`resolved:${r}`),
+            onNoPreview: () => hintCalls.push('noPreview'),
+            onNoSprite: () => hintCalls.push('noSprite'),
+            forget: () => hintCalls.push('forget'),
+        },
     };
 
-    return { deps, refs, previews, acquired, setStale: () => { stale = true; } };
+    return { deps, refs, previews, acquired, hintCalls, setStale: () => { stale = true; } };
 }
 
 /** 剩余引用总数（结果里返回的那些不算泄漏，由调用方接管） */
@@ -253,5 +269,155 @@ describe('loadSpriteChain — stale（卸载 / 目标变了）', () => {
         expect(result).toEqual({ status: 'stale' });
         expect(h.acquired.map((a) => a.variant)).toEqual(['front']);
         expect(totalRefs(h.refs)).toBe(0);
+    });
+});
+
+/**
+ * 跨刷新记录（`spriteAvailability`）的消费。
+ *
+ * 这一组守的核心是「记录只是提示，不是真相」：抄近路可以，但一旦记录过期，
+ * 必须能沿完整回落链救回来 —— 否则一次偶然 404 会被永久固化成「这个形态没图」。
+ */
+describe('loadSpriteChain — 历史结论（少跑 404）', () => {
+    it('按记录直奔已知可用的 variant，跳过必然 404 的主 variant', async () => {
+        const h = harness(['front', 'artwork'], { hint: { resolved: 'artwork' } });
+
+        const result = await loadSpriteChain(
+            { preview: 'front', chain: ['home', 'artwork', 'front'] },
+            h.deps,
+        );
+
+        // home 根本没发出去 —— 这就是省下来的那次 404
+        expect(h.acquired.map((a) => a.variant)).toEqual(['front', 'artwork']);
+        expect(result).toMatchObject({ status: 'loaded', full: { variant: 'artwork' } });
+    });
+
+    it('直奔命中时不回写记录（结论没变，省一次 storage 写）', async () => {
+        const h = harness(['artwork'], { hint: { resolved: 'artwork' } });
+
+        await loadSpriteChain({ preview: null, chain: ['home', 'artwork'] }, h.deps);
+
+        expect(h.hintCalls).toEqual([]);
+    });
+
+    it('noPreview 记录让第一段整段跳过', async () => {
+        const h = harness(['home'], { hint: { noPreview: true } });
+
+        await loadSpriteChain({ preview: 'front', chain: ['home'] }, h.deps);
+
+        expect(h.acquired.map((a) => a.variant)).toEqual(['home']);
+        expect(h.previews).toEqual([]);
+    });
+
+    it('记录过期（上游补了 home）：直奔仍走原顺序，home 命中', async () => {
+        // 记录说 artwork，但 home 现在可用了 —— reorder 把 artwork 提前，
+        // 它成功了就返回 artwork。这是可接受的：图能显示，且下次 record 会更新。
+        const h = harness(['home', 'artwork'], { hint: { resolved: 'artwork' } });
+
+        const result = await loadSpriteChain({ preview: null, chain: ['home', 'artwork'] }, h.deps);
+
+        expect(result).toMatchObject({ status: 'loaded', full: { variant: 'artwork' } });
+    });
+
+    it('记录过期且该 variant 已 404：作废记录并沿链救回来', async () => {
+        // 记录说 artwork，但 artwork 被删了、只剩 home —— 必须回落到 home，
+        // 而不是直接判"没图"
+        const h = harness(['home'], { hint: { resolved: 'artwork' } });
+
+        const result = await loadSpriteChain({ preview: null, chain: ['home', 'artwork'] }, h.deps);
+
+        expect(h.acquired.map((a) => a.variant)).toEqual(['artwork', 'home']);
+        expect(result).toMatchObject({ status: 'loaded', full: { variant: 'home' } });
+        // 过期结论被作废，且回写了新结论
+        expect(h.hintCalls).toContain('forget');
+        expect(h.hintCalls).toContain('resolved:home');
+    });
+
+    it('reorder 只改顺序不删元素 —— 完整链仍在，否则救不回来', async () => {
+        // 记录指向 front，但只有 home 可用；front 在链尾，reorder 后 home 仍应被试到
+        const h = harness(['home'], { hint: { resolved: 'front' } });
+
+        const result = await loadSpriteChain(
+            { preview: null, chain: ['home', 'artwork', 'front'] },
+            h.deps,
+        );
+
+        expect(h.acquired.map((a) => a.variant)).toEqual(['front', 'home']);
+        expect(result).toMatchObject({ status: 'loaded', full: { variant: 'home' } });
+    });
+
+    it('记录里的 variant 不在链上时忽略它（换了主 variant 的场景）', async () => {
+        const h = harness(['shiny'], { hint: { resolved: 'artwork' } });
+
+        const result = await loadSpriteChain({ preview: null, chain: ['shiny'] }, h.deps);
+
+        expect(h.acquired.map((a) => a.variant)).toEqual(['shiny']);
+        expect(result).toMatchObject({ status: 'loaded', full: { variant: 'shiny' } });
+    });
+
+    it('首次遇到回落：回写实际命中的 variant', async () => {
+        const h = harness(['artwork']);
+
+        await loadSpriteChain({ preview: null, chain: ['home', 'artwork'] }, h.deps);
+
+        expect(h.hintCalls).toEqual(['resolved:artwork']);
+    });
+
+    it('主 variant 直接命中时不回写（默认情形，1300+ id 走这条）', async () => {
+        const h = harness(['home']);
+
+        await loadSpriteChain({ preview: null, chain: ['home', 'artwork'] }, h.deps);
+
+        expect(h.hintCalls).toEqual([]);
+    });
+
+    it('preview 首次 404：回写 noPreview', async () => {
+        const h = harness(['home']);
+
+        await loadSpriteChain({ preview: 'front', chain: ['home'] }, h.deps);
+
+        expect(h.hintCalls).toEqual(['noPreview']);
+    });
+
+    it('全链 404：回写 noSprite，下次一个请求都不发', async () => {
+        const h = harness([]);
+
+        const result = await loadSpriteChain(
+            { preview: 'front', chain: ['home', 'artwork', 'front'] },
+            h.deps,
+        );
+
+        expect(result).toEqual({ status: 'missing', preview: null });
+        expect(h.hintCalls).toContain('noSprite');
+    });
+
+    it('真故障（非 404）不得回写任何结论 —— 否则一次网络抖动会永久隐藏这张图', async () => {
+        const h = harness(['artwork'], { throwOn: 'home' });
+
+        await expect(
+            loadSpriteChain({ preview: null, chain: ['home', 'artwork'] }, h.deps),
+        ).rejects.toBeInstanceOf(Boom);
+
+        expect(h.hintCalls).toEqual([]);
+    });
+
+    it('stale 时不回写结论（没跑完，结论不可信）', async () => {
+        const h = harness(['artwork'], { staleAfter: 1 });
+
+        const result = await loadSpriteChain({ preview: null, chain: ['home', 'artwork'] }, h.deps);
+
+        expect(result).toEqual({ status: 'stale' });
+        expect(h.hintCalls.filter((c) => c.startsWith('resolved'))).toEqual([]);
+    });
+
+    it('不注入 hint 时行为与加此优化前完全一致', async () => {
+        const h = harness(['artwork']);
+        // 去掉 hint，模拟 item 种类 / 旧调用方
+        h.deps.hint = undefined;
+
+        const result = await loadSpriteChain({ preview: null, chain: ['home', 'artwork'] }, h.deps);
+
+        expect(h.acquired.map((a) => a.variant)).toEqual(['home', 'artwork']);
+        expect(result).toMatchObject({ status: 'loaded', full: { variant: 'artwork' } });
     });
 });

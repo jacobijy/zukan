@@ -5,6 +5,7 @@
  * - `spriteCache` 宝可梦立绘 Blob URL 共享缓存（引用计数 + 并发调度 / 离屏取消）
  * - `spritePersist` 宝可梦立绘密文跨刷新缓存（IndexedDB；`spriteCache` 内部消费）
  * - `itemImage` 道具图标加密资源（与 sprite 同一套引擎的 item 实例）
+ * - `spriteAvailability` 立绘可用性跨刷新记录（少跑已知必然 404 的 variant）
  * - `buildCdnUrl` 签 URL
  * - `dataVersion` KV 版本号
  */
@@ -22,6 +23,8 @@ export {
 export { spritePersistStats } from './spritePersist';
 
 export { acquireItemIcon, releaseItemIcon, clearItemIconCache, pruneItemIconVersions } from './itemImage';
+
+export { spriteAvailabilityStats, pruneSpriteAvailability } from './spriteAvailability';
 
 export { buildCdnUrl } from './cdn';
 
