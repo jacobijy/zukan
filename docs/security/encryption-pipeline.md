@@ -209,6 +209,12 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 
 404 不算解密失败：单独打 `[EncryptedSprite] 无资源`（warn），真失败才 `解密失败`（error）。
 
+**回落结果会按资源版本缓存在本地**（`spriteAvailability.ts`，全平台的 uni storage，
+key `zukan_sprite_avail`）：上表这 9 个偏离默认的 id 第二次刷新起直接从对的 variant 开始，
+不再重演 404。只记偏差（今天约 9 条 / <1 KB），不记正常命中；记录只是提示，
+按记录直取仍 404 就丢弃记录、回到完整链 —— 否则资源补齐了前端也不会再去看。
+不变量见 [../caching/sprite-cache.md](../caching/sprite-cache.md)「可用性记录」。
+
 ### 4.4 前端请求不到的密文（体积治理）
 
 `encrypted-assets/pokemon/` 下有两类产物**没有任何前端调用路径**，排查体积时别误判：
@@ -329,6 +335,7 @@ du -sch */versions 2>/dev/null | tail -1
 | 改道具图 / 道具 id 映射 | ① `tools/sync-sprites.py`（读 `items.csv` 真实 id，`sprite_slug()` 决定回落规则）② 重跑 `sync-sprites.py` + `make encrypt` ③ **加密是增量、且靠 mtime 判定**：`copy_items()` 会 rmtree 明文目录，但**加密侧不清场**；而 `shutil.copy2` 保留源 mtime，改了映射后新明文可能比旧密文还"旧"而被跳过，导致残留旧图。改映射后须手动删掉受影响的 `encrypted-assets/items/*.bin` 再重建 ④ 本文 4.5 |
 | 改 form / 名称映射 | sync-i18n.py 重映射；重打包 PKNM 重加密；清缓存 |
 | 改缓存调度 / 引用计数 | 跑 `pnpm test`（spriteCache/spritePersist）；别破坏 caching 文档里的不变量 |
+| 补齐某个 id 的立绘资源 | 无需前端改动：本地可用性记录只在按记录直取仍 404 时才生效并自动丢弃；版本号 bump 后整表失效 |
 | 接 CDN 签名 | 后端 `/zukan/key` 响应加 `cdn` 对象；前端 `buildCdnUrl` 已就绪 |
 
 每次改完必跑：`pnpm type-check`、`pnpm test`、`pnpm dev:h5` 移动端 UA curl 改动页确认 200；
@@ -340,6 +347,7 @@ du -sch */versions 2>/dev/null | tail -1
 `src/services/http/binaryRequest.ts`、`src/services/resources/cdn.ts`、
 `src/services/session/{key,authGate}.ts`、`src/services/resources/{resourceManager,dataVersion,spriteCache,spritePersist}.ts`、
 `src/services/resources/spriteLoader.ts`（preview + 回落链编排）、
+`src/services/resources/spriteAvailability.ts`（回落落点的按版本本地记录）、
 `src/constants/spriteVariants.ts`（variant 常量唯一定义处）、
 `src/composables/useEncryptedImage.ts`、
 `src/infra/storage/binaryStorage.ts`、`src/services/pokemon/pokemon.ts`、

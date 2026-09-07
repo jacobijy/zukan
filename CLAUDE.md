@@ -62,7 +62,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存 / 解密 / Blob URL 生命周期在 `src/services/resources/spriteCache.ts` —— **模块级共享 + 引用计数**，`refs > 0` 的条目不会被 LRU 撤销（撤销即裂图）。列表默认懒加载（进视口前不下载），必然可见的场景传 `eager`。跨刷新缓存由 `spritePersist.ts` 补充（IndexedDB 存 ZKDX 密文，非 IDB 后端 no-op）。
 
-**立绘走渐进式两段加载 + 404 回落链**：服务器上 `front`（96×96，约 1.9 KB）与 `home`（512×512，约 122 KB）差约 65 倍，而列表卡只渲染 64–70px。所以先拉 `front` 点亮整屏（一屏 20 张约 38 KB），再后台换 `home`；主 variant 404 时按 `home → artwork → front → /static/default.png` 逐个试（**只有 404 才回落**，解密失败等真故障立即抛出，否则真故障会伪装成数据缺口）。variant 常量的唯一定义处是 `src/constants/spriteVariants.ts`，编排在 `src/services/resources/spriteLoader.ts`（纯函数、无 Vue 依赖，因此能在 node 测试环境跑）。数据层的 `hasSprite === false` 时**一个请求都不发**，直接落占位图。详见 `docs/caching/sprite-cache.md`。
+**立绘走渐进式两段加载 + 404 回落链**：服务器上 `front`（96×96，约 1.9 KB）与 `home`（512×512，约 122 KB）差约 65 倍，而列表卡只渲染 64–70px。所以先拉 `front` 点亮整屏（一屏 20 张约 38 KB），再后台换 `home`；主 variant 404 时按 `home → artwork → front → /static/default.png` 逐个试（**只有 404 才回落**，解密失败等真故障立即抛出，否则真故障会伪装成数据缺口）。variant 常量的唯一定义处是 `src/constants/spriteVariants.ts`，编排在 `src/services/resources/spriteLoader.ts`（纯函数、无 Vue 依赖，因此能在 node 测试环境跑）。数据层的 `hasSprite === false` 时**一个请求都不发**，直接落占位图。回落链的实际落点由 `src/services/resources/spriteAvailability.ts` **按资源版本记在本地 KV**（全平台启用，只记偏离默认的约 9 条、<1 KB），下次刷新直接从对的 variant 开始；**记录只是提示** —— 按记录直取仍 404 就丢弃记录、回到完整链，否则一次偶发 404 会被永久固化成「这张没图」。该模块不被 `spriteLoader` 直接 import，而是由 composable 以 `hint` 注入，好让编排层保持无平台依赖。详见 `docs/caching/sprite-cache.md`。
 
 **道具图标走同一条加密图片通道**：引擎已泛化为种类无关的 `imageCache.ts`（限流/引用计数/LRU/离屏取消）+ `imagePersist.ts`（密文持久化）工厂，差异（远端路径 / MIME / 持久化前缀 / 预算）由 `imageKind.ts` 的 `ImageKindSpec` 注入；`spriteCache.ts`/`spritePersist.ts` 是 pokemon 实例的薄封装（原名不变），道具实例在 `itemImage.ts`（远端 `/assets/encrypted/items/<id>.bin`，扁平无 variant）。视口懒加载/引用配对两组件共用 `composables/useEncryptedImage.ts`，`archive/ItemIcon.vue` 是道具侧组件（404 回落中性占位盒）。详见 `docs/caching/sprite-cache.md`。
 
@@ -74,6 +74,7 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 | FB bundle 密文 | `resourceManager.ts` via `binaryStorage` | IndexedDB | 跨刷新 | `pruneOtherVersions` |
 | sprite Blob URL | `spriteCache.ts`（`imageCache` pokemon 实例） | 内存 LRU（320 条） | — | 刷新即清空 |
 | sprite 密文 | `spritePersist.ts`（`imagePersist` pokemon 实例）via `binaryStorage` | IndexedDB（仅 IDB 后端） | 跨刷新 | `pruneSpriteVersions` |
+| sprite 回落落点 | `spriteAvailability.ts` via `uni storage`（key `zukan_sprite_avail`） | KV（**全平台**，仅几百字节） | 跨刷新 | `pruneSpriteAvailability` |
 | 道具图标 Blob URL | `itemImage.ts`（`imageCache` item 实例） | 内存 LRU（200 条） | — | 刷新即清空 |
 | 道具图标密文 | `itemImage.ts`（`imagePersist` item 实例，前缀 `item-img:`）via `binaryStorage` | IndexedDB（仅 IDB 后端） | 跨刷新 | `pruneItemIconVersions` |
 | 密钥 DEK | `session/key.ts` | 内存单例 | — | 登出 / 403 重签 |
@@ -107,7 +108,11 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
    索引有数据没有 → 按 miss 走网络并摘掉幽灵项；数据有索引没有 → `reconcile()` 开局对账删孤儿。
 4. **内存 `clear*()`（登出）刻意不清磁盘** —— 密文没 DEK 解不开，不构成泄露，
    留着下次登录还能命中。版本升级走 `resourceManager.pruneOtherVersions`（sprite 与道具
-   各清各的前缀：`pruneSpriteVersions` / `pruneItemIconVersions`）。
+   各清各的前缀：`pruneSpriteVersions` / `pruneItemIconVersions`；sprite 回落落点记录另走
+   `pruneSpriteAvailability`，**版本不符即整表丢弃、同步落盘**，不走 500ms 防抖以避开刷新竞态）。
+
+> 注意 `spriteAvailability` **刻意不遵守上面第 2 条**：它存的是几百字节的 variant 名，
+> 不是图片，挤不爆小程序配额；而小程序恰恰没有密文持久化，更需要省掉这些必然 404 的请求。
 
 ### 认证与会话（`src/services/session/`）
 
@@ -286,7 +291,7 @@ setup(__props) {
 2. `pnpm test` —— 必须全绿；改了 `src/utils/dexFilter.ts`、`src/store/pokemon.ts`、
    `src/constants/generations.ts`、或加密图片资源层（`src/services/resources/imageCache.ts`、
    `imagePersist.ts`、`imageKind.ts`、`spriteCache.ts`、`spritePersist.ts`、`itemImage.ts`、
-   `spriteLoader.ts`、`src/constants/spriteVariants.ts`、
+   `spriteLoader.ts`、`spriteAvailability.ts`、`src/constants/spriteVariants.ts`、
    `src/composables/useEncryptedImage.ts`）时尤其别跳过
 3. `pnpm dev:h5` 起服务后用**移动端 UA** curl 一遍改动的页面与组件，确认 200：
    ```bash

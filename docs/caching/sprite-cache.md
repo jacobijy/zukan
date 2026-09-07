@@ -10,6 +10,9 @@
 
 > sprite 是 320 而非 200：渐进式加载让一张卡最多占两个 key（低清 preview + 高清），
 > 详见下文「渐进式两段加载」。
+>
+> sprite 另有一层**几百字节**的可用性记录（`spriteAvailability.ts`，全平台启用），
+> 只记回落链的落点，不存图，详见下文「可用性记录」。
 
 ## 模块结构
 
@@ -29,6 +32,9 @@
   `clearItemIconCache()` / `pruneItemIconVersions(v)`。
 - `spriteLoader.ts` / `constants/spriteVariants.ts` — **仅 sprite**：低清先行 +
   404 回落链的编排与常量（见下文）。item 不参与，plan 退化为「无 preview、单项 chain」。
+- `spriteAvailability.ts` — **仅 sprite**：按版本记住回落链的落点（见下文「可用性记录」）。
+  `spriteLoader` **不直接 import 它**，而是由 composable 以 `hint` 注入 ——
+  这样编排层仍无平台依赖，node 用例不必 stub 全局 `uni`。
 
 合起来的链对两类都一样：`内存 Blob URL → IDB 密文 → 网络`。组件不直接碰缓存：
 视口感知 / 懒加载 / 离屏取消 / 引用配对在 `composables/useEncryptedImage.ts`，
@@ -130,18 +136,58 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
 缺口清单与实测口径见
 [../security/encryption-pipeline.md](../security/encryption-pipeline.md) 第 4.3 节。
 
+## 可用性记录（spriteAvailability，仅 sprite）
+
+`services/resources/spriteAvailability.ts`：**按资源版本**把「回落链的实际落点」记在本地 KV，
+下次刷新直接从对的 variant 开始，省掉注定 404 的请求。
+
+与数据层 `hasSprite` 的分工（两者不重复，缺一不可）：
+
+| | `hasSprite`（FB 字段） | `spriteAvailability`（本地记录） |
+|---|---|---|
+| 来源 | 后端构建期扫目录 | 前端运行时实测 |
+| 粒度 | 布尔「有没有正面图」 | **哪个 variant 能取到** / preview 缺 / 整链缺 |
+| 载体 | 随 `gen-N.bin` 走三层缓存 | 独立 KV（`zukan_sprite_avail`） |
+
+**只记偏差，不记全量。** 绝大多数 id 走 `home` 首发命中，那是默认行为、无需记录；
+落盘的只有「首发 404 过」的条目（今天约 9 条，不到 1 KB）。若把 1300+ id 的正常结论
+全存下来，索引会涨到几十 KB，而收益是零。
+
+**所有平台都开**，与 `imagePersist` 的「仅 IDB」不同：那个存的是几十 MB 密文，
+会挤爆小程序 10MB 配额；这个是几百字节，而且小程序**没有密文持久化**，反而更需要
+省掉这些 404。
+
+### 三条约定
+
+1. **记录不是真相，只是提示。** 按记录直取的 variant 一旦 404，必须 `forget()` 掉该条
+   并继续走完整条链。否则一次偶发 404（服务端临时抽风、资源刚补上前的空窗）会被永久
+   固化成「这张没图」，图补上了前端也再也不去看。
+2. **重排不删项。** `reorderByHint` 把命中过的 variant 提到队首，其余项**原序保留在后面**，
+   不是替换成单元素链 —— 否则记录一旦过期（那个 variant 后来被删了）就彻底取不到图。
+3. **只在真的偏离默认时才写。** `onResolved` 仅当本次**确实见过 404**（`sawNotFound`）
+   才落盘；首发即命中不写。同理 `recordResolvedVariant` 在「记录的 variant 恰好等于主
+   variant」时是**清除**记录（连带清掉过期的「整链缺」结论），而不是写一条恒真的废记录。
+
+版本失效跟 FB bundle 同一条链：`boot.ts` → `resourceManager.pruneOtherVersions(keep)`
+→ `pruneSpriteAvailability(keep)`（版本号不符即整表丢弃，**同步落盘**，不走 500ms 防抖，
+避免刷新竞态）。日常写入与索引一样带 500ms 防抖。
+
 ## 测试
 
 ```bash
-pnpm test -- spriteCache spritePersist itemImage spriteLoader spriteVariants
+pnpm test -- spriteCache spritePersist itemImage spriteLoader spriteVariants spriteAvailability
 ```
 
 - `spriteCache.spec.ts` / `spritePersist.spec.ts` —— 引擎的限流 / 调度 / 引用计数 /
   落盘自愈（走 pokemon 薄封装）。**含调度优先级一组**：priority 压过 batch、
   同 priority 内仍 LIFO/FIFO、同 key 取 max、不传 priority 行为不变。
 - `spriteLoader.spec.ts` —— preview + 回落链编排。假 deps，每个用例都对账引用数
-  （漏 release = 静默泄漏，多 release = 裂图）。
+  （漏 release = 静默泄漏，多 release = 裂图）。**含 hint 一组**：按记录重排、
+  记录过期时仍能靠后续项救回、只在见过 404 时才回写、`noPreview` 跳过低清段。
 - `spriteVariants.spec.ts` —— chain 构造：主 variant 恒为首项、去重。
+- `spriteAvailability.spec.ts` —— 记录层本身：版本不符整表丢弃、条目空了删 key、
+  防抖落盘、坏 JSON / 坏结构回落空表、`forget` 与自命中清除。
+  （`environment: 'node'` 没有 uni，用例自行 `vi.stubGlobal('uni', …)` + 假定时器。）
 - `itemImage.spec.ts` —— item 接线差异：扁平远端路径、与 sprite 缓存相互独立、
   404 契约、`item-img:` 前缀的跨刷新密文。
 
@@ -154,3 +200,6 @@ pnpm test -- spriteCache spritePersist itemImage spriteLoader spriteVariants
 > 按项目测试约定：**写完把 bug 注回去确认它变红**。本次逐个验证过 6 处变异
 > （去掉 priority 排序 / 去掉取 max / 三处漏 release / 把非 404 当没图 / 去掉 preview 去重）
 > 都能被捕获；其中「去掉取 max」第一版用例**没抓住**，改成跨 batch 场景后才生效。
+>
+> 可用性记录同样验证过 5 处变异：`reorderByHint` 退化成单元素链 / 过期记录不 `forget` /
+> 无条件回写 `onResolved` / `loadIndex` 跳过版本校验 / 自命中不清除旧结论 —— 均变红。
