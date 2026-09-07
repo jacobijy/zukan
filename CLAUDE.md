@@ -51,6 +51,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 对战模拟器 | `pages/simulate/simulate` | **UI 骨架**（`noop` 占位，无实际交互） |
 | 设置 | `pages/settings/settings` | 子页（`DetailNavbar`，语言等系统设置；点选项弹 `OptionSheet`） |
 | 属性/招式/特性/道具图鉴 | `pages/archive/*` | 资料中心四个栏目，列表页 + 详情页共 8 个（`types`/`type-detail`、`moves`/`move-detail`、`abilities`/`ability-detail`、`items`/`item-detail`）；数据流见 `docs/features/archive.md` |
+| 加密资源探测器 | `pages/devtools/devtools` | **dev-only 子页**（我的 → 开发者工具）。取服务端 ZKDX 密文 → 解密 → 显示图片与元信息；门禁 `import.meta.env.DEV`，实现体动态 import，正式构建被 Rollup 剔除。见 `docs/security/encryption-pipeline.md` 6.0 |
 
 `src/pages/` 下没有其他游离页面文件。
 
@@ -191,6 +192,8 @@ src/components/
   calc/      计算器上下文：CalcCard、ChipRow、LevelStepper、
              DamageResultCard、CalcSideCard、StatInputRow
   sprite/    图片加载：EncryptedSprite（宝可梦立绘，走加密图片通道）
+  devtools/  **dev-only** 排障工具：AssetProbeForm、AssetProbeCard
+             （加密资源探测器；文案硬编码中文，刻意不接 i18n）
   (根目录)    NavBar、TabBar（跨页面底栏 / 顶栏，非 shared 子目录）
 src/composables/ 跨组件复用的组合式逻辑：useEncryptedImage（加密图片的视口懒加载 /
              离屏取消 / 引用配对，EncryptedSprite 与 ItemIcon 共用）
@@ -229,6 +232,14 @@ src/pages/<name>/<name>-options.ts   仅该页用的选项/常量表
    `type-check` 抓不到。`store/pokemon.ts` 的 `formattedId` 就是活例子 —— 没有组件读它。
 4. **命名避免撞车。** 组件名要能反映用途，`calc/PokemonCard.vue` 这种与
    `pokemon/PokemonCard.vue` 同名但语义无关的必须改名（已改为 `CalcSideCard`）。
+5. **dev-only 页面走「页壳 + 动态 import 实现体」。** 门禁只有一处
+   （`src/services/devtools/enabled.ts` 的 `devtoolsEnabled = import.meta.env.DEV`），
+   页壳里 `if (!devtoolsEnabled) return;` 之后再 `await import('./Impl.vue')` ——
+   `DEV` 被 Vite 静态替换成字面量，正式构建里该分支恒假，Rollup 连整个分包一起丢掉。
+   换成运行时开关（localStorage 之类）就失去这个性质，实现体会被打进包里。
+   页壳本身仍要留在 `pages.json`（静态 JSON 无法条件注册），正式构建下只渲染「未启用」。
+   核对方式：`pnpm build:h5 && grep -rl "<实现体标识>" dist/build/h5` 应无命中 ——
+   **这条只能靠拉产物验证，`type-check` 与用例都看不见**。
 
 ### scoped CSS 的特异性陷阱（踩过两次）
 
@@ -292,7 +303,7 @@ setup(__props) {
    `src/constants/generations.ts`、或加密图片资源层（`src/services/resources/imageCache.ts`、
    `imagePersist.ts`、`imageKind.ts`、`spriteCache.ts`、`spritePersist.ts`、`itemImage.ts`、
    `spriteLoader.ts`、`spriteAvailability.ts`、`src/constants/spriteVariants.ts`、
-   `src/composables/useEncryptedImage.ts`）时尤其别跳过
+   `src/composables/useEncryptedImage.ts`、`src/services/devtools/assetProbe.ts`）时尤其别跳过
 3. `pnpm dev:h5` 起服务后用**移动端 UA** curl 一遍改动的页面与组件，确认 200：
    ```bash
    UA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)'

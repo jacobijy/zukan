@@ -283,6 +283,35 @@ du -sch */versions 2>/dev/null | tail -1
 
 ## 6. 排障清单
 
+### 6.0 先用探测器（dev-only）
+
+上面这几节的手工动作（curl 看状态码 → 核 `5a4b4458 01` 头 → 手动解密看是不是图）
+已经做成页面：**我的 → 开发者工具 → 加密资源探测器**（`pages/devtools/devtools`）。
+填 kind + id + variant（或裸路径）即可看到密文/明文字节数、`FORMAT_VERSION`、
+明文魔数判定、下载与解密耗时，以及解出来的图。pokemon 还能一键扫全部 10 个 variant，
+绿=有图 / 灰=404 / 红=真故障，直接对照 4.3 的缺口表。
+
+三点与应用层**语义相反**，别弄混：
+
+| | 应用层（`spriteLoader` / `useEncryptedImage`） | 探测器 |
+|---|---|---|
+| 404 | 走回落链，preview 的 404 连日志都不打 | 单独报 `missing`，不回落 |
+| 403 | 自动清 key 重签重下一次 | 单独报 `forbidden`，**不重试** |
+| 缓存 | 内存 LRU → IDB 密文 → 网络，还读可用性记录 | **一律绕开**，只看服务端此刻返回什么 |
+| 网络错误 | `fetchBinary` 默认重试一次 | `retries: 0` |
+
+**仅 dev 可用**：门禁是 `import.meta.env.DEV`（`src/services/devtools/enabled.ts`），
+实现体靠动态 import，正式构建里 Rollup 把整个分包丢掉 —— 页壳仍在 `pages.json` 里
+（静态 JSON 无法条件注册），但只渲染一句「未启用」。核对方式：
+`pnpm build:h5 && grep -rl "probeAsset\|DevAssetInspector" dist/build/h5` 应无命中。
+
+判定逻辑在 `src/services/devtools/assetProbe.ts`（纯函数 + 依赖注入，
+`tests/assetProbe.spec.ts` 覆盖六种 outcome 与魔数嗅探）。
+
+> 明文魔数嗅探有个坑：FlatBuffers 的 `file_identifier` 在**偏移 4**，不是 0
+> （`gen-1.bin` 实测 `18 00 00 00 50 4b 4d 42`）。按偏移 0 找 `PKMB` 永远不匹配，
+> 于是所有 bundle 都被判成 unknown，看不出「你填的是数据 bundle 的路径，不是图片」。
+
 ### 6.1 图裂 / 显示默认图
 1. Network 看请求的 pokemon id、variant。**渐进式加载下一张卡有两个请求**：
    先 `front`（preview，约 2 KB）再 `home`（高清）；只看到 front 说明高清还在跑或全 404。
@@ -298,6 +327,7 @@ du -sch */versions 2>/dev/null | tail -1
 
 ### 6.2 解密失败 / invalid magic / unsupported version / tag 失败
 - `invalid magic` → 拿到的不是 ZKDX（HTML 404 页、未加密明文 FB、JSON 错误体）。查远端路径。
+  （探测器会把这种情况单独报成「非 ZKDX」并给出响应体的 hex 头，比猜快。）
 - `unsupported version: N` → 头第 5 字节 ≠ 前端 `FORMAT_VERSION`(=1)。**最常见原因是加密时
   把 `ZUKAN_DEK_VERSION` 误写进头**（见 1.1 的历史事故）。核查方式：
   `head -c5 <文件> | xxd` 应为 `5a4b4458 01`；批量核查
@@ -331,7 +361,7 @@ du -sch */versions 2>/dev/null | tail -1
 | ZKDX 格式 / 加算法 | 常量三处（前端 crypto.rs、后端 wasm-crypto、后端 zukan/service.rs）+ `build_zkdx`；`FORMAT_VERSION` 同步升级并重编 WASM；本文第 1、1.1 节 |
 | 重新加密资源（内容变更） | 决定是否 bump `ZUKAN_DEK_VERSION`（仅缓存信号，**不进文件头**）；勿动 `FORMAT_VERSION`（1.1 / 6.3） |
 | 新增 FB bundle 类型 | ① schema + flatc 重生成 ② sync-*.py 打包 ③ WASM convert.rs 加解码器 + index.ts 导出 ④ resourceManager 加 spec/getter/prefetch ⑤ 本文 4.1 |
-| 新增 sprite variant | ① encrypt-assets 产物 ② `EncryptedSprite` variant 传值 ③ 缺失兜底 ④ 若要进 preview / 回落链，改 `src/constants/spriteVariants.ts`（**唯一定义处**，别在组件里各写一份）并跑 `tests/spriteVariants.spec.ts` ⑤ 本文 4.2 / 4.3 |
+| 新增 sprite variant | ① encrypt-assets 产物 ② `EncryptedSprite` variant 传值 ③ 缺失兜底 ④ 若要进 preview / 回落链，改 `src/constants/spriteVariants.ts`（**唯一定义处**，别在组件里各写一份）并跑 `tests/spriteVariants.spec.ts`；顺手加进同文件的 `SPRITE_VARIANT_CATALOG`，否则探测器扫不到它 ⑤ 本文 4.2 / 4.3 |
 | 改道具图 / 道具 id 映射 | ① `tools/sync-sprites.py`（读 `items.csv` 真实 id，`sprite_slug()` 决定回落规则）② 重跑 `sync-sprites.py` + `make encrypt` ③ **加密是增量、且靠 mtime 判定**：`copy_items()` 会 rmtree 明文目录，但**加密侧不清场**；而 `shutil.copy2` 保留源 mtime，改了映射后新明文可能比旧密文还"旧"而被跳过，导致残留旧图。改映射后须手动删掉受影响的 `encrypted-assets/items/*.bin` 再重建 ④ 本文 4.5 |
 | 改 form / 名称映射 | sync-i18n.py 重映射；重打包 PKNM 重加密；清缓存 |
 | 改缓存调度 / 引用计数 | 跑 `pnpm test`（spriteCache/spritePersist）；别破坏 caching 文档里的不变量 |
@@ -350,6 +380,7 @@ du -sch */versions 2>/dev/null | tail -1
 `src/services/resources/spriteAvailability.ts`（回落落点的按版本本地记录）、
 `src/constants/spriteVariants.ts`（variant 常量唯一定义处）、
 `src/composables/useEncryptedImage.ts`、
+`src/services/devtools/{enabled,assetProbe}.ts`（dev-only 探测器，见 6.0）、
 `src/infra/storage/binaryStorage.ts`、`src/services/pokemon/pokemon.ts`、
 `src/components/sprite/EncryptedSprite.vue`、`src/services/boot.ts`。
 
