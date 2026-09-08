@@ -326,8 +326,10 @@ du -sch */versions 2>/dev/null | tail -1
 ### 6.0 先用探测器（dev-only）
 
 上面这几节的手工动作（curl 看状态码 → 核 `5a4b4458 01` 头 → 手动解密看是不是图）
-已经做成页面：**我的 → 开发者工具 → 加密资源探测器**（`pages/devtools/devtools`）。
-填 kind + id + variant（或裸路径）即可看到密文/明文字节数、`FORMAT_VERSION`、
+已经做成页面：**我的 → 开发者工具**（`pages/devtools/devtools`）。页壳顶部两个 tab
+切两个工具：**资源探测器**（本节）与**文本浏览**（6.0.1）。
+
+探测器填 kind + id + variant（或裸路径）即可看到密文/明文字节数、`FORMAT_VERSION`、
 明文魔数判定、下载与解密耗时，以及解出来的图。pokemon 还能一键扫全部 10 个 variant，
 绿=有图 / 灰=404 / 红=真故障，直接对照 4.3 的缺口表。
 
@@ -341,9 +343,15 @@ du -sch */versions 2>/dev/null | tail -1
 | 网络错误 | `fetchBinary` 默认重试一次 | `retries: 0` |
 
 **仅 dev 可用**：门禁是 `import.meta.env.DEV`（`src/services/devtools/enabled.ts`），
-实现体靠动态 import，正式构建里 Rollup 把整个分包丢掉 —— 页壳仍在 `pages.json` 里
+两个实现体都靠动态 import，正式构建里 Rollup 把分包丢掉 —— 页壳仍在 `pages.json` 里
 （静态 JSON 无法条件注册），但只渲染一句「未启用」。核对方式：
-`pnpm build:h5 && grep -rl "probeAsset\|DevAssetInspector" dist/build/h5` 应无命中。
+`pnpm build:h5 && grep -rl "probeAsset\|DevAssetInspector\|DevTextBrowser" dist/build/h5`
+应无命中。
+
+> 加工具时**必须在 `if (!devtoolsEnabled) return;` 的同一个块里写字面量 `import()`**。
+> 写成 `loaders[id]()` 查表要 Rollup 把「守卫恒真 → 表没人引用 → 表里的 import 是死的」
+> 整条链推完；写成 `import('./Dev' + id + '.vue')` 拼接则让它保守地把整个目录打成分包。
+> 两种都可能把 dev-only 代码带进产物，而 `type-check` 和用例都看不见 —— 只能拉产物 grep。
 
 判定逻辑在 `src/services/devtools/assetProbe.ts`（纯函数 + 依赖注入，
 `tests/assetProbe.spec.ts` 覆盖六种 outcome 与魔数嗅探）。
@@ -351,6 +359,39 @@ du -sch */versions 2>/dev/null | tail -1
 > 明文魔数嗅探有个坑：FlatBuffers 的 `file_identifier` 在**偏移 4**，不是 0
 > （`gen-1.bin` 实测 `18 00 00 00 50 4b 4d 42`）。按偏移 0 找 `PKMB` 永远不匹配，
 > 于是所有 bundle 都被判成 unknown，看不出「你填的是数据 bundle 的路径，不是图片」。
+
+### 6.0.1 文本浏览（dev-only）
+
+回答的是另一类问题：**这个语言的这张表，服务端到底给了什么**。选语言（14 种）+ 组
+（名称组 PKNM / 描述组 PKFL）+ 表（名称组 33 张、描述组 6 张），列出全部条目的
+id / 主文本 / 次文本；纯数字搜索 = 精确 id，其余按主+次文本子串（大小写不敏感）。
+排 6.4「形态名不对」、i18n 缺字、以及「详情页为什么显示的是这句描述」都走这里。
+
+与探测器不同的**两处**（工具不同、目的不同）：
+
+| | 探测器 | 文本浏览 |
+|---|---|---|
+| 缓存 | 一律绕开（诊断投递） | **走 `resourceManager` 正常缓存**（诊断内容） |
+| 关注点 | 字节、状态码、魔数 | 解码后的文本条目 |
+
+走缓存是因为 en 的 `flavor.bin` 约 2.7 MB，每切一张表重下不可接受。代价是会往共享的
+12 条 memory LRU 里塞条目，可能挤掉 app 正在用的 bundle —— 浏览一两种语言可忽略。
+
+与**应用层**的两处刻意分歧（同样是「工具看真相、应用看结果」）：
+
+1. **flavor 不按版本去重。** `i18n/flavor.ts` 的 `buildFlavorMap` 只留 version 最大的
+   一条，详情页展示一句就够；但排查「为什么显示的是这句」时要看的恰恰是同一 id 下
+   的其它候选与它们的 version。所以这里原样摊平，一条不丢，并渲染版本标签。
+2. **不做英文回落。** `lookup.ts` 的 `overlay` 用英文补齐首选语言的空洞，那会让
+   「这个语言缺哪些条目」彻底看不见 —— 而这正是要回答的问题之一。空串条目显式
+   渲染成「（空串）」，不靠 `v-if` 藏掉：「id 不存在」和「id 存在但文本为空」是
+   两种不同的上游问题。
+
+纯逻辑（摊平 / 过滤 / 截断）在 `src/services/devtools/textBrowse.ts`，表清单在
+`src/pages/devtools/textbrowse-options.ts`，`tests/textBrowse.spec.ts` 覆盖数字 query
+的精确语义、次文本参与搜索、以及 flavor 不去重这条分歧。
+不做虚拟化（items 约 2000 条、flavor 变高，`VirtualList` 是定高的），截断 200 条 +
+**始终显示过滤后的真实总数** —— 否则「只有 200 条」会被当成数据缺失。
 
 ### 6.1 图裂 / 显示默认图
 1. Network 看请求的 pokemon id、variant。**渐进式加载下一张卡有两个请求**：
@@ -420,7 +461,7 @@ du -sch */versions 2>/dev/null | tail -1
 `src/services/resources/spriteAvailability.ts`（回落落点的按版本本地记录）、
 `src/constants/spriteVariants.ts`（variant 常量唯一定义处）、
 `src/composables/useEncryptedImage.ts`、
-`src/services/devtools/{enabled,assetProbe}.ts`（dev-only 探测器，见 6.0）、
+`src/services/devtools/{enabled,assetProbe,textBrowse}.ts`（dev-only 工具，见 6.0 / 6.0.1）、
 `src/infra/storage/binaryStorage.ts`、`src/services/pokemon/pokemon.ts`、
 `src/components/sprite/EncryptedSprite.vue`、`src/services/boot.ts`。
 
