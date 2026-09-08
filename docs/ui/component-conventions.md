@@ -9,7 +9,7 @@ src/components/
   shared/    跨页面通用：TabPageShell、ListRow、DetailNavbar、
              FavoriteButton、PokeballLogo、LoginModal、OptionSheet
   pokemon/   宝可梦领域：PokemonCard、TypeBadge、SpecimenHero、
-             SpecimenViewSwitches（标本图闪光/性别切换条，纯开关 UI + 性别门禁）、
+             ShinyToggle（闪光开关）、GenderSlider（性别滑块，蓝红双色 + 性别门禁）、
              InfoGrid/InfoCard、StatsChart、MovesList/MoveCard、EvolutionChain
   dex/       图鉴列表上下文：DexToolbar、FilterBar、GenerationDrawer、
              DexEmptyState、FavoritesBanner、VirtualGrid

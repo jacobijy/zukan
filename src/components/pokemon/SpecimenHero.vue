@@ -34,11 +34,10 @@
             </button>
         </view>
 
-        <SpecimenViewSwitches
-            :gender-rate="pokemon.genderRate"
-            v-model:shiny="shiny"
-            v-model:gender="gender"
-        />
+        <view class="specimen-hero__view-switches">
+            <ShinyToggle v-model="shiny" />
+            <GenderSlider v-model="gender" :gender-rate="pokemon.genderRate" />
+        </view>
 
         <view class="relative z-10 px-5 pb-5 text-center">
             <view class="mb-2 flex items-center justify-center gap-2">
@@ -61,7 +60,8 @@
 <script lang="ts" setup>
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
-import SpecimenViewSwitches from '@/components/pokemon/SpecimenViewSwitches.vue';
+import ShinyToggle from '@/components/pokemon/ShinyToggle.vue';
+import GenderSlider from '@/components/pokemon/GenderSlider.vue';
 import { heroVariant, SPRITE_FALLBACKS, SPRITE_SHINY_FALLBACKS } from '@/constants/spriteVariants';
 import { useI18n } from 'vue-i18n';
 import { computed, ref } from 'vue';
@@ -91,7 +91,7 @@ defineEmits<{
 }>();
 
 // ── 闪光 / 性别视图状态 ──
-// 由本组件持有、跨形态保持。gender 的值始终是「有效性别」（SpecimenViewSwitches
+// 由本组件持有、跨形态保持。gender 的值始终是「有效性别」（GenderSlider
 // 在恒雄/恒雌时会把 model 同步成锁定值），hero 直接用 heroVariant 换算图。
 const shiny = ref(false);
 const gender = ref<'male' | 'female'>('male');
@@ -204,5 +204,16 @@ const renderPreview = computed(() => (shiny.value ? 'shiny' : true));
     font-weight: 700;
     letter-spacing: 0.06em;
     color: #8d929c;
+}
+
+.specimen-hero__view-switches {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 auto 6px;
+    padding: 6px 14px 0;
 }
 </style>

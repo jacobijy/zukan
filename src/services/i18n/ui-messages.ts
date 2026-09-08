@@ -117,8 +117,9 @@ const zhHans = {
         prevForm: '上一个形态',
         nextForm: '下一个形态',
         shiny: '闪光',
-        male: '♂ 雄性',
-        female: '♀ 雌性',
+        // ♂ / ♀ 由模板单独渲染（语言无关的字形），文案里不要再带一份
+        male: '雄性',
+        female: '雌性',
     },
     calc: {
         title: '伤害计算器',
@@ -472,8 +473,8 @@ const en: typeof zhHans = {
         prevForm: 'Previous form',
         nextForm: 'Next form',
         shiny: 'Shiny',
-        male: '♂ Male',
-        female: '♀ Female',
+        male: 'Male',
+        female: 'Female',
     },
     calc: {
         title: 'Damage calculator',

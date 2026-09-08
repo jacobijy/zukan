@@ -57,7 +57,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 主列表流程集中在 `src/pages/index/index.vue`。该页面从 Pinia store 加载数据，在页面级状态中组合搜索、类型筛选、仅收藏、世代筛选和排序，把条件推给 store，再由 `VirtualGrid` 虚拟化渲染 `PokemonCard` 列表（已无分页 / 无限滚动）。顶部导航和底部 TabBar 分别封装为 `NavBar.vue` 和 `TabBar.vue`；TabBar 使用 `uni.reLaunch` 切换页面，并通过 storage key 在页面间播放指示器滑动动画。
 
-宝可梦数据来自加密的 FlatBuffers bundle：`src/services/resources/resourceManager.ts` 下载 `/assets/encrypted/fb/gen-N.bin`（三层缓存 memory LRU → binaryStorage 即 IndexedDB → 网络），WASM 解密后由 `src/services/pokemon/pokemon.ts` 把四张并行表（`baseEntries`/`statEntries`/`typeEntries`/`abilityEntries`；`eggGroupEntries` 被解码但未使用）按 id join 成 UI 模型。注意 **gen-N.bin 是"全物种在第 N 世代的数值快照"**（1351 条形态 / 1025 个默认形态，id 从 1 起），不是"第 N 世代新增的宝可梦"。`mergeBundleToModel` 返回的 `IPokemonBaseModel` 中 `name` 当前为 `'pokemon-{id}'` 占位符，`image` 为 `/static/default.png` —— 卡面图来自 `EncryptedSprite`，不是 model 字段。model 还带 `genderRate`（PokeAPI 口径：-1 无性别 / 0 恒雄 / 8 恒雌），详情页 hero 的性别切换用它门禁（-1 隐藏开关、0/8 锁定、1–7 可切换），见 `SpecimenViewSwitches.vue`。
+宝可梦数据来自加密的 FlatBuffers bundle：`src/services/resources/resourceManager.ts` 下载 `/assets/encrypted/fb/gen-N.bin`（三层缓存 memory LRU → binaryStorage 即 IndexedDB → 网络），WASM 解密后由 `src/services/pokemon/pokemon.ts` 把四张并行表（`baseEntries`/`statEntries`/`typeEntries`/`abilityEntries`；`eggGroupEntries` 被解码但未使用）按 id join 成 UI 模型。注意 **gen-N.bin 是"全物种在第 N 世代的数值快照"**（1351 条形态 / 1025 个默认形态，id 从 1 起），不是"第 N 世代新增的宝可梦"。`mergeBundleToModel` 返回的 `IPokemonBaseModel` 中 `name` 当前为 `'pokemon-{id}'` 占位符，`image` 为 `/static/default.png` —— 卡面图来自 `EncryptedSprite`，不是 model 字段。model 还带 `genderRate`（PokeAPI 口径：-1 无性别 / 0 恒雄 / 8 恒雌），详情页 hero 的性别切换用它门禁（-1 隐藏开关、0/8 锁定、1–7 可切换），见 `GenderSlider.vue`。
 
 `src/store/pokemon.ts` 用 setup 风格 Pinia store 封装：**对 `defaultPokemons`（按 species 去重后的 ~1025 条）筛选排序**得到 `matchedPokemons`（`src/utils/dexFilter.ts`），**不分页**——列表渲染交给 `dex/VirtualGrid.vue` 定高虚拟化，DOM 只保留视口附近的行。页面只通过 `setCriteria()` 推条件（全量替换，不是 merge）。历史坑：早先是"先分页再筛选"，选任意非第一世代会把首页 20 条全滤掉 → 列表空 → 容器无内容 → 滚动不触发 → 死锁。收藏走 `uni.getStorageSync`（兼容小程序），并兼容早期裸 `localStorage` 写下的 JSON 字符串。默认 gen 是 9（`DEFAULT_GEN_ID = 9`），与 `LATEST_GEN_ID = 9`（`boot.ts`）保持一致。
 
@@ -182,7 +182,7 @@ src/components/
   shared/    跨页面通用：TabPageShell、ListRow、DetailNavbar、
              FavoriteButton、PokeballLogo、LoginModal、OptionSheet、SearchBar
   pokemon/   宝可梦领域：PokemonCard、TypeBadge、SpecimenHero、
-             SpecimenViewSwitches（标本图闪光/性别切换条：纯开关 UI + genderRate 门禁）、
+             ShinyToggle（闪光开关）、GenderSlider（性别滑块，蓝红双色 + genderRate 门禁）、
              InfoGrid/InfoCard、StatsChart、MovesList、MoveCard、EvolutionChain、
              PokedexEntry（图鉴描述，按需取 flavor）
   dex/       图鉴列表上下文：DexToolbar、FilterBar、GenerationDrawer、

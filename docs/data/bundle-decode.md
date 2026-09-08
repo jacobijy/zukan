@@ -78,7 +78,7 @@ PKMB 是五张**并行表**，都按 pokemon id 对齐：
   除 `hasSprite` 外，`mergeBundleToModel` 还把 `genderRate`（`PokemonBase.genderRate`，
   PokeAPI 口径 -1 无性别 / 0 恒雄 / 8 恒雌）带进 `IPokemonBaseModel` —— 详情页性别
   切换的展示/锁定门禁用它：-1 隐藏开关，0/8 只显对应性别且锁定，1–7 可切换（实现见
-  `components/pokemon/SpecimenViewSwitches.vue`）。
+  `components/pokemon/GenderSlider.vue`）。
 
 `pokemon.ts` 用 Map 按 id 把后四张表 join 到 `baseEntries` 上，输出 `IPokemonBaseModel`。
 
