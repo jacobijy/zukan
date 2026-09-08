@@ -145,7 +145,7 @@ const menuItems = computed(() => [
     // dev-only：门禁为假时整行不渲染，生产用户看不到。文案硬编码中文，不进 i18n
     // （往 ui-messages 的 zh/en 两份里塞只有开发者看得到的键是噪音）
     ...(devtoolsEnabled
-        ? [{ title: '开发者工具', desc: '探测服务端加密资源并解密预览。', meta: 'dev', icon: 'wrench', iconClass: 'list-row__icon--violet' }]
+        ? [{ title: '开发者工具', desc: '加密资源探测、i18n 文本浏览。', meta: 'dev', icon: 'wrench', iconClass: 'list-row__icon--violet' }]
         : []),
 ]);
 
