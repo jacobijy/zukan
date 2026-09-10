@@ -67,6 +67,10 @@ const props = withDefaults(defineProps<Props>(), {
   eager: false,
   preview: true,
   fallbacks: () => SPRITE_FALLBACKS,
+  // 必须显式 undefined：Boolean prop 缺省时 Vue 会隐式给 false（不是 undefined），
+  // 那会被下面 `hasSprite === false` 误判成「数据层确认无图」而跳过下载。
+  // EvolutionNode 不传本字段，语义是「未知，照常请求、靠 404 回落」。
+  hasSprite: undefined,
 })
 
 const chain = computed(() => buildSpriteChain(props.variant, props.fallbacks))

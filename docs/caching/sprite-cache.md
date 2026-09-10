@@ -152,6 +152,27 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
 缺口清单与实测口径见
 [../security/encryption-pipeline.md](../security/encryption-pipeline.md) 第 4.3 节。
 
+## `hasSprite` prop 是三态，缺省必须是 `undefined`（踩过一次）
+
+`EncryptedSprite` 在**发请求前**有两条「直接落默认图、一个请求都不发」的短路：
+`hasSprite === false`（数据层 FB 字段）与 `hint.noSprite`（运行时实测记录）。
+前者的语义刻意做成**三态**：
+
+- `true` / `false` —— 数据层明确知道「有 / 没有正面立绘」（`PokemonCard`、`SpecimenHero`
+  显式 `:has-sprite="pokemon.hasSprite"`）；
+- **缺席（`undefined`）—— 「未知，照常下载，靠 404 回落链兜」**。`EvolutionNode` 就走这条：
+  `EvolutionStage` 不携带 `hasSprite`（见 [../data/bundle-decode.md](../data/bundle-decode.md)）。
+
+**坑：Vue 的 `Boolean` prop 在「属性缺席且没有 default」时会被隐式置为 `false`，不是 `undefined`。**
+于是 `skip: () => props.hasSprite === false` 把「没传」误判成「数据层确认无图」，
+进化链所有节点一个请求都不发、全部渲染成 `/static/default.png`（早期一次竞态里还表现成
+相邻节点同图的「张冠李戴」）。`PokemonCard` / `SpecimenHero` 因为显式传值而幸免，
+唯独不传该字段的进化链 100% 中招 —— 「几乎每只宝可梦的进化链图都错」。
+
+修复只有一行：在 `withDefaults` 里显式 `hasSprite: undefined`，让缺席保持 `undefined`。
+**以后新增不传 `has-sprite` 的调用点，或有人「清理」掉这条默认值，这个 bug 会原样复发。**
+判定「无图」只能信严格的 `=== false`，不能用真值判断。
+
 ## 可用性记录（spriteAvailability，仅 sprite）
 
 `services/resources/spriteAvailability.ts`：**按资源版本**把「回落链的实际落点」记在本地 KV，

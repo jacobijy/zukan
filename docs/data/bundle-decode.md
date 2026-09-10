@@ -67,7 +67,10 @@ PKMB 是五张**并行表**，都按 pokemon id 对齐：
     （当前形态自身无图时仍保留自身，否则会无形态可显）；
   - `EncryptedSprite`（经 `hasSprite` prop）：直接显示占位图，**一个请求都不发**，
     省掉那次必然 404 的往返。传值点是 `PokemonCard` 与 `SpecimenHero`；
-    `EvolutionNode` 的 `EvolutionStage` 无此字段，靠 sprite 侧的 404 回落链兜。
+    `EvolutionNode` 的 `EvolutionStage` 无此字段，**不传** `has-sprite`、靠 sprite 侧的
+    404 回落链兜；组件因此必须把「缺省」当 `undefined`（照常请求）—— Vue 会把缺席的
+    Boolean prop 隐式置 `false`，不显式 `default: undefined` 就会被这里的短路误杀、整链落默认图，
+    见 [../caching/sprite-cache.md](../caching/sprite-cache.md)「hasSprite prop 是三态」。
     回落链见 [../caching/sprite-cache.md](../caching/sprite-cache.md)。
 
   > 注意 `hasSprite` 的口径含 `shiny`，而回落链只试 `home`/`artwork`/`front`，
