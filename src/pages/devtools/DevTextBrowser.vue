@@ -2,9 +2,10 @@
     <view class="text-browser">
         <view class="text-browser__note">
             <text class="text-browser__note-text">
-                与探测器相反，这里**走 resourceManager 的正常缓存** —— 诊断的是内容不是投递，
-                而 en 的 flavor.bin 约 2.7 MB，每切一次表重下不可接受。代价是会往共享的 12 条
-                memory LRU 里塞条目，可能挤掉 app 正在用的 bundle。
+                与探测器相反，这里**走 resourceManager 的正常缓存** —— 诊断的是内容不是投递。
+                描述组按族 × 档分片：选「图鉴描述」这类族表时从 `s00` 聚合到最大片号、容忍空档
+                404；切到效果表拉 `effects.bin`（仅 en/fr/de）。代价是会把分片塞进共享的
+                memory LRU，可能挤掉 app 正在用的 bundle —— 浏览一两种语言可忽略。
             </text>
         </view>
 
@@ -25,6 +26,9 @@
         </view>
         <view v-else-if="loading" class="text-browser__hint">
             <text class="text-browser__hint-text">加载中…</text>
+        </view>
+        <view v-else-if="mismatch" class="text-browser__hint text-browser__hint--notice">
+            <text class="text-browser__hint-text">{{ mismatch }}</text>
         </view>
         <view v-else-if="total === 0" class="text-browser__hint">
             <text class="text-browser__hint-text">{{ emptyNote }}</text>
@@ -49,22 +53,31 @@
  *
  * 摊平 / 过滤 / 截断这些判定一行都不写在这里，全在 `textBrowse.ts`（node 用例覆盖）。
  *
- * bundle 与行数组一律用 `shallowRef`：names 有三万多条、flavor 更多，用 `ref` 会让
- * Vue 递归代理每一条 entry，切一次语言就卡住几百毫秒。这些数据只整体替换、不就地改，
- * 浅层响应足够。
+ * 行数组一律用 `shallowRef`：names 有三万多条、flavor 更多，用 `ref` 会让 Vue 递归
+ * 代理每一条 entry，切一次语言就卡住几百毫秒。这些数据只整体替换、不就地改，浅层
+ * 响应足够。描述组的聚合结果按 `(lang, table)` 存在普通 `Map` 里（非响应式 ——
+ * 切表时手动投影，不靠 Vue 追踪）。
  */
 import { computed, shallowRef, ref } from 'vue';
 import { resourceManager } from '@/services/resources/resourceManager';
-import { filterRows, pageRows, type TextRow } from '@/services/devtools/textBrowse';
+import { cleanFlavorText } from '@/services/i18n/flavor';
+import {
+    filterRows,
+    pageRows,
+    idPrefixNotice,
+    mergeFlavorSlices,
+    type TextRow,
+} from '@/services/devtools/textBrowse';
 import {
     DEFAULT_TEXT_TABLE,
+    FLAVOR_MAX_SLICE,
     TEXT_ROW_LIMIT,
     namesTable,
     flavorTable,
     tableOptions,
     type TextGroupId,
 } from '@/pages/devtools/textbrowse-options';
-import type { I18nFlavorBundle, I18nNamesBundle } from '@/infra/wasm';
+import type { I18nNamesBundle } from '@/infra/wasm';
 import TextBrowseForm from '@/components/devtools/TextBrowseForm.vue';
 import TextEntryRow from '@/components/devtools/TextEntryRow.vue';
 
@@ -79,7 +92,18 @@ const error = ref('');
 /** 当前表摊平后的全部行（未过滤、未截断） */
 const rawRows = shallowRef<TextRow[]>([]);
 
-const filtered = computed(() => filterRows(rawRows.value, query.value));
+/**
+ * 当前表描述：`namesTable/flavorTable` 已对切组残留的旧表名回落，project() 也用它们，
+ * 保证「看到的表」与「按哪个实体校验前缀」始终一致。
+ */
+const tableCtx = computed(() => {
+    const t = group.value === 'names' ? namesTable(table.value) : flavorTable(table.value);
+    return { entity: t.entity, label: t.label };
+});
+
+const filtered = computed(() => filterRows(rawRows.value, query.value, tableCtx.value.entity));
+/** `p25` 敲在道具表这类前缀 / 表实体不符时的指路提示（此刻 filtered 刻意为空） */
+const mismatch = computed(() => idPrefixNotice(query.value, tableCtx.value));
 const paged = computed(() => pageRows(filtered.value, TEXT_ROW_LIMIT));
 const rows = computed(() => paged.value.shown);
 const total = computed(() => paged.value.total);
@@ -100,22 +124,45 @@ const emptyNote = computed(() =>
  */
 let seq = 0;
 
+/** 名称组整包，切表时复用（一个语言一个包，字段结构固定）。 */
+const namesLoaded = shallowRef<{ lang: string; bundle: I18nNamesBundle } | null>(null);
+
 /**
- * 已下载的 bundle，切表时复用。
- *
- * 写成判别联合而不是 `{ group: TextGroupId; bundle: unknown }`：后者取行时
- * 得断言，而两组恰好都有一张叫 `species` 的表、结构却不同，断错了没人报错。
+ * 描述组聚合结果缓存：`${lang}:${tableId}` → 摊平后的全部行。
+ * 族表一次性从 `s00` 聚合到 `FLAVOR_MAX_SLICE`（容忍空档 404），效果表拉
+ * `effects.bin`。按 (lang, table) 缓存，切回同一张表不再重新聚合。
+ * 普通 `Map`（非响应式）：切表时手动投影，不靠 Vue 追踪。
  */
-type Loaded =
-    | { lang: string; group: 'names'; bundle: I18nNamesBundle }
-    | { lang: string; group: 'flavor'; bundle: I18nFlavorBundle };
+const flavorCache = new Map<string, TextRow[]>();
 
-const loaded = shallowRef<Loaded | null>(null);
-
-/** 把已加载的 bundle 按当前表摊平。切表走这条，不重新下载。 */
-function project(l: Loaded) {
-    rawRows.value =
-        l.group === 'names' ? namesTable(table.value).rows(l.bundle) : flavorTable(table.value).rows(l.bundle);
+/**
+ * 聚合描述组一张表的全部行。族表（species/moves/abilities/items）把该族各片
+ * **并行**拉下来、按 id 排序合并 —— 空档位 / 空语言（cs/pt-br/ja-roma）的 404
+ * 属「该档无描述」，跳过不报错，这正是「看服务端到底给了什么」要看到的形状。
+ * 效果表拉 `effects.bin`（404 = 该语言无效果文本）。
+ */
+async function aggregateFlavorTable(lang: string, tableId: string): Promise<TextRow[]> {
+    const t = flavorTable(tableId);
+    if (t.family) {
+        const family = t.family;
+        const slices = Array.from({ length: FLAVOR_MAX_SLICE[family] + 1 }, (_, i) => i);
+        const bundles = await Promise.all(
+            slices.map(async (slice) => {
+                try {
+                    return await resourceManager.getI18nFlavorSlice(lang, family, slice);
+                } catch {
+                    return null; // 空档位 / 空语言 404 属「该档无描述」，跳过
+                }
+            }),
+        );
+        return mergeFlavorSlices(bundles, family, cleanFlavorText);
+    }
+    try {
+        const b = await resourceManager.getI18nFlavorEffects(lang);
+        return t.rows(b);
+    } catch {
+        return [];
+    }
 }
 
 async function load() {
@@ -123,24 +170,45 @@ async function load() {
     const wantLang = lang.value;
     const wantGroup = group.value;
 
-    const hit = loaded.value;
-    if (hit && hit.lang === wantLang && hit.group === wantGroup) {
-        project(hit);
+    // ── 名称组：整包缓存，切表直接投影 ──
+    if (wantGroup === 'names') {
+        const hit = namesLoaded.value;
+        if (hit && hit.lang === wantLang) {
+            rawRows.value = namesTable(table.value).rows(hit.bundle);
+            return;
+        }
+        loading.value = true;
+        error.value = '';
+        rawRows.value = [];
+        try {
+            const bundle = await resourceManager.getI18nNames(wantLang);
+            if (mine !== seq) return;
+            namesLoaded.value = { lang: wantLang, bundle };
+            rawRows.value = namesTable(table.value).rows(bundle);
+        } catch (e) {
+            if (mine !== seq) return;
+            error.value = e instanceof Error ? e.message : String(e);
+        } finally {
+            if (mine === seq) loading.value = false;
+        }
         return;
     }
 
+    // ── 描述组：按 (lang, table) 聚合，缓存命中直接投影 ──
+    const cacheKey = `flavor:${wantLang}:${table.value}`;
+    const cached = flavorCache.get(cacheKey);
+    if (cached) {
+        rawRows.value = cached;
+        return;
+    }
     loading.value = true;
     error.value = '';
     rawRows.value = [];
-
     try {
-        const next: Loaded =
-            wantGroup === 'names'
-                ? { lang: wantLang, group: 'names', bundle: await resourceManager.getI18nNames(wantLang) }
-                : { lang: wantLang, group: 'flavor', bundle: await resourceManager.getI18nFlavor(wantLang) };
+        const rows = await aggregateFlavorTable(wantLang, table.value);
         if (mine !== seq) return;
-        loaded.value = next;
-        project(next);
+        flavorCache.set(cacheKey, rows);
+        rawRows.value = rows;
     } catch (e) {
         if (mine !== seq) return;
         error.value = e instanceof Error ? e.message : String(e);
@@ -204,6 +272,20 @@ void load();
 
 .text-browser__hint--error .text-browser__hint-text {
     color: #ef4444;
+    word-break: break-all;
+}
+
+/* 前缀 / 表实体不符：琥珀色指路盒（与顶部说明条同色系），左对齐便于读整句 */
+.text-browser__hint--notice {
+    margin: 0 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    text-align: left;
+    background: rgba(255, 193, 7, 0.1);
+}
+
+.text-browser__hint--notice .text-browser__hint-text {
+    color: #8a6d1a;
     word-break: break-all;
 }
 

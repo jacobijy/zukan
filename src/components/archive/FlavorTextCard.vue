@@ -22,11 +22,19 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useI18nStore } from '@/store/i18n';
+import type { FlavorFamily } from '@/services/resources/resourceManager';
 
 const props = defineProps<{
     kind: 'move' | 'ability' | 'item';
     id: number;
 }>();
+
+/** 资料中心栏目 kind → 描述组实体族（决定拉哪个分片文件） */
+const FAMILY_OF_KIND: Record<'move' | 'ability' | 'item', FlavorFamily> = {
+    move: 'moves',
+    ability: 'abilities',
+    item: 'items',
+};
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();
@@ -51,14 +59,16 @@ const effectText = computed(() => {
     return null;
 });
 
-// 描述组体积大、不随名称预取，进入详情时按需加载（同 PokedexEntry）。
+// 描述组按实体族分片、不随名称预取，进入详情时按 kind 映射族按需拉对应片；
+// 招式/特性额外加载效果文件（effects.bin），道具没有效果段。
 watch(
     () => props.id,
     async (id) => {
         if (!id) return;
         loading.value = true;
         try {
-            await i18nStore.ensureFlavor();
+            await i18nStore.ensureFlavorEntry(FAMILY_OF_KIND[props.kind], id);
+            if (props.kind !== 'item') await i18nStore.ensureFlavorEffects();
         } finally {
             loading.value = false;
         }

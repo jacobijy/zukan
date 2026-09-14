@@ -8,18 +8,33 @@
  * `currentLang` 是 `contentLang` 解析后的实际 bundle 语言（`'auto'` 按系统），
  * 名称查找、加载与回落都围绕它。
  *
+ * 描述组按**族 × id 档位分片**（`flavor/<family>-sNN.bin`），不随名称预取：
+ * 由 `ensureFlavorEntry(family, id)` 按实体 id 算片号、逐片拉取并累积合并进
+ * `flavor` 查找表（片到达即整体替换引用触发响应式）。访问器
+ * `speciesFlavorText(id)` 等签名不变，组件只改 ensure 调用。
+ *
  * ## 回落策略
  * 首选语言可能部分或整体缺失（ja-roma 仅有物种名；cs/pt-br 全空），
  * 因此总是先加载英文基线，再用首选语言条目逐表逐 id 覆盖（见 `overlay`）。
+ * 描述组的语言级回落见 `flavor.ts` 的 `resolveFlavorLang`（静态名单），
+ * 个别 id 缺失返回 null、不逐 id 换英文。
  *
  * ## 与数值 bundle 的时序
  * `boot.ts` 并发预取 gen bundle 与 i18n names，两者可能先后到达。
  * 名称加载完成后，若宝可梦列表已渲染，会用内存缓存的数值 bundle 重映射一次
  * （`resourceManager` 命中内存 LRU，零网络），把占位名替换成真实名称。
  */
-import { resourceManager } from '@/services/resources/resourceManager';
+import { resourceManager, FLAVOR_SLICE_SIZE, type FlavorFamily } from '@/services/resources/resourceManager';
 import { buildNamesLookup, overlay, type NamesLookup } from '@/services/i18n/lookup';
-import { buildFlavorBundle, flavorSize, type ArchiveFlavor } from '@/services/i18n/flavor';
+import {
+    buildEffectMap,
+    EFFECT_LANGS,
+    emptyFlavor,
+    mergeFlavorRefs,
+    resolveFlavorLang,
+    type ArchiveFlavor,
+} from '@/services/i18n/flavor';
+import type { I18nFlavorBundle } from '@/infra/wasm';
 import {
     FALLBACK_LANGUAGE,
     getStoredContentLang,
@@ -34,7 +49,7 @@ import {
 import { TYPE_ID_BY_SLUG } from '@/constants/pokemonTypes';
 import { syncUiLocale } from '@/services/i18n/ui-i18n';
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 
 export const useI18nStore = defineStore('i18n', () => {
     /** 内容语言设置（可能为 'auto'） */
@@ -49,15 +64,17 @@ export const useI18nStore = defineStore('i18n', () => {
     let loadPromise: Promise<void> | null = null;
 
     /**
-     * 描述组（物种图鉴描述 + 招式/特性/道具说明 + 英文效果简述）。
-     * 描述组体积占 i18n 约 90%，**不随名称预取**，仅在详情页需要时
-     * `ensureFlavor()` 按需加载。`flavorLang` 记录已加载语言，切换内容
-     * 语言后置 null 触发重载。
+     * 描述组查找表（物种图鉴描述 + 招式/特性/道具说明 + 效果简述）。
+     * 描述组体积占 i18n 约 90%、按族分片，**不随名称预取**：由
+     * `ensureFlavorEntry` 按实体算片号、逐片拉取合并进来。`flavor` 用 shallowRef ——
+     * 数据量大，每次片到达**整体替换引用**触发一次响应（不逐条代理）。
      */
-    const flavor = ref<ArchiveFlavor | null>(null);
+    const flavor = shallowRef<ArchiveFlavor | null>(null);
     const flavorReady = computed(() => flavor.value !== null);
-    let flavorPromise: Promise<void> | null = null;
-    let flavorLang: string | null = null;
+    /** 已加载的 `(lang:family)` → 片号集合，避免同一片重复下载 */
+    const loadedFlavorSlices = new Map<string, Set<number>>();
+    /** 效果文件已加载 / 确认该语言没有效果（en/fr/de 之外）的语言 */
+    let effectsLoadedLang: string | null = null;
 
     async function loadFor(lang: string): Promise<NamesLookup> {
         // 基线语言与首选语言相同（en）时无需叠加两次
@@ -109,9 +126,10 @@ export const useI18nStore = defineStore('i18n', () => {
         loading.value = true;
         try {
             lookup.value = await loadFor(nextLang);
-            // 描述组按语言缓存，语言切换后置空，下次详情页按需重载
+            // 描述组按 (lang, family) 累积合并，语言切换后清空，下次详情页按需重拉
             flavor.value = null;
-            flavorLang = null;
+            loadedFlavorSlices.clear();
+            effectsLoadedLang = null;
             refreshPokemonIfLoaded();
         } finally {
             loading.value = false;
@@ -127,44 +145,63 @@ export const useI18nStore = defineStore('i18n', () => {
     }
 
     /**
-     * 按需加载当前语言的图鉴描述（含英文回落）。并发调用共享同一次 promise；
-     * 已加载且语言未变时直接复用。描述组体积大，不随 boot / 名称预取。
+     * 按需加载某实体族的描述分片并合并进查找表。
+     *
+     * 片号由实体 id 确定性算出（`(id-1)//128`，契约常量见 `resourceManager`），
+     * 不请求任何清单；空档位 / 空语言的 404 属「该档无描述」，静默容忍、不标记
+     * 已加载（下次仍可重试）。同一片被多个实体并发请求时共享 `resourceManager`
+     * 的 inflight 去重，await 后还有一次本地守卫兜底。语言级回落走
+     * `resolveFlavorLang`（cs/pt-br/ja-roma → en），不逐 id 换英文。
      */
-    function ensureFlavor(): Promise<void> {
-        const lang = currentLang.value;
-        if (flavor.value && flavorLang === lang) return Promise.resolve();
-        if (flavorPromise && flavorLang === lang) return flavorPromise;
+    async function ensureFlavorEntry(family: FlavorFamily, id: number): Promise<void> {
+        if (!id) return;
+        const lang = resolveFlavorLang(currentLang.value);
+        const slice = Math.floor((id - 1) / FLAVOR_SLICE_SIZE);
+        const key = `${lang}:${family}`;
+        const loaded = loadedFlavorSlices.get(key);
+        if (loaded?.has(slice)) return;
 
-        flavorLang = lang;
-        flavorPromise = loadFlavorFor(lang)
-            .then((table) => {
-                flavor.value = table;
-            })
-            .catch((err) => {
-                // 失败不缓存语言标记，允许下次进入详情重试
-                flavorLang = null;
-                console.warn('[i18n] 描述组加载失败', err);
-            })
-            .finally(() => {
-                flavorPromise = null;
-            });
-        return flavorPromise;
+        let bundle: I18nFlavorBundle;
+        try {
+            bundle = await resourceManager.getI18nFlavorSlice(lang, family, slice);
+        } catch (err) {
+            console.warn(`[i18n] ${lang}/${family} 分片 ${slice} 加载失败（404 = 该档无描述）`, err);
+            return;
+        }
+        // 并发守卫：await 期间另一个实体可能已把同片合并进来
+        if (loadedFlavorSlices.get(key)?.has(slice)) return;
+
+        const cur = flavor.value ?? emptyFlavor();
+        flavor.value = { ...cur, [family]: mergeFlavorRefs(cur[family], bundle[family]) };
+        if (!loadedFlavorSlices.has(key)) loadedFlavorSlices.set(key, new Set());
+        loadedFlavorSlices.get(key)!.add(slice);
     }
 
-    async function loadFlavorFor(lang: string): Promise<ArchiveFlavor> {
-        // 首选语言直接取：完整语言（zh-hans/ja/… 11 种）描述齐全，
-        // 英文 flavor 包 ~2.7MB，绝不为每个用户都强拉做基线。
-        if (lang !== FALLBACK_LANGUAGE) {
-            try {
-                const preferred = buildFlavorBundle(await resourceManager.getI18nFlavor(lang));
-                // 四类 flavor 表全空（cs / pt-br / ja-roma）→ 回落英文基线；
-                // 部分缺失（如某表个别 id）由查询处回落 null，不整包换英文。
-                if (flavorSize(preferred) > 0) return preferred;
-            } catch (err) {
-                console.warn(`[i18n] ${lang} 描述组加载失败，回落英文`, err);
-            }
+    /**
+     * 按需加载效果文件（effects.bin，abilityEffects/moveEffects）。
+     * 仅 en/fr/de 有数据：其余语言是**确定 404**，直接标记已处理、不发那次请求，
+     * 效果段查询自然为空、UI 隐藏。请求失败（网络等真故障）不标记，允许下次重试。
+     */
+    async function ensureFlavorEffects(): Promise<void> {
+        const lang = resolveFlavorLang(currentLang.value);
+        if (effectsLoadedLang === lang) return;
+        if (!EFFECT_LANGS.includes(lang)) {
+            effectsLoadedLang = lang;
+            return;
         }
-        return buildFlavorBundle(await resourceManager.getI18nFlavor(FALLBACK_LANGUAGE));
+        try {
+            const bundle = await resourceManager.getI18nFlavorEffects(lang);
+            const cur = flavor.value ?? emptyFlavor();
+            flavor.value = {
+                ...cur,
+                abilityEffects: buildEffectMap(bundle.abilityEffects),
+                moveEffects: buildEffectMap(bundle.moveEffects),
+            };
+        } catch (err) {
+            console.warn(`[i18n] ${lang} 效果文件加载失败`, err);
+            return;
+        }
+        effectsLoadedLang = lang;
     }
 
     /**
@@ -279,9 +316,10 @@ export const useI18nStore = defineStore('i18n', () => {
         ensureLoaded,
         setContentLang,
         setUiLang,
-        // 图鉴描述（按需加载）
+        // 图鉴描述（按需加载，分片累积）
         flavorReady,
-        ensureFlavor,
+        ensureFlavorEntry,
+        ensureFlavorEffects,
         speciesFlavorText,
         moveFlavorText,
         abilityFlavorText,

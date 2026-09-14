@@ -364,7 +364,8 @@ export function decodeI18nNamesBundle(data: Uint8Array): I18nNamesBundle {
 }
 
 /**
- * 解码 `i18n/<lang>/flavor.bin` (fid = `PKFL`) —— 单语言描述组。
+ * 解码描述组 bundle (fid = `PKFL`) —— 分片 `i18n/<lang>/flavor/{family}-sNN.bin`
+ * 与效果文件 `flavor/effects.bin` 共用同一解码器（分片只填所属族向量，天然兼容）。
  * 传输层的字符串池（text_pool）在 Rust 解码时解析为内联字符串，
  * 调用方直接读 `FlavorText.text` / `ProseEffect.effect` 即可。
  */

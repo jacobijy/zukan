@@ -13,6 +13,7 @@
  * 断言错了 TypeScript 一声不吭。调用方按组分派（见 `DevTextBrowser.vue`）。
  */
 import { cleanFlavorText } from '@/services/i18n/flavor';
+import type { FlavorFamily } from '@/services/resources/resourceManager';
 import {
     fromEffects,
     fromFlavor,
@@ -23,6 +24,7 @@ import {
     fromShapes,
     fromSolo,
     fromSpecies,
+    type TextEntity,
     type TextRow,
 } from '@/services/devtools/textBrowse';
 import type { I18nFlavorBundle, I18nNamesBundle } from '@/infra/wasm';
@@ -39,16 +41,29 @@ export interface TextTable<B> {
     /** bundle 里的字段名，同时用作选择器的值 */
     id: string;
     label: string;
+    /**
+     * 该表行 id 所属的实体域，用于校验 `p/m/a/i` 前缀（见 textBrowse 的 `ID_PREFIXES`）。
+     * 缺省 = 这张表不属于四类核心实体，任何实体前缀对它都算「前缀与表不符」。
+     * 注意形态表也标 `pokemon`，但其行 id 是重映射后的 pokemon id，不是 species id。
+     */
+    entity?: TextEntity;
+    /**
+     * 描述组：该表所属的实体族，决定从哪个分片文件族聚合
+     * （`flavor/{family}-sNN.bin`，见 `FLAVOR_MAX_SLICE`）。
+     */
+    family?: FlavorFamily;
+    /** 描述组：走效果文件 `effects.bin`（仅 en/fr/de 有数据）而非分片族 */
+    effects?: boolean;
     rows: (bundle: B) => TextRow[];
 }
 
 /** 名称组的表。`id` 与 `I18nNamesBundle` 的字段名一一对应。 */
 const NAMES_TABLES: readonly TextTable<I18nNamesBundle>[] = [
-    { id: 'species', label: '物种', rows: (b) => fromSpecies(b.species) },
-    { id: 'forms', label: '形态', rows: (b) => fromForms(b.forms) },
-    { id: 'moves', label: '招式', rows: (b) => fromNamed(b.moves) },
-    { id: 'abilities', label: '特性', rows: (b) => fromNamed(b.abilities) },
-    { id: 'items', label: '道具', rows: (b) => fromNamed(b.items) },
+    { id: 'species', label: '物种', entity: 'pokemon', rows: (b) => fromSpecies(b.species) },
+    { id: 'forms', label: '形态', entity: 'pokemon', rows: (b) => fromForms(b.forms) },
+    { id: 'moves', label: '招式', entity: 'move', rows: (b) => fromNamed(b.moves) },
+    { id: 'abilities', label: '特性', entity: 'ability', rows: (b) => fromNamed(b.abilities) },
+    { id: 'items', label: '道具', entity: 'item', rows: (b) => fromNamed(b.items) },
     { id: 'types', label: '属性', rows: (b) => fromNamed(b.types) },
     { id: 'natures', label: '性格', rows: (b) => fromNamed(b.natures) },
     { id: 'stats', label: '能力', rows: (b) => fromNamed(b.stats) },
@@ -81,13 +96,62 @@ const NAMES_TABLES: readonly TextTable<I18nNamesBundle>[] = [
 
 /** 描述组的表。`id` 与 `I18nFlavorBundle` 的字段名一一对应。 */
 const FLAVOR_TABLES: readonly TextTable<I18nFlavorBundle>[] = [
-    { id: 'species', label: '图鉴描述', rows: (b) => fromFlavor(b.species, cleanFlavorText) },
-    { id: 'moves', label: '招式说明', rows: (b) => fromFlavor(b.moves, cleanFlavorText) },
-    { id: 'abilities', label: '特性说明', rows: (b) => fromFlavor(b.abilities, cleanFlavorText) },
-    { id: 'items', label: '道具说明', rows: (b) => fromFlavor(b.items, cleanFlavorText) },
-    { id: 'abilityEffects', label: '特性效果（仅 en）', rows: (b) => fromEffects(b.abilityEffects, cleanFlavorText) },
-    { id: 'moveEffects', label: '招式效果（仅 en）', rows: (b) => fromEffects(b.moveEffects, cleanFlavorText) },
+    {
+        id: 'species',
+        label: '图鉴描述',
+        entity: 'pokemon',
+        family: 'species',
+        rows: (b) => fromFlavor(b.species, cleanFlavorText),
+    },
+    {
+        id: 'moves',
+        label: '招式说明',
+        entity: 'move',
+        family: 'moves',
+        rows: (b) => fromFlavor(b.moves, cleanFlavorText),
+    },
+    {
+        id: 'abilities',
+        label: '特性说明',
+        entity: 'ability',
+        family: 'abilities',
+        rows: (b) => fromFlavor(b.abilities, cleanFlavorText),
+    },
+    {
+        id: 'items',
+        label: '道具说明',
+        entity: 'item',
+        family: 'items',
+        rows: (b) => fromFlavor(b.items, cleanFlavorText),
+    },
+    {
+        id: 'abilityEffects',
+        label: '特性效果（仅 en/fr/de）',
+        entity: 'ability',
+        effects: true,
+        rows: (b) => fromEffects(b.abilityEffects, cleanFlavorText),
+    },
+    {
+        id: 'moveEffects',
+        label: '招式效果（仅 en/fr/de）',
+        entity: 'move',
+        effects: true,
+        rows: (b) => fromEffects(b.moveEffects, cleanFlavorText),
+    },
 ];
+
+/**
+ * 各族最大片号 —— 与后端当前产物对齐（en 全量：species s11 / moves s7 /
+ * abilities s2 / items s17）。文本浏览按 `s00..FLAVOR_MAX_SLICE[family]`
+ * 聚合该族全部分片、容忍空档 404。**补充数据使片数增长时需同步更新**；
+ * 片号过大会多打几个必然 404 的请求，过小会漏掉新档位。
+ */
+export const FLAVOR_MAX_SLICE: Readonly<Record<FlavorFamily, number>> = {
+    species: 11,
+    moves: 7,
+    abilities: 2,
+    items: 17,
+};
 
 /** 表选择器的选项（只要 id/label，不带 bundle 类型，组件用这个渲染） */
 export function tableOptions(group: TextGroupId): { id: string; label: string }[] {

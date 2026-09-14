@@ -72,7 +72,7 @@
 | 命令 | 脚本 | 产物 |
 |------|------|------|
 | `make sync-fb` | `tools/sync-fb.py` | 明文 `assets/fb/gen-N.bin`、`evolution.bin`、`moves/`、`moves_data/`、`pokemon_moves/` |
-| `make sync-i18n` | `tools/sync-i18n.py` | 明文 `assets/fb/i18n/<lang>/{names,flavor}.bin`（form 名有 id 重映射，见第 7 节） |
+| `make sync-i18n` | `tools/sync-i18n.py` | 明文 `assets/fb/i18n/<lang>/names.bin` + `flavor/<family>-sNN.bin`（描述**按族×档分片**）+ `flavor/effects.bin`；默认合并游戏解包补充文本（见 [../i18n/i18n-bundle.md](../i18n/i18n-bundle.md)） |
 | `python3 tools/sync-sprites.py` | `tools/sync-sprites.py` | 明文图片 `assets/public/{pokemon,items,badges,types}/...`（源/目标目录在 `tools/sync-sprites.ini` 配置，见 4.5） |
 | `make encrypt-fb` | `crates/server/src/bin/encrypt-fb.rs` | `assets/encrypted-assets/fb/**`（跳过 schemas/_generated） |
 | `make encrypt` | `crates/server/src/bin/encrypt-assets.rs` | `assets/encrypted-assets/**`，PNG → `.bin`，保留层级 |
@@ -135,7 +135,14 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 | `moves_data/common.bin` | `MDAT` | `decodeMovesDataBundle` | 招式定义（moves + 4 张关联表） |
 | `moves_data/vg-NN.bin` | `MDAT` | 同上 | 该版本组招式覆写（仅 moves 表） |
 | `evolution.bin` | `EVO1` | `decodeEvolutionBundle`（**待前端接入**） | 全代进化树（species/edges/details），结构见 [../data/bundle-decode.md](../data/bundle-decode.md#evo1-进化树-evolutionbundle) |
-| `i18n/<lang>/{names,flavor}.bin` | `PKNM`/`PKFL` | `decodeI18n*Bundle` | 单语言文本，见 [../i18n/i18n-bundle.md](../i18n/i18n-bundle.md) |
+| `i18n/<lang>/names.bin` | `PKNM` | `decodeI18nNamesBundle` | 单语言名称组整包（33 张短文本表），见 [../i18n/i18n-bundle.md](../i18n/i18n-bundle.md) |
+| `i18n/<lang>/flavor/<family>-sNN.bin` | `PKFL` | `decodeI18nFlavorBundle`（复用） | 描述组**按族 × 档分片**，每片自含 `text_pool`、无损保留全版本 |
+| `i18n/<lang>/flavor/effects.bin` | `PKFL` | 同左 | 特性/招式机制效果（`ProseRef`，无版本；仅 en/fr/de 有数据） |
+
+> **flavor 已从「每语言一个整包」改为「按族 × 档分片」**：`species|moves|abilities|items` 四族各自按
+> `slice = (id-1)//128` 切（契约常量 `FLAVOR_SLICE_SIZE = 128` 前后端各持一份），片号两位零填充；
+> 空档位 / 空语言（cs/pt-br/ja-roma）不产文件 → 404 按「无描述」。EN species 最大片约 400 KB，
+> 不再整包 2.7 MB。寻址公式、404 语义、前端改造点清单见 [../i18n/i18n-bundle.md](../i18n/i18n-bundle.md)。
 
 > 另：`gen-N.bin` 的 `PokemonBase` 末位新增 `hasSprite: bool`（该形态是否有正面立绘，`false` 前端可屏蔽）；字段清单见 [../data/bundle-decode.md](../data/bundle-decode.md)。
 
@@ -364,7 +371,12 @@ du -sch */versions 2>/dev/null | tail -1
 
 回答的是另一类问题：**这个语言的这张表，服务端到底给了什么**。选语言（14 种）+ 组
 （名称组 PKNM / 描述组 PKFL）+ 表（名称组 33 张、描述组 6 张），列出全部条目的
-id / 主文本 / 次文本；纯数字搜索 = 精确 id，其余按主+次文本子串（大小写不敏感）。
+id / 主文本 / 次文本。搜索分三种：**实体前缀 id**（`p25` 宝可梦 / `m150` 招式 /
+`a65` 特性 / `i4` 道具，大小写不敏感）只在对应实体的表生效 —— 前缀与当前表实体不符时
+**搜空并给出指路提示**，而不是退化成裸数字静默命中别的实体（在道具表敲 `p25` 不该返回
+道具 #25）；其中形态表也属宝可梦域，但其行 id 是打包侧重映射后的 **pokemon id**，不是
+species id。**纯数字** = 本表行 id 精确匹配（非子串）；**其余**按主+次文本子串
+（大小写不敏感）。
 排 6.4「形态名不对」、i18n 缺字、以及「详情页为什么显示的是这句描述」都走这里。
 
 与探测器不同的**两处**（工具不同、目的不同）：
@@ -374,8 +386,13 @@ id / 主文本 / 次文本；纯数字搜索 = 精确 id，其余按主+次文�
 | 缓存 | 一律绕开（诊断投递） | **走 `resourceManager` 正常缓存**（诊断内容） |
 | 关注点 | 字节、状态码、魔数 | 解码后的文本条目 |
 
-走缓存是因为 en 的 `flavor.bin` 约 2.7 MB，每切一张表重下不可接受。代价是会往共享的
-12 条 memory LRU 里塞条目，可能挤掉 app 正在用的 bundle —— 浏览一两种语言可忽略。
+走缓存是因为 en 的 flavor 整包曾有约 2.7 MB，每切一张表重下不可接受；现在描述组已改为
+按族 × 档分片（`flavor/<family>-sNN.bin`，EN 最大片约 400 KB），文本浏览按所选族从
+`s00` 聚合到最大片号、容忍空档 404，再渲染全部历史版本。最大片号常量
+`FLAVOR_MAX_SLICE` 在 `textbrowse-options.ts`，与后端当前产物对齐（en 全量 species
+s11 / moves s7 / abilities s2 / items s17），补充数据使片数增长时需同步更新；跨片合并
+排序在 `textBrowse.ts::mergeFlavorSlices`（node 用例覆盖）。代价是会往共享的 12 条
+memory LRU 里塞条目，可能挤掉 app 正在用的 bundle —— 浏览一两种语言可忽略。
 
 与**应用层**的两处刻意分歧（同样是「工具看真相、应用看结果」）：
 
@@ -387,9 +404,10 @@ id / 主文本 / 次文本；纯数字搜索 = 精确 id，其余按主+次文�
    渲染成「（空串）」，不靠 `v-if` 藏掉：「id 不存在」和「id 存在但文本为空」是
    两种不同的上游问题。
 
-纯逻辑（摊平 / 过滤 / 截断）在 `src/services/devtools/textBrowse.ts`，表清单在
-`src/pages/devtools/textbrowse-options.ts`，`tests/textBrowse.spec.ts` 覆盖数字 query
-的精确语义、次文本参与搜索、以及 flavor 不去重这条分歧。
+纯逻辑（摊平 / 过滤 / 截断）在 `src/services/devtools/textBrowse.ts`，表清单（含每张表的
+实体标记 `entity`）在 `src/pages/devtools/textbrowse-options.ts`，`tests/textBrowse.spec.ts`
+覆盖数字 query 的精确语义、次文本参与搜索、flavor 不去重这条分歧、以及实体前缀的解析与
+**实体守卫**（跨表必须搜空 + 给提示，不静默命中无关 id）。
 不做虚拟化（items 约 2000 条、flavor 变高，`VirtualList` 是定高的），截断 200 条 +
 **始终显示过滤后的真实总数** —— 否则「只有 200 条」会被当成数据缺失。
 

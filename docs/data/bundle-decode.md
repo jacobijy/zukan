@@ -20,8 +20,9 @@
 | `moves_data/common.bin` | `MDAT` | `decodeMovesDataBundle` | 招式定义（moves + 4 张关联表，含 `move_flag_map`） |
 | `moves_data/vg-NN.bin` | `MDAT` | 同上 | 该版本组的招式覆写（仅 moves 表） |
 | `evolution.bin` | `EVO1` | （新增）`EvolutionBundle` | 全代进化树：species/edges/details 三表，见[下文](#evo1-进化树-evolutionbundle) |
-| `i18n/<lang>/names.bin` | `PKNM` | `decodeI18nNamesBundle` | 单语言短文本，见 [../i18n/i18n-bundle.md](../i18n/i18n-bundle.md) |
-| `i18n/<lang>/flavor.bin` | `PKFL` | `decodeI18nFlavorBundle` | 单语言长文本 |
+| `i18n/<lang>/names.bin` | `PKNM` | `decodeI18nNamesBundle` | 单语言名称组整包，见 [../i18n/i18n-bundle.md](../i18n/i18n-bundle.md) |
+| `i18n/<lang>/flavor/<family>-sNN.bin` | `PKFL` | `decodeI18nFlavorBundle` | 描述组**分片**：`NN=(id-1)//128`，每片自含 text_pool；空档位 404 |
+| `i18n/<lang>/flavor/effects.bin` | `PKFL` | 同左 | 特性/招式机制效果（无版本，仅 en/fr/de 有） |
 
 ### 世代快照语义（重要）
 

@@ -9,12 +9,15 @@
             <input
                 class="text-form__input"
                 :value="query"
-                placeholder="文本片段，或纯数字 = 精确 id"
+                placeholder="文本片段；纯数字 = 本表 id；p25 / i4 实体 id"
                 confirm-type="search"
                 @input="onQuery"
             />
         </view>
 
+        <text class="text-form__prefix-hint">
+            实体 id 前缀（仅在对应表生效，不符会提示）：p 宝可梦 · m 招式 · a 特性 · i 道具
+        </text>
         <text class="text-form__preview">{{ busy ? '加载中…' : path }}</text>
     </view>
 </template>
@@ -31,7 +34,13 @@
 import { computed } from 'vue';
 import ChipRow from '@/components/calc/ChipRow.vue';
 import { LANGUAGES } from '@/services/i18n/languages';
-import { TEXT_GROUPS, tableOptions, type TextGroupId } from '@/pages/devtools/textbrowse-options';
+import {
+    FLAVOR_MAX_SLICE,
+    TEXT_GROUPS,
+    flavorTable,
+    tableOptions,
+    type TextGroupId,
+} from '@/pages/devtools/textbrowse-options';
 
 const props = defineProps<{
     lang: string;
@@ -52,8 +61,21 @@ const langOptions = computed(() => LANGUAGES.map((l) => ({ id: l.id, label: l.la
 const groupOptions = computed(() => TEXT_GROUPS.map((g) => ({ id: g.id, label: g.label })));
 const tables = computed(() => tableOptions(props.group));
 
-/** 当前会去拉哪个 bundle —— 和探测器一样，把真实请求路径摊开给人看 */
-const path = computed(() => `/assets/encrypted/fb/i18n/${props.lang}/${props.group}.bin`);
+/**
+ * 当前会去拉的文件路径 —— 和探测器一样，把真实请求路径摊开给人看：
+ * 名称组是整包；描述组族表显示聚合范围（s00..最大片号），效果表单文件。
+ */
+const path = computed(() => {
+    const base = `/assets/encrypted/fb/i18n/${props.lang}`;
+    if (props.group === 'names') return `${base}/names.bin`;
+    const t = flavorTable(props.table);
+    if (t.effects) return `${base}/flavor/effects.bin`;
+    if (t.family) {
+        const max = FLAVOR_MAX_SLICE[t.family];
+        return `${base}/flavor/${t.family}-s00..s${String(max).padStart(2, '0')}.bin`;
+    }
+    return `${base}/flavor/…`;
+});
 
 /**
  * ChipRow 单选点已选项会 emit `''`（它的语义是可取消）。这三个都必须始终有值，
@@ -105,6 +127,12 @@ function onQuery(e: any) {
     font-size: 13px;
     color: #24262b;
     background: #f7f8fa;
+}
+
+.text-form__prefix-hint {
+    font-size: 10px;
+    line-height: 14px;
+    color: #8a909c;
 }
 
 .text-form__preview {

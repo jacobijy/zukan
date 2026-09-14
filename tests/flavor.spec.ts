@@ -8,7 +8,15 @@
  *   store 据此回落英文基线——避免为每个用户都下载 ~2.7MB 英文 flavor 包。
  */
 import { describe, expect, it } from 'vitest';
-import { buildFlavorBundle, cleanFlavorText, flavorSize } from '@/services/i18n/flavor';
+import {
+    buildFlavorBundle,
+    cleanFlavorText,
+    EFFECT_LANGS,
+    EMPTY_FLAVOR_LANGS,
+    flavorSize,
+    mergeFlavorRefs,
+    resolveFlavorLang,
+} from '@/services/i18n/flavor';
 import type { I18nFlavorBundle } from '@/infra/wasm';
 
 function bundle(partial: Partial<I18nFlavorBundle>): I18nFlavorBundle {
@@ -107,5 +115,55 @@ describe('buildFlavorBundle', () => {
     it('任一 flavor 表有条目则 flavorSize > 0（部分缺失不整包回落英文）', () => {
         const f = buildFlavorBundle(bundle({ items: [{ id: 1, text: 'x', version: 1 }] }));
         expect(flavorSize(f)).toBe(1);
+    });
+});
+
+describe('mergeFlavorRefs（分片合并）', () => {
+    it('把一片的原始行追加进查找表，返回新 Map、不改入参', () => {
+        const target = new Map([[1, '已有描述']]);
+        const next = mergeFlavorRefs(target, [
+            { id: 2, text: '片内新条目', version: 1 },
+            { id: 3, text: '', version: 1 },
+        ]);
+
+        expect(next.get(1)).toBe('已有描述'); // 目标条目原样保留
+        expect(next.get(2)).toBe('片内新条目');
+        expect(next.has(3)).toBe(false); // 空文本被跳过
+        expect(target.size).toBe(1); // 入参未被就地修改
+    });
+
+    it('同一片内同一 id 多版本仍取 version 最大（数据不保证按版本排序）', () => {
+        const next = mergeFlavorRefs(new Map(), [
+            { id: 25, text: 'MID', version: 20 },
+            { id: 25, text: 'NEW', version: 25 },
+            { id: 25, text: 'OLD', version: 1 },
+        ]);
+
+        expect(next.get(25)).toBe('NEW');
+    });
+
+    it('追加的条目带软连字符 / 换行会被清理', () => {
+        const shy = String.fromCharCode(0xad);
+        const next = mergeFlavorRefs(new Map(), [{ id: 7, text: `A strange\nseed${shy}.`, version: 1 }]);
+
+        expect(next.get(7)).toBe('A strange seed.');
+    });
+});
+
+describe('描述组语言静态名单', () => {
+    it('空语言（cs / pt-br / ja-roma）一律定位英文分片', () => {
+        for (const lang of EMPTY_FLAVOR_LANGS) {
+            expect(resolveFlavorLang(lang)).toBe('en');
+        }
+        // 不修改入参约定外的语言
+        expect(resolveFlavorLang('zh-hans')).toBe('zh-hans');
+        expect(resolveFlavorLang('en')).toBe('en');
+    });
+
+    it('效果文件只有 en / fr / de 产出，其余语言不应去拉', () => {
+        expect(EFFECT_LANGS).toContain('en');
+        expect(EFFECT_LANGS).toContain('fr');
+        expect(EFFECT_LANGS).toContain('de');
+        expect(EFFECT_LANGS).not.toContain('zh-hans');
     });
 });

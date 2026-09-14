@@ -62,6 +62,11 @@ const MEMORY_LRU_CAP = 12;
 type PokemonMovesKind = 'common' | 'mainline' | 'special';
 type MovesDataKind = 'common' | 'vg';
 
+/** 描述组契约常量：每片覆盖的 id 档位（与后端 sync-i18n.py 一致，修改需两端同步重打包） */
+export const FLAVOR_SLICE_SIZE = 128;
+/** 描述组实体族 —— 决定分片文件名 `{family}-sNN.bin`，也作 PKFL 的向量字段名 */
+export type FlavorFamily = 'species' | 'moves' | 'abilities' | 'items';
+
 interface ResourceStats {
     memoryEntries: number;
     inflight: number;
@@ -263,10 +268,18 @@ function specI18nNames(lang: string): BundleSpec {
     };
 }
 
-function specI18nFlavor(lang: string): BundleSpec {
+function specI18nFlavorSlice(lang: string, family: FlavorFamily, slice: number): BundleSpec {
     return {
-        cacheKey: `${currentCacheKeyPrefix()}:i18n:flavor:${lang}`,
-        remotePath: `/assets/encrypted/fb/i18n/${lang}/flavor.bin`,
+        cacheKey: `${currentCacheKeyPrefix()}:i18n:flavor:${lang}:${family}:s${pad2(slice)}`,
+        remotePath: `/assets/encrypted/fb/i18n/${lang}/flavor/${family}-s${pad2(slice)}.bin`,
+    };
+}
+
+/** 效果文件（PKFL）：特性/招式机制说明，仅 en/fr/de 有数据，其余语言 404 */
+function specI18nFlavorEffects(lang: string): BundleSpec {
+    return {
+        cacheKey: `${currentCacheKeyPrefix()}:i18n:flavor:${lang}:effects`,
+        remotePath: `/assets/encrypted/fb/i18n/${lang}/flavor/effects.bin`,
     };
 }
 
@@ -304,9 +317,17 @@ export const resourceManager = {
     getI18nNames(lang: string): Promise<I18nNamesBundle> {
         return loadBundle(specI18nNames(lang), decodeI18nNamesBundle);
     },
-    /** 单语言描述组（PKFL）—— 图鉴/技能/特性/道具描述，体积较大按需加载 */
-    getI18nFlavor(lang: string): Promise<I18nFlavorBundle> {
-        return loadBundle(specI18nFlavor(lang), decodeI18nFlavorBundle);
+    /**
+     * 单语言描述组分片（PKFL）—— `family` 族第 `slice` 档（`slice = (id-1)//128`，
+     * 寻址公式见 docs/i18n/i18n-bundle.md）。空档位 / 空语言（cs/pt-br/ja-roma）
+     * 请求 404，调用方按「该档无描述」容忍，不视为错误。
+     */
+    getI18nFlavorSlice(lang: string, family: FlavorFamily, slice: number): Promise<I18nFlavorBundle> {
+        return loadBundle(specI18nFlavorSlice(lang, family, slice), decodeI18nFlavorBundle);
+    },
+    /** 单语言效果文件（PKFL，abilityEffects/moveEffects）—— 仅 en/fr/de 有数据，其余 404 */
+    getI18nFlavorEffects(lang: string): Promise<I18nFlavorBundle> {
+        return loadBundle(specI18nFlavorEffects(lang), decodeI18nFlavorBundle);
     },
     /** 全代进化树（EVO1，单文件）—— 旧后端未产出时 404，调用方应静默降级 */
     getEvolution(): Promise<EvolutionBundle> {
@@ -328,9 +349,6 @@ export const resourceManager = {
     },
     prefetchI18nNames(lang: string): void {
         silence(this.getI18nNames(lang), `i18n-names-${lang}`);
-    },
-    prefetchI18nFlavor(lang: string): void {
-        silence(this.getI18nFlavor(lang), `i18n-flavor-${lang}`);
     },
     prefetchEvolution(): void {
         silence(this.getEvolution(), 'evolution');

@@ -30,14 +30,15 @@ const text = computed(() =>
 );
 const loading = ref(false);
 
-// 描述组体积大、不随名称预取，进入详情 / 切换形态（物种变化）时按需加载。
+// 描述组按实体族分片、不随名称预取，进入详情 / 切换形态（物种变化）时按需
+// 拉取对应物种族的那一片（片号由 speciesId 算出，跨片自动累积合并）。
 watch(
     () => props.speciesId,
     async (sid) => {
         if (!sid) return;
         loading.value = true;
         try {
-            await i18nStore.ensureFlavor();
+            await i18nStore.ensureFlavorEntry('species', sid);
         } finally {
             loading.value = false;
         }
