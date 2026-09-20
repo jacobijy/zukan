@@ -30,9 +30,12 @@ import {
     buildEffectMap,
     EFFECT_LANGS,
     emptyFlavor,
+    latestVersionText,
     mergeFlavorRefs,
+    mergeVersionedFlavorRefs,
     resolveFlavorLang,
     type ArchiveFlavor,
+    type FlavorVersion,
 } from '@/services/i18n/flavor';
 import type { I18nFlavorBundle } from '@/infra/wasm';
 import {
@@ -172,7 +175,15 @@ export const useI18nStore = defineStore('i18n', () => {
         if (loadedFlavorSlices.get(key)?.has(slice)) return;
 
         const cur = flavor.value ?? emptyFlavor();
-        flavor.value = { ...cur, [family]: mergeFlavorRefs(cur[family], bundle[family]) };
+        // species 保留全部版本（详情页按版本切换）；其余三族只留最新一条
+        if (family === 'species') {
+            flavor.value = {
+                ...cur,
+                species: mergeVersionedFlavorRefs(cur.species, bundle.species),
+            };
+        } else {
+            flavor.value = { ...cur, [family]: mergeFlavorRefs(cur[family], bundle[family]) };
+        }
         if (!loadedFlavorSlices.has(key)) loadedFlavorSlices.set(key, new Set());
         loadedFlavorSlices.get(key)!.add(slice);
     }
@@ -229,9 +240,22 @@ export const useI18nStore = defineStore('i18n', () => {
     function speciesGenus(speciesId: number): string | null {
         return lookup.value?.species.get(speciesId)?.genus ?? null;
     }
-    /** 物种图鉴描述；描述组未加载或该物种无文本时返回 null。 */
+    /** 该物种在各游戏版本下的图鉴描述（按 version 升序）；未加载返回 []。 */
+    function speciesFlavorVersions(speciesId: number): FlavorVersion[] {
+        return flavor.value?.species.get(speciesId) ?? [];
+    }
+    /**
+     * 物种图鉴描述（最新版本一条）；描述组未加载或该物种无文本时返回 null。
+     * 详情页默认走版本图标选择器；仅当该物种没有任何「有图标版本」描述时
+     * （只有 gen1–5 老版本）才回落到此，避免空白。
+     */
     function speciesFlavorText(speciesId: number): string | null {
-        return flavor.value?.species.get(speciesId) ?? null;
+        const versions = flavor.value?.species.get(speciesId);
+        return versions ? latestVersionText(versions) : null;
+    }
+    /** PokeAPI version_id → 当前内容语言的版本名（图鉴版本标签无障碍名用）。 */
+    function versionName(versionId: number): string | null {
+        return lookup.value?.versions.get(versionId) ?? null;
     }
     /** 招式说明；未加载或无文本时返回 null。 */
     function moveFlavorText(moveId: number): string | null {
@@ -320,7 +344,9 @@ export const useI18nStore = defineStore('i18n', () => {
         flavorReady,
         ensureFlavorEntry,
         ensureFlavorEffects,
+        speciesFlavorVersions,
         speciesFlavorText,
+        versionName,
         moveFlavorText,
         abilityFlavorText,
         itemFlavorText,

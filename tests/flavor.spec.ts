@@ -2,8 +2,9 @@
  * 描述/效果查找表的纯函数用例（`src/services/i18n/flavor.ts`）
  *
  * 两个重点：
- * - 同一实体在 flavor bundle 里按 version / version_group 存了多条，
- *   构建时只留最新版本；四类表（species/moves/abilities/items）同一逻辑；
+ * - 同一实体在 flavor bundle 里按 version / version_group 存了多条：
+ *   species（图鉴描述）**全部保留**供详情页按版本切换，moves/abilities/items
+ *   只留最新版本一条；
  * - 描述组为空的语言（cs / pt-br / ja-roma）四张表全空，flavorSize === 0，
  *   store 据此回落英文基线——避免为每个用户都下载 ~2.7MB 英文 flavor 包。
  */
@@ -14,7 +15,9 @@ import {
     EFFECT_LANGS,
     EMPTY_FLAVOR_LANGS,
     flavorSize,
+    latestVersionText,
     mergeFlavorRefs,
+    mergeVersionedFlavorRefs,
     resolveFlavorLang,
 } from '@/services/i18n/flavor';
 import type { I18nFlavorBundle } from '@/infra/wasm';
@@ -61,7 +64,8 @@ describe('buildFlavorBundle', () => {
                 items: [{ id: 30, text: 'Potion item text.', version: 1 }],
             }),
         );
-        expect(f.species.get(1)).toBe('Bulba dex text.');
+        // species 保留全部版本（这里只有一条），返回按 version 升序的数组
+        expect(f.species.get(1)).toEqual([{ version: 1, text: 'Bulba dex text.' }]);
         expect(f.moves.get(10)).toBe('Tackle move text.');
         expect(f.abilities.get(20)).toBe('Stench ability text.');
         expect(f.items.get(30)).toBe('Potion item text.');
@@ -147,6 +151,71 @@ describe('mergeFlavorRefs（分片合并）', () => {
         const next = mergeFlavorRefs(new Map(), [{ id: 7, text: `A strange\nseed${shy}.`, version: 1 }]);
 
         expect(next.get(7)).toBe('A strange seed.');
+    });
+});
+
+describe('mergeVersionedFlavorRefs（species 多版本保留）', () => {
+    it('同一 id 的多个版本全保留，按 version 升序（输入打乱顺序）', () => {
+        const next = mergeVersionedFlavorRefs(new Map(), [
+            { id: 1, text: 'Violet', version: 41 },
+            { id: 1, text: 'X', version: 23 },
+            { id: 1, text: 'Sword', version: 33 },
+        ]);
+        expect(next.get(1)?.map((v) => v.version)).toEqual([23, 33, 41]);
+        expect(next.get(1)?.map((v) => v.text)).toEqual(['X', 'Sword', 'Violet']);
+    });
+
+    it('不同 id 互不干扰（数据交错出现）', () => {
+        const next = mergeVersionedFlavorRefs(new Map(), [
+            { id: 1, text: 'bulba-v', version: 40 },
+            { id: 25, text: 'pika-x', version: 23 },
+            { id: 1, text: 'bulba-x', version: 23 },
+        ]);
+        expect(next.get(1)?.map((v) => v.version)).toEqual([23, 40]);
+        expect(next.get(25)).toEqual([{ version: 23, text: 'pika-x' }]);
+    });
+
+    it('空文本版本被丢弃', () => {
+        const next = mergeVersionedFlavorRefs(new Map(), [
+            { id: 1, text: '', version: 1 },
+            { id: 1, text: 'real', version: 40 },
+        ]);
+        expect(next.get(1)?.map((v) => v.version)).toEqual([40]);
+    });
+
+    it('同一 (id, version) 重复时后到的覆盖，并清理文本', () => {
+        const next = mergeVersionedFlavorRefs(new Map(), [
+            { id: 1, text: 'old\nline', version: 40 },
+            { id: 1, text: 'new line', version: 40 },
+        ]);
+        expect(next.get(1)).toEqual([{ version: 40, text: 'new line' }]);
+    });
+
+    it('与 target 已有版本合并（跨片累积），返回新 Map、不改入参', () => {
+        const target = mergeVersionedFlavorRefs(new Map(), [{ id: 1, text: 'X', version: 23 }]);
+        const next = mergeVersionedFlavorRefs(target, [{ id: 1, text: 'Violet', version: 41 }]);
+        expect(next.get(1)?.map((v) => v.version)).toEqual([23, 41]);
+        expect(target.get(1)?.map((v) => v.version)).toEqual([23]);
+    });
+
+    it('没有任何非空版本的 id 不进表', () => {
+        const next = mergeVersionedFlavorRefs(new Map(), [{ id: 9, text: '', version: 1 }]);
+        expect(next.has(9)).toBe(false);
+    });
+});
+
+describe('latestVersionText', () => {
+    it('取升序数组末条（最新版本）文本', () => {
+        expect(
+            latestVersionText([
+                { version: 23, text: 'X' },
+                { version: 41, text: 'Violet' },
+            ]),
+        ).toBe('Violet');
+    });
+
+    it('空数组返回 null', () => {
+        expect(latestVersionText([])).toBeNull();
     });
 });
 

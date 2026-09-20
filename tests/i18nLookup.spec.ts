@@ -119,6 +119,21 @@ describe('buildNamesLookup', () => {
         );
         expect(lk.forms.has(999)).toBe(false);
     });
+
+    it('把 versions 收成 version_id → 版本名（图鉴版本标签取名）', () => {
+        const lk = buildNamesLookup(
+            bundle({
+                versions: [
+                    { id: 23, name: 'X' },
+                    { id: 40, name: '朱' },
+                    { id: 41, name: '紫' },
+                ],
+            }),
+        );
+        expect(lk.versions.get(40)).toBe('朱');
+        expect(lk.versions.get(41)).toBe('紫');
+        expect(lk.versions.get(23)).toBe('X');
+    });
 });
 
 describe('overlay 回落叠加', () => {
@@ -177,6 +192,17 @@ describe('overlay 回落叠加', () => {
         expect(merged.moves.get(1)).toBe('Pound');
         // 物种表里未覆盖的 id 也保留英文
         expect(merged.species.get(25)?.name).toBe('Pikachu');
+    });
+
+    it('versions 表同样按 id 叠加：首选语言非空覆盖英文，缺失回落英文', () => {
+        const enBase = buildNamesLookup(
+            bundle({ versions: [{ id: 40, name: 'Scarlet' }, { id: 41, name: 'Violet' }] }),
+        );
+        const zh = buildNamesLookup(bundle({ versions: [{ id: 40, name: '朱' }] }));
+        const merged = overlay(enBase, zh);
+
+        expect(merged.versions.get(40)).toBe('朱'); // 覆盖
+        expect(merged.versions.get(41)).toBe('Violet'); // 英文兜底
     });
 
     it('不修改入参（返回新对象）', () => {

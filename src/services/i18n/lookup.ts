@@ -21,6 +21,8 @@ export interface NamesLookup {
     stats: Map<number, string>;
     eggGroups: Map<number, string>;
     regions: Map<number, string>;
+    /** PokeAPI version 表：version_id → 版本名（图鉴描述按版本切换时取名用） */
+    versions: Map<number, string>;
     moveAilments: Map<number, string>;
     /** evolution_triggers 表：1=升级 2=交换 3=使用道具 … */
     evolutionTriggers: Map<number, string>;
@@ -63,6 +65,7 @@ export function buildNamesLookup(b: I18nNamesBundle): NamesLookup {
         stats: toNamedMap(b.stats),
         eggGroups: toNamedMap(b.eggGroups),
         regions: toNamedMap(b.regions),
+        versions: toNamedMap(b.versions),
         moveAilments: toNamedMap(b.moveAilments),
         evolutionTriggers: toNamedMap(b.evolutionTriggers),
         moveDamageClasses: toNamedMap(b.moveDamageClasses),
@@ -104,6 +107,7 @@ export function overlay(base: NamesLookup, preferred: NamesLookup): NamesLookup 
         stats: mergeMap(base.stats, preferred.stats),
         eggGroups: mergeMap(base.eggGroups, preferred.eggGroups),
         regions: mergeMap(base.regions, preferred.regions),
+        versions: mergeMap(base.versions, preferred.versions),
         moveAilments: mergeMap(base.moveAilments, preferred.moveAilments),
         evolutionTriggers: mergeMap(base.evolutionTriggers, preferred.evolutionTriggers),
         moveDamageClasses: mergeMap(base.moveDamageClasses, preferred.moveDamageClasses),

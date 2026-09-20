@@ -4,12 +4,15 @@
  * 纯函数：不碰网络、不碰存储，方便单测。
  *
  * 与名称组的差异：同一实体在 flavor bundle 里按 **version / version_group**
- * 存了多条（每个游戏版本一条），这里只保留**最新版本**的那条（version 最大），
- * 详情页展示一句即可。
+ * 存了多条（每个游戏版本一条）。两族口径不同：
+ * - **species（图鉴描述）保留全部版本**：详情页要按游戏版本切换展示
+ *   （`VersionedFlavorMap`，按 version 升序）；
+ * - moves / abilities / items 只保留**最新版本**那条（version 最大），这些栏目
+ *   详情页只展示一句，不要版本切换。
  *
  * 描述组按**族 × id 档位分片**（`flavor/<family>-sNN.bin`，`NN=(id-1)//128`），
  * 分片本身是完整合法的 `I18nFlavorBundle`（只填所属族的向量）。`buildFlavorBundle`
- * 兼容这种只填部分向量的 bundle；按需加载路径则用 `mergeFlavorRefs` 把一片的原始
+ * 兼容这种只填部分向量的 bundle；按需加载路径则用合并函数把一片的原始
  * 行逐片合并进查找表（同 id 只会落在一个片里，无需跨片比较版本）。
  *
  * 回落不在本文件做：cs / pt-br / ja-roma 的描述组整体为空（任意分片 404），
@@ -23,9 +26,20 @@ export type FlavorMap = Map<number, string>;
 /** 效果简述（shortEffect）；仅 en/fr/de 有数据 */
 export type EffectMap = Map<number, string>;
 
+/** 某实体在单个游戏版本下的一条描述 */
+export interface FlavorVersion {
+    /** species 为 PokeAPI version_id（1..41，解包追加更高） */
+    version: number;
+    /** 已清理的描述文本 */
+    text: string;
+}
+
+/** speciesId → 该物种在各版本下的描述（按 version 升序，去空、同版本后者覆盖） */
+export type VersionedFlavorMap = Map<number, FlavorVersion[]>;
+
 export interface ArchiveFlavor {
-    /** speciesId → 图鉴描述 */
-    species: FlavorMap;
+    /** speciesId → 各游戏版本的图鉴描述（保留全部版本，供版本切换） */
+    species: VersionedFlavorMap;
     /** moveId → 招式说明 */
     moves: FlavorMap;
     /** abilityId → 特性说明 */
@@ -97,6 +111,48 @@ export function mergeFlavorRefs(
     return next;
 }
 
+/**
+ * species 专用：把一片的原始描述行合并成 **id → 各版本描述**（保留全部版本）。
+ *
+ * 片号按 id 分档，同一 id 不会跨片；但同一片内同一 id 通常带多个 version
+ * （每个游戏版本一条），同 `(id, version)` 重复（理论上仅跨片兜底才会出现）时
+ * 后到的覆盖。空文本不进表。每个实体的版本数组按 version **升序**输出，
+ * 末条即「最新版本」。返回**新 Map**（不改入参），调用方整体替换引用触发响应式。
+ */
+export function mergeVersionedFlavorRefs(
+    target: VersionedFlavorMap,
+    refs: readonly { id: number; text: string; version: number }[],
+): VersionedFlavorMap {
+    // 先摊成 id → (version → text) 去重，最后统一排序转数组
+    const byId = new Map<number, Map<number, string>>();
+    for (const [id, list] of target) {
+        byId.set(id, new Map(list.map((v) => [v.version, v.text])));
+    }
+    for (const f of refs) {
+        if (!f.text) continue;
+        let versions = byId.get(f.id);
+        if (!versions) {
+            versions = new Map();
+            byId.set(f.id, versions);
+        }
+        versions.set(f.version, cleanFlavorText(f.text));
+    }
+
+    const next: VersionedFlavorMap = new Map();
+    for (const [id, versions] of byId) {
+        next.set(
+            id,
+            [...versions.entries()].sort((a, b) => a[0] - b[0]).map(([version, text]) => ({ version, text })),
+        );
+    }
+    return next;
+}
+
+/** 取版本数组里最新（version 最大）的一条文本；空数组返回 null。 */
+export function latestVersionText(versions: readonly FlavorVersion[]): string | null {
+    return versions.length ? versions[versions.length - 1]!.text : null;
+}
+
 /** 收成 id → 效果简述。效果表无版本维度（每 id 一条），空文本不进表。 */
 export function buildEffectMap(entries: readonly { id: number; shortEffect: string }[]): EffectMap {
     const out: EffectMap = new Map();
@@ -112,7 +168,7 @@ export function buildEffectMap(entries: readonly { id: number; shortEffect: stri
  */
 export function buildFlavorBundle(b: I18nFlavorBundle): ArchiveFlavor {
     return {
-        species: mergeFlavorRefs(new Map(), b.species),
+        species: mergeVersionedFlavorRefs(new Map(), b.species),
         moves: mergeFlavorRefs(new Map(), b.moves),
         abilities: mergeFlavorRefs(new Map(), b.abilities),
         items: mergeFlavorRefs(new Map(), b.items),

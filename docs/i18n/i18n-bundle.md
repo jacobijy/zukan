@@ -47,6 +47,7 @@
   - `species: [SpeciesName]`（id + name + genus）
   - `forms: [FormName]`（id + form_name + pokemon_name，主键已重映射成 pokemon id）
   - `locations`、`shapes`
+  - `versions: [NamedEntry]`：id = PokeAPI `version_id`，图鉴版本选择器用它取本地化版本名（`versionName`）
   - 其余 `moves`/`abilities`/`items`/`types` 等是 id + 单文本的 `NamedEntry`
 - 体积 ~170–290 KB，界面就近按需加载（boot 预取）。
 
@@ -61,7 +62,12 @@
 - 现有解码器 `decodeI18nFlavorBundle` **直接复用**——它对「只填部分向量」的 bundle
   天然兼容，无需改动、无需新增 fid。
 - **无损保留全部历史版本**：每个实体在每个游戏版本下的描述行都在，不做 latest-only
-  裁剪；「取 version 最大一条」是**客户端**的展示决策（见下）。
+  裁剪。客户端按族区别对待：
+  - **species（图鉴描述）保留全部版本**（`mergeVersionedFlavorRefs` 收成
+    `speciesId → FlavorVersion[]`，按 version 升序），详情页用软件图标按版本切换
+    （见 [../ui/software-icons.md](../ui/software-icons.md)）；
+  - moves / abilities / items 仍只留 version 最大一条（`mergeFlavorRefs`），这些栏目
+    展示一句即可。
 - 体积：EN species 片最大 ~400 KB，moves/abilities/items 片 8–118 KB；合计约等于
   旧整包 2.7 MB，但每次只拉一片。
 
@@ -142,11 +148,16 @@ const path  = `/assets/encrypted/fb/i18n/${lang}/flavor/${family}-s${String(slic
    - `ensureFlavor()`（整包）→ `ensureFlavorEntry(family, id)`：算片号 → 取片 →
      `buildFlavorBundle(slice)`（复用，只该族 Map 非空）→ **按 `(lang, family)`
      累积合并**到对应查找表，片到达即响应式刷新。
-   - 访问器签名**保持不变**（`speciesFlavorText(id)` 等），组件只改 ensure 调用。
+   - 访问器：`speciesFlavorVersions(id)` 返回 `FlavorVersion[]`（详情页版本切换用）；
+     `speciesFlavorText(id)` 仍保留但改为「取最新版本一条」，仅作无图标老版本的兜底；
+     另有 `versionName(versionId)` 读名称组 `versions` 表（见下）。其余三族访问器签名不变。
    - 效果表单独 `ensureFlavorEffects()`（仅 en/fr/de 有数据）。
    - 切语言清空已合并的片缓存。
-3. **组件**（两处，仅改 ensure 一行）
-   - `components/pokemon/PokedexEntry.vue`：`ensureFlavorEntry('species', speciesId)`
+3. **组件**
+   - `components/pokemon/PokedexEntry.vue`：`ensureFlavorEntry('species', speciesId)`，
+     用 `iconFlavorOptions`（`constants/versionIcons.ts`）从全部版本里挑出有软件图标的，
+     交给 `components/pokemon/PokedexVersionPicker.vue` 渲染图标标签切换；无图标版本时
+     回落 `speciesFlavorText`（详见 [../ui/software-icons.md](../ui/software-icons.md)）。
    - `components/archive/FlavorTextCard.vue`：按 `kind` 对应族 +
      move/ability 详情额外 `ensureFlavorEffects()`
 4. **`src/services/i18n/flavor.ts`**：`buildFlavorBundle` 对空向量兼容（已兼容）；

@@ -143,8 +143,11 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
   而是详情页 `PokedexEntry.vue` 按 `speciesId` 从 i18n **描述组**按需取：描述组按
   **族 × id 档位分片**（`flavor/<family>-sNN.bin`，`NN=(id-1)//128`，契约常量
   `FLAVOR_SLICE_SIZE` 前后端各持一份），store 的 `ensureFlavorEntry(family, id)`
-  按实体算片号、逐片拉取累积合并（多版本取最新；空语言 cs/pt-br/ja-roma 由
-  `resolveFlavorLang` 静态名单回落 en，不逐 id 换英文）。见 `docs/i18n/`。
+  按实体算片号、逐片拉取累积合并（**species 保留全部游戏版本** `FlavorVersion[]`：
+  详情页 `PokedexVersionPicker` 用软件图标按版本切换，只列「有图标（X/Y 起）∩ 该物种有描述」
+  的版本、`constants/versionIcons.ts` 持 PokeAPI version_id→图标映射，老版本无图标时兜底取
+  version 最大一条纯文本；moves/abilities/items 仍只取最新一条；空语言 cs/pt-br/ja-roma 由
+  `resolveFlavorLang` 静态名单回落 en，不逐 id 换英文）。见 `docs/i18n/`、`docs/ui/software-icons.md`。
   物种名/形态名/特性名已接通 i18n 名称组，i18n 未就绪时回落 `pokemon-{id}` / `form-{id}` 占位。
 - `simulate.vue` 是纯 UI 骨架，所有交互 handler 都是 `noop`。
 - `src/core/data/typechart.ts` 被 `calc-engine.ts` 动态 import，是移除的服务端模块的残留。
@@ -187,7 +190,7 @@ src/components/
   pokemon/   宝可梦领域：PokemonCard、TypeBadge、SpecimenHero、
              ShinyToggle（闪光开关）、GenderSlider（性别滑块，蓝红双色 + genderRate 门禁）、
              InfoGrid/InfoCard、StatsChart、MovesList、MoveCard、EvolutionChain、
-             PokedexEntry（图鉴描述，按需取 flavor）
+             PokedexEntry（图鉴描述，按需取 flavor）、PokedexVersionPicker（描述按游戏版本切换的软件图标条）
   dex/       图鉴列表上下文：DexToolbar、FilterBar、GenerationDrawer、
              DexEmptyState、FavoritesBanner、VirtualGrid（定高网格）、
              VirtualList（单列定高虚拟列表，scroll-view 根元素，archive 列表用）
@@ -204,7 +207,9 @@ src/components/
   (根目录)    NavBar、TabBar（跨页面底栏 / 顶栏，非 shared 子目录）
 src/composables/ 跨组件复用的组合式逻辑：useEncryptedImage（加密图片的视口懒加载 /
              离屏取消 / 引用配对，EncryptedSprite 与 ItemIcon 共用）
-src/constants/   跨文件共享的数据表（pokemonTypes、generations、spriteVariants）
+src/constants/   跨文件共享的数据表（pokemonTypes、generations、spriteVariants、
+             versionIcons（PokeAPI version_id→HOME 软件图标，纯静态 /static 非加密，
+             详情页图鉴描述版本切换用，见 docs/ui/software-icons.md））
 src/pages/<name>/<name>-options.ts   仅该页用的选项/常量表
 ```
 
