@@ -1,5 +1,7 @@
 /** 计算器数据常量。纯数据，不包含 ref/state/emit 等运行时绑定。 */
 
+import { damageEngineCategory } from '@/constants/moveCategory';
+
 // ─── 天气 ─────────────────────────────────────────────
 export interface WeatherOption {
     id: string;
@@ -116,13 +118,7 @@ export interface MoveOption {
     category: 'physical' | 'special';
 }
 
-/** MoveRecord.categoryId（move_damage_classes）→ 计算引擎分类；状态/未知返回 null（不进计算器） */
-const CATEGORY_TO_ENGINE: Record<number, 'physical' | 'special' | null> = {
-    2: 'physical',
-    3: 'special',
-    1: null,
-    0: null,
-};
+/** MoveRecord.categoryId（PokeAPI move_damage_classes）→ 计算引擎分类；变化/未知返回 null（不进计算器） */
 
 /**
  * 把某只宝可梦的技能池（`loadMovesForPokemon` 的 MoveRecord[]）转成计算器
@@ -134,7 +130,7 @@ export function toCalcMoveOptions(records: MoveRecord[], nameOf: (id: number) =>
     const seen = new Set<number>();
     const out: MoveOption[] = [];
     for (const r of records) {
-        const category = CATEGORY_TO_ENGINE[r.categoryId];
+        const category = damageEngineCategory(r.categoryId);
         if (!category) continue;
         const power = typeof r.power === 'number' ? r.power : Number(r.power);
         if (!Number.isFinite(power) || power <= 0) continue;

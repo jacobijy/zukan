@@ -8,38 +8,19 @@
       >Lv.{{ move.level }}</text>
     </view>
 
-    <view class="move-card__category" :class="categoryBadgeClass" :aria-label="displayCategory">
-      <!-- 物理：实心菱形，象征打击力 -->
-      <svg
-        v-if="categorySlug === 'physical'"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        class="h-3.5 w-3.5"
-      >
-        <path d="M12 3L2 12l10 9 10-9L12 3z" />
-      </svg>
-      <!-- 特殊：星形闪光 -->
-      <svg
-        v-else-if="categorySlug === 'special'"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        class="h-3.5 w-3.5"
-      >
-        <path d="M12 2l2.5 7h7l-5.5 4 2 7-6-4-6 4 2-7-5.5-4h7z" />
-      </svg>
-      <!-- 状态：圆环 + 中心点 -->
-      <svg
-        v-else-if="categorySlug === 'status'"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.5"
-        class="h-3.5 w-3.5"
-      >
-        <circle cx="12" cy="12" r="9" />
-        <circle cx="12" cy="12" r="2.5" fill="currentColor" />
-      </svg>
-      <text v-else class="text-[10px] font-black text-[#8d929c]">—</text>
+    <!--
+      分类图标 + 威力命中 + 最右属性图标都是「定宽后缀」，名称 flex 吸收剩余
+      宽度；分类图标列因此在各行对齐，不被长短不一的名称顶动。
+    -->
+    <view class="move-card__category" :aria-label="displayCategory">
+      <image
+        v-if="categoryBadge"
+        :src="categoryBadge"
+        mode="aspectFit"
+        class="move-card__category-img"
+        aria-hidden="true"
+      />
+      <text v-else class="move-card__category-dash">—</text>
     </view>
 
     <view class="move-card__stats">
@@ -53,15 +34,18 @@
         <text class="move-card__stat-label">{{ t('moves.accuracy') }}</text>
       </view>
     </view>
-    <TypeBadge :type="typeSlug" size="md" />
+
+    <!-- 属性图标：定宽收尾，置于最右（与文字徽章时代的原始布局一致） -->
+    <TypeBadgeIcon :type="typeSlug" size="m" />
   </view>
 </template>
 
 <script setup lang="ts">
+import TypeBadgeIcon from '@/components/pokemon/TypeBadgeIcon.vue'
+import { getMoveCategoryByPokeapiId, moveCategoryIconPath } from '@/constants/moveCategory'
+import { useI18nStore } from '@/store/i18n'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import TypeBadge from '@/components/pokemon/TypeBadge.vue'
-import { useI18nStore } from '@/store/i18n'
 
 interface Props {
   move: MoveRecord
@@ -82,26 +66,13 @@ const typeSlug = computed(() => props.move.type || 'normal')
 // 名称表异步到达 / 切换语言时自动更新，无需重拉招式数据。
 const displayName = computed(() => i18n.moveName(props.move.id) ?? t('moves.unknown'))
 
-// ── 分类：damageClassId 1=状态 2=物理 3=特殊 → slug + 配色 ──
-const CATEGORY_SLUGS: Record<number, 'physical' | 'special' | 'status'> = {
-  2: 'physical',
-  3: 'special',
-  1: 'status',
-}
-
-const categorySlug = computed(() => CATEGORY_SLUGS[props.move.categoryId] ?? null)
-
-const categoryBadgeClass = computed(() => {
-  switch (categorySlug.value) {
-    case 'physical':
-      return 'move-card__category--physical'
-    case 'special':
-      return 'move-card__category--special'
-    case 'status':
-      return 'move-card__category--status'
-    default:
-      return 'move-card__category--unknown'
-  }
+// ── 分类徽章：PokeAPI damageClassId（1变化 2物理 3特殊）→ waza 分类贴纸 ──
+// categoryId 是 PokeAPI id，必须先经 getMoveCategoryByPokeapiId 换成规范 id
+// （1物理 2特殊 3变化）再拼图标，否则三类图标会整体错位。规范 id 单一来源见
+// constants/moveCategory.ts。未知 id（0）返回 undefined，模板回落破折号。
+const categoryBadge = computed<string | undefined>(() => {
+  const canonical = getMoveCategoryByPokeapiId(props.move.categoryId)
+  return canonical ? moveCategoryIconPath(canonical.id, 'm') : undefined
 })
 
 // 分类名响应式查 i18n moveDamageClasses 表（随内容语言切换）
@@ -123,34 +94,27 @@ const displayAccuracy = computed(() => props.move.accuracy || '—')
   background: #f5f6fa;
 }
 
+/* 分类贴纸：waza 图标自带白边与配色，容器只定尺寸、不垫底色、不裁圆角
+   （物理星形比圆形更宽，宽度略放，aspectFit 下三类都居中）。 */
 .move-card__category {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  width: 34px;
   height: 32px;
-  border-radius: 999px;
-  color: #ffffff;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
 }
 
-.move-card__category--physical {
-  background: linear-gradient(135deg, #ff8a5c, #e0532c);
+.move-card__category-img {
+  width: 100%;
+  height: 100%;
 }
 
-.move-card__category--special {
-  background: linear-gradient(135deg, #7c6df0, #4934c8);
-}
-
-.move-card__category--status {
-  background: linear-gradient(135deg, #9ba7bd, #5c6577);
-}
-
-.move-card__category--unknown {
-  background: #eef0f5;
-  color: #8d929c;
-  box-shadow: none;
+.move-card__category-dash {
+  color: #b0b5bf;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .move-card__stats {

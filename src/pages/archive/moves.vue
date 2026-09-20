@@ -66,6 +66,7 @@ import MoveRow from '@/components/archive/MoveRow.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import SearchBar from '@/components/shared/SearchBar.vue';
 import { ALL_TYPE_SLUGS, getTypeColor, getTypeMeta } from '@/constants/pokemonTypes';
+import { MOVE_CATEGORY_POKEAPI_IDS } from '@/constants/moveCategory';
 import { loadMoveList, type MoveListRow } from '@/services/pokemon/archive';
 import { useI18nStore } from '@/store/i18n';
 import { typeStrs } from '@/utils/helpers';
@@ -113,11 +114,10 @@ const filtered = computed(() => {
 
 const moveKey = (m: MoveListRow) => m.id;
 
-// ── 分类筛选（物理 2 / 特殊 3 / 变化 1）──
-const DAMAGE_CLASS_IDS = [2, 3, 1];
+// ── 分类筛选：顺序按规范常量（物理 / 特殊 / 变化），值仍是 PokeAPI id ──
 const categoryOptions = computed<SheetOption[]>(() => [
     { id: '0', label: t('archive.all') },
-    ...DAMAGE_CLASS_IDS.map((id) => ({
+    ...MOVE_CATEGORY_POKEAPI_IDS.map((id) => ({
         id: String(id),
         label: i18nStore.moveDamageClassName(id) ?? `class-${id}`,
     })),
