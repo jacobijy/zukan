@@ -6,9 +6,10 @@
  * 与名称组的差异：同一实体在 flavor bundle 里按 **version / version_group**
  * 存了多条（每个游戏版本一条）。两族口径不同：
  * - **species（图鉴描述）保留全部版本**：详情页要按游戏版本切换展示
- *   （`VersionedFlavorMap`，按 version 升序）；
- * - moves / abilities / items 只保留**最新版本**那条（version 最大），这些栏目
- *   详情页只展示一句，不要版本切换。
+ *   （`VersionedFlavorMap`，按 version 升序，version 是 version_id）；
+ * - moves / abilities / items 只保留**最新版本**那条（version 最大；moves 等的
+ *   version 是 version_group_id），这些栏目详情页只展示一句，不要版本切换
+ *   （实测各版本组的招式说明基本相同，无切换必要）。
  *
  * 描述组按**族 × id 档位分片**（`flavor/<family>-sNN.bin`，`NN=(id-1)//128`），
  * 分片本身是完整合法的 `I18nFlavorBundle`（只填所属族的向量）。`buildFlavorBundle`
@@ -40,7 +41,7 @@ export type VersionedFlavorMap = Map<number, FlavorVersion[]>;
 export interface ArchiveFlavor {
     /** speciesId → 各游戏版本的图鉴描述（保留全部版本，供版本切换） */
     species: VersionedFlavorMap;
-    /** moveId → 招式说明 */
+    /** moveId → 招式说明（最新版本组一条） */
     moves: FlavorMap;
     /** abilityId → 特性说明 */
     abilities: FlavorMap;
@@ -158,6 +159,27 @@ export function buildEffectMap(entries: readonly { id: number; shortEffect: stri
     const out: EffectMap = new Map();
     for (const e of entries) {
         if (e.shortEffect) out.set(e.id, cleanFlavorText(e.shortEffect));
+    }
+    return out;
+}
+
+/**
+ * 把按 `move_effect_id` 索引的招式效果重新按键为 **moveId → 效果简述**。
+ *
+ * `move_effects`（effects.bin）主键是稀疏的 `move_effect_id`，与招式 id 不对齐；
+ * 但每个招式的 `Move.effectId` 指向它，且多个招式常共享同一 effect（如所有「10%
+ * 畏缩」招）。这里按每个 move 的 effectId 把共享 short_effect 扇出到各 moveId：
+ * effectId 为 0（上游空缺）或 effect 表查不到文本时跳过。纯函数，返回新 Map。
+ */
+export function keyMoveEffectsByMoveId(
+    moves: readonly { id: number; effectId: number }[],
+    effectById: EffectMap,
+): EffectMap {
+    const out: EffectMap = new Map();
+    for (const m of moves) {
+        if (!m.effectId) continue;
+        const text = effectById.get(m.effectId);
+        if (text) out.set(m.id, text);
     }
     return out;
 }

@@ -146,8 +146,13 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
   按实体算片号、逐片拉取累积合并（**species 保留全部游戏版本** `FlavorVersion[]`：
   详情页 `PokedexVersionPicker` 用软件图标按版本切换，只列「有图标（X/Y 起）∩ 该物种有描述」
   的版本、`constants/versionIcons.ts` 持 PokeAPI version_id→图标映射，老版本无图标时兜底取
-  version 最大一条纯文本；moves/abilities/items 仍只取最新一条；空语言 cs/pt-br/ja-roma 由
-  `resolveFlavorLang` 静态名单回落 en，不逐 id 换英文）。见 `docs/i18n/`、`docs/ui/software-icons.md`。
+  version 最大一条纯文本；moves/abilities/items 只取最新一条（version 是 version_group_id，
+  实测各版本组招式说明基本相同，不做版本切换）；空语言 cs/pt-br/ja-roma 由
+  `resolveFlavorLang` 静态名单回落 en，不逐 id 换英文。招式「效果」段经 MDAT
+  `Move.effect_id` join `move_effects`（`keyMoveEffectsByMoveId`——原表主键是稀疏
+  move_effect_id，曾是已知缺陷），非 en/fr/de 内容语言回落英文 short_effect 显示，
+  特性效果则维持非 en/fr/de 隐藏。详情页招式卡 `MoveCard` 可点跳 `archive/move-detail`
+  （其描述卡为 `archive/MoveFlavorCard.vue`））。见 `docs/i18n/`、`docs/ui/software-icons.md`。
   物种名/形态名/特性名已接通 i18n 名称组，i18n 未就绪时回落 `pokemon-{id}` / `form-{id}` 占位。
 - `simulate.vue` 是纯 UI 骨架，所有交互 handler 都是 `noop`。
 - `src/core/data/typechart.ts` 被 `calc-engine.ts` 动态 import，是移除的服务端模块的残留。
@@ -195,7 +200,8 @@ src/components/
              DexEmptyState、FavoritesBanner、VirtualGrid（定高网格）、
              VirtualList（单列定高虚拟列表，scroll-view 根元素，archive 列表用）
   archive/   资料中心图鉴栏目：MoveRow/AbilityRow/ItemRow/TypeRow、
-             ItemIcon（道具图标，走加密图片通道）、FlavorTextCard（招式/特性/道具描述，按需取 flavor）、
+             ItemIcon（道具图标，走加密图片通道）、FlavorTextCard（特性/道具描述，按需取 flavor）、
+             MoveFlavorCard（招式描述，单条最新说明 + 效果段）、
              TypeMatchupCard（相克表）、PokemonMiniList/PokemonMiniRow、
              ArchiveListShell（列表页骨架）
   calc/      计算器上下文：CalcCard、ChipRow、LevelStepper、

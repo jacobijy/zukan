@@ -1,12 +1,14 @@
 /**
  * 描述/效果查找表的纯函数用例（`src/services/i18n/flavor.ts`）
  *
- * 两个重点：
+ * 重点：
  * - 同一实体在 flavor bundle 里按 version / version_group 存了多条：
  *   species（图鉴描述）**全部保留**供详情页按版本切换，moves/abilities/items
  *   只留最新版本一条；
- * - 描述组为空的语言（cs / pt-br / ja-roma）四张表全空，flavorSize === 0，
- *   store 据此回落英文基线——避免为每个用户都下载 ~2.7MB 英文 flavor 包。
+ * - 招式效果经 `keyMoveEffectsByMoveId` 用 `Move.effectId` 把按 move_effect_id
+ *   索引的 short_effect 重新按键为 moveId；
+ * - 描述组为空的语言（cs / pt-br / ja-roma）四张 flavor 表全空，flavorSize === 0，
+ *   store 据此回落英文基线。
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -15,6 +17,7 @@ import {
     EFFECT_LANGS,
     EMPTY_FLAVOR_LANGS,
     flavorSize,
+    keyMoveEffectsByMoveId,
     latestVersionText,
     mergeFlavorRefs,
     mergeVersionedFlavorRefs,
@@ -71,7 +74,7 @@ describe('buildFlavorBundle', () => {
         expect(f.items.get(30)).toBe('Potion item text.');
     });
 
-    it('同一实体多版本时取 version 最大（最新）的一条（数据集打乱顺序）', () => {
+    it('同一招式多版本组时取 version 最大（最新）的一条（数据集打乱顺序）', () => {
         const f = buildFlavorBundle(
             bundle({
                 moves: [
@@ -201,6 +204,48 @@ describe('mergeVersionedFlavorRefs（species 多版本保留）', () => {
     it('没有任何非空版本的 id 不进表', () => {
         const next = mergeVersionedFlavorRefs(new Map(), [{ id: 9, text: '', version: 1 }]);
         expect(next.has(9)).toBe(false);
+    });
+});
+
+describe('keyMoveEffectsByMoveId（招式效果按 moveId 重新按键）', () => {
+    const effectById = new Map([
+        [1, 'Inflicts regular damage with no additional effect.'],
+        [7, 'Has a 10% chance of flinching.'],
+    ]);
+
+    it('按每个 move 的 effectId 把共享 short_effect 扇出到各 moveId', () => {
+        const next = keyMoveEffectsByMoveId(
+            [
+                { id: 1, effectId: 1 },
+                { id: 2, effectId: 1 }, // 与 move 1 共享同一 effect
+                { id: 173, effectId: 7 },
+            ],
+            effectById,
+        );
+        expect(next.get(1)).toBe('Inflicts regular damage with no additional effect.');
+        expect(next.get(2)).toBe('Inflicts regular damage with no additional effect.');
+        expect(next.get(173)).toBe('Has a 10% chance of flinching.');
+        expect(next.size).toBe(3);
+    });
+
+    it('effectId 为 0（上游空缺）或 effect 表查不到时跳过', () => {
+        const next = keyMoveEffectsByMoveId(
+            [
+                { id: 5, effectId: 0 },
+                { id: 6, effectId: 9999 }, // effect 表无此 id
+                { id: 7, effectId: 7 },
+            ],
+            effectById,
+        );
+        expect(next.has(5)).toBe(false);
+        expect(next.has(6)).toBe(false);
+        expect(next.get(7)).toBe('Has a 10% chance of flinching.');
+        expect(next.size).toBe(1);
+    });
+
+    it('不修改入参 effectById', () => {
+        keyMoveEffectsByMoveId([{ id: 1, effectId: 1 }], effectById);
+        expect(effectById.size).toBe(2);
     });
 });
 

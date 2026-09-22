@@ -53,7 +53,7 @@
                     </InfoGrid>
 
                     <text class="section-label">{{ t('archive.sectionDescription') }}</text>
-                    <FlavorTextCard kind="move" :id="move.id" />
+                    <MoveFlavorCard :id="move.id" />
                 </template>
             </view>
         </scroll-view>
@@ -68,7 +68,7 @@ import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import InfoGrid from '@/components/pokemon/InfoGrid.vue';
 import InfoCard from '@/components/pokemon/InfoCard.vue';
-import FlavorTextCard from '@/components/archive/FlavorTextCard.vue';
+import MoveFlavorCard from '@/components/archive/MoveFlavorCard.vue';
 import { loadMoveList, type MoveListRow } from '@/services/pokemon/archive';
 import { typeStrs } from '@/utils/helpers';
 import { useI18nStore } from '@/store/i18n';

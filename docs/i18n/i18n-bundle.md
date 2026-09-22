@@ -64,10 +64,12 @@
 - **无损保留全部历史版本**：每个实体在每个游戏版本下的描述行都在，不做 latest-only
   裁剪。客户端按族区别对待：
   - **species（图鉴描述）保留全部版本**（`mergeVersionedFlavorRefs` 收成
-    `speciesId → FlavorVersion[]`，按 version 升序），详情页用软件图标按版本切换
+    `speciesId → FlavorVersion[]`，按 version 升序，version 是 **version_id**），
+    详情页用软件图标按版本切换
     （见 [../ui/software-icons.md](../ui/software-icons.md)）；
-  - moves / abilities / items 仍只留 version 最大一条（`mergeFlavorRefs`），这些栏目
-    展示一句即可。
+  - moves / abilities / items 仍只留 version 最大一条（`mergeFlavorRefs`；moves 等的
+    version 是 **version_group_id**），这些栏目展示一句即可——实测各版本组的招式
+    说明基本相同，不做版本切换。
 - 体积：EN species 片最大 ~400 KB，moves/abilities/items 片 8–118 KB；合计约等于
   旧整包 2.7 MB，但每次只拉一片。
 
@@ -75,9 +77,12 @@
 
 - `ability_effects` / `move_effects` 是 `ProseRef{id, short_effect, effect}`，**无 version**，
   每条只有一句简述 + 详述（「10% 概率畏缩」「令目标睡眠」）。
-- `move_effects` 的主键是上游 **`move_effect_id`**（稀疏，1..10006），**不是 move id**——
-  客户端按 move id 查它默认查不到（见下「已知缺陷」）。
-- 仅 **en / fr / de** 等有数据的语言产出；其余语言请求得到 **404**。
+- `move_effects` 的主键是上游 **`move_effect_id`**（稀疏，1..10006），**不是 move id**。
+  客户端用 MDAT `Move.effect_id` join，把 short_effect 重新按键为 **moveId** 展示
+  （`flavor.ts::keyMoveEffectsByMoveId`，多个招式共享同一 effect_id 时扇出）。
+- 仅 **en / fr / de** 有数据；其余语言请求得到 **404**。招式卡在内容语言非 en/fr/de
+  时**回落加载英文 effects.bin** 显示英文 short_effect（招式正文仍为当前语言）；特性段
+  维持原行为、非 en/fr/de 隐藏。
 
 ## 补充文本来源（游戏解包）
 
@@ -111,7 +116,8 @@
 描述组缺口的**语言级**判定：cs / pt-br / ja-roma **不产出任何分片**（请求任意分片
 都是 404），直接按 `FALLBACK_LANGUAGE = 'en'` 定位英文分片；其余 11 种语言按首选语言
 取片，个别 id 缺失返回 null（UI 显示「暂无描述」），**不逐 id 回落英文**。
-效果段仅在 en/fr/de 非空，其余语言隐藏。
+效果段上游仅 en/fr/de 有文本：特性段在其余语言隐藏；**招式段在其余语言回落英文
+short_effect 显示**（见上「效果文件」）。
 
 ## 描述分片的按需寻址与加载（改造核心）
 
@@ -175,11 +181,12 @@ fb:v{N}:i18n:flavor:<lang>:effects
 （约 30+ 条/语言），不再挤占数值 bundle 的 12 条内存 LRU——建议片缓存走持久层、
 内存只留已合并的查找表。
 
-## 已知缺陷（服务端已记录，前端暂照现状）
+## 招式效果主键错位（已在客户端修复）
 
-- `moveEffect(moveId)` 按 move id 查 `move_effects`，而该表主键是
-  `move_effect_id`（稀疏），两者不对齐 → 招式详情的「效果」段现状查不到。
-  修复需服务端打包时按 `Move.effect_id` join 改键，属独立缺陷，本期不修。
+~~`moveEffect(moveId)` 按 move id 查 `move_effects`，而该表主键是稀疏的
+`move_effect_id`，两者不对齐 → 效果段查不到。~~ 现由 store 加载 effects 时用 MDAT
+`Move.effect_id` join 改键（`keyMoveEffectsByMoveId`），无需服务端改动。注意效果
+**无版本维度**，切到旧版本组时显示的仍是当前口径的效果简述。
 
 ## form 名称的 id 重映射
 

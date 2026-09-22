@@ -1,5 +1,11 @@
 <template>
-  <view class="move-card">
+  <view
+    class="move-card"
+    role="button"
+    hover-class="move-card--hover"
+    :hover-stay-time="40"
+    @click="openDetail"
+  >
     <view class="min-w-0 flex-1">
       <text class="block truncate text-sm font-black text-[#24262b]">{{ displayName }}</text>
       <text
@@ -81,6 +87,12 @@ const displayCategory = computed(
 )
 const displayPower = computed(() => props.move.power || '—')
 const displayAccuracy = computed(() => props.move.accuracy || '—')
+
+// 点招式卡跳招式详情（资料中心招式页）；id 缺省时不跳
+function openDetail() {
+  if (!props.move.id) return
+  uni.navigateTo({ url: `/pages/archive/move-detail?id=${props.move.id}` })
+}
 </script>
 
 <style scoped>
@@ -92,6 +104,13 @@ const displayAccuracy = computed(() => props.move.accuracy || '—')
   border: 1px solid #e5e7ee;
   border-radius: 18px;
   background: #f5f6fa;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+/* 点按反馈（view 的 hover-class） */
+.move-card--hover {
+  background: #e9edf5;
+  border-color: #d7dce8;
 }
 
 /* 分类贴纸：waza 图标自带白边与配色，容器只定尺寸、不垫底色、不裁圆角

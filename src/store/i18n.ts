@@ -30,6 +30,7 @@ import {
     buildEffectMap,
     EFFECT_LANGS,
     emptyFlavor,
+    keyMoveEffectsByMoveId,
     latestVersionText,
     mergeFlavorRefs,
     mergeVersionedFlavorRefs,
@@ -76,8 +77,10 @@ export const useI18nStore = defineStore('i18n', () => {
     const flavorReady = computed(() => flavor.value !== null);
     /** 已加载的 `(lang:family)` → 片号集合，避免同一片重复下载 */
     const loadedFlavorSlices = new Map<string, Set<number>>();
-    /** 效果文件已加载 / 确认该语言没有效果（en/fr/de 之外）的语言 */
+    /** 效果文件已加载 / 确认该语言没有效果（en/fr/de 之外）的语言（特性段用） */
     let effectsLoadedLang: string | null = null;
+    /** 已按键进 `moveEffects` 的效果语言（招式段用，可能为回落 en） */
+    let moveEffectsLoadedLang: string | null = null;
 
     async function loadFor(lang: string): Promise<NamesLookup> {
         // 基线语言与首选语言相同（en）时无需叠加两次
@@ -133,6 +136,7 @@ export const useI18nStore = defineStore('i18n', () => {
             flavor.value = null;
             loadedFlavorSlices.clear();
             effectsLoadedLang = null;
+            moveEffectsLoadedLang = null;
             refreshPokemonIfLoaded();
         } finally {
             loading.value = false;
@@ -189,9 +193,30 @@ export const useI18nStore = defineStore('i18n', () => {
     }
 
     /**
-     * 按需加载效果文件（effects.bin，abilityEffects/moveEffects）。
-     * 仅 en/fr/de 有数据：其余语言是**确定 404**，直接标记已处理、不发那次请求，
-     * 效果段查询自然为空、UI 隐藏。请求失败（网络等真故障）不标记，允许下次重试。
+     * 在指定效果语言下加载 effects.bin，并把 moveEffects 经 `Move.effectId` join
+     * 重新按键为 moveId → 文本（修复上游按 move_effect_id 主键、与招式 id 不对齐的
+     * 缺陷）。需同时拉 MDAT 全量招式（缓存命中）做扇出。
+     *
+     * `populateAbility` 为真时才写 abilityEffects —— 非 en 内容语言回落加载英文效果
+     * 时不应把特性表也换成英文（特性卡维持「非 en/fr/de 隐藏」的现状）。
+     */
+    async function loadEffectsIn(effectLang: string, populateAbility: boolean): Promise<void> {
+        const [bundle, md] = await Promise.all([
+            resourceManager.getI18nFlavorEffects(effectLang),
+            resourceManager.getMovesData('common'),
+        ]);
+        const cur = flavor.value ?? emptyFlavor();
+        flavor.value = {
+            ...cur,
+            ...(populateAbility ? { abilityEffects: buildEffectMap(bundle.abilityEffects) } : {}),
+            moveEffects: keyMoveEffectsByMoveId(md.moves, buildEffectMap(bundle.moveEffects)),
+        };
+    }
+
+    /**
+     * 按需加载效果文件（特性段用）。仅 en/fr/de 有数据：其余语言是**确定 404**，
+     * 直接标记已处理、不发那次请求，特性效果查询自然为空、UI 隐藏。请求失败（网络
+     * 等真故障）不标记，允许下次重试。
      */
     async function ensureFlavorEffects(): Promise<void> {
         const lang = resolveFlavorLang(currentLang.value);
@@ -201,18 +226,32 @@ export const useI18nStore = defineStore('i18n', () => {
             return;
         }
         try {
-            const bundle = await resourceManager.getI18nFlavorEffects(lang);
-            const cur = flavor.value ?? emptyFlavor();
-            flavor.value = {
-                ...cur,
-                abilityEffects: buildEffectMap(bundle.abilityEffects),
-                moveEffects: buildEffectMap(bundle.moveEffects),
-            };
+            await loadEffectsIn(lang, true);
+            effectsLoadedLang = lang;
+            // 同一效果语言也已按键进 moveEffects，同步标志，招式段不必再加载一次
+            moveEffectsLoadedLang = lang;
         } catch (err) {
             console.warn(`[i18n] ${lang} 效果文件加载失败`, err);
-            return;
         }
-        effectsLoadedLang = lang;
+    }
+
+    /**
+     * 按需加载招式效果（招式段用）。当前内容语言在 en/fr/de 时用对应语言；否则
+     * **回落英文** effects.bin —— 效果上游无中日韩文本，回落以保证中文用户也能看到
+     * 机制效果（招式正文仍为当前语言）。请求失败不标记，允许下次重试。
+     */
+    async function ensureMoveEffects(): Promise<void> {
+        const lang = resolveFlavorLang(currentLang.value);
+        const effectLang = EFFECT_LANGS.includes(lang) ? lang : FALLBACK_LANGUAGE;
+        if (moveEffectsLoadedLang === effectLang) return;
+        try {
+            // 首选语言（en/fr/de）下连同特性表一起加载；纯英文回落时不碰特性表
+            await loadEffectsIn(effectLang, EFFECT_LANGS.includes(lang));
+            moveEffectsLoadedLang = effectLang;
+            if (lang === effectLang) effectsLoadedLang = lang;
+        } catch (err) {
+            console.warn(`[i18n] ${effectLang} 招式效果加载失败`, err);
+        }
     }
 
     /**
@@ -257,7 +296,7 @@ export const useI18nStore = defineStore('i18n', () => {
     function versionName(versionId: number): string | null {
         return lookup.value?.versions.get(versionId) ?? null;
     }
-    /** 招式说明；未加载或无文本时返回 null。 */
+    /** 招式说明（最新版本组一条）；未加载或无文本时返回 null。 */
     function moveFlavorText(moveId: number): string | null {
         return flavor.value?.moves.get(moveId) ?? null;
     }
@@ -344,6 +383,7 @@ export const useI18nStore = defineStore('i18n', () => {
         flavorReady,
         ensureFlavorEntry,
         ensureFlavorEffects,
+        ensureMoveEffects,
         speciesFlavorVersions,
         speciesFlavorText,
         versionName,

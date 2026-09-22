@@ -13,9 +13,13 @@
 | 宝可梦总数 | —（`uni.reLaunch` 回 `/pages/index/index`） | — | — |
 
 组件都在 `src/components/archive/`：行组件 ×4、`ItemIcon`（道具图标/占位）、
-`FlavorTextCard`（描述卡，按需 `ensureFlavor()`）、`TypeMatchupCard`（相克表）、
+`FlavorTextCard`（特性/道具描述卡，按需 `ensureFlavor()`）、
+`MoveFlavorCard`（招式描述卡，单条最新说明 + 效果段）、`TypeMatchupCard`（相克表）、
 `PokemonMiniList`/`PokemonMiniRow`（详情页的宝可梦反查列表）、
 `ArchiveListShell`（列表页骨架：DetailNavbar + SearchBar 插槽 + 虚拟列表）。
+
+详情页的招式卡（`components/pokemon/MoveCard.vue`）可点：`uni.navigateTo` 跳到
+`archive/move-detail?id=`。
 
 ## 数据来源
 
@@ -26,8 +30,8 @@
 | 属性 → 宝可梦 | gen-9 bundle `typeEntries`（双属性 OR） | `loadTypePokemonIndex()` |
 | 属性相克 | `core/data/typechart.ts` | `services/pokemon/typeMatchup.ts`（attack/defenseMatchups 纯函数） |
 | 招式/特性/道具名 | PKNM 名称组 lookup（moves/abilities/items 表） | `i18nStore.moveName/abilityName/itemName` |
-| 招式/特性/道具描述 | PKFL 描述组 moves/abilities/items 表 | `i18nStore.moveFlavorText/abilityFlavorText/itemFlavorText` |
-| 特性/招式效果简述 | PKFL `abilityEffects/moveEffects`（**仅英文**） | `i18nStore.abilityEffect/moveEffect`，非英文语言隐藏效果段 |
+| 招式/特性/道具描述 | PKFL 描述组 moves/abilities/items 表 | 取最新一条 `i18nStore.moveFlavorText/abilityFlavorText/itemFlavorText`（version=vg_id）；实测各版本组招式说明基本相同，不做版本切换 |
+| 特性/招式效果简述 | PKFL `abilityEffects/moveEffects`（**仅 en/fr/de**） | `i18nStore.abilityEffect/moveEffect`；招式效果经 `Move.effect_id` join 改键，非 en/fr/de 回落英文显示，特性则隐藏效果段 |
 | 招式分类/目标名 | PKNM `moveDamageClasses`/`moveTargets` 表 | `i18nStore.moveDamageClassName/moveTargetName`（lookup 已收这两张表） |
 | 道具图标 | 加密资源 `encrypted-assets/items/<id>.bin`（ZKDX 密文，明文 30×30 PNG） | `resources/itemImage.ts`（与 sprite 同一套 `imageCache`/`imagePersist` 引擎的 item 实例）；404 无资源 → 中性占位盒 |
 
@@ -48,8 +52,10 @@ flavor 多表构建在 `tests/flavor.spec.ts`。
   经 `resources/itemImage.ts`（`imageCache`/`imagePersist` 的 item 实例）下载 /
   解密 / 缓存，视口懒加载与引用配对复用 `composables/useEncryptedImage.ts`。
   服务器无该道具（404）回落中性占位盒。缓存不变量见 [../caching/sprite-cache.md](../caching/sprite-cache.md)。
-- **描述按需加载**：`FlavorTextCard` 与 `PokedexEntry` 同模式——
-  watch id immediate → `ensureFlavor()`，文本直接读 store（语言切换自动刷新）。
+- **描述按需加载**：`FlavorTextCard`（特性/道具）、`MoveFlavorCard`（招式）与
+  `PokedexEntry` 同模式—— watch id immediate → `ensureFlavorEntry()`，文本直接读
+  store（语言切换自动刷新）。招式卡额外 `ensureMoveEffects()`；招式说明只取最新
+  版本组一条（各版本组基本相同，无切换必要）。
   描述组回落英文的判定是四张 flavor 表**总 size 为 0**（cs/pt-br/ja-roma），
   单表个别 id 缺失不整包回落。
 - **定高前提**：`.archive-row`（global.css）固定 68px，行内标题单行 truncate，
