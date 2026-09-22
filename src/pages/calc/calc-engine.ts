@@ -18,6 +18,7 @@ import weathersJson from '@/static/enums/weathers.json';
 import terrainsJson from '@/static/enums/terrains.json';
 import { resourceManager } from '@/services/resources/resourceManager';
 import { i18n } from '@/services/i18n/ui-i18n';
+import { damagePercentRange, ohkoChance, toPercent, twoHitKoChance } from '@/pages/calc/damage-prob';
 
 /** 翻译辅助：calc-engine 在模块/非组件上下文运行，用全局 i18n 实例。 */
 function te(key: string, params?: Record<string, string | number>): string {
@@ -162,41 +163,6 @@ function getTypeEffectiveness(
     return { multiplier: mult, label };
 }
 
-/**
- * 通过 WASM 计算能力值
- */
-export function calcStat(base: number, level: number, isHP: boolean, iv = 31, ev = 0, natureMod = 100): number {
-    const wasm = getWasmModule();
-    if (!wasm) return 0;
-    try {
-        if (isHP) {
-            return wasm.calculateHp(level, base, iv, ev);
-        }
-        return wasm.calculateStat(level, base, iv, ev, natureMod);
-    } catch {
-        return 0;
-    }
-}
-
-/** 短键 → store 里 stats 数组使用的中文名 */
-const STAT_LABEL_BY_KEY: Record<string, string> = {
-    HP: 'HP',
-    atk: '攻击',
-    def: '防御',
-    spa: '特攻',
-    spd: '特防',
-    spe: '速度',
-};
-
-/** stats 数组按短键取种族值；缺失时回落到 50（未知宝可梦的中庸值） */
-export function getBaseStat(stats: { name: string; value: number }[], key: string): number {
-    const label = STAT_LABEL_BY_KEY[key];
-    if (!label) return 50;
-    // HP 兼容 'HP' / '生命值' 等含 HP 的写法
-    const found = stats.find((s) => (label === 'HP' ? s.name.includes('HP') : s.name === label));
-    return found?.value ?? 50;
-}
-
 // ─── WASM 懒加载 ────────────────────────────────────────
 
 let _wasm: any = null;
@@ -306,7 +272,13 @@ export interface CalcResult {
     attackerAbilityMultiplier: number;
     defenderAbilityMultiplier: number;
     criticalMultiplier: number;
-    percentHP: number;
+    /** 伤害占 HP 的浮动百分比区间（16 档随机倍率） */
+    minPercent: number;
+    maxPercent: number;
+    /** 一击必杀概率（0..100） */
+    ohkoPercent: number;
+    /** 两击击杀概率（0..100，两下内击倒） */
+    twoHitPercent: number;
     hkoLabel: string;
 }
 
@@ -328,7 +300,10 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
             attackerAbilityMultiplier: 1,
             defenderAbilityMultiplier: 1,
             criticalMultiplier: 1,
-            percentHP: 0,
+            minPercent: 0,
+            maxPercent: 0,
+            ohkoPercent: 0,
+            twoHitPercent: 0,
             hkoLabel: '—',
         };
     }
@@ -397,9 +372,12 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
     const minDamage = result.min;
     const maxDamage = result.max;
 
-    // 击杀回合
+    // 击杀回合 + 浮动区间/概率（按 16 档随机伤害完整分布）
     const hp = params.defenderHP ?? 100;
-    const percentHP = hp > 0 ? Math.round((maxDamage / hp) * 100) : 0;
+    const rolls = Array.from(result.getRolls());
+    const { min: minPercent, max: maxPercent } = damagePercentRange(rolls, hp);
+    const ohkoPercent = toPercent(ohkoChance(rolls, hp));
+    const twoHitPercent = toPercent(twoHitKoChance(rolls, hp));
 
     let hkoLabel: string;
     if (maxDamage <= 0) hkoLabel = '—';
@@ -430,7 +408,10 @@ export async function calcDamage(params: CalcParams): Promise<CalcResult> {
         attackerAbilityMultiplier: 1,
         defenderAbilityMultiplier: 1,
         criticalMultiplier: isCritical ? 1.5 : 1,
-        percentHP,
+        minPercent,
+        maxPercent,
+        ohkoPercent,
+        twoHitPercent,
         hkoLabel,
     };
 }

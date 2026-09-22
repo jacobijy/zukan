@@ -186,7 +186,8 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { calcDamage, calcStat, getBaseStat, type CalcResult, type CalcParams } from './calc-engine';
+import { calcDamage, type CalcResult, type CalcParams } from './calc-engine';
+import { calcStat, getBaseStat } from '@/pages/statcalc/statcalc-engine';
 import { usePokemonStore } from '@/store/pokemon';
 import { useI18nStore } from '@/store/i18n';
 import { loadMovesForPokemon } from '@/services/pokemon';
@@ -452,11 +453,11 @@ const doCalculate = async () => {
 
     calculating.value = true;
     try {
-        const atk = calcStat(getBaseStat(attackerPokemon.value.stats, 'atk'), attackerLevel.value, false);
-        const def = calcStat(getBaseStat(defenderPokemon.value.stats, 'def'), defenderLevel.value, false);
-        const spa = calcStat(getBaseStat(attackerPokemon.value.stats, 'spa'), attackerLevel.value, false);
-        const spd = calcStat(getBaseStat(defenderPokemon.value.stats, 'spd'), defenderLevel.value, false);
-        const hp = calcStat(getBaseStat(defenderPokemon.value.stats, 'HP'), defenderLevel.value, true);
+        const atk = calcStat('atk', getBaseStat(attackerPokemon.value.stats, 'atk'), attackerLevel.value, 31, 0);
+        const def = calcStat('def', getBaseStat(defenderPokemon.value.stats, 'def'), defenderLevel.value, 31, 0);
+        const spa = calcStat('spa', getBaseStat(attackerPokemon.value.stats, 'spa'), attackerLevel.value, 31, 0);
+        const spd = calcStat('spd', getBaseStat(defenderPokemon.value.stats, 'spd'), defenderLevel.value, 31, 0);
+        const hp = calcStat('hp', getBaseStat(defenderPokemon.value.stats, 'hp'), defenderLevel.value, 31, 0);
 
         // 光墙/反射壁: 折叠进 itemMod
         let itemMod = getItemMod(attackerItemId.value);

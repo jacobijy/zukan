@@ -92,7 +92,7 @@
 
 <script lang="ts" setup>
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
-import { calcStat, getBaseStat } from '@/pages/calc/calc-engine';
+import { calcStat, getBaseStat, type StatKey } from '@/pages/statcalc/statcalc-engine';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -135,10 +135,10 @@ const itemIsSet = computed(() => !!props.item && props.item !== '无');
 const statsList = computed(() => {
     if (!props.pokemon) return [];
     const labels = [t('stats.hp'), t('stats.attack'), t('stats.defense'), t('stats.spAttack'), t('stats.spDefense'), t('stats.speed')];
-    const keys = ['HP', 'atk', 'def', 'spa', 'spd', 'spe'];
+    const keys: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
     return labels.map((label, i) => ({
         label,
-        value: calcStat(getBaseStat(props.pokemon!.stats, keys[i]), props.level, i === 0),
+        value: calcStat(keys[i]!, getBaseStat(props.pokemon!.stats, keys[i]!), props.level, 31, 0),
     }));
 });
 </script>

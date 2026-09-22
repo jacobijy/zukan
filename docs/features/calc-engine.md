@@ -9,6 +9,10 @@ calc.vue                     用户在页面上选宝可梦 / 招式 / 天气 / 
    │
    │  攻击方选定后：loadMovesForPokemon(attackerId)
    │    → toCalcMoveOptions(records, i18n.moveName)  ↓ 招式下拉只列该宝可梦的技能池
+   │
+   │  攻/防六项实际能力值：statcalc-engine 纯 TS（getBaseStat + calcStat，满个体/0 努力）
+   │    —— 不走 WASM：能力值在选宝可梦那一刻就要显示，而 WASM 到点「计算」才懒加载，
+   │    旧的同步 calcStat 读未就绪的 WASM 会恒返回 0（选宝可梦数值不更新、首算攻防为 0）
    ▼
 calc-engine.ts::calcDamage(params)
    ├─ 属性 slug         → TYPE_IDS       (types.json)
@@ -129,6 +133,20 @@ WASM 侧只认数字 ID（`u8`/`u16`），所有 slug→id 翻译在 JS 侧完�
 | 新增攻击方道具（纯伤害倍率） | `calc-options.ts::ITEM_OPTIONS` 加一项 `{id,label,mod}`（光墙类折进 `itemMod` 见 `calc.vue`） | ❌ |
 | 新增防御方道具（带行为） | `calculator.rs` 加 `DEF_ITEM_*` 常量 + match 分支（重编 WASM）+ `calc-options.ts::DEF_ITEM_OPTIONS` 对齐 `wasmId` | ✅ |
 
+## 伤害浮动区间与击杀概率（`damage-prob.ts`）
+
+`calculateDamageBatch` 的 16 个随机伤害值对应游戏内 0.85–1.00 的 16 档随机倍率，
+各 1/16 等概率。`BatchDamageResult.getRolls()`（`Uint16Array`）已把这 16 条完整
+分布暴露给 JS，无需重编 WASM。纯 TS 计算（可在 node 单测，见 `tests/damageProb.spec.ts`）：
+
+- **伤害比例给区间**：`damagePercentRange` → min%–max%（之前只按 maxDamage 给一个
+  值）；结果条画成「从 min% 到 max%」的浮动段。伤害 ≥HP 百分比封顶 100。
+- **OHKO 概率**：`ohkoChance` = 单下伤害 ≥ HP 的档位数 / 16（d===HP 也算击倒）。
+- **两击击杀概率**：`twoHitKoChance` = 两次独立抽取的伤害之和 ≥ HP 的**有序档位对**
+  / 256（256 个等概率结果），即「两下内击倒」，含第一下即击倒，故不低于 OHKO。
+
+> 即使因取整两档伤害相同，它们仍是不同的随机结果 —— 按 16 个档位（而非去重值）计数。
+
 ## 设计动机
 
 - **JSON 一份，两侧派生**：Rust 通过 `build.rs`、TS 通过 `import` 各自读同一份 `src/static/enums/*.json`。避免手写两份数字表漂移。
@@ -141,6 +159,8 @@ WASM 侧只认数字 ID（`u8`/`u16`），所有 slug→id 翻译在 JS 侧完�
 | 关注点 | 文件 |
 | --- | --- |
 | 主计算入口（JS） | `src/pages/calc/calc-engine.ts` |
+| 伤害浮动区间 / OHKO / 两击概率（纯 TS） | `src/pages/calc/damage-prob.ts` |
+| 实际能力值（纯 TS，与 WASM 同构） | `src/pages/statcalc/statcalc-engine.ts`（`getBaseStat`/`calcStat`） |
 | 主计算入口（Rust） | `src/infra/wasm/src/calculator.rs` |
 | Rust 枚举生成器 | `src/infra/wasm/build.rs` |
 | Rust 枚举生成产物 | `target/*/build/zukan-wasm-*/out/gen_enums.rs`（不入库） |

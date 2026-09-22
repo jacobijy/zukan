@@ -161,6 +161,8 @@ const zhHans = {
             damage: '预计伤害',
             effectivenessFallback: '克制 —',
             killFallback: '击杀 —',
+            ohko: '一击击杀',
+            twohko: '两击击杀',
         },
         wasmNotLoaded: 'WASM 未加载',
         eff: {
@@ -516,6 +518,8 @@ const en: typeof zhHans = {
             damage: 'Estimated damage',
             effectivenessFallback: 'Effectiveness —',
             killFallback: 'KO —',
+            ohko: 'OHKO',
+            twohko: '2-hit KO',
         },
         wasmNotLoaded: 'WASM not loaded',
         eff: {
