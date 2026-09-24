@@ -28,10 +28,32 @@ const intlify99 = (name: string) =>
     require.resolve(`${name}/package.json`, { paths: [coreBaseDir] }),
   );
 const isH5 = process.env.UNI_PLATFORM === 'h5';
+const isApp = process.env.UNI_PLATFORM === 'app';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [uni()],
+  plugins: [
+    uni(),
+    // App 的 service 层被 uni 强制打成单文件 app-service.js（IIFE），同时又把
+    // inlineDynamicImports 置为 false。我们工程里用于打破循环依赖的多处动态
+    // import() 会因此产生物理 chunk，与 IIFE 冲突、构建失败（H5/小程序不受影响）。
+    // 在最终配置阶段把动态 import 内联回单文件，等价于 HBuilderX 的处理方式。
+    ...(isApp
+      ? [
+          {
+            name: 'zukan-inline-app-dynamic-import',
+            configResolved(c: any) {
+              const output = c.build?.rollupOptions?.output;
+              if (output && !Array.isArray(output)) {
+                output.inlineDynamicImports = true;
+                // manualChunks 与 inlineDynamicImports 互斥；uni 置了空对象
+                output.manualChunks = undefined;
+              }
+            },
+          },
+        ]
+      : []),
+  ],
   server: {
     port: 4000, // 端口号
     host: '0.0.0.0', // 允许外部访问

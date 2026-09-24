@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 安装依赖：`pnpm install`
 - 启动 H5 开发服务：`pnpm dev:h5`
 - 构建 H5 产物：`pnpm build:h5`
+- 构建 App（Android/iOS）本地打包资源：`pnpm build:app`（产物 `dist/build/app`，一套资源三端共用）
 - 类型检查：`pnpm type-check`
 - 单元测试：`pnpm test`（`pnpm test:watch` 进 watch 模式）
 - 启动/构建小程序等平台：`pnpm dev:mp-weixin`、`pnpm build:mp-weixin` 等（`alipay`/`baidu`/`qq`/`jd`/`kuaishou`/`lark`/`toutiao`/`xhs` 同理）
@@ -184,6 +185,22 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 - **远程编辑（Linux）+ 另一台 Mac/Windows 调试**：Linux watch 构建，Mutagen/rsync 把
   `dist/dev/mp-weixin` 同步到 Mac 本地目录，开发者工具导入并监听刷新；源码只在 Linux 一份。
   见 `docs/architecture/mp-weixin-remote-debug.md`。
+
+### Android / iOS（App）资源编译与远程调试
+
+拓扑同微信：源码只在 Linux，对端 Mac/Windows 只做调试/打包主机。**Linux 只编译
+「本地打包资源」`pnpm build:app`（`dist/build/app`，一套资源 android/iPhone/iPad 共用），
+不产 apk/ipa、不云打包**；Mutagen/rsync（`scripts/remote-debug/pull-app.sh`）同步后，
+对端把资源套进**同版本 App 离线 SDK** 原生工程（Android Studio 的 HBuilder-Integrate-AS /
+Xcode 的 HBuilder-Hello，放 `apps/<appid>/`），编译运行调试。三个硬性前置：
+`src/manifest.json` 填真实 DCloud appid/name（appid 由 dev.dcloud.net.cn 或 HBuilderX
+重新获取，不能空填）、**编译器版本 5.15 与离线 SDK 版本严格一致**、对端按
+appid+包名/Bundle ID+签名 SHA1 申请 AppKey。唯一的编译期适配在 `vite.config.ts`：
+`zukan-inline-app-dynamic-import` 把工程里多处破环用的动态 import 内联进单文件
+`app-service.js`（App service 强制 IIFE，动态 import 产生 chunk 会直接构建失败；
+H5/小程序不受影响）。**wasm 在真机的运行时加载尚未验证**（沿用 `new URL + import.meta.url`，
+离线 JSCore 未必支持），真机先验、必要时加 `#ifdef APP-PLUS` 的 `plus.io` 读字节分支。
+见 `docs/architecture/app-remote-debug.md`。
 
 全局宝可梦接口声明在 `src/pokemon.d.ts`，因此许多 `.vue` 文件会直接使用 `IPokemonBaseModel` 和 `IPokemonCardModel`，无需显式导入。`src/model/` 存放更底层的数据模型和枚举，例如基础种族值和属性定义。
 
