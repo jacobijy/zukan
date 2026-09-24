@@ -181,6 +181,9 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
   `scripts/slim-mp-weixin.mjs` 在 build 后从产物剔除当前不渲染的 s/l。
 - 微信**主包 ≤ 2MB**（按真实字节算，别看 `du`）；发布前需在 `manifest.json` 填
   `mp-weixin.appid`，再用微信开发者工具导入 `dist/build/mp-weixin` 上传。
+- **远程编辑（Linux）+ 另一台 Mac/Windows 调试**：Linux watch 构建，Mutagen/rsync 把
+  `dist/dev/mp-weixin` 同步到 Mac 本地目录，开发者工具导入并监听刷新；源码只在 Linux 一份。
+  见 `docs/architecture/mp-weixin-remote-debug.md`。
 
 全局宝可梦接口声明在 `src/pokemon.d.ts`，因此许多 `.vue` 文件会直接使用 `IPokemonBaseModel` 和 `IPokemonCardModel`，无需显式导入。`src/model/` 存放更底层的数据模型和枚举，例如基础种族值和属性定义。
 
