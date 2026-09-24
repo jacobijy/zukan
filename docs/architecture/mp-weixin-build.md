@@ -1,7 +1,8 @@
 # 微信小程序构建与平台适配
 
-图鉴主目标是 H5，小程序是次要平台。要让微信小程序真正能跑、能上传，仅有三处
-平台差异需要维护，都靠 uni-app 的**条件编译**和两个构建脚本收敛。本文是唯一说明处。
+图鉴主目标是 H5，小程序是次要平台。要让微信小程序真正能跑、能上传，仅有四处
+平台差异需要维护：devtools 与 WASM 用 uni-app 的**条件编译**，Tailwind 兼容靠
+`tailwind.config.js` 按平台开关，外加一个产物瘦身脚本。本文是唯一说明处。
 
 ## 命令
 
@@ -53,7 +54,30 @@ new URL('zukan_wasm_bg.wasm', import.meta.url)  // + fetch / instantiateStreamin
 > 构建期那条 `new URL(...) doesn't exist at build time` 警告来自 pkg JS 里的默认
 > 兜底分支，小程序运行时永远传字节、走不到它，可忽略。
 
-## 适配三：构建产物瘦身（只动 dist，不碰 src）
+## 适配三：Tailwind 在小程序的两处兼容
+
+`tailwind.config.js` 顶部用 `process.env.UNI_PLATFORM`（uni CLI 在加载配置前写入，
+`h5` / `mp-weixin`）算出 `isMiniProgram`，据此在小程序端做两件事，H5 完全不动：
+
+1. **关闭 preflight**（`corePlugins.preflight = false`）。preflight 是给 H5 的
+   html/body 做的 reset，含小程序不支持的 `:host` / `::backdrop` / `:where()`，
+   小程序也没有 html/body 元素。
+2. **开启 `experimental.optimizeUniversalDefaults`**（注意在 Tailwind v3 里属于
+   experimental，**不是 future**）。只要项目用到 transform / ring / filter 等工具类，
+   Tailwind 默认会额外注入（**独立于 preflight、关 preflight 也挡不住**）：
+
+   ```css
+   *, ::before, ::after { --tw-translate-x: 0; --tw-scale-x: 1; … }
+   ::backdrop { …同上… }
+   ```
+
+   其中通用选择器 `*` 与 `::backdrop` 在微信 WXSS 同样报错（控制台定位框指向这一
+   行）。开启优化后，默认值被收敛到**实际使用工具类的 class 选择器**上
+   （`.translate-x-0`、`.rotate-180`、`.scale-105`、`.transform` …），`*` 与
+   `::backdrop` 都不再生成，且带工具类的元素才需要这些默认值，行为等价。
+   构建时那条 `experimental features: optimizeUniversalDefaults` 是提示，可忽略。
+
+## 适配四：构建产物瘦身（只动 dist，不碰 src）
 
 微信限制：**单个主包/分包 ≤ 2MB，整包 ≤ 30MB**（见微信「分包加载」文档）。
 
@@ -66,7 +90,7 @@ new URL('zukan_wasm_bg.wasm', import.meta.url)  // + fetch / instantiateStreamin
 - 仅 `build:mp-weixin` 执行；dev 产物保留全套（模拟器不卡 2MB，便于验证未来尺寸）。
 - 小程序接入列表（s）/详情（l）贴纸时，从 `slim-mp-weixin.mjs` 的规则里删掉对应项。
 
-当前发布产物实测约 **1.41 MiB（1,483,552 字节）**，主包达标。
+当前发布产物实测约 **1.41 MiB（1,481,792 字节）**，主包达标。
 注意别用 `du -sh` 判断（小文件按 4K 块对齐会严重虚高，曾显示 4.1M），
 用 `find . -type f -printf '%s\n' | awk '{s+=$1}END{print s}'` 算真实字节。
 

@@ -165,7 +165,7 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 
 ### 微信小程序（mp-weixin）构建
 
-三处平台差异，细则见 `docs/architecture/mp-weixin-build.md`：
+四处平台差异，细则见 `docs/architecture/mp-weixin-build.md`：
 
 - **devtools 页 H5-only**：小程序不支持 `<component :is>`，`devtools.vue` 的动态组件机制整段 `#ifdef H5`。
 - **WASM 包内加载**：小程序没有 `import.meta.url` / fetch wasm / `instantiateStreaming`，
@@ -173,6 +173,10 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
   读 `/static/wasm/zukan_wasm_bg.wasm` 字节，再 `module.default(bytes)` 走
   `WebAssembly.instantiate`。`scripts/copy-wasm.mjs`（`pnpm copy:wasm`）把 pkg 产物
   拷进 `src/static/wasm/`，已嵌入 `dev/build:mp-weixin` 开头。
+- **Tailwind 兼容（`tailwind.config.js` 按 `UNI_PLATFORM` 判定）**：小程序端关 preflight
+  （含不支持的 `:host`/`::backdrop`/`:where()`），并开 `experimental.optimizeUniversalDefaults`
+  （**是 experimental 不是 future**）把 transform/ring 等工具类注入的 `*` 变量默认块
+  收敛到实际 class，消掉 `*` 与 `::backdrop`。H5 两者都维持默认。
 - **产物瘦身只动 dist**：属性/分类贴纸 s/l 在源里是测试守护的成套资源（别删源），
   `scripts/slim-mp-weixin.mjs` 在 build 后从产物剔除当前不渲染的 s/l。
 - 微信**主包 ≤ 2MB**（按真实字节算，别看 `du`）；发布前需在 `manifest.json` 填
