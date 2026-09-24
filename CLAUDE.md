@@ -163,6 +163,21 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 - `authGate` 是模块单例而非 Pinia store —— 避免 `store ⇄ session` 环。
 - `clearSpriteCache()` 在 `mine.vue` 的登出路径调用，而非 `clearSession()` 内部 —— 避免 `session ⇄ resources` 环。
 
+### 微信小程序（mp-weixin）构建
+
+三处平台差异，细则见 `docs/architecture/mp-weixin-build.md`：
+
+- **devtools 页 H5-only**：小程序不支持 `<component :is>`，`devtools.vue` 的动态组件机制整段 `#ifdef H5`。
+- **WASM 包内加载**：小程序没有 `import.meta.url` / fetch wasm / `instantiateStreaming`，
+  `infra/wasm/index.ts` 在 `#ifdef MP-WEIXIN` 下用 `uni.getFileSystemManager().readFileSync`
+  读 `/static/wasm/zukan_wasm_bg.wasm` 字节，再 `module.default(bytes)` 走
+  `WebAssembly.instantiate`。`scripts/copy-wasm.mjs`（`pnpm copy:wasm`）把 pkg 产物
+  拷进 `src/static/wasm/`，已嵌入 `dev/build:mp-weixin` 开头。
+- **产物瘦身只动 dist**：属性/分类贴纸 s/l 在源里是测试守护的成套资源（别删源），
+  `scripts/slim-mp-weixin.mjs` 在 build 后从产物剔除当前不渲染的 s/l。
+- 微信**主包 ≤ 2MB**（按真实字节算，别看 `du`）；发布前需在 `manifest.json` 填
+  `mp-weixin.appid`，再用微信开发者工具导入 `dist/build/mp-weixin` 上传。
+
 全局宝可梦接口声明在 `src/pokemon.d.ts`，因此许多 `.vue` 文件会直接使用 `IPokemonBaseModel` 和 `IPokemonCardModel`，无需显式导入。`src/model/` 存放更底层的数据模型和枚举，例如基础种族值和属性定义。
 
 样式主要写在 Vue 模板中的 Tailwind utility class 中，少量组件使用 scoped SCSS/CSS 处理尺寸或动画。`tailwind.config.js` 配置了宝可梦属性颜色，并扫描 `index.html` 和所有源码 Vue/TS/JS 文件。导航栏尺寸相关的共享 CSS 变量定义在 `src/App.vue`，被 `NavBar` 和页面布局 padding 复用。

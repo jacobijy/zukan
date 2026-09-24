@@ -26,3 +26,5 @@ src/core/simulator/data-json
 src/infra/wasm/pkg
 src/infra/wasm/pkg-node
 src/infra/wasm/target
+# copy-wasm.mjs 生成的小程序包内 wasm 副本（构建时自动生成）
+src/static/wasm

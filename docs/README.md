@@ -6,6 +6,7 @@
 |------|------|--------|
 | 架构 | [architecture/overview.md](architecture/overview.md) | 目录分层、数据流向、命名约定、循环依赖防护 |
 | 架构 | [architecture/testing.md](architecture/testing.md) | vitest 约定、测试数据盲区、门禁命令 |
+| 架构 | [architecture/mp-weixin-build.md](architecture/mp-weixin-build.md) | 微信小程序构建：条件编译、WASM 包内加载（copy-wasm）、产物 s/l 瘦身（slim）、2MB 主包与发布 checklist |
 | UI | [ui/component-conventions.md](ui/component-conventions.md) | 先建组件再写页面、目录划分、scoped CSS 陷阱、`<script setup>` 单例陷阱 |
 | UI | [ui/virtual-list.md](ui/virtual-list.md) | VirtualGrid 定高虚拟化的耦合与改动注意 |
 | UI | [ui/software-icons.md](ui/software-icons.md) | HOME 作品版本徽章（世代切换用）：22 枚 128px 透明 PNG 静态资源、文件→游戏→世代映射、引用方式，不走加密 |

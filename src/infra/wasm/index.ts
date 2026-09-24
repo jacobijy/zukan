@@ -11,6 +11,20 @@ import type { BatchDamageResult as BatchDamageResultWasm } from './pkg/zukan_was
 let wasmModule: typeof import('./pkg/zukan_wasm') | null = null;
 let initPromise: Promise<void> | null = null;
 
+// #ifdef MP-WEIXIN
+/**
+ * 小程序包内 wasm 的位置（由 scripts/copy-wasm.mjs 从 pkg 拷入 src/static）。
+ * wasm-bindgen 默认的 `new URL(..., import.meta.url)` + fetch / instantiateStreaming
+ * 在微信小程序都不可用，所以运行时从代码包读字节，交给 __wbg_init 走
+ * `WebAssembly.instantiate(bytes)` 分支。
+ */
+const WASM_PACKAGE_PATH = '/static/wasm/zukan_wasm_bg.wasm';
+
+function readMpWasmBytes(): ArrayBuffer {
+    return uni.getFileSystemManager().readFileSync(WASM_PACKAGE_PATH) as ArrayBuffer;
+}
+// #endif
+
 /**
  * 初始化 WASM 模块
  * 仅需调用一次，可安全重复调用
@@ -21,7 +35,12 @@ export async function initWasm(): Promise<void> {
 
     initPromise = (async () => {
         const module = await import('./pkg/zukan_wasm');
+        // #ifdef MP-WEIXIN
+        await module.default(readMpWasmBytes());
+        // #endif
+        // #ifndef MP-WEIXIN
         await module.default();
+        // #endif
         wasmModule = module;
         console.log('✅ WASM module initialized');
     })();

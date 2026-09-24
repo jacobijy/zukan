@@ -7,6 +7,7 @@
             class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6"
         >
             <view class="mx-auto max-w-[720px] pt-3 pb-10">
+                <!-- #ifdef H5 -->
                 <template v-if="devtoolsEnabled">
                     <view class="devtools-page__tabs">
                         <view
@@ -28,6 +29,13 @@
                     <text class="devtools-page__off-text">开发者工具未启用</text>
                     <text class="devtools-page__off-hint">仅 `pnpm dev:*` 构建可用</text>
                 </view>
+                <!-- #endif -->
+                <!-- #ifndef H5 -->
+                <view class="devtools-page__off">
+                    <text class="devtools-page__off-text">开发者工具仅 H5 可用</text>
+                    <text class="devtools-page__off-hint">小程序等平台暂不支持</text>
+                </view>
+                <!-- #endif -->
             </view>
         </scroll-view>
     </view>
@@ -72,9 +80,11 @@ async function mount(id: ToolId) {
     const mine = ++seq;
     Impl.value = null;
     if (!devtoolsEnabled) return;
+    // #ifdef H5
     const mod = id === 'text' ? await import('./DevTextBrowser.vue') : await import('./DevAssetInspector.vue');
     if (mine !== seq) return;
     Impl.value = mod.default;
+    // #endif
 }
 
 function select(id: ToolId) {
