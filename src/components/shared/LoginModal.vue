@@ -130,6 +130,9 @@
                     <text v-else>{{ t('common.processing') }}</text>
                 </button>
 
+                <!-- 第三方快捷登录（仅渲染平台支持且后端已启用的方式） -->
+                <SocialLoginButtons :providers="visibleProviders" @success="onSocialSuccess" />
+
                 <!-- 底部辅助 -->
                 <view class="login-modal__foot">
                     <text v-if="mode === 'login'">
@@ -151,6 +154,9 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { authApi, AuthApiError } from '@/services/api';
 import PokeballLogo from '@/components/shared/PokeballLogo.vue';
+import SocialLoginButtons from '@/components/shared/SocialLoginButtons.vue';
+import { detectPlatform } from '@/infra/platform';
+import { selectVisibleProviders } from '@/services/platform/providerConfig';
 
 const { t } = useI18n();
 
@@ -201,6 +207,15 @@ const canSubmit = computed(() => {
     if (mode.value === 'register' && !form.email) return false;
     return true;
 });
+
+// 平台在弹层生命周期内不变；探测一次即可。默认（未配置 VITE_AUTH_PROVIDERS）为 []。
+const visibleProviders = selectVisibleProviders(detectPlatform());
+
+// 第三方登录成功：token 已在 client 内落盘，复用与表单一致的成功/关闭流程。
+function onSocialSuccess() {
+    emit('success', { mode: mode.value, identifier: '' });
+    emit('update:visible', false);
+}
 
 function switchMode(next: Mode) {
     if (loading.value || mode.value === next) return;

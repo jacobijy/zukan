@@ -13,6 +13,7 @@
 
 import { rest, RestRequestError } from '@/services/http';
 import { setToken, setRefreshToken, getRefreshToken, clearSession, getToken } from '@/services/session/token';
+import type { AuthProvider } from '@/infra/platform';
 import { i18n } from '@/services/i18n/ui-i18n';
 
 // ─────────────────────────────────────────────────────────
@@ -53,6 +54,43 @@ interface ChangePasswordRequest {
     new_password: string;
 }
 
+// ─────────────────────────────────────────────────────────
+// 第三方快捷登录（契约见 zukan-server docs/account-auth-design.md）
+// ─────────────────────────────────────────────────────────
+
+interface WeixinLoginRequest {
+    /** uni.login / OAuth 取得的一次性授权 code */
+    code: string;
+    /** 来源：mp（缺省）/ app / web；决定后端选用的 appid/secret */
+    app_type?: 'mp' | 'app' | 'web';
+    /** 自动建号时的初始展示名（可选） */
+    display_name?: string;
+}
+
+interface AppleLoginRequest {
+    identity_token: string;
+    nonce: string;
+    authorization_code?: string;
+}
+
+interface PhoneLoginRequest {
+    /** 运营商 / uniVerify 本机号授权 token */
+    access_token: string;
+}
+
+/** 第三方登录响应：现有 TokenPair + 是否新建账号。 */
+interface SocialTokenPair {
+    access_token: string;
+    refresh_token: string;
+    token_type: 'Bearer';
+    new_user: boolean;
+}
+
+/** 绑定/解绑成功后返回的当前登录方式列表。 */
+interface IdentitiesResponse {
+    identities: string[];
+}
+
 /**
  * 认证 API 抛出的错误。`message` 直接使用服务端返回的 `{"error": "..."}`
  * 文案，便于 UI 直接展示；`statusCode` 与 `code` 供调用方分支处理。
@@ -60,7 +98,15 @@ interface ChangePasswordRequest {
 export class AuthApiError extends Error {
     statusCode: number;
     /** 语义化错误码，由 status + 端点推导，便于 UI 分支处理 */
-    code: 'INVALID_INPUT' | 'INVALID_CREDENTIALS' | 'CONFLICT' | 'UNAUTHORIZED' | 'NETWORK' | 'UNKNOWN';
+    code:
+        | 'INVALID_INPUT'
+        | 'INVALID_CREDENTIALS'
+        | 'CONFLICT'
+        | 'UNAUTHORIZED'
+        | 'UPSTREAM_UNAVAILABLE'
+        | 'PROVIDER_DISABLED'
+        | 'NETWORK'
+        | 'UNKNOWN';
 
     constructor(message: string, statusCode: number, code: AuthApiError['code']) {
         super(message);
@@ -95,12 +141,25 @@ function mapServerCode(code: string | undefined): AuthApiError['code'] | null {
             return 'UNAUTHORIZED';
         case 'CONFLICT':
             return 'CONFLICT';
+        case 'UPSTREAM_UNAVAILABLE':
+            return 'UPSTREAM_UNAVAILABLE';
+        case 'PROVIDER_DISABLED':
+            return 'PROVIDER_DISABLED';
         default:
             return null;
     }
 }
 
-function mapError(err: unknown, kind: 'login' | 'register' | 'refresh' | 'change_password'): never {
+/**
+ * 端点类型，决定 401 的语义：
+ * - 登录类（密码 / 第三方换取 token）：401 是凭据无效 → INVALID_CREDENTIALS
+ * - 其余（含需鉴权的 bind/unbind）：401 是会话失效 → UNAUTHORIZED
+ */
+type MapKind = 'login' | 'register' | 'refresh' | 'change_password' | 'weixin' | 'apple' | 'phone' | 'bind' | 'unbind';
+
+const LOGIN_KINDS: ReadonlySet<MapKind> = new Set(['login', 'weixin', 'apple', 'phone']);
+
+function mapError(err: unknown, kind: MapKind): never {
     if (!(err instanceof RestRequestError)) {
         // 非 HTTP 错误：网络中断、超时等
         throw new AuthApiError((err as Error)?.message ?? i18n.global.t('auth.networkError'), 0, 'NETWORK');
@@ -114,8 +173,9 @@ function mapError(err: unknown, kind: 'login' | 'register' | 'refresh' | 'change
     let code = mapServerCode(body.code);
     if (code == null) {
         if (status === 400) code = 'INVALID_INPUT';
-        else if (status === 401) code = kind === 'login' ? 'INVALID_CREDENTIALS' : 'UNAUTHORIZED';
+        else if (status === 401) code = LOGIN_KINDS.has(kind) ? 'INVALID_CREDENTIALS' : 'UNAUTHORIZED';
         else if (status === 409) code = 'CONFLICT';
+        else if (status === 503) code = 'UPSTREAM_UNAVAILABLE';
         else code = 'UNKNOWN';
     }
 
@@ -214,4 +274,108 @@ export async function changePassword(req: ChangePasswordRequest): Promise<void> 
  */
 export function logout(): void {
     clearSession();
+}
+
+// ─────────────────────────────────────────────────────────
+// 第三方快捷登录 / 绑定（契约：docs/account-auth-design.md §4）
+// ─────────────────────────────────────────────────────────
+
+/** 当前 access token 的 Bearer 头；未登录直接抛会话错误。 */
+function requireAuthHeader(): Record<string, string> {
+    const access = getToken();
+    if (!access) {
+        throw new AuthApiError(i18n.global.t('auth.notLoggedIn'), 0, 'UNAUTHORIZED');
+    }
+    return { Authorization: `Bearer ${access}` };
+}
+
+/**
+ * 微信登录：用授权 code 换取本系统 token。成功后自动落盘 access + refresh。
+ *
+ * @throws `INVALID_CREDENTIALS` (401) — code 被上游拒绝/过期
+ * @throws `UPSTREAM_UNAVAILABLE` (503) — 微信侧暂时不可用
+ * @throws `PROVIDER_DISABLED` (503) — 后端未启用微信登录
+ */
+export async function loginWithWeixin(req: WeixinLoginRequest): Promise<SocialTokenPair> {
+    try {
+        const pair = await rest.post<SocialTokenPair, WeixinLoginRequest>('/auth/weixin', req);
+        setToken(pair.access_token);
+        setRefreshToken(pair.refresh_token);
+        return pair;
+    } catch (err) {
+        mapError(err, 'weixin');
+    }
+}
+
+/**
+ * Sign in with Apple：校验 identity token 后换取本系统 token。成功后自动落盘。
+ *
+ * @throws `INVALID_CREDENTIALS` (401) — identity_token/nonce 无效
+ * @throws `UPSTREAM_UNAVAILABLE` (503) / `PROVIDER_DISABLED` (503)
+ */
+export async function loginWithApple(req: AppleLoginRequest): Promise<SocialTokenPair> {
+    try {
+        const pair = await rest.post<SocialTokenPair, AppleLoginRequest>('/auth/apple', req);
+        setToken(pair.access_token);
+        setRefreshToken(pair.refresh_token);
+        return pair;
+    } catch (err) {
+        mapError(err, 'apple');
+    }
+}
+
+/**
+ * 运营商本机号登录：用 univerify/运营商 access_token 换取本系统 token。成功后自动落盘。
+ *
+ * @throws `INVALID_CREDENTIALS` (401) / `UPSTREAM_UNAVAILABLE` (503) / `PROVIDER_DISABLED` (503)
+ */
+export async function loginWithPhone(req: PhoneLoginRequest): Promise<SocialTokenPair> {
+    try {
+        const pair = await rest.post<SocialTokenPair, PhoneLoginRequest>('/auth/phone', req);
+        setToken(pair.access_token);
+        setRefreshToken(pair.refresh_token);
+        return pair;
+    } catch (err) {
+        mapError(err, 'phone');
+    }
+}
+
+/**
+ * 绑定第三方登录方式到当前账号（需登录）。请求体与对应登录端点一致
+ * （如微信 `{ code, app_type }`、Apple `{ identity_token, nonce }`）。
+ *
+ * @returns 当前账号的登录方式列表
+ * @throws `CONFLICT` (409) — 该身份已绑定其他账号（不静默合并）
+ */
+export async function bindIdentity(
+    provider: AuthProvider,
+    payload: Record<string, unknown>,
+): Promise<IdentitiesResponse> {
+    // 鉴权检查放在 try 外：未登录直接抛 UNAUTHORIZED，避免被 mapError 误判为网络错误。
+    const header = requireAuthHeader();
+    try {
+        return await rest.post<IdentitiesResponse, Record<string, unknown>>(`/auth/bind/${provider}`, payload, {
+            header,
+        });
+    } catch (err) {
+        mapError(err, 'bind');
+    }
+}
+
+/**
+ * 解绑第三方登录方式（需登录）。解绑后账号须仍保留至少一种登录方式，否则后端 400。
+ *
+ * @throws `INVALID_INPUT` (400) — 解绑后将无任何登录方式
+ */
+export async function unbindIdentity(provider: AuthProvider): Promise<void> {
+    const header = requireAuthHeader();
+    try {
+        // 204 No Content：绕开空 body 的 JSON 解析。
+        await rest.post<void>(`/auth/unbind/${provider}`, undefined, {
+            header,
+            dataType: 'text',
+        });
+    } catch (err) {
+        mapError(err, 'unbind');
+    }
 }

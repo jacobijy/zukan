@@ -61,6 +61,9 @@
                 </view>
             </view>
         </view>
+
+        <!-- 账号绑定（仅渲染平台支持且后端已启用的方式；默认不出现） -->
+        <AccountBindings :providers="visibleProviders" />
     </TabPageShell>
 
     <LoginModal v-model:visible="showLogin" @success="onLoginSuccess" />
@@ -70,11 +73,14 @@
 import TabPageShell from "@/components/shared/TabPageShell.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 import LoginModal from "@/components/shared/LoginModal.vue";
+import AccountBindings from "@/components/shared/AccountBindings.vue";
 import PokeballLogo from "@/components/shared/PokeballLogo.vue";
 import { isAuthenticated, clearSession } from '@/services/session';
 import { clearSpriteCache, clearItemIconCache } from '@/services/resources';
 import { devtoolsEnabled } from '@/services/devtools/enabled';
 import { authGate } from '@/services/session/authGate';
+import { detectPlatform } from '@/infra/platform';
+import { selectVisibleProviders } from '@/services/platform/providerConfig';
 import { usePokemonStore } from '@/store/pokemon';
 import { useI18nStore } from '@/store/i18n';
 import { useI18n } from 'vue-i18n';
@@ -105,6 +111,9 @@ const showLogin = computed({
 });
 
 const loggedIn = ref(isAuthenticated());
+
+// 平台在页面生命周期内不变；默认（未配置 VITE_AUTH_PROVIDERS）为 []，绑定区不出现。
+const visibleProviders = selectVisibleProviders(detectPlatform());
 
 function onTrainerCardClick() {
     if (loggedIn.value) {
