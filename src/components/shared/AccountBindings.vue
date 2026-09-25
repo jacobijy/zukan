@@ -24,10 +24,12 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { AuthProvider } from '@/infra/platform';
-import { bindProvider, unbindProvider } from '@/services/platform/quickLogin';
+import { getPlatformManager } from '@/services/platform/managers';
 import { AuthApiError } from '@/services/api';
 
 const { t } = useI18n();
+
+const manager = getPlatformManager();
 
 defineProps<{ providers: AuthProvider[] }>();
 
@@ -65,10 +67,10 @@ async function onToggle(p: AuthProvider) {
     busy.value = p;
     try {
         if (isBound(p)) {
-            await unbindProvider(p);
+            await manager.unbind(p);
             bound.value = bound.value.filter((x) => x !== p);
         } else {
-            const res = await bindProvider(p);
+            const res = await manager.bind(p);
             // 以响应的 identities 为准回写。
             bound.value = providersFromResponse(p, res.identities);
         }

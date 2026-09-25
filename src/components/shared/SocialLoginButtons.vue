@@ -29,10 +29,12 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { AuthProvider } from '@/infra/platform';
-import { appleLogin, phoneLogin, weixinLogin } from '@/services/platform/quickLogin';
+import { getPlatformManager } from '@/services/platform/managers';
 import { AuthApiError } from '@/services/api';
 
 const { t } = useI18n();
+
+const manager = getPlatformManager();
 
 defineProps<{ providers: AuthProvider[] }>();
 const emit = defineEmits<{ (e: 'success'): void }>();
@@ -65,10 +67,7 @@ async function onSelect(p: AuthProvider) {
     errorMsg.value = '';
     busy.value = p;
     try {
-        if (p === 'weixin') await weixinLogin();
-        else if (p === 'apple') await appleLogin();
-        else if (p === 'phone') await phoneLogin();
-        else return;
+        await manager.login(p);
         emit('success');
     } catch (err) {
         errorMsg.value =

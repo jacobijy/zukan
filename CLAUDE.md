@@ -202,6 +202,16 @@ H5/小程序不受影响）。**wasm 在真机的运行时加载尚未验证**�
 离线 JSCore 未必支持），真机先验、必要时加 `#ifdef APP-PLUS` 的 `plus.io` 读字节分支。
 见 `docs/architecture/app-remote-debug.md`。
 
+### 平台管理对象（services/platform/managers）
+
+平台交互操作（首批为第三方登录/绑定，以后支付、推送、分享等）收口到**按平台的管理
+对象**：`getPlatformManager()` 按当前平台返回单例。三层分工勿混：`infra/platform/` 纯
+检测 + 静态能力矩阵、`providerConfig.ts` 平台支持 ∩ 后端启用（UI 是否渲染的唯一依据）、
+`managers/` 执行操作（**不复制矩阵**，平台差异如微信 app_type 仍调 infra 纯函数）。类层次
+`BasePlatformManager` → `AppManager`（App 共性）→ `AppIosManager`/`AppAndroidManager`，
+另含 `MpWeixinManager`/`H5Manager`/`UnknownManager`。见
+`docs/architecture/platform-managers.md`。
+
 全局宝可梦接口声明在 `src/pokemon.d.ts`，因此许多 `.vue` 文件会直接使用 `IPokemonBaseModel` 和 `IPokemonCardModel`，无需显式导入。`src/model/` 存放更底层的数据模型和枚举，例如基础种族值和属性定义。
 
 样式主要写在 Vue 模板中的 Tailwind utility class 中，少量组件使用 scoped SCSS/CSS 处理尺寸或动画。`tailwind.config.js` 配置了宝可梦属性颜色，并扫描 `index.html` 和所有源码 Vue/TS/JS 文件。导航栏尺寸相关的共享 CSS 变量定义在 `src/App.vue`，被 `NavBar` 和页面布局 padding 复用。
