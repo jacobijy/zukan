@@ -8,7 +8,7 @@
  * 在 mock 期就被真实跑通；数据按赛制各给 30 条（跨越虚拟列表分页边界）、
  * 1 个当前赛季 + 2 个历史赛季。
  */
-import type { BattleFormat, SeasonDTO, UsageResponseDTO } from './types';
+import type { BattleFormat, CategoryUsageEntryDTO, PokemonMetaResponseDTO, SeasonDTO, UsageResponseDTO } from './types';
 
 /** [speciesId, 基础使用率(0..1)]，已按当前赛季降序 */
 const SINGLES_TABLE: ReadonlyArray<readonly [number, number]> = [
@@ -101,4 +101,74 @@ export function mockUsageResponse(format: BattleFormat, seasonId: string): Usage
         usage_rate: Math.round(rate * factor * 10000) / 10000,
     }));
     return { season_id: seasonId, entries };
+}
+
+// ── 宝可梦对战配置（招式 / 道具 / 特性选用率）──
+
+/** 安全池取连续小 id：名称表与道具图标覆盖好，任意 speciesId 点进去都能解析出名字 */
+const ABILITY_POOL = range(1, 40);
+const ITEM_POOL = range(1, 40);
+const MOVE_POOL = range(1, 60);
+
+/** 某赛制 × 赛季 × 宝可梦的配置选用率响应（DTO）；确定性伪随机，入参变化结果随之变 */
+export function mockPokemonMeta(speciesId: number, format: BattleFormat, seasonId: string): PokemonMetaResponseDTO {
+    const rng = mulberry32(hashSeed(speciesId, format, seasonId));
+    return {
+        species_id: speciesId,
+        format,
+        season_id: seasonId,
+        // 特性基本必选：榜首 70–98%；道具 25–60%；招式 35–70%
+        abilities: categoryEntries(ABILITY_POOL, 1 + Math.floor(rng() * 3), rng, 0.7 + rng() * 0.28),
+        items: categoryEntries(ITEM_POOL, 6 + Math.floor(rng() * 5), rng, 0.25 + rng() * 0.35),
+        moves: categoryEntries(MOVE_POOL, 8 + Math.floor(rng() * 5), rng, 0.35 + rng() * 0.35),
+    };
+}
+
+function categoryEntries(pool: number[], n: number, rng: () => number, topScale: number): CategoryUsageEntryDTO[] {
+    const ids = pickN(pool, n, rng);
+    // 随机权重降序后归一化，使榜首=topScale
+    const weights = ids.map(() => 0.25 + rng() * 0.75).sort((a, b) => b - a);
+    const max = weights[0];
+    return ids.map((id, i) => ({
+        id,
+        usage_rate: Math.round((weights[i] / max) * topScale * 10000) / 10000,
+    }));
+}
+
+/** 从池中无重复抽 n 个（部分 Fisher–Yates） */
+function pickN(pool: number[], n: number, rng: () => number): number[] {
+    const arr = [...pool];
+    for (let i = 0; i < n; i++) {
+        const j = i + Math.floor(rng() * (arr.length - i));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, n);
+}
+
+function range(from: number, to: number): number[] {
+    return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+}
+
+/** FNV-1a 组合哈希 → 32bit 种子 */
+function hashSeed(...parts: Array<number | string>): number {
+    let h = 2166136261 >>> 0;
+    for (const p of parts) {
+        for (const c of String(p)) {
+            h ^= c.charCodeAt(0);
+            h = Math.imul(h, 16777619);
+        }
+    }
+    return h >>> 0;
+}
+
+/** mulberry32 确定性 PRNG */
+function mulberry32(seed: number): () => number {
+    let a = seed;
+    return () => {
+        a |= 0;
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
 }

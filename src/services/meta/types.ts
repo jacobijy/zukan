@@ -50,3 +50,47 @@ export interface MetaSeason {
     label: string;
     isCurrent: boolean;
 }
+
+// ── 宝可梦对战配置（招式 / 道具 / 特性选用率）──
+
+/** 某类别（招式/道具/特性）的单条选用率：id 为对应 PokeAPI id */
+export interface CategoryUsageEntryDTO {
+    id: number;
+    usage_rate: number;
+}
+
+/** 某宝可梦在某赛制 × 赛季下的配置选用率响应 */
+export interface PokemonMetaResponseDTO {
+    species_id: number;
+    format: BattleFormat;
+    season_id: string;
+    abilities: CategoryUsageEntryDTO[];
+    items: CategoryUsageEntryDTO[];
+    moves: CategoryUsageEntryDTO[];
+}
+
+/** 类别内单条选用率（UI）：usageRate / barWidth 均为百分数 */
+export interface CategoryUsageItem {
+    id: number;
+    usageRate: number;
+    /** 进度条宽度百分比，相对该类别榜首（榜首=100） */
+    barWidth: number;
+}
+
+/** 宝可梦对战配置（UI） */
+export interface PokemonUsageMeta {
+    speciesId: number;
+    abilities: CategoryUsageItem[];
+    items: CategoryUsageItem[];
+    moves: CategoryUsageItem[];
+}
+
+/** 通用选用率行视图模型：name 在页面层解析，typeSlug 供招式属性图标使用 */
+export interface MetaRateRowVM {
+    key: number;
+    name: string;
+    /** 选用率百分比 */
+    rate: number;
+    barWidth: number;
+    typeSlug?: string;
+}

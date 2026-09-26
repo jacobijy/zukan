@@ -12,9 +12,17 @@
  * │    删除 `mock.ts`。页面与 adapter 不动。                          │
  * └──────────────────────────────────────────────────────────────────┘
  */
-import { toSeasonList, toUsageRanking } from './adapter';
-import { mockSeasons, mockUsageResponse } from './mock';
-import type { BattleFormat, MetaSeason, UsageResponseDTO, UsageRankingItem, SeasonDTO } from './types';
+import { toPokemonUsageMeta, toSeasonList, toUsageRanking } from './adapter';
+import { mockPokemonMeta, mockSeasons, mockUsageResponse } from './mock';
+import type {
+    BattleFormat,
+    MetaSeason,
+    PokemonMetaResponseDTO,
+    PokemonUsageMeta,
+    SeasonDTO,
+    UsageResponseDTO,
+    UsageRankingItem,
+} from './types';
 
 /** 仅用于让 mock 期的切换 / loading 态可见；后端就绪后删除 */
 const MOCK_LATENCY_MS = 120;
@@ -30,6 +38,15 @@ async function fetchSeasonsDto(format: BattleFormat): Promise<SeasonDTO[]> {
 async function fetchUsageDto(format: BattleFormat, seasonId: string): Promise<UsageResponseDTO> {
     await delay(MOCK_LATENCY_MS);
     return mockUsageResponse(format, seasonId);
+}
+
+async function fetchPokemonMetaDto(
+    speciesId: number,
+    format: BattleFormat,
+    seasonId: string,
+): Promise<PokemonMetaResponseDTO> {
+    await delay(MOCK_LATENCY_MS);
+    return mockPokemonMeta(speciesId, format, seasonId);
 }
 
 // ── 赛季列表 ──
@@ -62,5 +79,26 @@ export function loadUsageRanking(format: BattleFormat, seasonId: string): Promis
         usageCache.delete(key);
     });
     usageCache.set(key, promise);
+    return promise;
+}
+
+// ── 宝可梦对战配置 ──
+
+const pokemonMetaCache = new Map<string, Promise<PokemonUsageMeta>>();
+
+/** 某宝可梦 × 赛制 × 赛季的配置选用率；按 `${speciesId}:${format}:${seasonId}` 缓存。 */
+export function loadPokemonUsageMeta(
+    speciesId: number,
+    format: BattleFormat,
+    seasonId: string,
+): Promise<PokemonUsageMeta> {
+    const key = `${speciesId}:${format}:${seasonId}`;
+    const cached = pokemonMetaCache.get(key);
+    if (cached) return cached;
+    const promise = fetchPokemonMetaDto(speciesId, format, seasonId).then(toPokemonUsageMeta);
+    promise.catch(() => {
+        pokemonMetaCache.delete(key);
+    });
+    pokemonMetaCache.set(key, promise);
     return promise;
 }

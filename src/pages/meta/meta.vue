@@ -17,7 +17,7 @@
         </template>
 
         <template #default="{ item, index }">
-            <UsageRankingRow :item="item" :rank="index + 1" @select="goDetail(item.speciesId)" />
+            <UsageRankingRow :item="item" :rank="index + 1" @select="goPokemonMeta(item.speciesId)" />
         </template>
     </ArchiveListShell>
 
@@ -121,7 +121,9 @@ const seasonOptions = computed<SheetOption[]>(() =>
     })),
 );
 
-const goDetail = (speciesId: number) => {
-    uni.navigateTo({ url: `/pages/detail/detail?id=${speciesId}` });
+const goPokemonMeta = (speciesId: number) => {
+    uni.navigateTo({
+        url: `/pages/meta/pokemon-meta?id=${speciesId}&format=${format.value}&season=${seasonId.value}`,
+    });
 };
 </script>

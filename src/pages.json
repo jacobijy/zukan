@@ -134,6 +134,13 @@
         "navigationBarTitleText": "对战数据",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/meta/pokemon-meta",
+      "style": {
+        "navigationBarTitleText": "宝可梦对战配置",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

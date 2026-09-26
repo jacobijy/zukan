@@ -389,6 +389,10 @@ const zhHans = {
         usagePercent: '{value}%',
         emptyTitle: '暂无排行数据',
         emptyDesc: '该赛制或赛季还没有统计。',
+        sectionAbilities: '特性选用率',
+        sectionItems: '道具选用率',
+        sectionMoves: '招式选用率',
+        pokemonEmpty: '暂无选用数据',
     },
 };
 
@@ -780,6 +784,10 @@ const en: typeof zhHans = {
         usagePercent: '{value}%',
         emptyTitle: 'No ranking data',
         emptyDesc: 'No statistics for this format or season yet.',
+        sectionAbilities: 'Ability usage',
+        sectionItems: 'Item usage',
+        sectionMoves: 'Move usage',
+        pokemonEmpty: 'No usage data',
     },
 };
 

@@ -53,7 +53,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 设置 | `pages/settings/settings` | 子页（`DetailNavbar`，语言等系统设置；点选项弹 `OptionSheet`） |
 | 属性/招式/特性/道具图鉴 | `pages/archive/*` | 资料中心四个栏目，列表页 + 详情页共 8 个（`types`/`type-detail`、`moves`/`move-detail`、`abilities`/`ability-detail`、`items`/`item-detail`）；数据流见 `docs/features/archive.md` |
 | 开发者工具 | `pages/devtools/devtools` | **dev-only 子页**（我的 → 开发者工具），顶部 tab 切两个工具：**资源探测器**（取服务端 ZKDX 密文 → 解密 → 显示图片与元信息，绕开一切缓存）与**文本浏览**（按语言/组/表列 i18n 名称与描述，走 resourceManager 缓存）。门禁 `import.meta.env.DEV`，两个实现体都动态 import，正式构建被 Rollup 剔除。见 `docs/security/encryption-pipeline.md` 6.0 / 6.0.1 |
-| 对战数据 | `pages/meta/meta` | 子页（资料中心 → 对战详情）：赛制（单人/双人）× 赛季（当前/历史）的宝可梦**使用率排行榜**；后端接口未就绪走 mock DTO，转换链路见 `docs/features/metagame-usage.md` |
+| 对战数据 | `pages/meta/meta`、`pages/meta/pokemon-meta` | 子页 ×2（资料中心 → 对战详情）：赛制（单人/双人）× 赛季（当前/历史）的宝可梦**使用率排行榜**，点行进宝可梦**对战配置**（招式/道具/特性选用率）；后端接口未就绪走 mock DTO，转换链路见 `docs/features/metagame-usage.md` |
 
 `src/pages/` 下没有其他游离页面文件。
 
@@ -157,7 +157,7 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
   （其描述卡为 `archive/MoveFlavorCard.vue`））。见 `docs/i18n/`、`docs/ui/software-icons.md`。
   物种名/形态名/特性名已接通 i18n 名称组，i18n 未就绪时回落 `pokemon-{id}` / `form-{id}` 占位。
 - `simulate.vue` 是纯 UI 骨架，所有交互 handler 都是 `noop`。
-- `pages/meta/meta.vue` 使用率排行榜的后端接口未就绪：`services/meta/mock.ts` 以**后端 DTO 形态**供数（每赛制 30 条、1 当前 + 2 历史赛季），经 `adapter.ts` 纯函数转成 UI 模型；后端就绪接入点见 `docs/features/metagame-usage.md`。
+- `pages/meta/*` 对战数据（使用率排行榜 + 宝可梦配置）的后端接口未就绪：`services/meta/mock.ts` 以**后端 DTO 形态**供数（排行榜每赛制 30 条、1 当前 + 2 历史；配置为 mulberry32 确定性伪随机），经 `adapter.ts` 纯函数转 UI 模型；后端就绪接入点见 `docs/features/metagame-usage.md`。
 - `src/core/data/typechart.ts` 被 `calc-engine.ts` 动态 import，是移除的服务端模块的残留。
 
 ### 循环依赖注意事项
@@ -258,7 +258,8 @@ src/components/
   calc/      计算器上下文：CalcCard、ChipRow、LevelStepper、
              DamageResultCard、CalcSideCard、StatInputRow
   sprite/    图片加载：EncryptedSprite（宝可梦立绘，走加密图片通道）
-  meta/      对战数据：FormatSwitch（单人/双人分段）、UsageRankingRow（使用率排行行）
+  meta/      对战数据：FormatSwitch（单人/双人分段）、UsageRankingRow（使用率排行行）、
+             MetaRateSection（招式/道具/特性选用率通用列表）
   devtools/  **dev-only** 排障工具：AssetProbeForm、AssetProbeCard（资源探测器）、
              TextBrowseForm、TextEntryRow（i18n 文本浏览）
              （文案硬编码中文，刻意不接 i18n）

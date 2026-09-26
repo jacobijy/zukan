@@ -5,8 +5,8 @@
  * 无效行（id<=0 / 负或 NaN 使用率）过滤、当前赛季置顶。
  */
 import { describe, expect, it } from 'vitest';
-import { toSeasonList, toUsageRanking } from '@/services/meta/adapter';
-import type { SeasonDTO, UsageResponseDTO } from '@/services/meta/types';
+import { toPokemonUsageMeta, toSeasonList, toUsageRanking } from '@/services/meta/adapter';
+import type { PokemonMetaResponseDTO, SeasonDTO, UsageResponseDTO } from '@/services/meta/types';
 
 describe('toUsageRanking', () => {
     const dto: UsageResponseDTO = {
@@ -52,5 +52,38 @@ describe('toSeasonList', () => {
         const list = toSeasonList(seasons);
         expect(list.map((s) => s.id)).toEqual(['b', 'a', 'c']);
         expect(list[0]).toMatchObject({ id: 'b', isCurrent: true });
+    });
+});
+
+describe('toPokemonUsageMeta', () => {
+    const dto: PokemonMetaResponseDTO = {
+        species_id: 6,
+        format: 'singles',
+        season_id: 'cur',
+        abilities: [
+            { id: 2, usage_rate: 0.5 },
+            { id: 1, usage_rate: 0.9 }, // 该组榜首
+            { id: 0, usage_rate: 0.99 }, // 无效 id，滤掉
+        ],
+        items: [
+            { id: 10, usage_rate: 0.2 },
+            { id: 20, usage_rate: 0.4 }, // 该组榜首（与特性互不影响）
+        ],
+        moves: [],
+    };
+
+    it('每组各自降序、过滤无效行', () => {
+        const m = toPokemonUsageMeta(dto);
+        expect(m.speciesId).toBe(6);
+        expect(m.abilities.map((c) => c.id)).toEqual([1, 2]);
+        expect(m.items.map((c) => c.id)).toEqual([20, 10]);
+        expect(m.moves).toEqual([]);
+    });
+
+    it('barWidth 在各组内相对榜首（榜首=100）', () => {
+        const m = toPokemonUsageMeta(dto);
+        expect(m.abilities.map((c) => c.barWidth)).toEqual([100, 55.6]);
+        expect(m.items.map((c) => c.barWidth)).toEqual([100, 50]);
+        expect(m.abilities.map((c) => c.usageRate)).toEqual([90, 50]);
     });
 });
