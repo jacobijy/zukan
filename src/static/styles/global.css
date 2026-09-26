@@ -96,6 +96,10 @@ input {
     background: linear-gradient(135deg, #b8bcc5 0%, #8e949f 56%, #6e7480 100%);
 }
 
+.list-row__icon--red {
+    background: linear-gradient(135deg, #ff8a8a 0%, #f0534b 56%, #d12e2e 100%);
+}
+
 /* 资料页"热门样本"的编号标记配色，同样经 iconClass 传入 */
 .pokemon-mark--gold {
     color: #4c3506;

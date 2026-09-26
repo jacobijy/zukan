@@ -236,6 +236,7 @@ const zhHans = {
         title: '资料中心',
         sectionOverview: '图鉴概览',
         sectionPopular: '热门样本',
+        sectionBattle: '对战',
         detail: '详情',
         overview: {
             total: '宝可梦总数',
@@ -376,6 +377,18 @@ const zhHans = {
         uiLanguageDesc: '按钮、菜单等界面文字',
         contentLanguage: '宝可梦内容语言',
         contentLanguageDesc: '物种 / 招式 / 特性名称与描述',
+    },
+    meta: {
+        title: '对战数据',
+        entryTitle: '对战详情',
+        entryDesc: '单人 / 双人各赛季的宝可梦使用率排行。',
+        formatSingles: '单人',
+        formatDoubles: '双人',
+        seasonTitle: '选择赛季',
+        seasonCurrent: '当前赛季',
+        usagePercent: '{value}%',
+        emptyTitle: '暂无排行数据',
+        emptyDesc: '该赛制或赛季还没有统计。',
     },
 };
 
@@ -606,6 +619,7 @@ const en: typeof zhHans = {
         title: 'Data center',
         sectionOverview: 'Dex overview',
         sectionPopular: 'Popular specimens',
+        sectionBattle: 'Battle',
         detail: 'Details',
         overview: {
             total: 'Total Pokémon',
@@ -754,6 +768,18 @@ const en: typeof zhHans = {
         uiLanguageDesc: 'Buttons, menus, and other interface text',
         contentLanguage: 'Pokémon content language',
         contentLanguageDesc: 'Species, move, and ability names and text',
+    },
+    meta: {
+        title: 'Battle data',
+        entryTitle: 'Battle details',
+        entryDesc: 'Pokémon usage rankings by season for Singles and Doubles.',
+        formatSingles: 'Singles',
+        formatDoubles: 'Doubles',
+        seasonTitle: 'Select season',
+        seasonCurrent: 'Current season',
+        usagePercent: '{value}%',
+        emptyTitle: 'No ranking data',
+        emptyDesc: 'No statistics for this format or season yet.',
     },
 };
 

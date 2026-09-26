@@ -127,6 +127,13 @@
         "navigationBarTitleText": "开发者工具",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/meta/meta",
+      "style": {
+        "navigationBarTitleText": "对战数据",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {
