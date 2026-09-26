@@ -3,44 +3,38 @@
         <text class="rank-num" :class="{ 'rank-num--top': rank <= 3 }">{{ String(rank).padStart(2, '0') }}</text>
 
         <EncryptedSprite
-            :pokemon-id="item.speciesId"
+            v-if="speciesId"
+            :pokemon-id="speciesId"
             variant="front"
             :preview="false"
             img-class="h-10 w-10"
             skeleton-class="h-10 w-10"
         />
+        <view v-else class="rank-neutral h-10 w-10"></view>
 
         <view class="archive-row__main">
-            <text class="archive-row__title">{{ name }}</text>
-            <view class="rank-bar">
-                <view class="rank-bar__fill" :style="{ width: `${item.barWidth}%` }"></view>
+            <view class="flex items-baseline gap-1.5 overflow-hidden">
+                <text class="archive-row__title">{{ name }}</text>
+                <text v-if="form" class="rank-form flex-shrink-0">{{ form }}</text>
             </view>
         </view>
 
-        <text class="archive-row__meta rank-pct">{{ t('meta.usagePercent', { value: item.usageRate }) }}</text>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="rank-chevron h-4 w-4">
+            <path d="m9 18 6-6-6-6"></path>
+        </svg>
     </view>
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
-import { useI18nStore } from '@/store/i18n';
-import type { UsageRankingItem } from '@/services/meta';
 
-const props = defineProps<{
-    item: UsageRankingItem;
+defineProps<{
     rank: number;
+    name: string;
+    form?: string;
+    speciesId?: number;
 }>();
 const emit = defineEmits<{ select: [] }>();
-
-const { t } = useI18n();
-const i18nStore = useI18nStore();
-
-// 名称走内容名称表（随内容语言切换）；未就绪回落 pokemon-{id} 占位
-const name = computed(
-    () => i18nStore.speciesName(props.item.speciesId) ?? `pokemon-${props.item.speciesId}`,
-);
 </script>
 
 <style lang="scss" scoped>
@@ -60,20 +54,23 @@ const name = computed(
     font-weight: 900;
 }
 
-.rank-bar {
-    height: 6px;
+.rank-neutral {
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #f2f4f8, #e7ebf2);
+}
+
+.rank-form {
     overflow: hidden;
-    border-radius: 999px;
-    background: #eef0f5;
+    font-size: 11px;
+    font-weight: 700;
+    color: #9aa0ab;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.rank-bar__fill {
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, #73b7ff, #357df4);
-}
-
-.rank-pct {
-    color: #24262b;
+.rank-chevron {
+    flex-shrink:0;
+    color: #c4c7cf;
 }
 </style>

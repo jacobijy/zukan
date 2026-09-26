@@ -7,3 +7,5 @@
 export { rest, RestRequestError } from './request';
 
 export { fetchBinary, BinaryRequestError } from './binaryRequest';
+
+export { fetchAssetJson } from './assetRequest';

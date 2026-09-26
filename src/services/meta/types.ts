@@ -1,96 +1,153 @@
 /**
- * 对战数据（使用率排行榜）类型与契约。
+ * 对战使用率数据类型（Pokémon Champions 明文 JSON，`/assets/battle/`）。
  *
  * 分两层：
- * - **DTO（*DTO）**：后端接口的原始 JSON 形状（snake_case）。后端就绪时按此契约返回。
- * - **UI 模型**：adapter 转换后供页面 / 组件直接消费的形状。
+ * - **原始 JSON 类型（*Json / *Row）**：上游文件的真实形状，名字段为英文引用名 / slug。
+ * - **VM 类型（*VM）**：adapter + dict 处理后供页面 / 组件消费的形状。
  *
- * 当前后端未就绪，由 `mock.ts` 产出 DTO，经 `adapter.ts` 转成 UI 模型。
+ * 字段/可用性可能随第三方源变化，解析一律容忍未知 / 缺失字段（见 data/battle-usage.md）。
  */
 
-/** 赛制：单人 / 双人 */
+/** 赛制：单人 / 双人（内部小写；上游路径 / 键用大写 'Singles'/'Doubles'） */
 export type BattleFormat = 'singles' | 'doubles';
 
-// ── 后端 DTO 契约 ──
+// ── 原始 JSON：meta / 排行榜 / link / i18n ──
 
-/** 单条使用率：species_id 为全国图鉴物种 id（默认形态）；usage_rate 为 0..1 的小数 */
-export interface UsageEntryDTO {
-    species_id: number;
-    usage_rate: number;
+export interface BattleMetaJson {
+    game: string;
+    /** 当前赛季，如 'M6' */
+    season: string;
+    seasons: string[];
+    formats: string[];
+    generatedAt: string;
+    /** 数据版本（构建时间戳），缓存失效键 */
+    dataVersion: string;
 }
 
-/** 某赛季的使用率榜响应 */
-export interface UsageResponseDTO {
-    season_id: string;
-    entries: UsageEntryDTO[];
-}
-
-/** 赛季元信息 */
-export interface SeasonDTO {
+export interface LeaderboardEntryJson {
     id: string;
-    label: string;
-    /** 是否为当前赛季 */
-    is_current: boolean;
+    rank: number;
 }
 
-// ── UI 模型 ──
-
-/** 排行行：usageRate / barWidth 均为 0..100 的百分数 */
-export interface UsageRankingItem {
-    speciesId: number;
-    /** 使用率百分比（0..100，保留 1 位小数） */
-    usageRate: number;
-    /** 进度条宽度百分比，相对当前榜单最大值（榜首=100） */
-    barWidth: number;
+export interface LeaderboardJson {
+    Singles: LeaderboardEntryJson[];
+    Doubles: LeaderboardEntryJson[];
 }
 
-/** 赛季（UI） */
-export interface MetaSeason {
-    id: string;
-    label: string;
-    isCurrent: boolean;
-}
-
-// ── 宝可梦对战配置（招式 / 道具 / 特性选用率）──
-
-/** 某类别（招式/道具/特性）的单条选用率：id 为对应 PokeAPI id */
-export interface CategoryUsageEntryDTO {
+/** slug → 图鉴物种（全国图鉴 species id），可选形态 form */
+export interface LinkEntry {
     id: number;
-    usage_rate: number;
+    form?: string;
 }
 
-/** 某宝可梦在某赛制 × 赛季下的配置选用率响应 */
-export interface PokemonMetaResponseDTO {
-    species_id: number;
-    format: BattleFormat;
-    season_id: string;
-    abilities: CategoryUsageEntryDTO[];
-    items: CategoryUsageEntryDTO[];
-    moves: CategoryUsageEntryDTO[];
+/** i18n 字典条目：name（必需），pokemon 条目可能附 form */
+export interface BattleI18nEntry {
+    name: Record<string, string>;
+    form?: Record<string, string>;
 }
 
-/** 类别内单条选用率（UI）：usageRate / barWidth 均为百分数 */
-export interface CategoryUsageItem {
-    id: number;
-    usageRate: number;
-    /** 进度条宽度百分比，相对该类别榜首（榜首=100） */
-    barWidth: number;
-}
+// ── 原始 JSON：单只配置 p/<格式>/<slug>.json ──
 
-/** 宝可梦对战配置（UI） */
-export interface PokemonUsageMeta {
-    speciesId: number;
-    abilities: CategoryUsageItem[];
-    items: CategoryUsageItem[];
-    moves: CategoryUsageItem[];
-}
-
-/** 通用选用率行视图模型：name 在页面层解析，typeSlug 供招式属性图标使用 */
-export interface MetaRateRowVM {
-    key: number;
+/** 招式 / 特性 / 道具行 */
+export interface RateRowJson {
+    rank: number;
+    /** 英文引用名 */
     name: string;
-    /** 选用率百分比 */
-    rate: number;
+    /** 使用率 / 持有率百分比（0..100，无 %） */
+    pct: number;
+}
+
+/** 性格行 */
+export interface NatureRowJson extends RateRowJson {
+    /** 加 / 减能力的英文名 */
+    up?: string;
+    down?: string;
+}
+
+/** SP 加点行（Champions 用 SP 取代传统 EV，每项 0..32） */
+export interface SpreadRowJson {
+    rank: number;
+    pct: number;
+    hp: number;
+    atk: number;
+    def: number;
+    spa: number;
+    spd: number;
+    spe: number;
+}
+
+/** 常见队友行（无百分比） */
+export interface TeammateRowJson {
+    rank: number;
+    name: string;
+}
+
+export interface PokemonConfigRowsJson {
+    move?: RateRowJson[];
+    ability?: RateRowJson[];
+    item?: RateRowJson[];
+    nature?: NatureRowJson[];
+    spread?: SpreadRowJson[];
+    teammate?: TeammateRowJson[];
+}
+
+export interface PokemonConfigJson {
+    id: string;
+    /** 该精灵自身在本格式的排名 */
+    rank: number;
+    rows: PokemonConfigRowsJson;
+}
+
+// ── VM ──
+
+/** 排行榜行（页面对每个 slug 解析名称 / link 后得到） */
+export interface LeaderboardRowVM {
+    slug: string;
+    name: string;
+    /** 形态名（如「阿罗拉的样子」），无则缺省 */
+    form?: string;
+    /** link 映射到的图鉴物种 id；查无则缺省（仍可点进配置） */
+    speciesId?: number;
+}
+
+/** 选用率行（招式 / 特性 / 道具 / 性格通用） */
+export interface RateRowVM {
+    /** 已按当前语言翻译的名称 */
+    name: string;
+    pct: number;
+    /** 进度条宽度 %，相对组内榜首 */
     barWidth: number;
-    typeSlug?: string;
+    /** 性格行的副信息：`↑Attack ↓Sp. Atk`（已翻译） */
+    detail?: string;
+}
+
+/** SP 加点行 VM */
+export interface SpreadRowVM {
+    pct: number;
+    barWidth: number;
+    hp: number;
+    atk: number;
+    def: number;
+    spa: number;
+    spd: number;
+    spe: number;
+}
+
+/** 队友行 VM */
+export interface TeammateRowVM {
+    slug: string;
+    name: string;
+    speciesId?: number;
+}
+
+/** 单只配置 VM（英文名维度，页面再用 dict 翻译组装分区） */
+export interface PokemonConfigVM {
+    slug: string;
+    rank: number;
+    moves: RateRowJson[];
+    abilities: RateRowJson[];
+    items: RateRowJson[];
+    natures: NatureRowJson[];
+    spreads: SpreadRowJson[];
+    teammates: TeammateRowJson[];
 }

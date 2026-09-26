@@ -20,12 +20,14 @@ const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? '') as string;
 const devCacheBust = import.meta.env.DEV ? `_dc=${Date.now()}` : '';
 
 /**
+ * 构造 `/assets/*` 静态资源绝对 URL（导出供 JSON 资产请求复用）。
+ *
  * 注意：这里**不加** `/api/v1` 前缀（`request.ts` 里加）。
  *
  * 二进制资源全部是 `/assets/encrypted/*`，后端刻意把静态资源留在根路径 ——
  * CDN 回源地址与前端资源 URL 不随 API 版本变动。若在此补前缀会 404。
  */
-const buildUrl = (path: string): string => {
+export const buildAssetUrl = (path: string): string => {
     if (/^https?:\/\//.test(path)) return path;
     const url = `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
     // dev 固定 URL + immutable 会卡在浏览器 HTTP 缓存；加一次性参数强制重新校验
@@ -126,7 +128,7 @@ function requestOnce(url: string, opts: BinaryRequestOptions): Promise<Uint8Arra
  * - 网络错误 / 5xx 自动重试 `retries` 次；4xx 直接抛出
  */
 export async function fetchBinary(path: string, opts: BinaryRequestOptions = {}): Promise<Uint8Array> {
-    const url = buildUrl(path);
+    const url = buildAssetUrl(path);
     const retries = opts.retries ?? 1;
 
     let lastErr: BinaryRequestError | null = null;

@@ -1,104 +1,85 @@
 /**
- * 对战数据 service：赛季列表与使用率排行榜的取数 + module 级缓存。
+ * 对战数据 service：meta / 排行榜 / link / 单只配置的取数与 module 级缓存。
  *
- * 缓存按参数区分（赛制 / 赛季），promise 失败时摘除可重试——范式同
- * `services/pokemon/archive.ts`。
+ * 数据源为明文公开 JSON（`/assets/battle/`），**不涉及 DEK/加密**。
  *
- * ┌─ 后端就绪接入点（唯一需要改动处）──────────────────────────────┐
- * │ 1. 新建 `src/services/api/meta.ts`：用 `rest.get` 拉             │
- * │    `/meta/seasons?format=` 与 `/meta/usage?format=&season=`，    │
- * │    在 `api/index.ts` 注册 `export * as metaApi from './meta'`。  │
- * │ 2. 把下面 `fetchSeasonsDto` / `fetchUsageDto` 改为调 metaApi，    │
- * │    删除 `mock.ts`。页面与 adapter 不动。                          │
- * └──────────────────────────────────────────────────────────────────┘
+ * 缓存：上游约每日刷新，建议先用 `loadBattleMeta().dataVersion` 比对，变化后丢弃下列缓存
+ * 重新拉取（后续接入点）；当前做会话内缓存 + 服务端短缓存（max-age）。
  */
-import { toPokemonUsageMeta, toSeasonList, toUsageRanking } from './adapter';
-import { mockPokemonMeta, mockSeasons, mockUsageResponse } from './mock';
+import { fetchAssetJson } from '@/services/http';
+import { capFormat, toPokemonConfig, toSlugs } from './adapter';
 import type {
     BattleFormat,
-    MetaSeason,
-    PokemonMetaResponseDTO,
-    PokemonUsageMeta,
-    SeasonDTO,
-    UsageResponseDTO,
-    UsageRankingItem,
+    BattleMetaJson,
+    LeaderboardJson,
+    LinkEntry,
+    PokemonConfigJson,
+    PokemonConfigVM,
 } from './types';
 
-/** 仅用于让 mock 期的切换 / loading 态可见；后端就绪后删除 */
-const MOCK_LATENCY_MS = 120;
-function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// ── meta ──
 
-async function fetchSeasonsDto(format: BattleFormat): Promise<SeasonDTO[]> {
-    await delay(MOCK_LATENCY_MS);
-    return mockSeasons(format);
-}
+let metaPromise: Promise<BattleMetaJson> | null = null;
 
-async function fetchUsageDto(format: BattleFormat, seasonId: string): Promise<UsageResponseDTO> {
-    await delay(MOCK_LATENCY_MS);
-    return mockUsageResponse(format, seasonId);
-}
-
-async function fetchPokemonMetaDto(
-    speciesId: number,
-    format: BattleFormat,
-    seasonId: string,
-): Promise<PokemonMetaResponseDTO> {
-    await delay(MOCK_LATENCY_MS);
-    return mockPokemonMeta(speciesId, format, seasonId);
-}
-
-// ── 赛季列表 ──
-
-const seasonsCache: Partial<Record<BattleFormat, Promise<MetaSeason[]>>> = {};
-
-/** 赛制对应的赛季列表（当前 + 历史）；module 级缓存。 */
-export function loadSeasons(format: BattleFormat): Promise<MetaSeason[]> {
-    const cached = seasonsCache[format];
-    if (cached) return cached;
-    const promise = fetchSeasonsDto(format).then(toSeasonList);
-    promise.catch(() => {
-        delete seasonsCache[format];
+/** 数据 meta（当前赛季 / dataVersion）；module 级缓存。 */
+export function loadBattleMeta(): Promise<BattleMetaJson> {
+    if (metaPromise) return metaPromise;
+    metaPromise = fetchAssetJson<BattleMetaJson>('assets/battle/meta.json');
+    metaPromise.catch(() => {
+        metaPromise = null;
     });
-    seasonsCache[format] = promise;
-    return promise;
+    return metaPromise;
 }
 
-// ── 使用率排行榜 ──
+// ── 排行榜 ──
 
-const usageCache = new Map<string, Promise<UsageRankingItem[]>>();
+let leaderboardPromise: Promise<LeaderboardJson> | null = null;
 
-/** 某赛制 × 赛季的使用率排行榜；按 `${format}:${seasonId}` 缓存。 */
-export function loadUsageRanking(format: BattleFormat, seasonId: string): Promise<UsageRankingItem[]> {
-    const key = `${format}:${seasonId}`;
-    const cached = usageCache.get(key);
-    if (cached) return cached;
-    const promise = fetchUsageDto(format, seasonId).then(toUsageRanking);
-    promise.catch(() => {
-        usageCache.delete(key);
+function loadLeaderboardJson(): Promise<LeaderboardJson> {
+    if (leaderboardPromise) return leaderboardPromise;
+    leaderboardPromise = fetchAssetJson<LeaderboardJson>('assets/battle/leaderboard.json');
+    leaderboardPromise.catch(() => {
+        leaderboardPromise = null;
     });
-    usageCache.set(key, promise);
-    return promise;
+    return leaderboardPromise;
 }
 
-// ── 宝可梦对战配置 ──
+/** 某赛制的有序 slug 列表（排行榜两个列表同处 leaderboard.json）。 */
+export async function loadLeaderboardSlugs(format: BattleFormat): Promise<string[]> {
+    const json = await loadLeaderboardJson();
+    return toSlugs(json[capFormat(format)]);
+}
 
-const pokemonMetaCache = new Map<string, Promise<PokemonUsageMeta>>();
+// ── link ──
 
-/** 某宝可梦 × 赛制 × 赛季的配置选用率；按 `${speciesId}:${format}:${seasonId}` 缓存。 */
-export function loadPokemonUsageMeta(
-    speciesId: number,
-    format: BattleFormat,
-    seasonId: string,
-): Promise<PokemonUsageMeta> {
-    const key = `${speciesId}:${format}:${seasonId}`;
-    const cached = pokemonMetaCache.get(key);
-    if (cached) return cached;
-    const promise = fetchPokemonMetaDto(speciesId, format, seasonId).then(toPokemonUsageMeta);
-    promise.catch(() => {
-        pokemonMetaCache.delete(key);
+let linkPromise: Promise<Map<string, LinkEntry>> | null = null;
+
+/** slug → 图鉴物种 link 映射；module 级缓存。 */
+export function loadLinkMap(): Promise<Map<string, LinkEntry>> {
+    if (linkPromise) return linkPromise;
+    linkPromise = fetchAssetJson<Record<string, LinkEntry>>('assets/battle/link.json').then(
+        (obj) => new Map(Object.entries(obj)),
+    );
+    linkPromise.catch(() => {
+        linkPromise = null;
     });
-    pokemonMetaCache.set(key, promise);
+    return linkPromise;
+}
+
+// ── 单只配置 ──
+
+const configCache = new Map<string, Promise<PokemonConfigVM>>();
+
+/** 某赛制 × slug 的完整对战配置（按需拉取）；按 `${format}:${slug}` 缓存。 */
+export function loadPokemonConfig(format: BattleFormat, slug: string): Promise<PokemonConfigVM> {
+    const key = `${format}:${slug}`;
+    const cached = configCache.get(key);
+    if (cached) return cached;
+    const path = `assets/battle/p/${capFormat(format)}/${slug}.json`;
+    const promise = fetchAssetJson<PokemonConfigJson>(path).then(toPokemonConfig);
+    promise.catch(() => {
+        configCache.delete(key);
+    });
+    configCache.set(key, promise);
     return promise;
 }

@@ -15,6 +15,7 @@
 | UI | [ui/software-icons.md](ui/software-icons.md) | HOME 作品版本徽章（世代切换用）：22 枚 128px 透明 PNG 静态资源、文件→游戏→世代映射、引用方式，不走加密 |
 | UI | [ui/type-icons.md](ui/type-icons.md) | HOME 属性贴纸：type_NN 编号=标准 type id（01–18；19–36 为未用变体）、`typeIconPath`、白底圆形 TypeBadgeIcon vs 文字 TypeBadge，不走加密 |
 | 数据 | [data/bundle-decode.md](data/bundle-decode.md) | FlatBuffers bundle 清单、五表 join、`hasSprite` 资源标记、EVO1 进化树、三套 id 空间与 form 重映射 |
+| 数据 | [data/battle-usage.md](data/battle-usage.md) | Champions 对战使用率：明文 JSON（不加密）、排行榜/单只配置、多语言 i18n、slug→图鉴物种 link、短缓存 |
 | 数据 | [data/filtering-sort.md](data/filtering-sort.md) | 图鉴筛选/排序、收藏、世代快照语义 |
 | 多语言 | [i18n/i18n-bundle.md](i18n/i18n-bundle.md) | names/flavor 两类 bundle、UI 语言与内容语言、回落策略 |
 | 功能 | [features/calc-engine.md](features/calc-engine.md) | 伤害计算器数据流、slug→id、招式 flags、WASM 硬编码 |

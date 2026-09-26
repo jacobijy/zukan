@@ -1,89 +1,124 @@
 /**
- * 对战数据 adapter 用例（`src/services/meta/adapter.ts`）
+ * 对战数据 adapter / 语言映射用例
+ * （`src/services/meta/adapter.ts`、`battleLang.ts`）。
  *
- * 纯函数、node 环境零 stub。覆盖：降序、0..1→百分比、相对榜首的 barWidth、
- * 无效行（id<=0 / 负或 NaN 使用率）过滤、当前赛季置顶。
+ * 纯函数、node 环境零 stub。覆盖：排行榜/选用率按 rank、相对 rank1 的 barWidth、
+ * 无效 pct 过滤、spread 取整与 0..32 钳制、队友保序、配置缺组为 []、语言映射回落。
  */
 import { describe, expect, it } from 'vitest';
-import { toPokemonUsageMeta, toSeasonList, toUsageRanking } from '@/services/meta/adapter';
-import type { PokemonMetaResponseDTO, SeasonDTO, UsageResponseDTO } from '@/services/meta/types';
+import {
+    capFormat,
+    toPokemonConfig,
+    toRateRows,
+    toSlugs,
+    toSpreadRows,
+    toTeammateNames,
+} from '@/services/meta/adapter';
+import { toBattleLang } from '@/services/meta/battleLang';
+import type {
+    LeaderboardEntryJson,
+    PokemonConfigJson,
+    RateRowJson,
+    SpreadRowJson,
+    TeammateRowJson,
+} from '@/services/meta/types';
 
-describe('toUsageRanking', () => {
-    const dto: UsageResponseDTO = {
-        season_id: 'cur',
-        entries: [
-            { species_id: 3, usage_rate: 0.1 },
-            { species_id: 1, usage_rate: 0.3 },
-            { species_id: 2, usage_rate: 0.2 },
-            { species_id: 0, usage_rate: 0.9 }, // 无效 id，滤掉
-            { species_id: 4, usage_rate: -0.1 }, // 负使用率，滤掉
-            { species_id: 5, usage_rate: Number.NaN }, // 非有限值，滤掉
-        ],
-    };
-
-    it('滤掉无效行并按使用率降序', () => {
-        const rows = toUsageRanking(dto);
-        expect(rows.map((r) => r.speciesId)).toEqual([1, 2, 3]);
-    });
-
-    it('usage_rate 0..1 → 百分比（保留 1 位小数）', () => {
-        const rows = toUsageRanking(dto);
-        expect(rows.map((r) => r.usageRate)).toEqual([30, 20, 10]);
-    });
-
-    it('barWidth 相对榜首：榜首=100，其余按比例', () => {
-        const rows = toUsageRanking(dto);
-        expect(rows.map((r) => r.barWidth)).toEqual([100, 66.7, 33.3]);
-    });
-
-    it('空榜单返回空数组', () => {
-        expect(toUsageRanking({ season_id: 'x', entries: [] })).toEqual([]);
-    });
-});
-
-describe('toSeasonList', () => {
-    const seasons: SeasonDTO[] = [
-        { id: 'a', label: 'A', is_current: false },
-        { id: 'b', label: 'B', is_current: true },
-        { id: 'c', label: 'C', is_current: false },
+describe('toSlugs', () => {
+    const entries: LeaderboardEntryJson[] = [
+        { id: 'b', rank: 2 },
+        { id: 'a', rank: 1 },
+        { id: '', rank: 3 },
     ];
-
-    it('当前赛季置顶，其余保持输入顺序', () => {
-        const list = toSeasonList(seasons);
-        expect(list.map((s) => s.id)).toEqual(['b', 'a', 'c']);
-        expect(list[0]).toMatchObject({ id: 'b', isCurrent: true });
+    it('丢弃空 id，按 rank 升序', () => {
+        expect(toSlugs(entries)).toEqual(['a', 'b']);
+    });
+    it('缺省 entries 返回 []', () => {
+        expect(toSlugs(undefined)).toEqual([]);
     });
 });
 
-describe('toPokemonUsageMeta', () => {
-    const dto: PokemonMetaResponseDTO = {
-        species_id: 6,
-        format: 'singles',
-        season_id: 'cur',
-        abilities: [
-            { id: 2, usage_rate: 0.5 },
-            { id: 1, usage_rate: 0.9 }, // 该组榜首
-            { id: 0, usage_rate: 0.99 }, // 无效 id，滤掉
-        ],
-        items: [
-            { id: 10, usage_rate: 0.2 },
-            { id: 20, usage_rate: 0.4 }, // 该组榜首（与特性互不影响）
-        ],
-        moves: [],
-    };
-
-    it('每组各自降序、过滤无效行', () => {
-        const m = toPokemonUsageMeta(dto);
-        expect(m.speciesId).toBe(6);
-        expect(m.abilities.map((c) => c.id)).toEqual([1, 2]);
-        expect(m.items.map((c) => c.id)).toEqual([20, 10]);
-        expect(m.moves).toEqual([]);
+describe('toRateRows', () => {
+    const rows: RateRowJson[] = [
+        { rank: 2, name: 'B', pct: 50 },
+        { rank: 1, name: 'A', pct: 100 },
+        { rank: 3, name: 'C', pct: Number.NaN },
+    ];
+    it('过滤无效 pct，按 rank 升序', () => {
+        const out = toRateRows(rows);
+        expect(out.map((r) => r.name)).toEqual(['A', 'B']);
     });
+    it('barWidth 相对 rank1（rank1=100）', () => {
+        const out = toRateRows(rows);
+        expect(out.map((r) => r.barWidth)).toEqual([100, 50]);
+        expect(out.map((r) => r.pct)).toEqual([100, 50]);
+    });
+});
 
-    it('barWidth 在各组内相对榜首（榜首=100）', () => {
-        const m = toPokemonUsageMeta(dto);
-        expect(m.abilities.map((c) => c.barWidth)).toEqual([100, 55.6]);
-        expect(m.items.map((c) => c.barWidth)).toEqual([100, 50]);
-        expect(m.abilities.map((c) => c.usageRate)).toEqual([90, 50]);
+describe('toSpreadRows', () => {
+    const rows: SpreadRowJson[] = [
+        { rank: 1, pct: 20, hp: 1.6, atk: 99, def: -5, spa: 0, spd: 7, spe: 32 },
+        { rank: 2, pct: 10, hp: 0, atk: 16, def: 0, spa: 0, spd: 0, spe: 16 },
+    ];
+    it('六项取整并钳制在 0..32', () => {
+        const out = toSpreadRows(rows);
+        expect(out[0]).toMatchObject({ hp: 2, atk: 32, def: 0, spd: 7, spe: 32 });
+    });
+    it('barWidth 相对 rank1', () => {
+        const out = toSpreadRows(rows);
+        expect(out.map((r) => r.barWidth)).toEqual([100, 50]);
+    });
+});
+
+describe('toTeammateNames', () => {
+    const rows: TeammateRowJson[] = [
+        { rank: 2, name: 'B' },
+        { rank: 1, name: 'A' },
+        { rank: 3, name: '' },
+    ];
+    it('丢弃空名，按 rank 升序', () => {
+        expect(toTeammateNames(rows)).toEqual(['A', 'B']);
+    });
+});
+
+describe('toPokemonConfig', () => {
+    const json: PokemonConfigJson = {
+        id: 'salamence',
+        rank: 1,
+        rows: {
+            move: [{ rank: 1, name: 'Double-Edge', pct: 77.8 }],
+            ability: [{ rank: 1, name: 'Intimidate', pct: 99.1 }],
+        },
+    };
+    it('六组分流，缺组为 []', () => {
+        const vm = toPokemonConfig(json);
+        expect(vm.slug).toBe('salamence');
+        expect(vm.moves.map((r) => r.name)).toEqual(['Double-Edge']);
+        expect(vm.abilities.map((r) => r.name)).toEqual(['Intimidate']);
+        expect(vm.items).toEqual([]);
+        expect(vm.natures).toEqual([]);
+        expect(vm.spreads).toEqual([]);
+        expect(vm.teammates).toEqual([]);
+    });
+});
+
+describe('capFormat', () => {
+    it('小写赛制 → 上游大写段', () => {
+        expect(capFormat('singles')).toBe('Singles');
+        expect(capFormat('doubles')).toBe('Doubles');
+    });
+});
+
+describe('toBattleLang', () => {
+    it('内容语言 → 对战语言', () => {
+        expect(toBattleLang('zh-hans')).toBe('zh-Hans');
+        expect(toBattleLang('zh-hant')).toBe('zh-Hant');
+    });
+    it('日方言归一到 ja（大小写不敏感）', () => {
+        expect(toBattleLang('JA-HRKT')).toBe('ja');
+        expect(toBattleLang('ja-roma')).toBe('ja');
+    });
+    it('不支持 / 未知回落 en', () => {
+        expect(toBattleLang('pt-br')).toBe('en');
+        expect(toBattleLang('nope')).toBe('en');
     });
 });

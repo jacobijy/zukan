@@ -1,13 +1,21 @@
 /**
- * 对战数据（使用率排行榜 / 宝可梦对战配置）公开 API。
+ * 对战数据（Pokémon Champions 使用率）公开 API。
  */
 export type {
     BattleFormat,
-    CategoryUsageItem,
-    MetaRateRowVM,
-    MetaSeason,
-    PokemonUsageMeta,
-    UsageRankingItem,
+    BattleI18nEntry,
+    BattleMetaJson,
+    LeaderboardRowVM,
+    LinkEntry,
+    NatureRowJson,
+    PokemonConfigVM,
+    RateRowJson,
+    RateRowVM,
+    SpreadRowJson,
+    SpreadRowVM,
+    TeammateRowVM,
 } from './types';
-export { toCategoryUsage, toPokemonUsageMeta, toSeasonList, toUsageRanking } from './adapter';
-export { loadPokemonUsageMeta, loadSeasons, loadUsageRanking } from './service';
+export { capFormat, toRateRows, toSpreadRows, toTeammateNames } from './adapter';
+export { toBattleLang, statKeyByEnglish, type BattleLang } from './battleLang';
+export { ensureDict, entryForm, entryName, type BattleDict, type BattleDictCategory } from './battleDict';
+export { loadBattleMeta, loadLeaderboardSlugs, loadLinkMap, loadPokemonConfig } from './service';
