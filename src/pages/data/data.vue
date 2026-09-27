@@ -39,6 +39,7 @@
                 :title="t('meta.entryTitle')"
                 :desc="t('meta.entryDesc')"
                 iconClass="list-row__icon--red"
+                last
                 showChevron
                 @click="goBattleData"
             >
@@ -52,23 +53,6 @@
                         <line x1="5" x2="9" y1="14" y2="18"></line>
                         <line x1="7" x2="4" y1="17" y2="20"></line>
                         <line x1="3" x2="5" y1="19" y2="21"></line>
-                    </svg>
-                </template>
-            </ListRow>
-            <ListRow
-                :title="t('teams.title')"
-                :desc="t('teams.emptyDesc')"
-                iconClass="list-row__icon--blue"
-                last
-                showChevron
-                @click="goTeams"
-            >
-                <template #icon>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                     </svg>
                 </template>
             </ListRow>
@@ -165,10 +149,6 @@ const goToDetail = (id: number) => {
 
 const goBattleData = () => {
     uni.navigateTo({ url: '/pages/meta/meta' });
-};
-
-const goTeams = () => {
-    uni.navigateTo({ url: '/pages/teams/teams' });
 };
 
 const onTabChange = (_index: number) => {

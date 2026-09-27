@@ -159,7 +159,7 @@ interface TeamPayload { format: TeamFormat; members: TeamMember[] }  // members 
 |---|---|---|
 | 我的队伍（列表） | `pages/teams/teams` | 未登录引导、新建、摘要列表、行内「⋯」重命名/删除 |
 | 编辑队伍（组队器） | `pages/teams/team-edit` | 队名 + 赛制、成员卡（特性/道具/性格/招式/SP）、添加成员、保存 |
-| 入口 | `pages/data/data.vue` 对战分区 | 与「对战数据」并列 |
+| 入口 | `pages/features/features.vue` | 功能页签列表（对战模拟器之后） |
 
 - 写操作前统一 `authGate.requireLogin()`（见 [../security/auth-session.md](../security/auth-session.md)）；
   用户关闭登录层抛 `LoginDismissedError`，调用方静默中止。两个页面各自挂一份 `LoginModal`。

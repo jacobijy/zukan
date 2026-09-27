@@ -54,7 +54,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 属性/招式/特性/道具图鉴 | `pages/archive/*` | 资料中心四个栏目，列表页 + 详情页共 8 个（`types`/`type-detail`、`moves`/`move-detail`、`abilities`/`ability-detail`、`items`/`item-detail`）；数据流见 `docs/features/archive.md` |
 | 开发者工具 | `pages/devtools/devtools` | **dev-only 子页**（我的 → 开发者工具），顶部 tab 切两个工具：**资源探测器**（取服务端 ZKDX 密文 → 解密 → 显示图片与元信息，绕开一切缓存）与**文本浏览**（按语言/组/表列 i18n 名称与描述，走 resourceManager 缓存）。门禁 `import.meta.env.DEV`，两个实现体都动态 import，正式构建被 Rollup 剔除。见 `docs/security/encryption-pipeline.md` 6.0 / 6.0.1 |
 | 对战数据 | `pages/meta/meta`、`pages/meta/pokemon-meta` | 子页 ×2（资料中心 → 对战详情）：赛制（单人/双人）的宝可梦**使用率排行榜**（上游只给名次无 %），点行进**对战配置**（招式/道具/特性/性格选用率 + SP 加点 + 队友）；明文公开 JSON（不加密，slug 体系），见 `docs/data/battle-usage.md`、`docs/features/metagame-usage.md` |
-| 我的队伍 | `pages/teams/teams`、`pages/teams/team-edit` | 子页 ×2（资料中心 → 对战分区）：自建队伍 CRUD + **完整组队器**（赛制 + ≤6 成员；每成员物种形态/特性/道具/性格/≤4 招式/SP 0–32）。payload 对后端不透明、只存稳定 id；写前 `authGate.requireLogin()`；可「套用对战热门配置」（meta rank1 反查 id）。普通 JSON 不涉 DEK，见 `docs/data/teams.md`、`docs/features/teams.md` |
+| 我的队伍 | `pages/teams/teams`、`pages/teams/team-edit` | 子页 ×2（**功能页签**进入）：自建队伍 CRUD + **完整组队器**（赛制 + ≤6 成员；每成员物种形态/特性/道具/性格/≤4 招式/SP 0–32）。payload 对后端不透明、只存稳定 id；写前 `authGate.requireLogin()`；可「套用对战热门配置」（meta rank1 反查 id）。普通 JSON 不涉 DEK，见 `docs/data/teams.md`、`docs/features/teams.md` |
 
 `src/pages/` 下没有其他游离页面文件。
 

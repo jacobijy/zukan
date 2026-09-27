@@ -304,6 +304,7 @@ const zhHans = {
         calc: { title: '伤害计算器', desc: '计算技能伤害、克制关系与实战收益。', meta: '对战' },
         statcalc: { title: '能力值计算器', desc: '按等级、个体值、努力值与性格推算实际能力。', meta: '养成' },
         simulate: { title: '对战模拟器', desc: '用研究记录的方式复盘宝可梦对战场景。', meta: '沙盘' },
+        teams: { title: '我的队伍', desc: '组建、编辑对战队伍，并在设备间同步。', meta: '队伍' },
         stats: { title: '数据统计', desc: '查看属性、能力值和收集进度的统计摘要。', meta: '资料' },
     },
     simulate: {
@@ -745,6 +746,7 @@ const en: typeof zhHans = {
             meta: 'Training',
         },
         simulate: { title: 'Battle simulator', desc: 'Replay Pokémon battles as research records.', meta: 'Sandbox' },
+        teams: { title: 'My Teams', desc: 'Build and edit battle teams, synced across devices.', meta: 'Teams' },
         stats: { title: 'Statistics', desc: 'A summary of types, stats and collection progress.', meta: 'Data' },
     },
     simulate: {
