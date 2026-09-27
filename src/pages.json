@@ -141,6 +141,20 @@
         "navigationBarTitleText": "宝可梦对战配置",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/teams/teams",
+      "style": {
+        "navigationBarTitleText": "我的队伍",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/teams/team-edit",
+      "style": {
+        "navigationBarTitleText": "编辑队伍",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

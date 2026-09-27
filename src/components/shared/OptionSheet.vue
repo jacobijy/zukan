@@ -152,6 +152,8 @@ interface Props {
     searchThreshold?: number;
     /** 无搜索词时最多渲染多少项（防上千选项一次性铺 DOM）；搜索后不限 */
     renderLimit?: number;
+    /** 多选时最多可选数量（如招式上限 4）；缺省 = 不限。仅对 multi 生效。 */
+    max?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -160,6 +162,7 @@ const props = withDefaults(defineProps<Props>(), {
     maskClosable: true,
     searchThreshold: 12,
     renderLimit: 200,
+    max: undefined,
 });
 
 const emit = defineEmits<{
@@ -235,7 +238,11 @@ function onSelect(opt: SheetOption) {
     if (props.multi) {
         const idx = multiDraft.value.indexOf(opt.id);
         if (idx >= 0) multiDraft.value.splice(idx, 1);
-        else multiDraft.value.push(opt.id);
+        else {
+            // 已达上限（max）时忽略新增（点不动）；取消已选仍允许
+            if (props.max !== undefined && multiDraft.value.length >= props.max) return;
+            multiDraft.value.push(opt.id);
+        }
         return;
     }
     singleDraft.value = opt.id;
