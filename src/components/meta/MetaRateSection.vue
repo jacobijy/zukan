@@ -7,7 +7,9 @@
 
         <view v-if="rows.length" class="grid gap-3">
             <view v-for="(row, i) in rows" :key="i" class="flex items-center gap-2.5">
-                <view class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]" :class="glyph.tile">
+                <!-- 道具行：对战自带明文图标（内部 404 回落 bag glyph） -->
+                <BattleItemIcon v-if="kind === 'item' && row.iconName" :name="row.iconName" />
+                <view v-else class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]" :class="glyph.tile">
                     <!-- 特性：spark -->
                     <svg v-if="kind === 'ability'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
                         <path d="m12 2 2.6 6.5L21 11l-6.4 2.5L12 20l-2.6-6.5L3 11l6.4-2.5L12 2z"></path>
@@ -46,6 +48,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import BattleItemIcon from '@/components/meta/BattleItemIcon.vue';
 import type { RateRowVM } from '@/services/meta';
 
 const props = defineProps<{

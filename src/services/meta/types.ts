@@ -117,6 +117,8 @@ export interface RateRowVM {
     pct: number;
     /** 进度条宽度 %，相对组内榜首 */
     barWidth: number;
+    /** 道具行的英文显示名（= rows item.name），用于拼对战自带明文图标 URL；非道具行缺省 */
+    iconName?: string;
     /** 性格行的副信息：`↑Attack ↓Sp. Atk`（已翻译） */
     detail?: string;
 }

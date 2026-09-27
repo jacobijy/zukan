@@ -142,7 +142,15 @@ function translatedRate(
 }
 
 const abilityRows = computed(() => translatedRate(config.value?.abilities ?? [], 'abilities'));
-const itemRows = computed(() => translatedRate(config.value?.items ?? [], 'items'));
+const itemRows = computed<RateRowVM[]>(() => {
+    const dict = dicts.value.items;
+    return toRateRows(config.value?.items ?? []).map((r) => ({
+        name: entryName(dict?.[r.name], lang.value, r.name),
+        pct: r.pct,
+        barWidth: r.barWidth,
+        iconName: r.name,
+    }));
+});
 const moveRows = computed(() => translatedRate(config.value?.moves ?? [], 'moves'));
 
 const natureRows = computed<RateRowVM[]>(() => {

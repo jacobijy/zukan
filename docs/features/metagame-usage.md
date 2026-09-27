@@ -28,6 +28,12 @@
 | SP 加点 | `meta/SpreadSection.vue` | pct + 紧凑读数（`HP1 ATK32 SPE32`，0 值省略） |
 | 常见队友 | `meta/TeammateSection.vue` | 精灵图 + 名（无 pct），点按在同 format 下跳到该队友配置 |
 
+**道具行的图标**：道具行名称左侧用对战数据**自带的明文道具图标**
+（`/assets/battle/icons/items/<英文显示名>.png`），由 `meta/BattleItemIcon.vue` 渲染，
+而非统一 bag glyph，也**不走加密图片通道**。文件名就是 rows 的 `item.name`（含空格直接
+URL 编码，无需映射）；图标只覆盖对战中实际被持有的道具，404（`@error`）时回落琥珀
+bag glyph。槽位 32px，与其它分区行高一致。
+
 hero：精灵图（link 映射 speciesId）+ 名 + 格式 / 赛季胶囊。空组自动隐藏。
 
 ## 数据流
@@ -39,5 +45,7 @@ hero：精灵图（link 映射 speciesId）+ 名 + 格式 / 赛季胶囊。空�
 - 多语言：`services/meta/battleDict.ts` 按类缓存 `i18n/*.json`；`entryName/entryForm`
   同步查表（当前语言 → en → 原键）。语言代码由 `battleLang.ts::toBattleLang` 从内容语言映射。
 - 纯转换：`services/meta/adapter.ts`（按 rank、相对 barWidth、spread 取整钳制、缺组 []）。
+- 道具图标 URL：`services/meta/icons.ts::battleItemIconUrl` —— 纯函数，复用 http
+  `buildAssetUrl` 并对英文显示名 `encodeURIComponent`；明文图标不经加密 / DEK 通道。
 
 上游约每日刷新：后续可先用 `loadBattleMeta().dataVersion` 比对，变化后丢弃 service 缓存重拉。

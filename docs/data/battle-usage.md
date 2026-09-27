@@ -154,10 +154,58 @@ GET /assets/battle/p/<Singles|Doubles>/<slug>.json
 }
 ```
 
-- 用途：从使用率跳图鉴详情、复用图鉴自己的精灵图片（使用率数据不带图）。
+- 用途：从使用率跳图鉴详情，或在对战图标缺失时回退复用图鉴自己的精灵图片。
+- 对战数据现已自带一套图标（精灵/属性/道具），见下文[图标](#图标精灵--属性--道具)。
 - 大部分 slug 与图鉴 identifier 相同；命名差异（性别默认、拼写）已在数据侧归一。
 - 同物种下的花纹/形态差异用 `form`（PokeAPI form identifier）给出，如 Vivillon。
 - **全 263 个 slug 都能关联到物种**；若个别查无，前端应优雅降级（仅显示名字）。
+
+## 图标（精灵 / 属性 / 道具）
+
+对战页可直接使用的一套图标，前缀 **`/assets/battle/icons/`**，与数据同为明文、短缓存：
+
+| 类别 | 路径 | 文件名键 | 尺寸 | 数量 |
+|---|---|---|---|---|
+| 精灵 | `icons/pokemon/<slug>.png` | 精灵 slug（基础或战斗形态） | 128×128 | 350 |
+| 属性 | `icons/types/<type>.png` | 属性英文名**小写** | 64×64 | 18 |
+| 道具 | `icons/items/<name>.png` | 道具**英文显示名** | 40×40 | 159 |
+| 形态清单 | `icons/forms.json` | — | — | 80 基础 |
+
+**道具图**：文件名就是 rows 里 `item.name`（= `i18n/items.json` 的键），可能含空格，直接 URL 编码即可，无需另建映射：
+
+```
+rows item.name "Garchompite Z"  →  icons/items/Garchompite%20Z.png
+rows item.name "Choice Scarf"   →  icons/items/Choice%20Scarf.png
+```
+
+图标只覆盖对战中实际被持有的 159 个道具；`i18n/items.json` 多出的少数键（关键道具等）可能无图，取不到时降级（仅显示名 / 占位图）。
+
+**精灵图**：
+
+- 263 个基础精灵直接用排行榜/详情里的 slug，如 `icons/pokemon/garchomp.png`。
+- 另有 **87 个战斗形态**（Mega、Mega Z、形态转换等），其形态 slug **不在** leaderboard / link / i18n/pokemon 中，要用 `forms.json` 发现，不能自行猜测（形态名不规则，如 `Mega Garchomp Z`、`Aegislash Blade Forme`）。
+
+**forms.json**：只列"含多个形态"的 80 个基础 slug，值是该基础的全部形态（含基础自身），按 slug 排序：
+
+```json
+{
+  "garchomp": [
+    { "slug": "garchomp", "en": "Garchomp" },
+    { "slug": "garchomp-mega", "en": "Mega Garchomp" },
+    { "slug": "garchomp-mega-z", "en": "Mega Garchomp Z" }
+  ],
+  "charizard": [
+    { "slug": "charizard", "en": "Charizard" },
+    { "slug": "charizard-mega-x", "en": "Mega Charizard X" },
+    { "slug": "charizard-mega-y", "en": "Mega Charizard Y" }
+  ]
+}
+```
+
+- `en` 是形态英文显示名；形态的其它语言名当前 i18n 未提供，可用基础精灵名结合图鉴形态名本地化。
+- 用法：详情页用基础 slug 查 `forms.json`，有键则展示形态切换（头像随之换 `icons/pokemon/<形态slug>.png`）；无键即单形态。
+
+**属性图**：18 类，文件名小写（`dragon`、`fairy`、`normal`…）。任一图标 404 都应优雅降级；精灵可回退 `link.json` 取图鉴图片。
 
 ## 缓存建议
 
