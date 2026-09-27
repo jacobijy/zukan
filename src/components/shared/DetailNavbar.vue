@@ -1,5 +1,5 @@
 <template>
-    <view class="det-navbar fixed left-0 right-0 top-0 z-[1000] flex items-center justify-between px-4 pb-3" :style="{ paddingTop: 'var(--status-bar-height)' }">
+    <view class="det-navbar fixed left-0 right-0 top-0 z-[1000] flex items-center justify-between px-4" :style="{ paddingTop: 'var(--status-bar-height)', height: 'calc(var(--status-bar-height) + 52px)' }">
         <button class="det-navbar__btn" @click="handleBack">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                 <path d="M19 12H5"></path>
@@ -7,7 +7,7 @@
             </svg>
         </button>
 
-        <view class="min-w-0 flex-1 px-3 text-center">
+        <view class="flex min-w-0 flex-1 items-center justify-center px-3">
             <text class="block truncate text-lg font-black tracking-[-0.04em] text-[#24262b]">{{ title }}</text>
         </view>
 
