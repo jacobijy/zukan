@@ -14,7 +14,7 @@ VS Code (Remote-SSH)  ──编辑──▶  Linux 192.168.100.100
                                   │ pnpm dev:mp-weixin (watch)
                                   ▼
                             dist/dev/mp-weixin （小，无 node_modules）
-                                  │ Mutagen / rsync（局域网，毫秒~1s）
+                                  │ Mutagen / rsync / SFTP（局域网，毫秒~2s）
                                   ▼
                             Mac 本地目录 ◀── 微信开发者工具监听、自动编译
                                   │
@@ -44,7 +44,7 @@ pnpm dev:mp-weixin
 它会先 `copy-wasm`，然后持续编译到 `dist/dev/mp-weixin`，**保存源码即增量重建**。
 dev 产物不压缩、也不跑 slim（开发者工具开发期不卡 2MB）。
 
-## 二、Mac/Windows 侧：把产物同步到本地（二选一）
+## 二、Mac/Windows 侧：把产物同步到本地（三选一）
 
 ### 方案 A（推荐）：Mutagen，毫秒级实时
 
@@ -81,7 +81,34 @@ bash scripts/remote-debug/pull-mp-weixin.sh
 > 开发者工具经常不自动刷新、扫描也慢。同步成本地真实目录最稳（这也是本方案
 > 与"挂载远端目录"的关键区别）。
 
-## 三、微信开发者工具（Mac 上做一次）
+### 方案 C（Windows 零安装）：系统自带 sftp + robocopy
+
+Windows 10 1809+ / 11 自带 OpenSSH 客户端（`sftp.exe`）和 `robocopy.exe`，
+不用装 Mutagen / rsync / Cygwin。仓库已带 `scripts/remote-debug/pull-mp-weixin.ps1`：
+每轮先用 SFTP 把产物整目录（`get -R`）下载到临时目录，再 `robocopy /MIR` 镜像到
+本地（**含删除同步**）；某轮失败只告警、保留本地上一版并继续重试。
+
+先在 **PowerShell** 里配置免密（Windows 没有 `ssh-copy-id`）：
+
+```powershell
+# 没有密钥先执行：ssh-keygen -t ed25519
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh jacobi@192.168.100.100 "cat >> ~/.ssh/authorized_keys"
+ssh jacobi@192.168.100.100   # 首次连接确认主机指纹，之后脚本才不会卡在指纹交互
+```
+
+然后开始同步：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\remote-debug\pull-mp-weixin.ps1
+```
+
+- 默认每 2s 一轮；可用环境变量改默认：`$env:INTERVAL='1'`、`$env:REMOTE='user@host'`、
+  `$env:REMOTE_DIR='/path'`、`$env:LOCAL_DIR='C:\path'`，非默认密钥路径用
+  `$env:SSH_KEY='C:\path\id_ed25519'`。
+- 延迟约 1–3s，功能等同方案 B，全程不安装第三方软件。**Mac 没必要用**（直接跑 .sh）。
+- 前提：系统「可选功能」里已安装"OpenSSH 客户端"（Win10 1809+ 默认有）。
+
+## 三、微信开发者工具（Mac/Windows 上做一次）
 
 1. **导入本地副本**：项目目录选 `~/zukan-mp-weixin`（不是 Linux 路径、也不是挂载盘）。
 2. **详情 → 本地设置**，勾选：
@@ -113,6 +140,7 @@ bash scripts/remote-debug/pull-mp-weixin.sh
 | 真机连不上后端 | 手机与 Linux 同 Wi-Fi；防火墙放行 8080；后端监听 0.0.0.0 |
 | WASM/解密报错 | dev 构建已 `copy-wasm`；确认 `dist/dev/mp-weixin/static/wasm` 存在 |
 | 同步报 SSH 错 | 配免密密钥；确认地址、`REMOTE_DIR` 路径 |
+| 方案 C 报 sftp/robocopy 错 | 先手动 `ssh` 一次接受主机指纹；确认"OpenSSH 客户端"可选功能已装、公钥已上传；robocopy 退出码 ≥8 时单独跑一次看具体错误 |
 
 ## 可选：进一步自动化（以后再说）
 

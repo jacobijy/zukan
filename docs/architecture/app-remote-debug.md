@@ -19,7 +19,7 @@ VS Code (Remote-SSH)  ──编辑──▶  Linux 192.168.100.100
                                   │ pnpm build:app
                                   ▼
                             dist/build/app（本地打包资源，约 2.6 MiB）
-                                  │ Mutagen / rsync（局域网，毫秒~1s）
+                                  │ Mutagen / rsync / SFTP（局域网，毫秒~2s）
                                   ▼
                             Mac 本地目录 ── 拷贝进离线 SDK 工程 apps/<appid>/
                                   │ Android Studio / Xcode 编译运行
@@ -103,7 +103,7 @@ watchexec -w src --ignore '*/target/*' -e ts,vue,js,css,json,scss pnpm build:app
 while true; do pnpm build:app; sleep 5; done
 ```
 
-## 二、把资源同步到 Mac/Windows（二选一）
+## 二、把资源同步到 Mac/Windows（三选一）
 
 ### 方案 A（推荐）：Mutagen，毫秒级实时
 
@@ -136,6 +136,32 @@ bash scripts/remote-debug/pull-app.sh
 
 > 同微信方案：不建议 sshfs/NFS 挂载后让原生工具直接读，FSE 文件事件不可靠。同步成
 > 本地真实目录最稳。
+
+### 方案 C（Windows 零安装）：系统自带 sftp + robocopy
+
+Windows 10 1809+ / 11 自带 OpenSSH 客户端（`sftp.exe`）和 `robocopy.exe`，
+不用装 Mutagen / rsync / Cygwin。仓库已带 `scripts/remote-debug/pull-app.ps1`：
+每轮先用 SFTP 把资源整目录（`get -R`）下载到临时目录，再 `robocopy /MIR` 镜像到
+本地（**含删除同步**）；某轮失败只告警、保留本地上一版并继续重试。
+
+先在 **PowerShell** 里配免密（Windows 没有 ssh-copy-id）：
+
+```powershell
+# 没有密钥先执行：ssh-keygen -t ed25519
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh jacobi@192.168.100.100 "cat >> ~/.ssh/authorized_keys"
+ssh jacobi@192.168.100.100   # 首次连接确认主机指纹，之后脚本才不会卡在指纹交互
+```
+
+然后开始同步（注意：同步的只是 www 资源，不是 apk/ipa）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\remote-debug\pull-app.ps1
+```
+
+- 默认每 2s 一轮（约 2.6 MiB / 130 个文件，局域网整轮重传开销可忽略）；可用环境变量
+  改默认：`$env:INTERVAL='1'`、`$env:REMOTE='user@host'`、`$env:REMOTE_DIR='/path'`、
+  `$env:LOCAL_DIR='C:\path'`，非默认密钥路径用 `$env:SSH_KEY='C:\path\id_ed25519'`。
+- **Mac 没必要用**（直接跑 .sh）。前提：系统「可选功能」里已装"OpenSSH 客户端"。
 
 ## 三、Mac/Windows 侧：离线 SDK 原生工程消费（一次性配置）
 
@@ -203,6 +229,7 @@ wasm-bindgen 默认的 `new URL('zukan_wasm_bg.wasm', import.meta.url)` 在**运
 | 解密/计算报错（wasm） | 见第四节，真机验证 wasm 加载，必要时加 APP-PLUS 读字节分支 |
 | 改了资源仍是旧的 | 版本号需递增；`control.xml` debug 正式包为 false；对端 Clean/Rebuild |
 | 同步报 SSH 错 | 配免密密钥；确认地址与 `REMOTE_DIR` 路径 |
+| 方案 C 报 sftp/robocopy 错 | 先手动 `ssh` 一次接受主机指纹；确认"OpenSSH 客户端"可选功能已装、公钥已上传；robocopy 退出码 ≥8 时单独跑一次看具体错误 |
 
 ## 发布（对端操作）
 

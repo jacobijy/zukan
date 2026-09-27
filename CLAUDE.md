@@ -186,15 +186,17 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
   `scripts/slim-mp-weixin.mjs` 在 build 后从产物剔除当前不渲染的 s/l。
 - 微信**主包 ≤ 2MB**（按真实字节算，别看 `du`）；发布前需在 `manifest.json` 填
   `mp-weixin.appid`，再用微信开发者工具导入 `dist/build/mp-weixin` 上传。
-- **远程编辑（Linux）+ 另一台 Mac/Windows 调试**：Linux watch 构建，Mutagen/rsync 把
-  `dist/dev/mp-weixin` 同步到 Mac 本地目录，开发者工具导入并监听刷新；源码只在 Linux 一份。
+- **远程编辑（Linux）+ 另一台 Mac/Windows 调试**：Linux watch 构建，Mutagen/rsync/SFTP 把
+  `dist/dev/mp-weixin` 同步到调试主机本地目录（Windows 可用自带 OpenSSH sftp + robocopy 的
+  `scripts/remote-debug/pull-mp-weixin.ps1`，零安装），开发者工具导入并监听刷新；源码只在 Linux 一份。
   见 `docs/architecture/mp-weixin-remote-debug.md`。
 
 ### Android / iOS（App）资源编译与远程调试
 
 拓扑同微信：源码只在 Linux，对端 Mac/Windows 只做调试/打包主机。**Linux 只编译
 「本地打包资源」`pnpm build:app`（`dist/build/app`，一套资源 android/iPhone/iPad 共用），
-不产 apk/ipa、不云打包**；Mutagen/rsync（`scripts/remote-debug/pull-app.sh`）同步后，
+不产 apk/ipa、不云打包**；Mutagen/rsync/SFTP（`pull-app.sh`；Windows 零安装另有
+`scripts/remote-debug/pull-app.ps1`，自带 sftp + robocopy）同步后，
 对端把资源套进**同版本 App 离线 SDK** 原生工程（Android Studio 的 HBuilder-Integrate-AS /
 Xcode 的 HBuilder-Hello，放 `apps/<appid>/`），编译运行调试。三个硬性前置：
 `src/manifest.json` 填真实 DCloud appid/name（appid 由 dev.dcloud.net.cn 或 HBuilderX
