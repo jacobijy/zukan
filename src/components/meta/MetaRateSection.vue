@@ -9,7 +9,7 @@
             <view v-for="(row, i) in rows" :key="i" class="flex items-center gap-2.5">
                 <!-- 道具行：对战自带明文图标（内部 404 回落 bag glyph） -->
                 <BattleItemIcon v-if="kind === 'item' && row.iconName" :name="row.iconName" />
-                <view v-else class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]" :class="glyph.tile">
+                <view v-else-if="kind !== 'move'" class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]" :class="glyph.tile">
                     <!-- 特性：spark -->
                     <svg v-if="kind === 'ability'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
                         <path d="m12 2 2.6 6.5L21 11l-6.4 2.5L12 20l-2.6-6.5L3 11l6.4-2.5L12 2z"></path>
@@ -22,20 +22,19 @@
                     <svg v-else-if="kind === 'nature'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
                         <path d="M11 20A7 7 0 0 1 4 13c0-5 5-9 16-9 0 8-4 16-9 16Z"></path><path d="M4 20c4-5 8-7 11-8"></path>
                     </svg>
-                    <!-- 招式：zap -->
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
-                        <polygon points="13 2.5 4 14 12 14 11 21.5 20 10 12 10 13 2.5"></polygon>
-                    </svg>
                 </view>
 
-                <view class="min-w-0 flex-1">
+                <!-- 招式：名称 / 属性徽章 / 分类 排成一排，垂直居中；h-8 保留原 tile 撑开的行高 -->
+                <view v-if="kind === 'move'" class="flex h-8 min-w-0 flex-1 items-center gap-2">
+                    <text class="min-w-0 truncate text-[13px] font-bold leading-8 text-[#24262b]">{{ row.name }}</text>
+                    <TypeBadge v-if="row.typeSlug" :type="row.typeSlug" size="sm" variant="pill" />
+                    <text v-if="row.category" class="flex-shrink-0 text-[10px] font-bold leading-8 text-[#9aa0ab]">{{ row.category }}</text>
+                </view>
+
+                <!-- 其它分区：名称在上，detail 在下 -->
+                <view v-else class="min-w-0 flex-1">
                     <text class="block truncate text-[13px] font-bold text-[#24262b]">{{ row.name }}</text>
                     <text v-if="row.detail" class="mt-0.5 block text-[11px] font-bold text-[#9aa0ab]">{{ row.detail }}</text>
-                    <!-- 招式：属性徽章 + 分类（查无降级，缺两字段时整行不渲染） -->
-                    <view v-if="kind === 'move' && (row.typeSlug || row.category)" class="mt-1 flex items-center gap-1.5">
-                        <TypeBadge v-if="row.typeSlug" :type="row.typeSlug" size="sm" variant="pill" />
-                        <text v-if="row.category" class="text-[10px] font-bold text-[#9aa0ab]">{{ row.category }}</text>
-                    </view>
                 </view>
 
                 <view class="h-1.5 w-20 flex-shrink-0 overflow-hidden rounded-full bg-[#eef0f5]">
