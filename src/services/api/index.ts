@@ -7,6 +7,7 @@
  */
 export * as authApi from './auth';
 export * as favoritesApi from './favorites';
+export * as teamsApi from './teams';
 
 // 常用 error 类型直接导出，方便 catch 分支 instanceof
 export { AuthApiError } from './auth';
