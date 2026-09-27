@@ -16,10 +16,12 @@
 | UI | [ui/type-icons.md](ui/type-icons.md) | HOME 属性贴纸：type_NN 编号=标准 type id（01–18；19–36 为未用变体）、`typeIconPath`、白底圆形 TypeBadgeIcon vs 文字 TypeBadge，不走加密 |
 | 数据 | [data/bundle-decode.md](data/bundle-decode.md) | FlatBuffers bundle 清单、五表 join、`hasSprite` 资源标记、EVO1 进化树、三套 id 空间与 form 重映射 |
 | 数据 | [data/battle-usage.md](data/battle-usage.md) | Champions 对战使用率：明文 JSON（不加密）、排行榜/单只配置、多语言 i18n、slug→图鉴物种 link、短缓存 |
+| 数据 | [data/teams.md](data/teams.md) | 自建队伍后端保存：登录用户多支命名队伍 CRUD、内容不透明（JSON object ≤32KiB）、限额与错误码 |
 | 数据 | [data/filtering-sort.md](data/filtering-sort.md) | 图鉴筛选/排序、收藏、世代快照语义 |
 | 多语言 | [i18n/i18n-bundle.md](i18n/i18n-bundle.md) | names/flavor 两类 bundle、UI 语言与内容语言、回落策略 |
 | 功能 | [features/calc-engine.md](features/calc-engine.md) | 伤害计算器数据流、slug→id、招式 flags、WASM 硬编码 |
 | 功能 | [features/archive.md](features/archive.md) | 资料中心属性/招式/特性/道具图鉴：列表虚拟化、反查索引、flavor 多表、道具图标 manifest |
+| 功能 | [features/teams.md](features/teams.md) | 自建队伍组队器：我的队伍列表 + 编辑（成员/特性/道具/性格/招式/SP），登录保存、热门配置一键填充 |
 | 加密 | [security/encryption-pipeline.md](security/encryption-pipeline.md) | ZKDX 格式、后端构建分发、前端解密、version 字节双身份、variant 体积对照与回落链、排障（含 dev-only 资源探测器） |
 | 加密 | [security/auth-session.md](security/auth-session.md) | DEK 唯一入口、401 恢复决策树、登录弹层去重 |
 | 缓存 | [caching/resource-cache.md](caching/resource-cache.md) | resourceManager 三层缓存、inflight 去重、版本失效 |
