@@ -27,8 +27,9 @@ export interface ImageKindSpec {
     /**
      * 该种类在服务器上的相对资源路径（`buildCdnUrl` 之前）。
      * pokemon 带 variant 子路径，item 忽略 variant（扁平 `<id>.bin`）。
+     * id 为数字（pokemon/item）或字符串（对战图标，见 battleImage.ts）。
      */
-    remotePath: (id: number, variant: string) => string;
+    remotePath: (id: number | string, variant: string) => string;
 }
 
 const POKEMON: ImageKindSpec = {

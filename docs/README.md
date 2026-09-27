@@ -15,17 +15,17 @@
 | UI | [ui/software-icons.md](ui/software-icons.md) | HOME 作品版本徽章（世代切换用）：22 枚 128px 透明 PNG 静态资源、文件→游戏→世代映射、引用方式，不走加密 |
 | UI | [ui/type-icons.md](ui/type-icons.md) | HOME 属性贴纸：type_NN 编号=标准 type id（01–18；19–36 为未用变体）、`typeIconPath`、白底圆形 TypeBadgeIcon vs 文字 TypeBadge，不走加密 |
 | 数据 | [data/bundle-decode.md](data/bundle-decode.md) | FlatBuffers bundle 清单、五表 join、`hasSprite` 资源标记、EVO1 进化树、三套 id 空间与 form 重映射 |
-| 数据 | [data/battle-usage.md](data/battle-usage.md) | Champions 对战使用率：明文 JSON（不加密）、排行榜/单只配置、多语言 i18n、slug→图鉴物种 link、短缓存 |
+| 数据 | [data/battle-usage.md](data/battle-usage.md) | Champions 对战使用率：明文 JSON 排行榜/单只配置/i18n/link（短缓存）；配套图标 ZKDX 加密、按赛季版本化（登录可见） |
 | 数据 | [data/teams.md](data/teams.md) | 自建队伍后端保存：登录用户多支命名队伍 CRUD、内容不透明（JSON object ≤32KiB）、限额与错误码 |
 | 数据 | [data/filtering-sort.md](data/filtering-sort.md) | 图鉴筛选/排序、收藏、世代快照语义 |
 | 多语言 | [i18n/i18n-bundle.md](i18n/i18n-bundle.md) | names/flavor 两类 bundle、UI 语言与内容语言、回落策略 |
 | 功能 | [features/calc-engine.md](features/calc-engine.md) | 伤害计算器数据流、slug→id、招式 flags、WASM 硬编码 |
 | 功能 | [features/archive.md](features/archive.md) | 资料中心属性/招式/特性/道具图鉴：列表虚拟化、反查索引、flavor 多表、道具图标 manifest |
 | 功能 | [features/teams.md](features/teams.md) | 自建队伍组队器：我的队伍列表 + 编辑（成员/特性/道具/性格/招式/SP），登录保存、热门配置一键填充 |
-| 加密 | [security/encryption-pipeline.md](security/encryption-pipeline.md) | ZKDX 格式、后端构建分发、前端解密、version 字节双身份、variant 体积对照与回落链、排障（含 dev-only 资源探测器） |
+| 加密 | [security/encryption-pipeline.md](security/encryption-pipeline.md) | ZKDX 格式、后端构建分发、前端解密、version 字节双身份、variant 体积对照与回落链、对战图标（§4.6，赛季版本化）、排障（含 dev-only 资源探测器） |
 | 加密 | [security/auth-session.md](security/auth-session.md) | DEK 唯一入口、401 恢复决策树、登录弹层去重 |
 | 缓存 | [caching/resource-cache.md](caching/resource-cache.md) | resourceManager 三层缓存、inflight 去重、版本失效 |
-| 缓存 | [caching/sprite-cache.md](caching/sprite-cache.md) | 加密图片（sprite + 道具图标）：imageCache 三条调度不变量 + imagePersist 四条持久化不变量 + 渐进式两段加载 + 回落落点的按版本记录 |
+| 缓存 | [caching/sprite-cache.md](caching/sprite-cache.md) | 加密图片（sprite + 道具图标）：imageCache 三条调度不变量 + imagePersist 四条持久化不变量 + 渐进式两段加载 + 回落落点记录 + 对战图标（字符串键 / 赛季版本化，待接入） |
 
 > 历史文档保留在 [`archive/`](archive/)，不再维护。包括早期加密方案稿、解密流程稿、
 > 旧架构图、REST/encrypted-assets 归档稿等。需要追溯「当初为什么这么设计」时再翻。

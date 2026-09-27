@@ -6,6 +6,6 @@
  */
 export { rest, RestRequestError } from './request';
 
-export { fetchBinary, BinaryRequestError, buildAssetUrl } from './binaryRequest';
+export { fetchBinary, BinaryRequestError } from './binaryRequest';
 
 export { fetchAssetJson } from './assetRequest';

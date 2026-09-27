@@ -1,16 +1,10 @@
 <template>
     <view
         class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
-        :class="failed ? AMBER_TILE : TRAY"
+        :class="url ? TRAY : AMBER_TILE"
     >
-        <image
-            v-if="!failed"
-            :src="url"
-            class="h-6 w-6"
-            mode="aspectFit"
-            @error="failed = true"
-        />
-        <!-- 无图（404）：与原道具 glyph 同色的背包图标 -->
+        <image v-if="url" :src="url" class="h-6 w-6" mode="aspectFit" @error="failed = true" />
+        <!-- 无图（404）/ 未登录：琥珀背包图标 -->
         <svg
             v-else
             viewBox="0 0 24 24"
@@ -29,31 +23,82 @@
 
 <script lang="ts" setup>
 /**
- * 对战道具图标 —— 用对战数据**自带的明文图标**（`/assets/battle/icons/items/
- * <英文显示名>.png`），不走加密图片通道。契约见 `docs/data/battle-usage.md`「图标」。
+ * 对战道具图标 —— 走对战数据**自带图标的加密通道**（`battleImage.ts`：
+ * `/assets/encrypted/battle/<season>/icons/items/<英文显示名>.bin`）。
+ * 契约见 docs/data/battle-usage.md「图标」。
  *
- * 图标只覆盖对战中实际被持有的道具，取不到（404）时 @error 切到琥珀背包 glyph，
- * 槽位尺寸（32px）不变，不引起行高跳变。
+ * 道具分区条目少，挂载即取（引擎内部限流 4），不接视口懒加载。取不到（404）或
+ * 未登录取消时回落琥珀 bag glyph，槽位 32px 不变，不引起行高跳变。
  */
-import { computed, ref, watch } from 'vue';
-import { battleItemIconUrl } from '@/services/meta';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { acquireBattleIcon, releaseBattleIcon } from '@/services/resources/battleImage';
 
 const props = defineProps<{
     /** 道具英文显示名（= rows item.name） */
     name: string;
 }>();
 
-const url = computed(() => battleItemIconUrl(props.name));
+const url = ref<string | null>(null);
 const failed = ref(false);
 
-// 切换到另一个道具时重新尝试
-watch(
-    () => props.name,
-    () => {
-        failed.value = false;
-    },
-);
+let controller: AbortController | null = null;
+/** 当前已拿到、由本组件持有引用的 key；卸载 / 换名时归还 */
+let heldKey: string | null = null;
+let disposed = false;
 
 const TRAY = 'border border-[rgba(36,38,43,0.06)] bg-gradient-to-b from-white to-[#f2f4f8]';
 const AMBER_TILE = 'bg-gradient-to-br from-[#f6c969] to-[#d98a23]';
+
+function releaseHeld(): void {
+    if (!heldKey) return;
+    const key = heldKey;
+    heldKey = null;
+    void releaseBattleIcon('items', key);
+}
+
+async function load(name: string): Promise<void> {
+    const ac = typeof AbortController === 'function' ? new AbortController() : null;
+    controller = ac;
+    try {
+        const blobUrl = await acquireBattleIcon('items', name, { signal: ac?.signal });
+        if (disposed || name !== props.name) return;
+        // 换名后旧图归还（一般在 watch 里已处理，这里兜底）
+        releaseHeld();
+        heldKey = name;
+        url.value = blobUrl;
+        failed.value = false;
+    } catch (err) {
+        if (disposed || name !== props.name) return;
+        // 404 / 未登录取消 / 解密失败：统一回落背包图标
+        console.warn('[BattleItemIcon] 道具图标不可用', name, err);
+        url.value = null;
+        failed.value = true;
+    } finally {
+        if (controller === ac) controller = null;
+    }
+}
+
+onMounted(() => {
+    void load(props.name);
+});
+
+watch(
+    () => props.name,
+    (next, prev) => {
+        if (next === prev) return;
+        controller?.abort();
+        controller = null;
+        releaseHeld();
+        url.value = null;
+        failed.value = false;
+        void load(next);
+    },
+);
+
+onUnmounted(() => {
+    disposed = true;
+    controller?.abort();
+    controller = null;
+    releaseHeld();
+});
 </script>

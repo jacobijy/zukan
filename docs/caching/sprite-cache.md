@@ -7,6 +7,7 @@
 |------|----------|---------------|------------|
 | 宝可梦立绘 pokemon | `/assets/encrypted/pokemon/<id>/<variant>.bin` | `spriteCache.ts`（**320** 条，约 20–30 MB） | `spritePersist.ts`（前缀 `sprite:`，预算 60 MB） |
 | 道具图标 item | `/assets/encrypted/items/<id>.bin`（扁平、无 variant） | `itemImage.ts`（200 条） | `itemImage.ts`（前缀 `item-img:`，预算 8 MB） |
+| 对战图标 battle（已接入：道具） | `/assets/encrypted/battle/<season>/icons/<cat>/<key>.bin`（**字符串键**、赛季版本化、无 variant） | `battleImage.ts` | 同实例（前缀 `battle-img:s<season>:`） |
 
 > sprite 是 320 而非 200：渐进式加载让一张卡最多占两个 key（低清 preview + 高清），
 > 详见下文「渐进式两段加载」。
@@ -50,6 +51,26 @@
 > 历史教训：缓存曾写在 `EncryptedSprite.vue` 的 `<script setup>` 顶层，编译后落在
 > `setup()` 内部 → 每实例一份空 Map，命中率恒为 0、Blob URL 永不 revoke。跨实例共享的
 > 状态必须放独立 `.ts` 模块（见 [../ui/component-conventions.md](../ui/component-conventions.md)）。
+
+## 对战图标：第三种实例（已接入：道具；精灵 / 属性能力已具备）
+
+对战页的 Champions 图标（精灵 350 / 属性 18 / 道具 159）复用同一引擎，由
+`resources/battleImage.ts` 接线，与前两类有三点差异：
+
+1. **资源键是字符串**：pokemon 用 slug、type 用小写名、item 用英文显示名。引擎的
+   `acquire(id)` 与 `ImageKindSpec.remotePath(id, ...)` 已把键泛化为 `string | number`
+   （id 仅透传 / 拼 key，无算术）；持久化 key、inflight、LRU 都按字符串拼。
+2. **扁平、无 variant、三类合一**：一个 `battle` kind，id 即 `<cat>/<encodeURIComponent(key)>`
+   （cat = `pokemon` / `types` / `items`），variant 传空串，不参与 sprite 的 preview / 回落链。
+3. **赛季版本化 + immutable**：`<season>` 取对战 `meta.json`（`M6`）；引擎 / persist **按赛季
+   建实例**，persist root `battle-img:s<season>:`，换赛季路径与 root 同时变，旧图天然失效，
+   无需 bump DEK 版本；共享索引经 reconcile 清旧赛季孤儿。
+
+- DEK 复用 `getKey()`；未登录拿不到 → 静默降级（数据 JSON / `forms.json` 仍明文可看）。
+- 数据契约见 [../data/battle-usage.md](../data/battle-usage.md)，加密全链路见
+  [../security/encryption-pipeline.md](../security/encryption-pipeline.md) §4.6。
+- 当前 UI 只把**道具**接到该实例（`meta/BattleItemIcon.vue`）；hero / 队友 / 排行榜的精灵
+  仍用图鉴 `EncryptedSprite`（link → 物种 id）。
 
 ## 三条调度不变量（别改坏）
 

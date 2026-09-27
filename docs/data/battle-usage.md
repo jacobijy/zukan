@@ -1,14 +1,16 @@
 # 对战使用率数据（Pokémon Champions）
 
 对战环境的**宝可梦使用率统计**：排名、主流配置（招式/特性/道具/性格/加点/队友）。
-来自第三方数据站对《Pokémon Champions》级别对战的统计，**明文 JSON、不加密、更新频繁**。
+来自第三方数据站对《Pokémon Champions》级别对战的统计。**使用率 JSON 明文、更新频繁；
+配套图标则 ZKDX 加密、按赛季版本化下发**（见下文[图标](#图标精灵--属性--道具)）。
 
 > 当前游戏是 **Pokémon Champions**（赛季 **M6**），不是朱紫（SV）。Champions 用 **Mega 进化**，
 > 没有太晶属性。图鉴的数值/加密 bundle 见 [bundle-decode.md](bundle-decode.md)，那是另一套数据。
 
 ## 总览
 
-- 资源前缀：**`/assets/battle/`**（静态资源，公开、CDN 回源，短缓存）。
+- 数据前缀：**`/assets/battle/`**（明文 JSON，公开、CDN 回源，短缓存）。
+- 图标前缀：**`/assets/encrypted/battle/${season}/icons/`**（ZKDX 密文、immutable，登录才给 DEK）。
 - 精灵标识：**Showdown 风格 slug**（`salamence`、`ninetales-alola`），不是数字 id。
 - 对战格式：`Singles`（单打）/ `Doubles`（双打）。
 - 多语言：9 种（`en, zh-Hans, zh-Hant, ja, de, fr, es, it, ko`）。
@@ -162,30 +164,63 @@ GET /assets/battle/p/<Singles|Doubles>/<slug>.json
 
 ## 图标（精灵 / 属性 / 道具）
 
-对战页可直接使用的一套图标，前缀 **`/assets/battle/icons/`**，与数据同为明文、短缓存：
+对战页的一套图标 **ZKDX 加密、按赛季版本化下发**，解密 DEK 必须登录后获取。赛季 `season`
+来自 `meta.json`（当前 `M6`），密文前缀：
 
-| 类别 | 路径 | 文件名键 | 尺寸 | 数量 |
+```
+/assets/encrypted/battle/${season}/icons/...
+```
+
+| 类别 | 密文路径（相对 icons） | 文件名键 | 尺寸 | 数量 |
 |---|---|---|---|---|
-| 精灵 | `icons/pokemon/<slug>.png` | 精灵 slug（基础或战斗形态） | 128×128 | 350 |
-| 属性 | `icons/types/<type>.png` | 属性英文名**小写** | 64×64 | 18 |
-| 道具 | `icons/items/<name>.png` | 道具**英文显示名** | 40×40 | 159 |
-| 形态清单 | `icons/forms.json` | — | — | 80 基础 |
+| 精灵 | `pokemon/<slug>.bin` | 精灵 slug（基础或战斗形态） | 128×128 | 350 |
+| 属性 | `types/<type>.bin` | 属性英文名**小写** | 64×64 | 18 |
+| 道具 | `items/<name>.bin` | 道具**英文显示名** | 40×40 | 159 |
+| 形态清单 | **明文** `/assets/battle/icons/forms.json` | — | — | 80 基础 |
 
-**道具图**：文件名就是 rows 里 `item.name`（= `i18n/items.json` 的键），可能含空格，直接 URL 编码即可，无需另建映射：
+### 加载与解密（每个图标）
+
+复用图鉴已有的加密图片管线（见 [../security/encryption-pipeline.md](../security/encryption-pipeline.md)
+与 [../caching/sprite-cache.md](../caching/sprite-cache.md)）：
 
 ```
-rows item.name "Garchompite Z"  →  icons/items/Garchompite%20Z.png
-rows item.name "Choice Scarf"   →  icons/items/Choice%20Scarf.png
+1. 取 DEK：getKey()  →  GET /api/v1/zukan/key（需登录，见 ../security/auth-session.md）
+2. 拉密文：GET /assets/encrypted/battle/${season}/icons/<类别>/<键>.bin
+3. 解密：  decryptZukan(bytes, dek)   →  明文 PNG 字节
+4. 显示：  URL.createObjectURL(new Blob([bytes], { type: 'image/png' }))  →  <image :src>
 ```
 
-图标只覆盖对战中实际被持有的 159 个道具；`i18n/items.json` 多出的少数键（关键道具等）可能无图，取不到时降级（仅显示名 / 占位图）。
+- 密文本身**无鉴权**、`immutable` 长缓存（加密即保护）；真正的门槛是登录才下发的 DEK。
+- **未登录**：`getKey()` 触发登录或静默降级（见 auth-session.md），此时图标降级为名字 / 占位，
+  数据 JSON 仍可正常浏览。
+- IDB 持久化**密文**、缓存 key 带 `season`；赛季切换时路径与 key 同时变化，旧图天然失效。
+
+> **引擎接入要点**：现有加密图片引擎的资源标识是 `number`（精灵 / 道具的数字 id）。对战图标用
+> 字符串 slug / 显示名，需把引擎的 key 与远端路径泛化为 `string`，新增一个「扁平、无 variant、
+> 版本化」的对战图标 kind（参考 `src/services/resources/imageKind.ts`、`imageCache.ts`）。
+
+**道具图**：文件名就是 rows 里 `item.name`（= `i18n/items.json` 的键），可能含空格，用
+`encodeURIComponent` 编码，无需另建映射：
+
+```
+rows item.name "Garchompite Z"
+  → /assets/encrypted/battle/M6/icons/items/Garchompite%20Z.bin
+rows item.name "Choice Scarf"
+  → /assets/encrypted/battle/M6/icons/items/Choice%20Scarf.bin
+```
+
+图标只覆盖对战中实际被持有的 159 个道具；`i18n/items.json` 多 7 个 0 出场键（基础树果 /
+薄雾种子 / 脱壳甲）无图，取不到时降级（仅显示名 / 占位图）。
 
 **精灵图**：
 
-- 263 个基础精灵直接用排行榜/详情里的 slug，如 `icons/pokemon/garchomp.png`。
-- 另有 **87 个战斗形态**（Mega、Mega Z、形态转换等），其形态 slug **不在** leaderboard / link / i18n/pokemon 中，要用 `forms.json` 发现，不能自行猜测（形态名不规则，如 `Mega Garchomp Z`、`Aegislash Blade Forme`）。
+- 263 个基础精灵直接用排行榜 / 详情里的 slug。
+- 另有 **87 个战斗形态**（Mega、Mega Z、形态转换等），其形态 slug **不在** leaderboard /
+  link / i18n/pokemon 中，要用 `forms.json` 发现，不能自行猜测（形态名不规则，如
+  `Mega Garchomp Z`、`Aegislash Blade Forme`）。
 
-**forms.json**：只列"含多个形态"的 80 个基础 slug，值是该基础的全部形态（含基础自身），按 slug 排序：
+**forms.json**（明文）：只列“含多个形态”的 80 个基础 slug，值是该基础的全部形态（含基础
+自身），按 slug 排序：
 
 ```json
 {
@@ -203,16 +238,19 @@ rows item.name "Choice Scarf"   →  icons/items/Choice%20Scarf.png
 ```
 
 - `en` 是形态英文显示名；形态的其它语言名当前 i18n 未提供，可用基础精灵名结合图鉴形态名本地化。
-- 用法：详情页用基础 slug 查 `forms.json`，有键则展示形态切换（头像随之换 `icons/pokemon/<形态slug>.png`）；无键即单形态。
+- 用法：详情页用基础 slug 查 `forms.json`，有键则展示形态切换（头像随之换密文
+  `pokemon/<形态slug>.bin`）；无键即单形态。
 
-**属性图**：18 类，文件名小写（`dragon`、`fairy`、`normal`…）。任一图标 404 都应优雅降级；精灵可回退 `link.json` 取图鉴图片。
+**属性图**：18 类，文件名小写（`dragon`、`fairy`、`normal`…）。任一图标 404 都应优雅降级；
+登录用户可经 `link.json` 回退图鉴的加密精灵图（图鉴图同样需登录取 DEK）。
 
 ## 缓存建议
 
-更新频繁，**不要 immutable**：
+更新频繁，**数据 JSON 不要 immutable；图标相反——immutable + 按赛季版本化**（见上文图标小节）：
 
 | 资源 | 建议 |
 |---|---|
+| 图标 `icons/{pokemon,types,items}/*.bin` | `immutable`（赛季路径版本化，更新换 URL，旧图自动失效） |
 | `meta.json` | 短缓存（如数分钟）或 `no-cache`，用它探新版本 |
 | `leaderboard.json` / `link.json` / `i18n/*` | 短缓存（数十分钟）；按 `meta.dataVersion` 主动失效 |
 | `p/<格式>/<slug>` | 可较长，但用 `dataVersion` 作版本键失效 |
@@ -225,4 +263,5 @@ rows item.name "Choice Scarf"   →  icons/items/Choice%20Scarf.png
 - Champions 内部怪兽编号**不对齐全国图鉴**，关联一律以 `link.json` 为准，不要自行用内部序号。
 - 个别形态（Maushold 三只/四只、Vivillon 花纹）在源数据标注不规范：物种名与 `link` 始终准确，
   仅 `i18n/pokemon.form` 可能省略。
-- 该数据为明文公开，**不涉及 DEK/加密**；鉴权与加密文档见 [../security/](../security/)。
+- **数据 JSON 明文公开；图标 ZKDX 加密、登录后才下发 DEK**；鉴权与加密全链路见
+  [../security/encryption-pipeline.md](../security/encryption-pipeline.md)。

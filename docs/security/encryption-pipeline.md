@@ -321,6 +321,28 @@ du -sch */versions 2>/dev/null | tail -1
 > （旧表 `1=pretty-wing`，实际 `pretty-wing` 是 612、`1` 是 `master-ball`）。现已改为 `items.csv`
 > 真实 id。若本地缓存里有旧编号道具图，属错误命名，清缓存即可。
 
+### 4.6 对战图标（`/assets/encrypted/battle/<season>/icons/`）
+
+对战使用率页的 Champions 图标走 **ZKDX 加密 + 按赛季版本化**，与上文图鉴图标共用同一
+DEK / ZKDX / WASM，但**文件名键是字符串**（slug / 显示名），不是数字 id。构建由
+`tools/battledata/icons.py` 归集、`make encrypt-battle` 加密。
+
+| 类别 | 远端路径 | 文件名键 | 数量 | 尺寸 |
+|------|----------|-----------|------|------|
+| 精灵 | `…/battle/<season>/icons/pokemon/<slug>.bin` | Showdown slug（基础 + 87 战斗形态） | 350 | 128 |
+| 属性 | `…/icons/types/<type>.bin` | 属性英文名**小写** | 18 | 64 |
+| 道具 | `…/icons/items/<name>.bin` | 道具**英文显示名**（= rows `item.name`，含空格，`encodeURIComponent`） | 159 | 40 |
+| 形态清单 | **明文** `/assets/battle/icons/forms.json` | baseSlug → `[{slug, en}]` | 80 基础 | — |
+
+- **版本化 + immutable**：`<season>` 取对战 `meta.json` 的 `season`（如 `M6`）；图标只在赛季
+  更新 / 新增精灵时变，故走 `/assets/encrypted` 的 `immutable`，换赛季即换路径、天然失效。
+  **不**用每日变化的 `dataVersion`（否则缓存天天作废）。
+- **登录可见**：密文无鉴权可拉（加密即保护），但 DEK 仅登录后 `/zukan/key` 下发；未登录拿不到
+  DEK → 图标静默降级（数据 JSON / forms.json 仍明文可看）。
+- 与图鉴道具图标（§4.5，PokeAPI 数字 id）的区别：这套是**扁平、字符串键、版本化**；前端加密
+  图片引擎需把资源标识从 `number` 泛化到 `string`。完整用法见
+  [../data/battle-usage.md](../data/battle-usage.md)。
+
 ## 5. 三套 id 空间
 
 图/数据排查核心，详见 [../data/bundle-decode.md](../data/bundle-decode.md)。一句话：
@@ -466,6 +488,7 @@ memory LRU 里塞条目，可能挤掉 app 正在用的 bundle —— 浏览一�
 | 改缓存调度 / 引用计数 | 跑 `pnpm test`（spriteCache/spritePersist）；别破坏 caching 文档里的不变量 |
 | 补齐某个 id 的立绘资源 | 无需前端改动：本地可用性记录只在按记录直取仍 404 时才生效并自动丢弃；版本号 bump 后整表失效 |
 | 接 CDN 签名 | 后端 `/zukan/key` 响应加 `cdn` 对象；前端 `buildCdnUrl` 已就绪 |
+| 新增 / 更新**对战图标**（赛季） | ① 需要时先跑 `tmp/champions` 图标提取链路 ② `python3 tools/battledata/icons.py`（归集 + 生成 `forms.json` + 清明文 PNG）③ `make encrypt-battle` → `encrypted-assets/battle/<season>/` ④ 前端加密图片引擎 key 泛化为字符串、按 `meta.season` 拼版本化 URL ⑤ 本文 4.6；数据契约见 [../data/battle-usage.md](../data/battle-usage.md) |
 
 每次改完必跑：`pnpm type-check`、`pnpm test`、`pnpm dev:h5` 移动端 UA curl 改动页确认 200；
 动了 scoped CSS / CSS 变量绑定额外拉编译产物核对。
@@ -481,8 +504,10 @@ memory LRU 里塞条目，可能挤掉 app 正在用的 bundle —— 浏览一�
 `src/composables/useEncryptedImage.ts`、
 `src/services/devtools/{enabled,assetProbe,textBrowse}.ts`（dev-only 工具，见 6.0 / 6.0.1）、
 `src/infra/storage/binaryStorage.ts`、`src/services/pokemon/pokemon.ts`、
-`src/components/sprite/EncryptedSprite.vue`、`src/services/boot.ts`。
+`src/components/sprite/EncryptedSprite.vue`、`src/services/boot.ts`、
+`src/services/resources/{imageKind,itemImage}.ts`（对战图标字符串 kind 的扩展参考）。
 
 **后端（zukan-server）**：加密 CLI `encrypt-fb.rs`/`encrypt-assets.rs`、
 `crates/wasm-crypto/src/lib.rs`、`features/assets/routes.rs`、
-`features/zukan/{handler,service,dto}.rs`、`config.rs`、`tools/sync-{fb,i18n}.py`。
+`features/zukan/{handler,service,dto}.rs`、`config.rs`、`tools/sync-{fb,i18n}.py`、
+`Makefile`（`encrypt-battle` 目标）、`tools/battledata/icons.py`（对战图标归集 / 赛季版本化）。

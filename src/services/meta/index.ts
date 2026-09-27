@@ -19,5 +19,4 @@ export { capFormat, toRateRows, toSpreadRows, toTeammateNames } from './adapter'
 export { toBattleLang, statKeyByEnglish, type BattleLang } from './battleLang';
 export { ensureDict, entryForm, entryName, type BattleDict, type BattleDictCategory } from './battleDict';
 export { loadBattleMeta, loadLeaderboardSlugs, loadLinkMap, loadPokemonConfig } from './service';
-export { battleItemIconUrl } from './icons';
 export { ensureMoveRefs, resolveMoveMeta, buildMoveMetaIndex, normalize, type MoveMetaLookup } from './moveRefs';

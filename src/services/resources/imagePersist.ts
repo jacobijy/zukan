@@ -60,12 +60,12 @@ interface ImageIndex {
 export interface ImagePersist {
     /** key 前缀（不含版本），跨版本清理按此圈定范围 */
     readonly root: string;
-    storageKey: (id: number, variant: string) => string;
-    loadBytes: (id: number, variant: string) => Promise<Uint8Array | null>;
+    storageKey: (id: number | string, variant: string) => string;
+    loadBytes: (id: number | string, variant: string) => Promise<Uint8Array | null>;
     /** **必须传密文**，不是解密后的图片 */
-    saveBytes: (id: number, variant: string, encrypted: Uint8Array) => Promise<void>;
+    saveBytes: (id: number | string, variant: string, encrypted: Uint8Array) => Promise<void>;
     /** 删除单条缓存（解密失败时调用 —— 盘上那份可能是旧 DEK 加密的） */
-    dropBytes: (id: number, variant: string) => Promise<void>;
+    dropBytes: (id: number | string, variant: string) => Promise<void>;
     /** 清理除 `keepVersion` 外所有版本的密文与索引（版本升级时调用） */
     pruneVersions: (keepVersion: number) => Promise<void>;
     stats: () => { enabled: boolean; entries: number; bytes: number; maxBytes: number };
@@ -93,7 +93,7 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
     let flushTimer: ReturnType<typeof setTimeout> | null = null;
     let reconciled = false;
 
-    function storageKey(id: number, variant: string): string {
+    function storageKey(id: number | string, variant: string): string {
         // 前缀（root）已区隔种类，key 内不再带目录名 —— 保持 pokemon 的
         // `sprite:v<ver>:<id>/<variant>` 格式与历史缓存一致。
         return `${root}v${currentDataVersion()}:${id}${variant ? `/${variant}` : ''}`;
@@ -209,7 +209,7 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
      * 索引里有但盘上没有时把索引项删掉 —— 那是上次「写数据失败但索引写成功」
      * 或用户手动清了 IDB 留下的幽灵项。
      */
-    async function loadBytes(id: number, variant: string): Promise<Uint8Array | null> {
+    async function loadBytes(id: number | string, variant: string): Promise<Uint8Array | null> {
         if (!isIdbBackend()) return null;
         reconcile();
 
@@ -236,7 +236,7 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
      *
      * 失败静默：持久化是纯优化，写不进去下次重下就好，不该影响当前这张图的显示。
      */
-    async function saveBytes(id: number, variant: string, encrypted: Uint8Array): Promise<void> {
+    async function saveBytes(id: number | string, variant: string, encrypted: Uint8Array): Promise<void> {
         if (!isIdbBackend()) return;
 
         const key = storageKey(id, variant);
@@ -267,7 +267,7 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
      * 删除单条缓存。`imageCache` 在解密失败时调用 ——
      * 盘上那份可能是旧 DEK 加密的，留着会让每次刷新都重复一次「解密失败 → 重下」。
      */
-    async function dropBytes(id: number, variant: string): Promise<void> {
+    async function dropBytes(id: number | string, variant: string): Promise<void> {
         if (!isIdbBackend()) return;
 
         const key = storageKey(id, variant);

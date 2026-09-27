@@ -85,7 +85,8 @@ interface CacheEntry {
 
 interface Job {
     key: string;
-    id: number;
+    /** 数字 id（pokemon/item）或字符串键（对战图标）；仅透传 / 拼 key，无算术 */
+    id: number | string;
     variant: string;
     /** 出队优先级，越大越先跑；同 key 多调用方取 max（见 `acquire`） */
     priority: number;
@@ -115,11 +116,11 @@ export interface ImageAcquireOptions {
 }
 
 export interface ImageCache {
-    cacheKey: (id: number, variant: string) => string;
+    cacheKey: (id: number | string, variant: string) => string;
     /** 取得图片 Blob URL 并登记一次引用；调用方必须在不用时 `release` */
-    acquire: (id: number, variant: string, options?: ImageAcquireOptions) => Promise<string>;
+    acquire: (id: number | string, variant: string, options?: ImageAcquireOptions) => Promise<string>;
     /** 释放一次引用（归零后条目仍留缓存，真正 revoke 发生在 LRU 淘汰时） */
-    release: (id: number, variant: string) => void;
+    release: (id: number | string, variant: string) => void;
     /** 清空内存缓存并撤销所有 URL（登出 / DEK 轮换）；不动磁盘密文 */
     clear: () => void;
     /** 供测试与排障 */
@@ -161,8 +162,9 @@ export function createImageCache(
     /** 本帧是否已安排过批次自增 */
     let batchScheduled = false;
 
-    function cacheKey(id: number, variant: string): string {
-        return `${kind}:${id}/${variant}`;
+    function cacheKey(id: number | string, variant: string): string {
+        // 扁平种类（item / battle）variant 为空：不带尾斜杠；pokemon 保留 `<id>/<variant>`
+        return `${kind}:${id}${variant ? `/${variant}` : ''}`;
     }
 
     /**
@@ -211,7 +213,7 @@ export function createImageCache(
      * CDN 403（签名过期）时清 key 重签重下一次 —— 与 `resourceManager.fetchDecrypted`
      * 同一策略。
      */
-    async function fetchBytes(id: number, variant: string, signal?: AbortSignal): Promise<Uint8Array> {
+    async function fetchBytes(id: number | string, variant: string, signal?: AbortSignal): Promise<Uint8Array> {
         // 存储读取与「WASM + 密钥」并发启动 —— 三者互不依赖，串行会白等一个 IDB 往返。
         const storedPromise = persist.loadBytes(id, variant).catch(() => null);
 
@@ -302,7 +304,7 @@ export function createImageCache(
      * 建任务并入队。闸门（gate promise）在 `pump()` 放行前不 resolve，
      * 因此排队中取消时 `fetchBytes` 根本不会被调用。
      */
-    function createJob(key: string, id: number, variant: string, priority: number): Job {
+    function createJob(key: string, id: number | string, variant: string, priority: number): Job {
         let releaseGate!: () => void;
         let cancelGate!: () => void;
         const gate = new Promise<void>((resolve, reject) => {
@@ -361,7 +363,11 @@ export function createImageCache(
         return job;
     }
 
-    async function acquire(id: number, variant: string, acquireOptions: ImageAcquireOptions = {}): Promise<string> {
+    async function acquire(
+        id: number | string,
+        variant: string,
+        acquireOptions: ImageAcquireOptions = {},
+    ): Promise<string> {
         const key = cacheKey(id, variant);
 
         // 命中缓存不入队 —— 槽位全忙时也应立刻返回
@@ -447,7 +453,7 @@ export function createImageCache(
         }
     }
 
-    function release(id: number, variant: string): void {
+    function release(id: number | string, variant: string): void {
         const entry = cache.get(cacheKey(id, variant));
         if (entry && entry.refs > 0) entry.refs -= 1;
     }
