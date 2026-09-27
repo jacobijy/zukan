@@ -31,6 +31,11 @@
                 <view class="min-w-0 flex-1">
                     <text class="block truncate text-[13px] font-bold text-[#24262b]">{{ row.name }}</text>
                     <text v-if="row.detail" class="mt-0.5 block text-[11px] font-bold text-[#9aa0ab]">{{ row.detail }}</text>
+                    <!-- 招式：属性徽章 + 分类（查无降级，缺两字段时整行不渲染） -->
+                    <view v-if="kind === 'move' && (row.typeSlug || row.category)" class="mt-1 flex items-center gap-1.5">
+                        <TypeBadge v-if="row.typeSlug" :type="row.typeSlug" size="sm" variant="pill" />
+                        <text v-if="row.category" class="text-[10px] font-bold text-[#9aa0ab]">{{ row.category }}</text>
+                    </view>
                 </view>
 
                 <view class="h-1.5 w-20 flex-shrink-0 overflow-hidden rounded-full bg-[#eef0f5]">
@@ -49,6 +54,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BattleItemIcon from '@/components/meta/BattleItemIcon.vue';
+import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import type { RateRowVM } from '@/services/meta';
 
 const props = defineProps<{

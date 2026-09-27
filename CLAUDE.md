@@ -260,7 +260,8 @@ src/components/
              DamageResultCard、CalcSideCard、StatInputRow
   sprite/    图片加载：EncryptedSprite（宝可梦立绘，走加密图片通道）
   meta/      对战数据：FormatSwitch（单人/双人分段）、UsageRankingRow（排行榜行）、
-             MetaRateSection（招式/道具/特性/性格选用率）、BattleItemIcon（道具行
+             MetaRateSection（招式/道具/特性/性格选用率；招式行经 moveRefs 反查显示
+             属性徽章 + 物理/特殊/变化）、BattleItemIcon（道具行
              明文自带图标，404 回落 bag glyph）、
              SpreadSection（SP 加点分布）、TeammateSection（常见队友）
   teams/     自建队伍：MemberPicker（全屏物种/形态选择）、MemberCard（成员内联编辑，

@@ -119,6 +119,10 @@ export interface RateRowVM {
     barWidth: number;
     /** 道具行的英文显示名（= rows item.name），用于拼对战自带明文图标 URL；非道具行缺省 */
     iconName?: string;
+    /** 招式行的属性 slug（如 'water'），供 TypeBadge；查无 / 非招式行缺省 */
+    typeSlug?: string;
+    /** 招式行已翻译的分类名（物理 / 特殊 / 变化）；非招式行缺省 */
+    category?: string;
     /** 性格行的副信息：`↑Attack ↓Sp. Atk`（已翻译） */
     detail?: string;
 }

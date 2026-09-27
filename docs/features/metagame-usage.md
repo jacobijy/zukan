@@ -34,6 +34,13 @@
 URL 编码，无需映射）；图标只覆盖对战中实际被持有的道具，404（`@error`）时回落琥珀
 bag glyph。槽位 32px，与其它分区行高一致。
 
+**招式行的属性 / 分类**：招式名下方显示属性徽章（`pokemon/TypeBadge`，按招式属性配色）+
+分类名（物理 / 特殊 / 变化）。这两个字段不在对战数据里，由 `services/meta/moveRefs.ts`
+用**英文名称表**把 rows 的 `move.name` 反查成图鉴 move id，再 join MDAT 招式列表
+（`loadMoveList` 的 typeId / damageClassId；分类名经 i18n 名称 lookup 翻译）。规范化（小写 /
+去空格标点）后实测 835 个招式键命中 833，仅 `Vise Grip`（PokeAPI 拼 Vice Grip）、
+`Nihil Light`（Champions 新招）查无 → 该行不显示徽章。该分区非虚拟列表，行高略增。
+
 hero：精灵图（link 映射 speciesId）+ 名 + 格式 / 赛季胶囊。空组自动隐藏。
 
 ## 数据流
@@ -47,5 +54,8 @@ hero：精灵图（link 映射 speciesId）+ 名 + 格式 / 赛季胶囊。空�
 - 纯转换：`services/meta/adapter.ts`（按 rank、相对 barWidth、spread 取整钳制、缺组 []）。
 - 道具图标 URL：`services/meta/icons.ts::battleItemIconUrl` —— 纯函数，复用 http
   `buildAssetUrl` 并对英文显示名 `encodeURIComponent`；明文图标不经加密 / DEK 通道。
+- 招式属性 / 分类反查：`services/meta/moveRefs.ts` —— 动态 import en 名称表 + `loadMoveList`，
+  `buildMoveMetaIndex`（纯函数）建「英文招式名（规范化）→ typeId / damageClassId」索引，
+  module 单例；页面 `loadAll` 末尾 `ensureMoveRefs`，失败不阻塞（招式行不显示徽章）。
 
 上游约每日刷新：后续可先用 `loadBattleMeta().dataVersion` 比对，变化后丢弃 service 缓存重拉。

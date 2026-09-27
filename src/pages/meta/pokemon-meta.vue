@@ -55,12 +55,15 @@ import MetaRateSection from '@/components/meta/MetaRateSection.vue';
 import SpreadSection from '@/components/meta/SpreadSection.vue';
 import TeammateSection from '@/components/meta/TeammateSection.vue';
 import { useI18nStore } from '@/store/i18n';
+import { typeStrs } from '@/utils/helpers';
 import {
     ensureDict,
+    ensureMoveRefs,
     entryName,
     loadBattleMeta,
     loadLinkMap,
     loadPokemonConfig,
+    resolveMoveMeta,
     statKeyByEnglish,
     toBattleLang,
     toRateRows,
@@ -109,6 +112,10 @@ async function loadAll(): Promise<void> {
         linkMap.value = links;
         meta.value = metaJson;
         dicts.value = Object.fromEntries(cats.map((c, i) => [c, dictList[i]]));
+        // 名称 lookup（招式分类名翻译依赖）；通常 boot 已就绪
+        await i18nStore.ensureLoaded().catch((err) => console.warn('[meta] 名称组不可用', err));
+        // 招式属性 / 分类反查表；失败不阻塞，招式行不显示徽章
+        await ensureMoveRefs().catch((err) => console.warn('[meta] 招式反查表不可用', err));
     } catch (err) {
         console.warn('[meta] 对战配置加载失败', err);
     } finally {
@@ -151,7 +158,21 @@ const itemRows = computed<RateRowVM[]>(() => {
         iconName: r.name,
     }));
 });
-const moveRows = computed(() => translatedRate(config.value?.moves ?? [], 'moves'));
+const moveRows = computed<RateRowVM[]>(() => {
+    const dict = dicts.value.moves;
+    return toRateRows(config.value?.moves ?? []).map((r) => {
+        const moveMeta = resolveMoveMeta(r.name);
+        return {
+            name: entryName(dict?.[r.name], lang.value, r.name),
+            pct: r.pct,
+            barWidth: r.barWidth,
+            typeSlug: moveMeta ? (typeStrs[moveMeta.typeId] ?? 'normal') : undefined,
+            category: moveMeta?.damageClassId
+                ? (i18nStore.moveDamageClassName(moveMeta.damageClassId) ?? undefined)
+                : undefined,
+        };
+    });
+});
 
 const natureRows = computed<RateRowVM[]>(() => {
     const dict = dicts.value.natures;
