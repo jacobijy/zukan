@@ -18,7 +18,7 @@
  * 返回的状态交给组件渲染：`blobUrl` 有值显示图片；`loading` 为真显示骨架；
  * 两者都否（`failed`）显示组件自己的兜底图 / 占位盒。
  */
-import { ref, onMounted, onUnmounted, watch, type Ref } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted, watch, getCurrentInstance, type Ref } from 'vue';
 import { acquireSprite, releaseSprite } from '@/services/resources/spriteCache';
 import { acquireItemIcon, releaseItemIcon } from '@/services/resources/itemImage';
 import { isImageAbortError } from '@/services/resources/imageCache';
@@ -43,6 +43,14 @@ export interface EncryptedImageState {
     wrapperRef: Ref<unknown>;
 }
 
+// 视口观察能力：H5 用标准 IntersectionObserver；微信小程序用
+// uni.createIntersectionObserver；两者都没有才退化为立即加载。
+const supportsIntersectionObserver = typeof IntersectionObserver !== 'undefined';
+const supportsWxIntersectionObserver =
+    !supportsIntersectionObserver &&
+    typeof uni !== 'undefined' &&
+    typeof uni.createIntersectionObserver === 'function';
+
 interface UseEncryptedImageOptions {
     kind: ImageKind;
     /** 资源 id（pokemonId / itemId），响应式 */
@@ -59,6 +67,8 @@ interface UseEncryptedImageOptions {
     skip?: () => boolean;
     /** 日志前缀，便于排障 */
     logTag?: string;
+    /** 微信视口观察用的根节点 selector（关联组件实例后只在组件内查找，故根节点的静态 class 即可，如 '.sprite-wrapper'） */
+    rootSelector?: string;
 }
 
 function acquire(
@@ -89,6 +99,7 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
         preview: getPreview,
         chain: getChain,
         skip: getSkip,
+        rootSelector,
         logTag = 'EncryptedImage',
     } = options;
 
@@ -99,6 +110,9 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
     const loading = ref(true);
     const failed = ref(false);
     const wrapperRef = ref<unknown>(null);
+    // 组件实例须在 setup 同步期捕获：startWxObserving 经 nextTick 异步执行，
+    // 那时再调 getCurrentInstance() 会返回 null
+    const currentInstance = getCurrentInstance();
 
     /**
      * 当前**由本 composable 持有**引用的图。
@@ -109,7 +123,8 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
      * `loadSpriteChain` 返回的那一刻单向移交给这里。
      */
     let held: { id: number; variant: string } | null = null;
-    let observer: IntersectionObserver | null = null;
+    // H5 IntersectionObserver 与微信 uni observer 的 observe 签名不同，统一按 any 持有
+    let observer: any = null;
     /** 组件已卸载：异步回来后不要再写 ref，也要立刻归还引用 */
     let disposed = false;
     /** 在途请求的取消句柄；null 表示当前没有在跑 */
@@ -244,11 +259,37 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
         return el instanceof HTMLElement ? el : null;
     }
 
+    /** 微信小程序：uni.createIntersectionObserver 按 selector 观察根元素 */
+    function startWxObserving(): void {
+        const ob = uni.createIntersectionObserver(currentInstance?.proxy ?? (currentInstance as any), {
+            thresholds: [0, 0.01],
+        });
+        // 提前 200px 起跑，滚动时看不到骨架
+        ob.relativeToViewport({ top: 200, bottom: 200 });
+        if (!rootSelector) throw new Error('微信视口观察需要 rootSelector');
+        ob.observe(rootSelector, (res) => {
+            if (res.intersectionRatio > 0) {
+                if (blobUrl.value || controller) return;
+                void load(getId(), curVariant());
+            } else {
+                // 划走且还没下完 —— 让出槽位
+                abortInflight();
+            }
+        });
+        observer = ob;
+    }
+
     function startObserving(): void {
+        // 微信小程序 IntersectionObserver（按 selector，需等节点就绪）
+        if (supportsWxIntersectionObserver) {
+            void nextTick(() => startWxObserving());
+            return;
+        }
+
         const el = resolveEl();
 
-        // 小程序 / 老浏览器没有 IntersectionObserver：退化为立即加载
-        if (!el || typeof IntersectionObserver === 'undefined') {
+        // 老浏览器 / 无任何观察能力：退化为立即加载
+        if (!el || !supportsIntersectionObserver) {
             void load(getId(), curVariant());
             return;
         }
@@ -292,7 +333,7 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
             // 已在观察中的话让新的一轮接管
             observer?.disconnect();
             observer = null;
-            if (isEager() || typeof IntersectionObserver === 'undefined') {
+            if (isEager()) {
                 void load(nextId, nextVariant);
             } else {
                 startObserving();

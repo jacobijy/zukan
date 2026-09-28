@@ -5,24 +5,22 @@
  * 所有函数名与 Rust 源码中 `#[wasm_bindgen(js_name = ...)]` 保持一致（camelCase）。
  */
 
+import * as wasmModule from './pkg/zukan_wasm';
 import type { BatchDamageResult as BatchDamageResultWasm } from './pkg/zukan_wasm';
 
-// 模块状态
-let wasmModule: typeof import('./pkg/zukan_wasm') | null = null;
+// 模块状态：glue 静态引入（mp-weixin 下编译为 require；动态 import() 在该平台会被
+// 错编成 `await "字符串"` 而失效），wasmReady 标记 init（含 wasm 字节实例化）完成。
+let wasmReady = false;
 let initPromise: Promise<void> | null = null;
 
 // #ifdef MP-WEIXIN
 /**
  * 小程序包内 wasm 的位置（由 scripts/copy-wasm.mjs 从 pkg 拷入 src/static）。
- * wasm-bindgen 默认的 `new URL(..., import.meta.url)` + fetch / instantiateStreaming
- * 在微信小程序都不可用，所以运行时从代码包读字节，交给 __wbg_init 走
- * `WebAssembly.instantiate(bytes)` 分支。
+ * 微信没有标准 WebAssembly 全局、改用 WXWebAssembly，其 instantiate 第一参直接是
+ * 代码包内 .wasm 的路径字符串（不读字节、不 fetch）。故 initWasm 直接传该路径，
+ * glue 已由 vite 插件 adaptWasmToWx 改造成走 WXWebAssembly.instantiate(path)。
  */
 const WASM_PACKAGE_PATH = '/static/wasm/zukan_wasm_bg.wasm';
-
-function readMpWasmBytes(): ArrayBuffer {
-    return uni.getFileSystemManager().readFileSync(WASM_PACKAGE_PATH) as ArrayBuffer;
-}
 // #endif
 
 /**
@@ -30,18 +28,17 @@ function readMpWasmBytes(): ArrayBuffer {
  * 仅需调用一次，可安全重复调用
  */
 export async function initWasm(): Promise<void> {
-    if (wasmModule) return;
+    if (wasmReady) return;
     if (initPromise) return initPromise;
 
     initPromise = (async () => {
-        const module = await import('./pkg/zukan_wasm');
         // #ifdef MP-WEIXIN
-        await module.default(readMpWasmBytes());
+        await wasmModule.default(WASM_PACKAGE_PATH);
         // #endif
         // #ifndef MP-WEIXIN
-        await module.default();
+        await wasmModule.default();
         // #endif
-        wasmModule = module;
+        wasmReady = true;
         console.log('✅ WASM module initialized');
     })();
 
@@ -52,7 +49,7 @@ export async function initWasm(): Promise<void> {
  * 检查 WASM 模块是否已初始化
  */
 export function isWasmReady(): boolean {
-    return wasmModule !== null;
+    return wasmReady;
 }
 
 // ============== 图鉴二进制文件加解密 API ==============
@@ -272,7 +269,7 @@ export function getNatureMod(natureId: number): [number, number, number, number,
 // ============== 工具函数 ==============
 
 function assertWasmReady(): void {
-    if (!wasmModule) {
+    if (!wasmReady) {
         throw new Error('WASM module not initialized. Call initWasm() first.');
     }
 }

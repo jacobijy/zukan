@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { raf } from '@/utils/raf';
 
 const TAB_SLIDE_FROM_KEY = 'tab_indicator_from'
 
@@ -147,7 +148,7 @@ onMounted(() => {
     // 先无动画定位到来源格，再滑到目标格（仅一次）
     indicatorIndex.value = fromIndex
     nextTick(() => {
-      requestAnimationFrame(() => {
+      raf(() => {
         enableTransition.value = true
         indicatorIndex.value = targetIndex
       })
@@ -156,7 +157,7 @@ onMounted(() => {
     // 刷新或直接打开：无动画，直接落位
     indicatorIndex.value = targetIndex
     nextTick(() => {
-      requestAnimationFrame(() => {
+      raf(() => {
         enableTransition.value = true
       })
     })

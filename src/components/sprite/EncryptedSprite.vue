@@ -83,6 +83,7 @@ const { blobUrl, loading, failed, wrapperRef } = useEncryptedImage({
   preview: () => (typeof props.preview === 'string' ? props.preview : props.preview ? SPRITE_PREVIEW : null),
   chain: () => chain.value,
   skip: () => props.hasSprite === false,
+  rootSelector: '.sprite-wrapper',
   logTag: 'EncryptedSprite',
 })
 </script>

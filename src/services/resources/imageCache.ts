@@ -63,6 +63,7 @@ import { fetchBinary, BinaryRequestError } from '@/services/http';
 import { buildCdnUrl } from '@/services/resources/cdn';
 import { sniffImageMime } from '@/services/resources/imageMime';
 import type { ImageKindSpec } from '@/services/resources/imageKind';
+import { createImageObjectUrl, releaseImageObjectUrl } from '@/services/resources/objectUrl';
 import type { ImagePersist } from '@/services/resources/imagePersist';
 
 /** 调用方取消导致的中止。正常路径，调用方不该当失败处理（别显示占位图）。 */
@@ -201,7 +202,7 @@ export function createImageCache(
             if (cache.size <= maxEntries) break;
             if (entry.refs > 0) continue;
             cache.delete(key);
-            URL.revokeObjectURL(entry.url);
+            releaseImageObjectUrl(entry.url);
         }
     }
 
@@ -335,7 +336,7 @@ export function createImageCache(
                     // SVG，而浏览器对 SVG **不做内容嗅探** —— 标成 image/png 就一律
                     // 不渲染，整条链其它环节都对也只能得到一张裂图（见 `imageMime.ts`）。
                     const type = sniffImageMime(bytes) ?? spec.mime;
-                    const url = URL.createObjectURL(new Blob([bytes], { type }));
+                    const url = await createImageObjectUrl(spec.persistRoot, key, bytes, type);
 
                     // 条目在这里就登记（refs: 0）。若等到 acquire 的 await 之后再建，
                     // 所有调用方都已放弃时这个 URL 就进不了 cache，永远无人 revoke。
@@ -466,7 +467,7 @@ export function createImageCache(
      */
     function clear(): void {
         for (const entry of cache.values()) {
-            URL.revokeObjectURL(entry.url);
+            releaseImageObjectUrl(entry.url);
         }
         cache.clear();
 

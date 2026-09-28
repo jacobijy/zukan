@@ -59,6 +59,7 @@ const { blobUrl, loading, wrapperRef } = useEncryptedImage({
     kind: 'item',
     id: () => props.id,
     eager: () => props.eager,
+    rootSelector: '.item-tile',
     logTag: 'ItemIcon',
 });
 

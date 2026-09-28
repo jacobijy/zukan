@@ -57,6 +57,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { computeVirtualWindow } from '@/utils/virtualWindow';
+import { raf, cancelRaf } from '@/utils/raf';
 
 interface Props {
   /** 完整数据（不是分页后的切片） */
@@ -206,7 +207,7 @@ function onScroll(): void {
   if (!scroller) return
   // rAF 节流：虚拟滚动要跟手，不能用 debounce（会在滚动中留白）
   if (rafId != null) return
-  rafId = requestAnimationFrame(() => {
+  rafId = raf(() => {
     rafId = null
     scrollTop.value = scroller.scrollTop
   })
@@ -244,7 +245,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
-  if (rafId != null) cancelAnimationFrame(rafId)
+  if (rafId != null) cancelRaf(rafId)
   rafId = null
   resizeObserver?.disconnect()
   resizeObserver = null
