@@ -28,10 +28,15 @@
                         class="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full bg-[#eaf2ff] px-3 text-xs font-extrabold text-[#357df4] transition-transform active:scale-95"
                         @click="resetFilters"
                     >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5">
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[14px]">{{ glyph('refresh-ccw') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg data-ic="refresh-ccw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5">
                             <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
                             <path d="M3 3v5h5"></path>
                         </svg>
+                        <!-- #endif -->
                         <text>{{ t('archive.reset') }}</text>
                     </view>
                 </view>
@@ -60,6 +65,7 @@
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
 import ArchiveListShell from '@/components/archive/ArchiveListShell.vue';
 import FilterChipButton from '@/components/archive/FilterChipButton.vue';
 import MoveRow from '@/components/archive/MoveRow.vue';

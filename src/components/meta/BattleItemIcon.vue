@@ -5,8 +5,16 @@
     >
         <image v-if="url" :src="url" class="h-6 w-6" mode="aspectFit" @error="failed = true" />
         <!-- 无图（404）/ 未登录：琥珀背包图标 -->
+        <!-- #ifdef MP-WEIXIN -->
+        <text
+            v-else
+            class="ic text-[16px] text-white"
+        >{{ glyph('bag') }}</text>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
         <svg
             v-else
+            data-ic="bag"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -18,6 +26,7 @@
             <path d="M6 7h12l1 13H5L6 7z"></path>
             <path d="M9 7a3 3 0 0 1 6 0"></path>
         </svg>
+        <!-- #endif -->
     </view>
 </template>
 
@@ -31,6 +40,7 @@
  * 未登录取消时回落琥珀 bag glyph，槽位 32px 不变，不引起行高跳变。
  */
 import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { glyph } from '@/components/icon/glyphs';
 import { acquireBattleIcon, releaseBattleIcon } from '@/services/resources/battleImage';
 
 const props = defineProps<{

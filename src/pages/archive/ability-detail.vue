@@ -10,7 +10,12 @@
                 <!-- 头部：名称 -->
                 <view class="glass-panel flex items-center gap-4 px-5 py-5">
                     <view class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#9a86f4] to-[#4b32a6] text-white shadow-[0_10px_20px_rgba(75,50,166,0.25)]">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="m12 2 2.6 6.5L21 11l-6.4 2.5L12 20l-2.6-6.5L3 11l6.4-2.5L12 2z"></path></svg>
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[24px]">{{ glyph('sparkle') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg data-ic="sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="m12 2 2.6 6.5L21 11l-6.4 2.5L12 20l-2.6-6.5L3 11l6.4-2.5L12 2z"></path></svg>
+                        <!-- #endif -->
                     </view>
                     <view class="min-w-0">
                         <text class="block truncate text-xl font-black tracking-[-0.02em] text-[#24262b]">{{ name }}</text>
@@ -32,6 +37,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { onLoad } from '@dcloudio/uni-app';
+import { glyph } from '@/components/icon/glyphs';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import FlavorTextCard from '@/components/archive/FlavorTextCard.vue';
 import PokemonMiniList from '@/components/archive/PokemonMiniList.vue';

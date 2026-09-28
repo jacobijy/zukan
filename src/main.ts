@@ -1,4 +1,7 @@
 import '@/static/styles/global.css';
+// #ifdef MP-WEIXIN
+import '@/static/styles/icons.css';
+// #endif
 import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue';
 import { createPinia } from 'pinia';
 import { createSSRApp } from 'vue';

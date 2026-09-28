@@ -4,10 +4,15 @@
         <view class="calc-head" @click="$emit('select-pokemon')">
             <view class="calc-head__icon" :class="iconClass">
                 <slot name="icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[16px]">{{ glyph('focus') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg data-ic="focus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                         <circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle>
                         <path d="M12 4v3M12 17v3M4 12h3M17 12h3"></path>
                     </svg>
+                    <!-- #endif -->
                 </slot>
             </view>
             <text class="calc-head__title">{{ title }}</text>
@@ -31,7 +36,12 @@
                     </view>
                 </template>
                 <text v-else class="calc-head__placeholder">{{ placeholderText }}</text>
+                <!-- #ifdef MP-WEIXIN -->
+                <text class="ic calc-head__chevron text-[16px] text-[#b0b5bf]">{{ glyph('chevron-left') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
                 <svg
+                    data-ic="chevron-left"
                     class="calc-head__chevron"
                     viewBox="0 0 24 24"
                     fill="none"
@@ -40,8 +50,9 @@
                     stroke-linecap="round"
                     stroke-linejoin="round"
                 >
-                    <polyline points="9 6 15 12 9 18"></polyline>
+                    <path d="m9 6 6 6-6 6"></path>
                 </svg>
+                <!-- #endif -->
             </view>
         </view>
 
@@ -92,6 +103,7 @@
 
 <script lang="ts" setup>
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
+import { glyph } from '@/components/icon/glyphs';
 import { calcStat, getBaseStat, type StatKey } from '@/pages/statcalc/statcalc-engine';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';

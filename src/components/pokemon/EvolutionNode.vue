@@ -19,9 +19,14 @@
                 class="flex items-center gap-2"
             >
                 <view class="flex w-16 shrink-0 flex-col items-center gap-0.5">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-[#9da2ad]">
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[20px] text-[#9da2ad]">{{ glyph('chevron-right') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-right" class="h-5 w-5 text-[#9da2ad]">
                         <path d="m9 18 6-6-6-6"></path>
                     </svg>
+                    <!-- #endif -->
                     <text v-if="edgeLabel(child)" class="text-center text-[10px] font-bold leading-tight text-[#8d929c]">{{ edgeLabel(child) }}</text>
                 </view>
                 <EvolutionNode :stage="child" />
@@ -31,6 +36,7 @@
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 
 const props = defineProps<{

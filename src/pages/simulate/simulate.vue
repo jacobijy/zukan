@@ -12,9 +12,14 @@
                     <view class="team-slots">
                         <view v-for="i in 3" :key="`mine-${i}`" class="team-slot" @click="noop">
                             <view class="team-slot__portrait">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                                <!-- #ifdef MP-WEIXIN -->
+                                <text class="ic text-[20px]">{{ glyph('plus') }}</text>
+                                <!-- #endif -->
+                                <!-- #ifndef MP-WEIXIN -->
+                                <svg data-ic="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                                     <path d="M12 5v14M5 12h14"></path>
                                 </svg>
+                                <!-- #endif -->
                             </view>
                             <text class="team-slot__name">{{ t('simulate.emptySlot') }}</text>
                         </view>
@@ -29,9 +34,14 @@
                     <view class="team-slots">
                         <view v-for="i in 3" :key="`foe-${i}`" class="team-slot" @click="noop">
                             <view class="team-slot__portrait">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                                <!-- #ifdef MP-WEIXIN -->
+                                <text class="ic text-[20px]">{{ glyph('plus') }}</text>
+                                <!-- #endif -->
+                                <!-- #ifndef MP-WEIXIN -->
+                                <svg data-ic="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                                     <path d="M12 5v14M5 12h14"></path>
                                 </svg>
+                                <!-- #endif -->
                             </view>
                             <text class="team-slot__name">{{ t('simulate.emptySlot') }}</text>
                         </view>
@@ -53,11 +63,16 @@
 
                 <view class="log-card">
                     <view class="log-empty">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-7 w-7">
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[28px]">{{ glyph('file-lines') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg data-ic="file-lines" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-7 w-7">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                             <polyline points="14 2 14 8 20 8"></polyline>
                             <path d="M8 13h8M8 17h5"></path>
                         </svg>
+                        <!-- #endif -->
                         <text class="log-empty__text">{{ t('simulate.notStarted') }}</text>
                     </view>
                 </view>
@@ -74,6 +89,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { glyph } from '@/components/icon/glyphs';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import LevelStepper from '@/components/calc/LevelStepper.vue';
 

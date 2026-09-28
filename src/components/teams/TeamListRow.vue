@@ -2,27 +2,42 @@
     <view class="team-list-row">
         <view class="team-list-row__main" @click="emit('select')">
             <view class="team-list-row__icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                <!-- #ifdef MP-WEIXIN -->
+                <text class="ic text-[20px]">{{ glyph('users') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
+                <svg data-ic="users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                     <circle cx="9" cy="7" r="4"></circle>
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
+                <!-- #endif -->
             </view>
             <view class="team-list-row__text">
                 <text class="team-list-row__name">{{ name }}</text>
                 <text class="team-list-row__time">{{ updatedText }}</text>
             </view>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="team-list-row__chevron h-4 w-4">
+            <!-- #ifdef MP-WEIXIN -->
+            <text class="ic team-list-row__chevron text-[16px]">{{ glyph('chevron-right') }}</text>
+            <!-- #endif -->
+            <!-- #ifndef MP-WEIXIN -->
+            <svg data-ic="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="team-list-row__chevron h-4 w-4">
                 <path d="m9 18 6-6-6-6"></path>
             </svg>
+            <!-- #endif -->
         </view>
         <view class="team-list-row__menu" @click.stop="emit('menu')">
-            <svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
+            <!-- #ifdef MP-WEIXIN -->
+            <text class="ic text-[20px]">{{ glyph('more-vertical') }}</text>
+            <!-- #endif -->
+            <!-- #ifndef MP-WEIXIN -->
+            <svg data-ic="more-vertical" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
                 <circle cx="12" cy="5" r="1.8"></circle>
                 <circle cx="12" cy="12" r="1.8"></circle>
                 <circle cx="12" cy="19" r="1.8"></circle>
             </svg>
+            <!-- #endif -->
         </view>
     </view>
 </template>
@@ -30,6 +45,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import type { TeamSummary } from '@/services/api/teams';
+import { glyph } from '@/components/icon/glyphs';
 
 const props = defineProps<{ team: TeamSummary }>();
 const emit = defineEmits<{

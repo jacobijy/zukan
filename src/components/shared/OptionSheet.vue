@@ -39,18 +39,26 @@
             </view>
 
             <view v-if="searchable" class="relative mb-1 flex shrink-0 items-center px-1 pt-2">
+                <!-- #ifdef MP-WEIXIN -->
+                <text
+                    class="ic pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[17px] text-[#9da2ad]"
+                >{{ glyph('search') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
                 <svg
+                    data-ic="search"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2.2"
+                    stroke-width="2.5"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     class="pointer-events-none absolute left-4 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-[#9da2ad]"
                 >
-                    <circle cx="11" cy="11" r="7"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
                 </svg>
+                <!-- #endif -->
                 <input
                     :value="query"
                     @input="onQueryInput"
@@ -64,7 +72,12 @@
                     class="absolute right-3 top-1/2 flex h-[24px] w-[24px] -translate-y-1/2 items-center justify-center rounded-full bg-[#c4c7cf] p-0 text-white [&::after]:border-none active:scale-90"
                     @click="query = ''"
                 >
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[12px]">{{ glyph('x') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
                     <svg
+                        data-ic="x"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -76,6 +89,7 @@
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
+                    <!-- #endif -->
                 </button>
             </view>
 
@@ -96,8 +110,16 @@
                     </view>
 
                     <view v-if="opt.id === loadingId" class="sheet-spinner"></view>
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text
+                        v-else-if="isSelected(opt.id)"
+                        class="ic sheet-check text-[22px]"
+                    >{{ glyph('check') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
                     <svg
                         v-else-if="isSelected(opt.id)"
+                        data-ic="check"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -106,8 +128,9 @@
                         stroke-linejoin="round"
                         class="sheet-check"
                     >
-                        <polyline points="20 6 9 17 4 12"></polyline>
+                        <path d="m9 18 6-6-6-6"></path>
                     </svg>
+                    <!-- #endif -->
                 </view>
 
                 <view v-if="visibleOptions.length === 0" class="sheet-empty">
@@ -125,6 +148,7 @@
 
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
 
 export interface SheetOption {

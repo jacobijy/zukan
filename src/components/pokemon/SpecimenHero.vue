@@ -19,18 +19,28 @@
 
         <view v-if="formCount > 1" class="specimen-hero__form-switch">
             <button class="form-switch__arrow" @click="$emit('switch-form', -1)" :aria-label="t('specimen.prevForm')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                    <polyline points="15 6 9 12 15 18"></polyline>
+                <!-- #ifdef MP-WEIXIN -->
+                <text class="ic text-[20px]">{{ glyph('chevron-left') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-left" class="h-5 w-5">
+                    <path d="m9 6 6 6-6 6"></path>
                 </svg>
+                <!-- #endif -->
             </button>
             <view class="form-switch__label">
                 <text class="form-switch__form-name">{{ currentFormLabel }}</text>
                 <text class="form-switch__form-index">{{ formIndex + 1 }} / {{ formCount }}</text>
             </view>
             <button class="form-switch__arrow" @click="$emit('switch-form', 1)" :aria-label="t('specimen.nextForm')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                    <polyline points="9 6 15 12 9 18"></polyline>
+                <!-- #ifdef MP-WEIXIN -->
+                <text class="ic text-[20px]">{{ glyph('chevron-right') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-right" class="h-5 w-5">
+                    <path d="m9 18 6-6-6-6"></path>
                 </svg>
+                <!-- #endif -->
             </button>
         </view>
 
@@ -58,6 +68,7 @@
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 import ShinyToggle from '@/components/pokemon/ShinyToggle.vue';

@@ -19,13 +19,19 @@
             </view>
         </view>
 
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="rank-chevron h-4 w-4">
+        <!-- #ifdef MP-WEIXIN -->
+        <text class="ic rank-chevron text-[16px]">{{ glyph('chevron-right') }}</text>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
+        <svg data-ic="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="rank-chevron h-4 w-4">
             <path d="m9 18 6-6-6-6"></path>
         </svg>
+        <!-- #endif -->
     </view>
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 
 defineProps<{

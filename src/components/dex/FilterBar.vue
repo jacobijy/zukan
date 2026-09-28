@@ -26,9 +26,14 @@
         <text class="text-sm font-semibold text-[#6f7480] tracking-wide">{{ t('dex.filter.sortBy') }}</text>
         <button class="filter-panel-btn w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#f5f6fa] border border-[#e1e4eb] rounded-[20px] text-sm font-semibold text-[#24262b] cursor-pointer transition-all duration-300 shadow-[inset_0_1px_0_#ffffff,0_2px_6px_rgba(48,55,72,0.06)] active:scale-[0.98]" @click="toggleSortDropdown">
           <text>{{ currentSort.label }}</text>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-[#8d929c] transition-transform duration-200" :class="showSortDropdown ? 'rotate-180' : ''">
-            <polyline points="6 9 12 15 18 9"></polyline>
+          <!-- #ifdef MP-WEIXIN -->
+          <text class="ic text-[16px] text-[#8d929c]">{{ glyph('chevron-down') }}</text>
+          <!-- #endif -->
+          <!-- #ifndef MP-WEIXIN -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-down" class="w-4 h-4 text-[#8d929c] transition-transform duration-200" :class="showSortDropdown ? 'rotate-180' : ''">
+            <path d="m6 9 6 6 6-6"></path>
           </svg>
+          <!-- #endif -->
         </button>
         <view v-if="showSortDropdown" class="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-[0_12px_28px_rgba(48,55,72,0.12)] border border-[#e5e7ee] overflow-hidden z-[1000]">
           <view
@@ -39,23 +44,34 @@
             @click="selectSort(option)"
           >
             <text class="text-sm font-semibold">{{ option.label }}</text>
-            <svg v-if="currentSort.value === option.value" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-[#357df4]">
-              <polyline points="20 6 9 17 4 12"></polyline>
+            <!-- #ifdef MP-WEIXIN -->
+            <text v-if="currentSort.value === option.value" class="ic text-[16px] text-[#357df4]">{{ glyph('check') }}</text>
+            <!-- #endif -->
+            <!-- #ifndef MP-WEIXIN -->
+            <svg v-if="currentSort.value === option.value" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" data-ic="check" class="w-4 h-4 text-[#357df4]">
+              <path d="m9 18 6-6-6-6"></path>
             </svg>
+            <!-- #endif -->
           </view>
         </view>
       </view>
     </view>
 
     <button class="filter-panel-btn absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 w-9 h-16 rounded-l-full bg-[linear-gradient(135deg,#73b7ff,#357df4)] shadow-[-4px_0_16px_rgba(53,125,244,0.24)] flex items-center justify-start pl-2 active:scale-95 transition-all" @click="closeFilterPanel">
-      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-        <polyline points="15 18 9 12 15 6"></polyline>
+      <!-- #ifdef MP-WEIXIN -->
+      <text class="ic text-[16px] text-white">{{ glyph('chevron-right') }}</text>
+      <!-- #endif -->
+      <!-- #ifndef MP-WEIXIN -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-right" class="w-4 h-4">
+        <path d="m9 18 6-6-6-6"></path>
       </svg>
+      <!-- #endif -->
     </button>
   </view>
 </template>
 
 <script setup lang="ts">
+import { glyph } from '@/components/icon/glyphs'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ALL_TYPE_SLUGS, getTypeGradient, getTypeName } from '@/constants/pokemonTypes'

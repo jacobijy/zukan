@@ -8,25 +8,37 @@
             @input="onInput"
         />
         <view class="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#8d929c] sm:left-4 sm:h-5 sm:w-5">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full">
+            <!-- #ifdef MP-WEIXIN -->
+            <text class="ic text-[18px] sm:text-[20px]">{{ glyph('search') }}</text>
+            <!-- #endif -->
+            <!-- #ifndef MP-WEIXIN -->
+            <svg data-ic="search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full">
                 <circle cx="11" cy="11" r="8"></circle>
                 <path d="m21 21-4.35-4.35"></path>
             </svg>
+            <!-- #endif -->
         </view>
         <view
             v-if="modelValue"
             class="absolute right-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 cursor-pointer text-[#90997f] sm:right-4 sm:h-5 sm:w-5"
             @click="emit('update:modelValue', '')"
         >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full">
+            <!-- #ifdef MP-WEIXIN -->
+            <text class="ic text-[18px] sm:text-[20px]">{{ glyph('x') }}</text>
+            <!-- #endif -->
+            <!-- #ifndef MP-WEIXIN -->
+            <svg data-ic="x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-full w-full">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
+            <!-- #endif -->
         </view>
     </view>
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
+
 interface Props {
     /** 搜索词（v-model） */
     modelValue: string;

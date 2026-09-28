@@ -4,13 +4,20 @@
         :class="{ 'detail-icon-button--active': active }"
         @click="$emit('toggle')"
     >
+        <!-- #ifdef MP-WEIXIN -->
+        <text class="ic text-[20px]">{{ glyph(active ? 'star-fill' : 'star') }}</text>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
         <svg viewBox="0 0 24 24" :fill="active ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
             <polygon points="12 2.8 14.9 8.7 21.4 9.65 16.7 14.25 17.8 20.75 12 17.68 6.2 20.75 7.3 14.25 2.6 9.65 9.1 8.7 12 2.8"></polygon>
         </svg>
+        <!-- #endif -->
     </button>
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
+
 defineProps<{
     active: boolean;
 }>();

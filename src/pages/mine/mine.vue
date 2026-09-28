@@ -28,18 +28,38 @@
                 @click="onMenuTap(item)"
             >
                 <template #icon>
-                    <svg v-if="item.icon === 'settings'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text v-if="item.icon === 'settings'" class="ic text-[24px]">{{ glyph('settings') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg v-if="item.icon === 'settings'" data-ic="settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                         <circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.08-1l2.08-1.6-2-3.46-2.45.98a7.6 7.6 0 0 0-1.72-1L14.5 3h-5l-.33 2.92a7.6 7.6 0 0 0-1.72 1L5 5.94l-2 3.46L5.08 11a7 7 0 0 0 0 2L3 14.6l2 3.46 2.45-.98a7.6 7.6 0 0 0 1.72 1L9.5 21h5l.33-2.92a7.6 7.6 0 0 0 1.72-1l2.45.98 2-3.46L18.92 13c.05-.33.08-.66.08-1z"></path>
                     </svg>
+                    <!-- #endif -->
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text v-else-if="item.icon === 'star'" class="ic text-[24px]">{{ glyph('star-fill') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
                     <svg v-else-if="item.icon === 'star'" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                         <polygon points="12 2.8 14.9 8.7 21.4 9.65 16.7 14.25 17.8 20.75 12 17.68 6.2 20.75 7.3 14.25 2.6 9.65 9.1 8.7 12 2.8"></polygon>
                     </svg>
-                    <svg v-else-if="item.icon === 'wrench'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                    <!-- #endif -->
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text v-else-if="item.icon === 'wrench'" class="ic text-[24px]">{{ glyph('edit') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg v-else-if="item.icon === 'wrench'" data-ic="edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                         <path d="M14.7 6.3a4 4 0 0 0 5 5l-9.4 9.4a2.8 2.8 0 0 1-4-4L15.7 7.3"></path><path d="M14.7 6.3 17.5 3.5"></path>
                     </svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                    <!-- #endif -->
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text v-else class="ic text-[24px]">{{ glyph('clock') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg v-else data-ic="clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                         <circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.2 2"></path>
                     </svg>
+                    <!-- #endif -->
                 </template>
                 <template #meta>
                     <text v-if="item.count !== undefined" class="mine-row__count">{{ item.count }}</text>
@@ -87,6 +107,7 @@ import { useI18n } from 'vue-i18n';
 import { LANGUAGES, UI_LANGUAGES, resolveContentLang, resolveUiLocale } from '@/services/i18n/languages';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
+import { glyph } from '@/components/icon/glyphs';
 
 const pokemonStore = usePokemonStore();
 const { favorites } = storeToRefs(pokemonStore);

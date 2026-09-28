@@ -6,8 +6,17 @@
     >
         <image v-if="blobUrl" :src="blobUrl" class="item-tile__img" :class="imgClass" mode="aspectFit" />
         <!-- 无资源 / 加载失败：中性包裹 glyph（与成品同槽，不跳变） -->
+        <!-- #ifdef MP-WEIXIN -->
+        <text
+            v-else-if="!loading"
+            class="ic item-tile__glyph"
+            :class="size === 'lg' ? 'text-[48px]' : 'text-[20px]'"
+        >{{ glyph('package') }}</text>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
         <svg
             v-else-if="!loading"
+            data-ic="package"
             class="item-tile__glyph"
             :class="glyphClass"
             viewBox="0 0 24 24"
@@ -23,11 +32,13 @@
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
         </svg>
+        <!-- #endif -->
         <!-- 加载中：空槽，槽面自身走 shimmer（见 .item-tile--loading） -->
     </view>
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
 /**
  * 道具图标加载器 —— 走加密资源通道。
  *

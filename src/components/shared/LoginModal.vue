@@ -18,10 +18,15 @@
         <view class="login-modal" @click.stop>
             <!-- 关闭按钮 -->
             <view class="login-modal__close" @click="close">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                <!-- #ifdef MP-WEIXIN -->
+                <text class="ic text-[16px]">{{ glyph('x') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
+                <svg data-ic="x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
+                <!-- #endif -->
             </view>
 
             <!-- 顶部品牌 -->
@@ -95,27 +100,40 @@
                             maxlength="128"
                         />
                         <view class="login-field__suffix" @click="showPassword = !showPassword">
-                            <svg v-if="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                            <!-- #ifdef MP-WEIXIN -->
+                            <text v-if="showPassword" class="ic text-[16px]">{{ glyph('eye') }}</text>
+                            <text v-else class="ic text-[16px]">{{ glyph('eye-off') }}</text>
+                            <!-- #endif -->
+                            <!-- #ifndef MP-WEIXIN -->
+                            <svg v-if="showPassword" data-ic="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                 <circle cx="12" cy="12" r="3"></circle>
                             </svg>
-                            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                            <!-- #endif -->
+                            <!-- #ifndef MP-WEIXIN -->
+                            <svg v-else data-ic="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                                 <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.77 19.77 0 0 1 4.22-5.94"></path>
                                 <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a19.77 19.77 0 0 1-3.17 4.19"></path>
                                 <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
                                 <line x1="1" y1="1" x2="23" y2="23"></line>
                             </svg>
+                            <!-- #endif -->
                         </view>
                     </view>
                 </view>
 
                 <!-- 错误提示 -->
                 <view v-if="errorMsg" class="login-modal__error">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic shrink-0 text-[16px]">{{ glyph('info') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg data-ic="info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0">
+                        <path d="M12 8h.01"></path>
+                        <path d="M11 12h1v4h1"></path>
+                        <circle cx="12" cy="12" r="9"></circle>
                     </svg>
+                    <!-- #endif -->
                     <text>{{ errorMsg }}</text>
                 </view>
 
@@ -151,6 +169,7 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref, watch } from 'vue';
+import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
 import { authApi, AuthApiError } from '@/services/api';
 import PokeballLogo from '@/components/shared/PokeballLogo.vue';

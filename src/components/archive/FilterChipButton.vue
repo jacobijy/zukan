@@ -2,26 +2,38 @@
     <button class="filter-chip" :class="{ 'filter-chip--active': active }" @click="emit('click')">
         <!-- 类型筛选：属性色圆点；分类筛选：漏斗图标 -->
         <span v-if="dotColor" class="filter-chip__dot" :style="{ background: dotColor }"></span>
+        <!-- #ifdef MP-WEIXIN -->
+        <text v-else class="ic text-[14px]">{{ glyph('filter') }}</text>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
         <svg
             v-else
+            data-ic="filter"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="2.4"
+            stroke-width="2.6"
             stroke-linecap="round"
             stroke-linejoin="round"
             class="h-3.5 w-3.5"
         >
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
         </svg>
+        <!-- #endif -->
         <text class="filter-chip__label">{{ label }}</text>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5 opacity-60">
+        <!-- #ifdef MP-WEIXIN -->
+        <text class="ic text-[14px] opacity-60">{{ glyph('chevron-down') }}</text>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
+        <svg data-ic="chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5 opacity-60">
             <path d="m6 9 6 6 6-6"></path>
         </svg>
+        <!-- #endif -->
     </button>
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
 defineProps<{
     label: string;
     active: boolean;

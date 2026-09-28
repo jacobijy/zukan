@@ -3,9 +3,14 @@
         <view class="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
             <view class="flex items-center gap-2">
                 <view class="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#d99b00] shadow-[inset_0_1px_0_#ffffff]">
-                    <svg viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[20px]">{{ glyph('bookmark-fill') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg viewBox="0 0 24 24" fill="currentColor" data-ic="bookmark-fill" class="h-5 w-5">
                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                     </svg>
+                    <!-- #endif -->
                 </view>
                 <view>
                     <text class="block text-sm font-black text-[#4c3506]">{{ t('dex.banner.title') }}</text>
@@ -18,6 +23,7 @@
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 defineProps<{ count: number }>();

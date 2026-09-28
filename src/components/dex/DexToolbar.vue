@@ -15,18 +15,29 @@
                     :class="favoritesActive ? 'icon-tool-button--favorite-active' : ''"
                     @click="emit('toggle-favorites')"
                 >
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[21px]">{{ glyph(favoritesActive ? 'star-fill' : 'star') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
                     <svg viewBox="0 0 24 24" :fill="favoritesActive ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon-tool-button__svg icon-tool-button__svg--star">
                         <polygon points="12 2.8 14.9 8.7 21.4 9.65 16.7 14.25 17.8 20.75 12 17.68 6.2 20.75 7.3 14.25 2.6 9.65 9.1 8.7 12 2.8"></polygon>
                     </svg>
+                    <!-- #endif -->
                 </button>
 
                 <button class="icon-tool-button panel-button" @click="emit('update:collapsed', !collapsed)">
-                    <svg v-if="collapsed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="icon-tool-button__svg icon-tool-button__svg--arrow">
-                        <path d="M7 10.5 12 15.5 17 10.5"></path>
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text v-if="collapsed" class="ic text-[20px]">{{ glyph('chevron-down') }}</text>
+                    <text v-else class="ic text-[20px]">{{ glyph('chevron-up') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg v-if="collapsed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-down" class="icon-tool-button__svg icon-tool-button__svg--arrow">
+                        <path d="m6 9 6 6 6-6"></path>
                     </svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="icon-tool-button__svg icon-tool-button__svg--arrow">
-                        <path d="M7 13.5 12 8.5 17 13.5"></path>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-up" class="icon-tool-button__svg icon-tool-button__svg--arrow">
+                        <path d="m6 15 6-6 6 6"></path>
                     </svg>
+                    <!-- #endif -->
                 </button>
             </view>
 
@@ -45,10 +56,15 @@
                         :class="generationPanelOpen ? 'filter-stack__button--active-green' : ''"
                         @click="emit('toggle-generation')"
                     >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="filter-stack__icon">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[14px]">{{ glyph('clock') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" data-ic="clock" class="filter-stack__icon">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M12 7v5l3.2 2"></path>
                         </svg>
+                        <!-- #endif -->
                         <text class="filter-stack__text">{{ generationLabel }}</text>
                         <view v-if="generationActive" class="pill-dot"></view>
                     </button>
@@ -58,9 +74,14 @@
                         :class="typeFilterOpen ? 'filter-stack__button--active-red' : ''"
                         @click="emit('toggle-type-filter')"
                     >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="filter-stack__icon">
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[14px]">{{ glyph('filter') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="filter" class="filter-stack__icon">
                             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                         </svg>
+                        <!-- #endif -->
                         <text class="filter-stack__text">{{ t('dex.typeFilter') }}</text>
                         <view v-if="typeFilterActive" class="pill-dot"></view>
                     </button>
@@ -71,6 +92,7 @@
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
 import SearchBar from '@/components/shared/SearchBar.vue';
 const { t } = useI18n();

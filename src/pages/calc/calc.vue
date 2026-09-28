@@ -59,7 +59,12 @@
                 <!-- 招式 -->
                 <CalcCard :title="t('calc.move')" iconClass="calc-head__icon--violet">
                     <template #icon>
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[16px]">{{ glyph('zap-bolt') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
                         <svg
+                            data-ic="zap-bolt"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -70,6 +75,7 @@
                         >
                             <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"></path>
                         </svg>
+                        <!-- #endif -->
                     </template>
                     <view class="calc-row p-3" @click="showMovePicker">
                         <view v-if="!selectedMove" class="calc-row__main items-center">
@@ -94,24 +100,35 @@
                                 </view>
                             </view>
                         </view>
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic h-5 w-5 flex-shrink-0 text-[20px] text-[#c4c7cf]">{{ glyph('chevron-right') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
                         <svg
+                            data-ic="chevron-right"
                             viewBox="0 0 24 24"
                             fill="none"
-                            stroke="#c4c7cf"
-                            stroke-width="2"
+                            stroke="currentColor"
+                            stroke-width="2.6"
                             stroke-linecap="round"
                             stroke-linejoin="round"
                             class="h-5 w-5 flex-shrink-0"
                         >
-                            <polyline points="9 18 15 12 9 6"></polyline>
+                            <path d="m9 18 6-6-6-6"></path>
                         </svg>
+                        <!-- #endif -->
                     </view>
                 </CalcCard>
 
                 <!-- 战场条件 -->
                 <CalcCard :title="t('calc.field')" iconClass="calc-head__icon--gold">
                     <template #icon>
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[16px]">{{ glyph('cloud') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
                         <svg
+                            data-ic="cloud"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -122,6 +139,7 @@
                         >
                             <path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.7 1.5A4 4 0 0 0 6 19z"></path>
                         </svg>
+                        <!-- #endif -->
                     </template>
 
                     <ChipRow :label="t('calc.weather')" :options="WEATHER_OPTIONS" v-model="selectedWeather" nowrap />
@@ -186,6 +204,7 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { glyph } from '@/components/icon/glyphs';
 import { calcDamage, type CalcResult, type CalcParams } from './calc-engine';
 import { calcStat, getBaseStat } from '@/pages/statcalc/statcalc-engine';
 import { usePokemonStore } from '@/store/pokemon';

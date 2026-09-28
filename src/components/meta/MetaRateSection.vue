@@ -11,17 +11,24 @@
                 <BattleItemIcon v-if="kind === 'item' && row.iconName" :name="row.iconName" />
                 <view v-else-if="kind !== 'move'" class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]" :class="glyph.tile">
                     <!-- 特性：spark -->
-                    <svg v-if="kind === 'ability'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text v-if="kind === 'ability'" class="ic text-[16px] text-white">{{ iconGlyph('sparkle') }}</text>
+                    <text v-else-if="kind === 'item'" class="ic text-[16px] text-white">{{ iconGlyph('bag') }}</text>
+                    <text v-else-if="kind === 'nature'" class="ic text-[16px] text-white">{{ iconGlyph('flask') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg v-if="kind === 'ability'" data-ic="sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
                         <path d="m12 2 2.6 6.5L21 11l-6.4 2.5L12 20l-2.6-6.5L3 11l6.4-2.5L12 2z"></path>
                     </svg>
                     <!-- 道具：bag -->
-                    <svg v-else-if="kind === 'item'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
+                    <svg v-else-if="kind === 'item'" data-ic="bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
                         <path d="M6 7h12l1 13H5L6 7z"></path><path d="M9 7a3 3 0 0 1 6 0"></path>
                     </svg>
                     <!-- 性格：leaf -->
-                    <svg v-else-if="kind === 'nature'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
+                    <svg v-else-if="kind === 'nature'" data-ic="flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
                         <path d="M11 20A7 7 0 0 1 4 13c0-5 5-9 16-9 0 8-4 16-9 16Z"></path><path d="M4 20c4-5 8-7 11-8"></path>
                     </svg>
+                    <!-- #endif -->
                 </view>
 
                 <!-- 招式：名称 / 属性徽章 / 分类 排成一排，垂直居中；h-8 保留原 tile 撑开的行高 -->
@@ -52,6 +59,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { glyph as iconGlyph } from '@/components/icon/glyphs';
 import BattleItemIcon from '@/components/meta/BattleItemIcon.vue';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import type { RateRowVM } from '@/services/meta';

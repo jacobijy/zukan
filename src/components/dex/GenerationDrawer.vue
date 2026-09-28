@@ -12,10 +12,15 @@
                         <text class="mt-1 block text-xs font-bold uppercase tracking-[0.18em] text-[#89947e]">Generation drawer</text>
                     </view>
                     <button class="panel-button flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f6fa] text-[#8d929c] shadow-[0_10px_22px_rgba(48,55,72,0.08)] active:scale-95" @click="close">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[16px]">{{ glyph('x') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="x" class="h-4 w-4">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
+                        <!-- #endif -->
                     </button>
                 </view>
 
@@ -36,9 +41,14 @@
                                 <text class="block font-mono text-[11px] font-bold text-[#89947e]">{{ formatGenerationRange(gen) }}</text>
                             </view>
                         </view>
-                        <svg v-if="selected === gen.value" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-[#83a84c]">
-                            <polyline points="20 6 9 17 4 12"></polyline>
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text v-if="selected === gen.value" class="ic text-[20px] text-[#83a84c]">{{ glyph('check') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg v-if="selected === gen.value" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" data-ic="check" class="h-5 w-5 text-[#83a84c]">
+                            <path d="m9 18 6-6-6-6"></path>
                         </svg>
+                        <!-- #endif -->
                     </view>
                 </view>
             </view>
@@ -53,6 +63,7 @@
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
 import { GENERATIONS, formatGenerationRange } from '@/constants/generations';
 

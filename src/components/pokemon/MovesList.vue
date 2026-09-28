@@ -11,9 +11,14 @@
           <text class="section-count">{{ group.moves.length }}</text>
         </view>
         <view class="section-chevron" :class="isExpanded(group.key) ? 'section-chevron--open' : ''">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
-            <polyline points="6 9 12 15 18 9"></polyline>
+          <!-- #ifdef MP-WEIXIN -->
+          <text class="ic text-[16px]">{{ glyph('chevron-down') }}</text>
+          <!-- #endif -->
+          <!-- #ifndef MP-WEIXIN -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-down" class="h-4 w-4">
+            <path d="m6 9 6 6 6-6"></path>
           </svg>
+          <!-- #endif -->
         </view>
       </view>
 
@@ -35,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import { glyph } from '@/components/icon/glyphs'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import MoveCard from '@/components/pokemon/MoveCard.vue'

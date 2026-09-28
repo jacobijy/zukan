@@ -7,11 +7,16 @@
                 <!-- 未登录引导 -->
                 <view v-if="store.needsLogin" class="login-nudge">
                     <view class="login-nudge__icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-7 w-7">
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[28px]">{{ glyph('log-in') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg data-ic="log-in" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-7 w-7">
                             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
                             <polyline points="10 17 15 12 10 7"></polyline>
                             <line x1="15" y1="12" x2="3" y2="12"></line>
                         </svg>
+                        <!-- #endif -->
                     </view>
                     <text class="login-nudge__title">{{ t('teams.loginTitle') }}</text>
                     <text class="login-nudge__desc">{{ t('teams.loginDesc') }}</text>
@@ -20,7 +25,12 @@
 
                 <template v-else>
                     <button class="create-btn" @click="onCreate">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" class="h-4 w-4"><path d="M12 5v14M5 12h14"></path></svg>
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[16px]">{{ glyph('plus') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg data-ic="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4"><path d="M12 5v14M5 12h14"></path></svg>
+                        <!-- #endif -->
                         {{ t('teams.create') }}
                     </button>
 
@@ -66,6 +76,7 @@ import TeamListRow from '@/components/teams/TeamListRow.vue';
 import { useTeamsStore } from '@/store/teams';
 import { authGate } from '@/services/session/authGate';
 import type { TeamSummary } from '@/services/api/teams';
+import { glyph } from '@/components/icon/glyphs';
 
 const { t } = useI18n();
 const store = useTeamsStore();

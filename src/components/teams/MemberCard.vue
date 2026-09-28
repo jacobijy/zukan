@@ -18,22 +18,37 @@
             </view>
             <view class="member-card__ops">
                 <view class="member-card__trash" @click.stop="emit('remove')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-[18px] w-[18px]">
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[18px]">{{ glyph('trash') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg data-ic="trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-[18px] w-[18px]">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6l-1 14H6L5 6m3 0V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"></path>
                     </svg>
+                    <!-- #endif -->
                 </view>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="chevron h-4 w-4" :class="{ 'chevron--open': expanded }">
+                <!-- #ifdef MP-WEIXIN -->
+                <text class="ic chevron text-[16px]">{{ glyph('chevron-down') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
+                <svg data-ic="chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="chevron h-4 w-4" :class="{ 'chevron--open': expanded }">
                     <path d="m6 9 6 6 6-6"></path>
                 </svg>
+                <!-- #endif -->
             </view>
         </view>
 
         <view v-if="expanded" class="member-card__body">
             <button class="popular-btn" @click="applyPopular">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                <!-- #ifdef MP-WEIXIN -->
+                <text class="ic text-[16px]">{{ glyph('sparkle') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
+                <svg data-ic="sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                     <path d="m12 2 2.6 6.5L21 11l-6.4 2.5L12 20l-2.6-6.5L3 11l6.4-2.5L12 2z"></path>
                 </svg>
+                <!-- #endif -->
                 <text>{{ popularBusy ? t('teams.saving') : t('teams.popularApply') }}</text>
             </button>
 
@@ -76,7 +91,12 @@
                         @remove="removeMove(m)"
                     />
                     <view v-if="member.moves.length < 4" class="moves-block__add" @click="openSheet('moves')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" class="h-3.5 w-3.5"><path d="M12 5v14M5 12h14"></path></svg>
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[14px]">{{ glyph('plus') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg data-ic="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-3.5 w-3.5"><path d="M12 5v14M5 12h14"></path></svg>
+                        <!-- #endif -->
                         <text>{{ t('teams.fieldMoves') }}</text>
                     </view>
                 </view>
@@ -132,6 +152,7 @@
 
 <script lang="ts" setup>
 import { computed, ref, shallowRef, watch, h } from 'vue';
+import { hostPlatform } from '@/infra/platform/host';
 import { useI18n } from 'vue-i18n';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
@@ -147,6 +168,7 @@ import {
 import { buildPopularPatch } from '@/services/teams/popular';
 import { CHAMPION_ALIGNMENTS } from '@/pages/statcalc/statcalc-options';
 import { LIMITS, type TeamSpread, type TeamMember, type TeamFormat } from '@/services/teams/team-model';
+import { glyph } from '@/components/icon/glyphs';
 
 type Alignment = (typeof CHAMPION_ALIGNMENTS)[number];
 type SheetKind = '' | 'ability' | 'item' | 'nature' | 'moves';
@@ -351,21 +373,25 @@ function onPickMoves(ids: string | string[]): void {
 
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
-// 行内右箭头（纯渲染小组件，就地 h() 避免多一个文件）
+// 行内右箭头（纯渲染小组件，就地 h() 避免多一个文件）。
+// script 不参与条件编译（模板里的 #ifdef 在 .ts 里不生效），故用 hostPlatform 分支；
+// 非 mp 走 svg，glyph() 只在 mp 分支被调用。
 const ChevronIcon = () =>
-    h(
-        'svg',
-        {
-            viewBox: '0 0 24 24',
-            fill: 'none',
-            stroke: 'currentColor',
-            'stroke-width': '2.6',
-            'stroke-linecap': 'round',
-            'stroke-linejoin': 'round',
-            class: 'field-row__chevron h-4 w-4',
-        },
-        [h('path', { d: 'm9 18 6-6-6-6' })],
-    );
+    hostPlatform === 'mp-weixin'
+        ? h('text', { class: 'ic text-[16px] text-[#c4c7cf]' }, glyph('chevron-right'))
+        : h(
+              'svg',
+              {
+                  viewBox: '0 0 24 24',
+                  fill: 'none',
+                  stroke: 'currentColor',
+                  'stroke-width': '2.6',
+                  'stroke-linecap': 'round',
+                  'stroke-linejoin': 'round',
+                  class: 'field-row__chevron h-4 w-4',
+              },
+              [h('path', { d: 'm9 18 6-6-6-6' })],
+          );
 </script>
 
 <style lang="scss" scoped>

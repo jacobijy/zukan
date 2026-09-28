@@ -14,6 +14,13 @@
         :class="{ 'tab-item--active': currentTab === index }"
         @click="switchTab(index)"
       >
+        <!-- #ifdef MP-WEIXIN -->
+        <text
+          class="ic tab-icon text-[25px]"
+          :class="{ 'tab-icon--pop': currentTab === index }"
+        >{{ glyph(tab.fontName) }}</text>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
         <svg
           class="tab-icon"
           :class="{ 'tab-icon--pop': currentTab === index }"
@@ -30,6 +37,7 @@
             <path v-for="(d, i) in tab.icon" :key="i" :d="d" />
           </g>
         </svg>
+        <!-- #endif -->
         <text class="tab-label">{{ tab.label }}</text>
       </view>
     </view>
@@ -40,6 +48,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { raf } from '@/utils/raf';
+import { glyph } from '@/components/icon/glyphs';
 
 const TAB_SLIDE_FROM_KEY = 'tab_indicator_from'
 
@@ -55,6 +64,7 @@ interface TabDef {
   key: string
   label: string
   icon: string[]
+  fontName: string
 }
 
 // 线条型（仿 SF Symbols outline）：两态都用线框，选中只改颜色并略微加粗
@@ -101,10 +111,10 @@ const ICONS = {
 }
 
 const tabs = computed<TabDef[]>(() => [
-  { key: 'dex', label: t('tabs.dex'), ...ICONS.book },
-  { key: 'features', label: t('tabs.features'), ...ICONS.grid },
-  { key: 'data', label: t('tabs.data'), ...ICONS.folder },
-  { key: 'mine', label: t('tabs.mine'), ...ICONS.person },
+  { key: 'dex', label: t('tabs.dex'), ...ICONS.book, fontName: 'tab-book' },
+  { key: 'features', label: t('tabs.features'), ...ICONS.grid, fontName: 'tab-grid' },
+  { key: 'data', label: t('tabs.data'), ...ICONS.folder, fontName: 'tab-folder' },
+  { key: 'mine', label: t('tabs.mine'), ...ICONS.person, fontName: 'tab-person' },
 ])
 
 const pages = [

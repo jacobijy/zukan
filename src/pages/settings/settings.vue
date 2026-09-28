@@ -21,15 +21,21 @@
                         @click="onRowTap(row.key)"
                     >
                         <template #icon>
-                            <svg v-if="row.icon === 'globe'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                            <!-- #ifdef MP-WEIXIN -->
+                            <text v-if="row.icon === 'globe'" class="ic text-[24px]">{{ glyph('globe') }}</text>
+                            <text v-else class="ic text-[24px]">{{ glyph('book') }}</text>
+                            <!-- #endif -->
+                            <!-- #ifndef MP-WEIXIN -->
+                            <svg v-if="row.icon === 'globe'" data-ic="globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                                 <circle cx="12" cy="12" r="9"></circle>
                                 <path d="M3 12h18"></path>
                                 <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"></path>
                             </svg>
-                            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                            <svg v-else data-ic="book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
                                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                <path d="M6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z"></path>
                             </svg>
+                            <!-- #endif -->
                         </template>
                     </ListRow>
                 </view>
@@ -58,6 +64,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { glyph } from '@/components/icon/glyphs';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import ListRow from '@/components/shared/ListRow.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';

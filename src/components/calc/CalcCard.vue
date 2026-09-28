@@ -3,10 +3,15 @@
         <view class="calc-head">
             <view class="calc-head__icon" :class="iconClass">
                 <slot name="icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[16px]">{{ glyph('focus') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg data-ic="focus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                         <circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle>
                         <path d="M12 4v3M12 17v3M4 12h3M17 12h3"></path>
                     </svg>
+                    <!-- #endif -->
                 </slot>
             </view>
             <text class="calc-head__title">{{ title }}</text>
@@ -16,6 +21,8 @@
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
+
 defineProps<{
     title: string;
     iconClass: string;

@@ -1,10 +1,15 @@
 <template>
     <view class="det-navbar fixed left-0 right-0 top-0 z-[1000] flex items-center justify-between px-4" :style="{ paddingTop: 'var(--status-bar-height)', height: 'calc(var(--status-bar-height) + 52px)' }">
         <button class="det-navbar__btn" @click="handleBack">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+            <!-- #ifdef MP-WEIXIN -->
+            <text class="ic text-[20px]">{{ glyph('arrow-left') }}</text>
+            <!-- #endif -->
+            <!-- #ifndef MP-WEIXIN -->
+            <svg data-ic="arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                 <path d="M19 12H5"></path>
                 <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
+            <!-- #endif -->
         </button>
 
         <view class="flex min-w-0 flex-1 items-center justify-center px-3">
@@ -14,11 +19,16 @@
         <view class="det-navbar__right">
             <slot name="right">
                 <view class="det-navbar__btn det-navbar__btn--ghost">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[20px]">{{ glyph('info') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg data-ic="info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                         <path d="M12 8h.01"></path>
                         <path d="M11 12h1v4h1"></path>
                         <circle cx="12" cy="12" r="9"></circle>
                     </svg>
+                    <!-- #endif -->
                 </view>
             </slot>
         </view>
@@ -26,6 +36,8 @@
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
+
 const props = withDefaults(defineProps<{
     title: string;
     /** 无上一页可回退时（H5 刷新/深链直达）reLaunch 的目标页 */

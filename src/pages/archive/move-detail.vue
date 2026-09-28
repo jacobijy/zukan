@@ -27,27 +27,52 @@
                     <InfoGrid>
                         <InfoCard :label="t('archive.power')" :value="powerText" icon-class="info-card__icon--red">
                             <template #icon>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><polygon points="13 2.5 4 14 12 14 11 21.5 20 10 12 10 13 2.5"></polygon></svg>
+                                <!-- #ifdef MP-WEIXIN -->
+                                <text class="ic text-[20px]">{{ glyph('zap') }}</text>
+                                <!-- #endif -->
+                                <!-- #ifndef MP-WEIXIN -->
+                                <svg data-ic="zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><polygon points="13 2.5 4 14 12 14 11 21.5 20 10 12 10 13 2.5"></polygon></svg>
+                                <!-- #endif -->
                             </template>
                         </InfoCard>
                         <InfoCard :label="t('archive.accuracy')" :value="accuracyText" icon-class="info-card__icon--paper">
                             <template #icon>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.5" fill="currentColor"></circle></svg>
+                                <!-- #ifdef MP-WEIXIN -->
+                                <text class="ic text-[20px]">{{ glyph('concentric') }}</text>
+                                <!-- #endif -->
+                                <!-- #ifndef MP-WEIXIN -->
+                                <svg data-ic="concentric" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.5" fill="currentColor"></circle></svg>
+                                <!-- #endif -->
                             </template>
                         </InfoCard>
                         <InfoCard :label="t('archive.pp')" :value="String(move.pp)" icon-class="info-card__icon--green">
                             <template #icon>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z"></path></svg>
+                                <!-- #ifdef MP-WEIXIN -->
+                                <text class="ic text-[20px]">{{ glyph('book') }}</text>
+                                <!-- #endif -->
+                                <!-- #ifndef MP-WEIXIN -->
+                                <svg data-ic="book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z"></path></svg>
+                                <!-- #endif -->
                             </template>
                         </InfoCard>
                         <InfoCard :label="t('archive.priority')" :value="priorityText" icon-class="info-card__icon--gold">
                             <template #icon>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg>
+                                <!-- #ifdef MP-WEIXIN -->
+                                <text class="ic text-[20px]">{{ glyph('arrow-up') }}</text>
+                                <!-- #endif -->
+                                <!-- #ifndef MP-WEIXIN -->
+                                <svg data-ic="arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg>
+                                <!-- #endif -->
                             </template>
                         </InfoCard>
                         <InfoCard :label="t('archive.target')" :value="targetName" icon-class="info-card__icon--paper" wide>
                             <template #icon>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4"></circle><circle cx="12" cy="12" r="1" fill="currentColor"></circle></svg>
+                                <!-- #ifdef MP-WEIXIN -->
+                                <text class="ic text-[20px]">{{ glyph('target') }}</text>
+                                <!-- #endif -->
+                                <!-- #ifndef MP-WEIXIN -->
+                                <svg data-ic="target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4"></circle><circle cx="12" cy="12" r="1" fill="currentColor"></circle></svg>
+                                <!-- #endif -->
                             </template>
                         </InfoCard>
                     </InfoGrid>
@@ -64,6 +89,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { onLoad } from '@dcloudio/uni-app';
+import { glyph } from '@/components/icon/glyphs';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import InfoGrid from '@/components/pokemon/InfoGrid.vue';

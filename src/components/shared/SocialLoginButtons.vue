@@ -14,7 +14,12 @@
                 :class="`social__btn--${p}`"
                 @click="onSelect(p)"
             >
+                <!-- #ifdef MP-WEIXIN -->
+                <text class="ic social__icon text-[20px]">{{ glyph('brand-' + p) }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
                 <view class="social__icon" v-html="iconFor(p)"></view>
+                <!-- #endif -->
                 <text class="social__label">{{ labelFor(p) }}</text>
             </view>
         </view>
@@ -31,6 +36,7 @@ import { useI18n } from 'vue-i18n';
 import type { AuthProvider } from '@/infra/platform';
 import { getPlatformManager } from '@/services/platform/managers';
 import { AuthApiError } from '@/services/api';
+import { glyph } from '@/components/icon/glyphs';
 
 const { t } = useI18n();
 

@@ -15,15 +15,22 @@
                 <slot name="meta">
                     <text class="text-[11px] font-semibold text-[#b4b8c0]">{{ meta }}</text>
                 </slot>
-                <svg v-if="showChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-[#c4c7cf]">
+                <!-- #ifdef MP-WEIXIN -->
+                <text v-if="showChevron" class="ic text-[16px] text-[#c4c7cf]">{{ glyph('chevron-right') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
+                <svg v-if="showChevron" data-ic="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-[#c4c7cf]">
                     <path d="m9 18 6-6-6-6"></path>
                 </svg>
+                <!-- #endif -->
             </view>
         </view>
     </view>
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
+
 defineProps<{
     title: string;
     desc?: string;

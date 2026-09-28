@@ -1,0 +1,16 @@
+/* 图标字体（仅 mp-weixin 通过条件编译引入；H5/App 使用内联 svg） */
+@font-face {
+    font-family: 'zukan-icons';
+    src: url('/static/fonts/zukan-icons.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+}
+
+.ic {
+    font-family: 'zukan-icons';
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    color: currentColor;
+}

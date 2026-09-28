@@ -24,9 +24,14 @@
 
                 <text class="min-w-0 flex-1 truncate text-[13px] font-bold text-[#24262b]">{{ row.name }}</text>
 
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-[#c4c7cf]">
+                <!-- #ifdef MP-WEIXIN -->
+                <text class="ic text-[16px] text-[#c4c7cf]">{{ glyph('chevron-right') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
+                <svg data-ic="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-[#c4c7cf]">
                     <path d="m9 18 6-6-6-6"></path>
                 </svg>
+                <!-- #endif -->
             </view>
         </view>
 
@@ -36,6 +41,7 @@
 
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n';
+import { glyph } from '@/components/icon/glyphs';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 import type { TeammateRowVM } from '@/services/meta';
 

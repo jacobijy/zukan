@@ -8,9 +8,14 @@
     <!-- 收藏夹为空 -->
     <view v-else-if="variant === 'favorites-empty'" class="empty-card mx-auto max-w-[560px] px-8 py-14 text-center">
         <view class="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-[32px] bg-[#fff1b8] text-[#c58a17] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72),0_18px_34px_rgba(114,83,27,0.15)]">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-12 w-12">
+            <!-- #ifdef MP-WEIXIN -->
+            <text class="ic text-[48px]">{{ glyph('bookmark') }}</text>
+            <!-- #endif -->
+            <!-- #ifndef MP-WEIXIN -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" data-ic="bookmark" class="h-12 w-12">
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
             </svg>
+            <!-- #endif -->
         </view>
         <text class="block text-xl font-black tracking-[-0.03em] text-[#24262b]">{{ t('dex.empty.favTitle') }}</text>
         <text class="mt-2 block text-sm font-medium leading-6 text-[#8d929c]">{{ t('dex.empty.favDesc') }}</text>
@@ -26,6 +31,7 @@
 </template>
 
 <script lang="ts" setup>
+import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 defineProps<{

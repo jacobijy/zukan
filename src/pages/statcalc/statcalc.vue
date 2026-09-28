@@ -27,10 +27,15 @@
                 <!-- 宝可梦 / 等级 / 性格 -->
                 <CalcCard :title="t('statcalc.pokemon')" iconClass="calc-head__icon--green">
                     <template #icon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[16px]">{{ glyph('user') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg data-ic="user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
                             <circle cx="12" cy="8" r="4"></circle>
                             <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path>
                         </svg>
+                        <!-- #endif -->
                     </template>
 
                     <view class="sc-row" @click="showPokemonPicker">
@@ -44,9 +49,14 @@
                             </view>
                             <text class="sc-sub">NO.{{ String(selected.id).padStart(3, '0') }}</text>
                         </view>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#c4c7cf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 flex-shrink-0">
-                            <polyline points="9 18 15 12 9 6"></polyline>
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[20px] text-[#c4c7cf] flex-shrink-0">{{ glyph('chevron-right') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg data-ic="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 flex-shrink-0">
+                            <path d="m9 18 6-6-6-6"></path>
                         </svg>
+                        <!-- #endif -->
                     </view>
 
                     <view class="sc-divider"></view>
@@ -63,9 +73,14 @@
                         <text class="sc-row__label">{{ mode === 'champion' ? t('statcalc.alignment') : t('statcalc.nature') }}</text>
                         <view class="sc-row__value">
                             <text class="sc-value-text">{{ currentNatureName }}</text>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="#c4c7cf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 flex-shrink-0">
-                                <polyline points="9 18 15 12 9 6"></polyline>
+                            <!-- #ifdef MP-WEIXIN -->
+                            <text class="ic text-[20px] text-[#c4c7cf] flex-shrink-0">{{ glyph('chevron-right') }}</text>
+                            <!-- #endif -->
+                            <!-- #ifndef MP-WEIXIN -->
+                            <svg data-ic="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 flex-shrink-0">
+                                <path d="m9 18 6-6-6-6"></path>
                             </svg>
+                            <!-- #endif -->
                         </view>
                     </view>
                 </CalcCard>
@@ -73,9 +88,14 @@
                 <!-- 个体值 / 努力值 / 能力点 / 结果 -->
                 <CalcCard :title="t('statcalc.statsCard')" iconClass="calc-head__icon--violet">
                     <template #icon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
-                            <path d="M4 19V5M8.5 19v-6M13 19V8M17.5 19v-9M3.5 19h17"></path>
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[16px]">{{ glyph('bar-chart') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg data-ic="bar-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                            <path d="M4 19V5"></path><path d="M8.5 19v-6"></path><path d="M13 19V8"></path><path d="M17.5 19v-9"></path><path d="M3.5 19h17"></path>
                         </svg>
+                        <!-- #endif -->
                     </template>
 
                     <view v-if="!selected" class="sc-empty">
@@ -149,6 +169,7 @@
 <script lang="ts" setup>
 import { ref, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { glyph } from '@/components/icon/glyphs';
 import { usePokemonStore } from '@/store/pokemon';
 import { useI18nStore } from '@/store/i18n';
 import CalcCard from '@/components/calc/CalcCard.vue';

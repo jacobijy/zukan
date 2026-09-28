@@ -36,7 +36,12 @@
                 />
 
                 <view v-if="payload.members.length < MAX_MEMBERS" class="add-member" @click="pickerVisible = true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" class="h-4 w-4"><path d="M12 5v14M5 12h14"></path></svg>
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[16px]">{{ glyph('plus') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg data-ic="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4"><path d="M12 5v14M5 12h14"></path></svg>
+                    <!-- #endif -->
                     <text>{{ t('teams.addMember') }}</text>
                     <text class="add-member__count">{{ t('teams.memberCount', { count: payload.members.length }) }}</text>
                 </view>
@@ -59,6 +64,7 @@ import MemberPicker from '@/components/teams/MemberPicker.vue';
 import MemberCard from '@/components/teams/MemberCard.vue';
 import { useTeamsStore } from '@/store/teams';
 import { authGate } from '@/services/session/authGate';
+import { glyph } from '@/components/icon/glyphs';
 import {
     LIMITS,
     emptyMember,
