@@ -132,7 +132,7 @@ import InfoCard from '@/components/pokemon/InfoCard.vue'
 import { usePokemonStore } from '@/store/pokemon'
 import { useI18nStore } from '@/store/i18n'
 import { useI18n } from 'vue-i18n'
-import { genForPokemonId, loadMovesForPokemon, loadEvolutionChain } from '@/services/pokemon'
+import { genForPokemonId, loadMovesForPokemon, loadEvolutionChain, makeEvolutionResolvers } from '@/services/pokemon'
 import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
@@ -228,7 +228,7 @@ async function loadEvolution(speciesId: number | undefined) {
     evolutionLoading.value = true
     evolutionChain.value = null
     try {
-        const chain = await loadEvolutionChain(sid)
+        const chain = await loadEvolutionChain(sid, makeEvolutionResolvers(pokemonStore, i18nStore))
         if (token === evolutionToken) evolutionChain.value = chain
     } catch (err) {
         console.warn('[detail] evolution load failed', err)

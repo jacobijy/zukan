@@ -5,8 +5,9 @@
  * `species[species_id - 1]` → 上溯链根（parentSpecies）/ 下钻子树（edges）。
  *
  * 遍历是纯函数（`buildEvolutionChain`），名称与触发文案通过 `EvolutionResolvers`
- * 注入，方便单测；`loadEvolutionChain` 负责取 bundle、从 i18n/pokemon store
- * 组装 resolver，并在旧后端未产出 evolution.bin（404）时静默返回 null。
+ * 注入，方便单测；`loadEvolutionChain` 负责取 bundle 并在旧后端未产出
+ * evolution.bin（404）时静默返回 null。resolver 由调用方传入 —— 避免 service
+ * 层反向依赖 store（小程序端动态 import 会被错编成 `await "字符串"`）。
  */
 import { resourceManager } from '@/services/resources/resourceManager';
 import { BinaryRequestError } from '@/services/http';
@@ -195,11 +196,14 @@ export function buildEvolutionChain(
 }
 
 /**
- * 加载某物种的进化链。组装 i18n / pokemon store 作为 resolver。
+ * 加载某物种的进化链。resolver 由调用方组装传入（见 `createEvolutionResolvers`）。
  * - bundle 404（旧后端未产出 evolution.bin）→ 返回 null（UI 显示「暂无进化数据」）
  * - 其他错误向上抛，由调用方决定是否静默
  */
-export async function loadEvolutionChain(speciesId: number): Promise<EvolutionStage | null> {
+export async function loadEvolutionChain(
+    speciesId: number,
+    resolvers: EvolutionResolvers,
+): Promise<EvolutionStage | null> {
     let bundle: EvolutionBundle;
     try {
         bundle = await resourceManager.getEvolution();
@@ -210,28 +214,38 @@ export async function loadEvolutionChain(speciesId: number): Promise<EvolutionSt
         throw err;
     }
 
-    // 动态 import 打断 evolution service → store/pokemon、store/i18n 的潜在环
-    const [{ usePokemonStore }, { useI18nStore }] = await Promise.all([
-        import('@/store/pokemon'),
-        import('@/store/i18n'),
-    ]);
-    const pokemonStore = usePokemonStore();
-    const i18n = useI18nStore();
+    return buildEvolutionChain(bundle, speciesId, resolvers);
+}
 
-    // species → 默认形态 pokemon id：gen-9 的 allPokemons 覆盖全部 1025 物种
+/**
+ * 从 store 组装 resolver。
+ *
+ * 本函数放在 service 层但只接收「已取出的 store 对象」，不从内部 import store：
+ * service 层保持纯数据、不反向依赖 store 层；同时小程序端动态 import 会被错编成
+ * `await "字符串"`，无法用作延迟取 store 的手段
+ * （`detail.js` 曾因此报 `usePokemonStore is not a function`）。
+ */
+export function makeEvolutionResolvers(
+    pokemonStore: { allPokemons: readonly IPokemonBaseModel[] },
+    i18n: {
+        speciesName: (speciesId: number) => string | null;
+        itemName: (id: number) => string | null;
+        moveName: (id: number) => string | null;
+        evolutionTriggerName: (id: number) => string | null;
+        regionName: (id: number) => string | null;
+    },
+): EvolutionResolvers {
+    // species → 默认形态 pokemon id
     const defaultIdBySpecies = new Map<number, number>();
     for (const p of pokemonStore.allPokemons) {
         if (p.isDefault && p.speciesId) defaultIdBySpecies.set(p.speciesId, p.id);
     }
-
-    const resolvers: EvolutionResolvers = {
+    return {
         defaultPokemonId: (sid) => defaultIdBySpecies.get(sid) ?? sid,
-        speciesName: (sid) => i18n.speciesName(sid),
-        itemName: (id) => i18n.itemName(id),
-        moveName: (id) => i18n.moveName(id),
-        triggerName: (id) => i18n.evolutionTriggerName(id),
-        regionName: (id) => i18n.regionName(id),
+        speciesName: i18n.speciesName,
+        itemName: i18n.itemName,
+        moveName: i18n.moveName,
+        triggerName: i18n.evolutionTriggerName,
+        regionName: i18n.regionName,
     };
-
-    return buildEvolutionChain(bundle, speciesId, resolvers);
 }
