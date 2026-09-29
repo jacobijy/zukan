@@ -89,6 +89,18 @@ const onClick = () => {
     transform: rotate(-2deg) translateY(2px);
 }
 
+/* uni-app H5 的 uni-button 默认带 padding/灰底/46px 行高，嵌套在 flex 容器里时
+   会把只有 viewBox 的 svg 内在宽度压成 0（心形消失），这里给确定尺寸与重置 */
+.favorite-btn {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    background: transparent;
+    border-radius: 0;
+}
+
 .favorite-btn::after {
     border: none !important;
 }

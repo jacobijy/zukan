@@ -44,6 +44,25 @@ pnpm dev:mp-weixin
 它会先 `copy-wasm`，然后持续编译到 `dist/dev/mp-weixin`，**保存源码即增量重建**。
 dev 产物不压缩、也不跑 slim（开发者工具开发期不卡 2MB）。
 
+如果要让 watch 在后台常驻（比如开远程同步会话、不想占着前台终端），用：
+
+```bash
+pnpm dev:mp:watch            # 启动；已在跑则复用，可重复调用
+pnpm dev:mp:watch --status   # 看状态
+pnpm dev:mp:watch --stop     # 只停 mp-weixin 的 watch
+```
+
+前者的价值在于它是幂等且按命令行识别 `uni.js -p mp-weixin` 的——不会误杀共用
+4000 端口的 `dev:h5`。两个容易踩的点，脚本里已处理：
+
+- **幂等不能用「uni 进程是否存在」判**。刚 fork 时前置步骤（copy-wasm/build-icons）
+  要跑十几秒，uni 还没起，那段窗口查不到就会重复开一个，多个 watch 争抢产物目录。
+  改用 pidfile 记录 bash pid。
+- **停止要按进程组杀**（`-pgid`）。`bash` 包装层收 SIGTERM 不透传子进程，只杀 shell
+  会留下孤儿 uni 继续跑；组 pgid 失效时（孤儿常见）退回逐个 pid 杀。
+
+日志 `dist/mp-weixin-watch.log`（`tail -f` 跟踪），pid 文件同目录，均落 `dist/` 已忽略。
+
 ## 二、Mac/Windows 侧：把产物同步到本地（三选一）
 
 ### 方案 A（推荐）：Mutagen，毫秒级实时

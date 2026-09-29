@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { onLaunch } from "@dcloudio/uni-app";
+import { onError, onLaunch, onUnhandledRejection } from "@dcloudio/uni-app";
 import { bootPrefetch } from "@/services/boot";
 onLaunch(() => {
   // 后台预热：拉 /api/v1/zukan/key + 版本对比 + 预取最新一代 bundle。
   // 不 await，网络失败也不阻塞 UI。
   bootPrefetch();
+});
+// 框架内部错误（如组件渲染、生命周期回调里抛出的错误）会带完整堆栈走到这里；
+// 微信开发者工具控制台有时只打印一句 message，拿这个堆栈才能定位。
+onError((err) => {
+  console.error("[app:onError]", err);
+});
+onUnhandledRejection((res) => {
+  console.error("[app:unhandledRejection]", res.reason);
 });
 </script>
 <style>

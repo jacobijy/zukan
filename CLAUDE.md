@@ -11,6 +11,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 类型检查：`pnpm type-check`
 - 单元测试：`pnpm test`（`pnpm test:watch` 进 watch 模式）
 - 启动/构建小程序等平台：`pnpm dev:mp-weixin`、`pnpm build:mp-weixin` 等（`alipay`/`baidu`/`qq`/`jd`/`kuaishou`/`lark`/`toutiao`/`xhs` 同理）
+- mp-weixin 后台常驻：`pnpm dev:mp:watch`（幂等，已在跑就复用；`--status` 看状态、`--stop` 停止）。
+  按命令行匹配 `uni.js -p mp-weixin`，不会误杀共用 4000 端口的 `dev:h5`；停止按进程组杀，
+  否则 `bash` 包装层不透传 SIGTERM 会留孤儿 uni。详见 docs/architecture/mp-weixin-remote-debug.md
 - 启动/构建快应用：`pnpm dev:quickapp-webview` / `pnpm dev:quickapp-webview-huawei`（build 同理）
 
 自动化门禁：`pnpm type-check`（必须 0 error）、`pnpm test`（vitest）、`pnpm lint`（oxlint，目前只报 warning）、
