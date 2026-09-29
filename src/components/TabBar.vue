@@ -15,9 +15,13 @@
         @click="switchTab(index)"
       >
         <!-- #ifdef MP-WEIXIN -->
+        <!-- 字形 ink 锚在字体基线上、非几何居中，而本字体 OS/2 win ascent≫descent，
+             line-height:1 下行盒基线偏低 → 字比 H5 内联 svg（flex 几何居中）整体偏下。
+             用 transform: translate 上移抵消（与 H5 共用 flex 居中，无需绝对定位）；
+             基线偏移量与选中弹跳的 scale 一起写进 tab-icon--mp-pop 关键帧，二者不互相覆盖。 -->
         <text
-          class="ic tab-icon text-[25px]"
-          :class="{ 'tab-icon--pop': currentTab === index }"
+          class="ic tab-icon tab-icon--mp text-[25px]"
+          :class="{ 'tab-icon--mp-pop': currentTab === index }"
         >{{ glyph(tab.fontName) }}</text>
         <!-- #endif -->
         <!-- #ifndef MP-WEIXIN -->
@@ -249,6 +253,14 @@ onMounted(() => {
   flex: 0 0 auto;
 }
 
+/* MP 字形校正：本字体 OS/2 win ascent≫descent，line-height:1 下行盒基线偏低，
+   字 ink 锚在基线上，于是比 H5 内联 svg（flex 几何居中）整体偏下。
+   用 transform: translate 上移抵消。WebView 渲染器不支持独立 `translate` 属性，故用 transform；
+   弹跳动画（.tab-icon--mp-pop）复用同一位移，避免 scale 覆盖掉居中。 */
+.tab-icon--mp {
+  transform: translateY(-2px);
+}
+
 .tab-icon__paths {
   stroke-width: 1.8;
   transition: stroke-width 0.18s ease;
@@ -273,8 +285,23 @@ onMounted(() => {
   }
 }
 
+/* MP 字形弹跳：复用 .tab-icon--mp 的 translateY 偏移，弹跳期间 scale 叠加，不丢居中 */
+.tab-icon--mp-pop {
+  animation: tab-icon-mp-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes tab-icon-mp-pop {
+  0% {
+    transform: translateY(-2px) scale(0.72);
+  }
+  100% {
+    transform: translateY(-2px) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tab-icon--pop {
+  .tab-icon--pop,
+  .tab-icon--mp-pop {
     animation: none;
   }
 }
