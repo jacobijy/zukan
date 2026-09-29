@@ -144,6 +144,11 @@ async function main() {
         outputDir: FONT_OUT,
         fontTypes: ['ttf'],
         assetTypes: [],
+        // fixedWidth：每个字形 advance = 满 em。SVG 是满宽方块（h-N w-N）、内容居中，
+        // 而字体默认 advance 按字形实际宽度（chevron 等窄图标会短 ~0.2em），导致依赖图标
+        // 占位宽度的布局水平错位。内容本就居中于满盒，故只需拉宽 advance、不需水平移动。
+        // 透传给底层 svgicons2svgfont（fantasticon 经 formatOptions.svg spread）。
+        formatOptions: { svg: { fixedWidth: true } },
     });
 
     // fantasticon 会输出到 FONT_OUT/<name>.ttf；确认存在
