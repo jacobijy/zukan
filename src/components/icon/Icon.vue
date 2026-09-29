@@ -18,7 +18,7 @@
  * 微信小程序的 WXML 不支持 `<svg>`（会被当成未注册组件静默不渲染），mp 端改用
  * `zukan-icons.ttf` 字体字形；H5 / App 走具名 slot 里的内联 svg，视觉与改造前一致。
  *
- * 字形来源：`scripts/build-icons.mjs` 扫描源码中带 `data-ic="<name>"` 的内联 svg
+ * 字形来源：`scripts/build-icons.mjs` 扫描源码中带 `data-ic="名字"` 标记的内联 svg
  * 自动生成 ttf 与 `glyphs.ts`。所以 **mp 的字形是静态几何的快照**，两条限制：
  *
  * - 带 `:fill` / `:stroke` 这类运行时切换属性的 svg 无法直接进字体 ——
@@ -31,7 +31,7 @@
  *
  * @example
  * <Icon name="chevron-right" :size="16" class="text-[#c4c7cf]">
- *     <svg data-ic="chevron-right" viewBox="0 0 24 24" …>…</svg>
+ *     <svg viewBox="0 0 24 24" …>…</svg>
  * </Icon>
  *
  * @example 动态填充（收藏星）
