@@ -13,7 +13,6 @@
 import { resourceManager } from '@/services/resources/resourceManager';
 import { typeStrs } from '@/utils/helpers';
 import { GENERATIONS } from '@/constants/generations';
-import { useI18nStore } from '@/store/i18n';
 import type { PokemonGenBundle } from '@/infra/wasm';
 
 const HP = 'HP';
@@ -27,8 +26,8 @@ function typeName(id: number): string | null {
     return id ? (typeStrs[id] ?? null) : null;
 }
 
-/** i18n 名称解析器；未就绪时各字段为 null，merge 逻辑自行回落 */
-interface NameResolvers {
+/** i18n 名称解析器；由调用方（store 层）注入，传 null 时各字段回落占位符 */
+export interface NameResolvers {
     species: (speciesId: number) => string | null;
     genus: (speciesId: number) => string | null;
     form: (formId: number) => string | null;
@@ -135,31 +134,18 @@ export function genForPokemonId(id: number): number | null {
 }
 
 /**
- * 从 i18n store 构造名称解析器。
- * store 未就绪（首次启动名称尚未加载）或无 active pinia（单测）时返回 null，
- * merge 逻辑回落占位符；名称就绪后 store 会触发重映射。
- */
-function resolveNames(): NameResolvers | null {
-    try {
-        const i18n = useI18nStore();
-        if (!i18n.ready) return null;
-        return {
-            species: (id) => i18n.speciesName(id),
-            genus: (id) => i18n.speciesGenus(id),
-            form: (id) => i18n.formLabel(id),
-            ability: (id) => i18n.abilityName(id),
-            eggGroup: (id) => i18n.eggGroupName(id),
-        };
-    } catch {
-        return null;
-    }
-}
-
-/**
  * 拉指定世代的宝可梦列表。缓存命中时 `resourceManager` 内部直接返回，
  * 首次访问才实际网络下载 + 解密 + 解码。
+ *
+ * `names` 由调用方（store 层）从 i18n store 组装注入；传 null 回落占位名。
+ * 本模块刻意不 import store —— 否则 `store/i18n ⇄ services/pokemon` 成环
+ * （store/pokemon → services/pokemon → store/i18n → store/pokemon），
+ * 而小程序端动态 import 被错编成 `await "字符串"`，无法用动态 import 断环。
  */
-export async function fetchPokemonList(genId: number): Promise<IPokemonBaseModel[]> {
+export async function fetchPokemonList(
+    genId: number,
+    names: NameResolvers | null = null,
+): Promise<IPokemonBaseModel[]> {
     const bundle = await resourceManager.getPokemonGen(genId);
-    return mergeBundleToModel(bundle, resolveNames());
+    return mergeBundleToModel(bundle, names);
 }

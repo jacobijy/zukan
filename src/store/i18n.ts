@@ -21,8 +21,10 @@
  *
  * ## 与数值 bundle 的时序
  * `boot.ts` 并发预取 gen bundle 与 i18n names，两者可能先后到达。
- * 名称加载完成后，若宝可梦列表已渲染，会用内存缓存的数值 bundle 重映射一次
- * （`resourceManager` 命中内存 LRU，零网络），把占位名替换成真实名称。
+ * 名称加载完成后，若宝可梦列表已渲染，由 `store/pokemon` 侧 watch 本 store 的
+ * `lookup` 触发一次重映射（`resourceManager` 命中内存 LRU，零网络），把占位名
+ * 替换成真实名称。反向通知刻意不走本 store → store/pokemon 的 import（会成环，
+ * 且小程序端动态 import 不可用）。
  */
 import { resourceManager, FLAVOR_SLICE_SIZE, type FlavorFamily } from '@/services/resources/resourceManager';
 import { buildNamesLookup, overlay, type NamesLookup } from '@/services/i18n/lookup';
@@ -85,7 +87,8 @@ export const useI18nStore = defineStore('i18n', () => {
     async function loadFor(lang: string): Promise<NamesLookup> {
         // 基线语言与首选语言相同（en）时无需叠加两次
         if (lang === FALLBACK_LANGUAGE) {
-            return buildNamesLookup(await resourceManager.getI18nNames(lang));
+            const table = buildNamesLookup(await resourceManager.getI18nNames(lang));
+            return table;
         }
         const [fallbackBundle, preferredBundle] = await Promise.all([
             resourceManager.getI18nNames(FALLBACK_LANGUAGE),
@@ -96,7 +99,9 @@ export const useI18nStore = defineStore('i18n', () => {
             }),
         ]);
         const base = buildNamesLookup(fallbackBundle);
-        return preferredBundle ? overlay(base, buildNamesLookup(preferredBundle)) : base;
+        return preferredBundle
+            ? overlay(base, buildNamesLookup(preferredBundle))
+            : base;
     }
 
     /** 加载当前语言（含英文回落）。并发调用共享同一次 promise。 */
@@ -108,8 +113,6 @@ export const useI18nStore = defineStore('i18n', () => {
         loadPromise = loadFor(currentLang.value)
             .then((table) => {
                 lookup.value = table;
-                // 名称就绪后重映射已加载的宝可梦列表（数值 bundle 命中内存缓存）
-                refreshPokemonIfLoaded();
             })
             .finally(() => {
                 loading.value = false;
@@ -137,7 +140,6 @@ export const useI18nStore = defineStore('i18n', () => {
             loadedFlavorSlices.clear();
             effectsLoadedLang = null;
             moveEffectsLoadedLang = null;
-            refreshPokemonIfLoaded();
         } finally {
             loading.value = false;
         }
@@ -252,21 +254,6 @@ export const useI18nStore = defineStore('i18n', () => {
         } catch (err) {
             console.warn(`[i18n] ${effectLang} 招式效果加载失败`, err);
         }
-    }
-
-    /**
-     * 若宝可梦 store 已有数据，用内存缓存重映射一遍以应用新名称。
-     * 动态 import 打断静态依赖环（pokemon service → 本 store）。
-     */
-    function refreshPokemonIfLoaded(): void {
-        import('@/store/pokemon')
-            .then(({ usePokemonStore }) => {
-                const pokemon = usePokemonStore();
-                if (pokemon.allPokemons.length > 0) {
-                    void pokemon.fetchPokemon(pokemon.currentGenId);
-                }
-            })
-            .catch((err) => console.warn('[i18n] 刷新宝可梦名称失败', err));
     }
 
     // ── 同步查询（lookup 未就绪时返回 fallback） ──

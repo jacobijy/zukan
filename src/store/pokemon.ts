@@ -1,10 +1,11 @@
-import { fetchPokemonList } from '@/services/pokemon';
+import { fetchPokemonList, type NameResolvers } from '@/services/pokemon';
 import { favoritesApi } from '@/services/api';
 import { isAuthenticated } from '@/services/session';
+import { useI18nStore } from '@/store/i18n';
 import { padId } from '@/utils/helpers';
 import { filterAndSortPokemons, type DexFilterCriteria } from '@/utils/dexFilter';
 import { defineStore } from 'pinia';
-import { computed, ref, type Ref } from 'vue';
+import { computed, ref, watch, type Ref } from 'vue';
 
 /** 首屏默认代次；与 `boot.ts` LATEST_GEN_ID 保持一致以复用预取缓存 */
 const DEFAULT_GEN_ID = 9;
@@ -112,12 +113,42 @@ export const usePokemonStore = defineStore('pokemon', () => {
     // 获取指定世代的宝可梦数据（默认 gen-9，与启动预取同代）
     const fetchPokemon = async (genId: number = DEFAULT_GEN_ID) => {
         currentGenId.value = genId;
-        const data = await fetchPokemonList(genId);
+        const data = await fetchPokemonList(genId, resolveNames());
         allPokemons.value = data.map((p) => ({
             ...p,
             formattedId: padId(p.id),
         }));
     };
+
+    // ── i18n 名称注入 ────────────────────────────────────────
+    // 名称解析器在这里组装（store → store 是允许的方向），service 层保持纯数据。
+    // 反过来的依赖（store/i18n → store/pokemon）不存在：名称就绪/切换语言时由
+    // 下面的 watch 触发重映射，i18n store 不需要回头 import 本 store。
+    // 历史坑：i18n 曾用动态 import('@/store/pokemon') 触发刷新，小程序端动态
+    // import 被错编成 `await "字符串"`，刷新永不执行 → 卡片全是占位名。
+    const i18n = useI18nStore();
+
+    function resolveNames(): NameResolvers | null {
+        if (!i18n.ready) return null;
+        return {
+            species: (id) => i18n.speciesName(id),
+            genus: (id) => i18n.speciesGenus(id),
+            form: (id) => i18n.formLabel(id),
+            ability: (id) => i18n.abilityName(id),
+            eggGroup: (id) => i18n.eggGroupName(id),
+        };
+    }
+
+    // 名称查找表就绪或切换语言（lookup 引用替换）后，若列表已加载则用内存缓存
+    // 重映射一遍（resourceManager 命中内存 LRU，零网络），把占位名替换成真实名称。
+    watch(
+        () => i18n.lookup,
+        (table) => {
+            if (table && allPokemons.value.length > 0) {
+                void fetchPokemon(currentGenId.value);
+            }
+        },
+    );
 
     /**
      * 切换收藏。策略：
