@@ -11,6 +11,9 @@
  */
 
 import type { DamageInput, BatchDamageResult } from '@/infra/wasm/pkg/zukan_wasm';
+import * as wasmPkg from '@/infra/wasm/pkg/zukan_wasm';
+import { initWasm } from '@/infra/wasm';
+import { TypeChart } from '@/core/data/typechart';
 import typeIds from '@/static/enums/types.json';
 import abilitiesJson from '@/static/enums/abilities.json';
 import moveFlagsJson from '@/static/enums/move_flags.json';
@@ -174,10 +177,12 @@ async function ensureWasm(): Promise<any> {
     if (!_wasmPromise) {
         _wasmPromise = (async () => {
             try {
-                const mod = await import('@/infra/wasm/pkg/zukan_wasm');
-                await mod.default(); // 初始化 WASM
-                _wasm = mod;
-                return mod;
+                // 静态引入（不能用动态 import）：小程序端动态 import 被错编成
+                // `await "字符串"`，计算器初始化静默失败。initWasm 内部完成 wasm
+                // 实例化与平台差异（mp-weixin 走 WXWebAssembly 包内路径）。
+                await initWasm();
+                _wasm = wasmPkg;
+                return wasmPkg;
             } catch (e) {
                 console.warn('[calc-engine] WASM 加载失败，计算器不可用', e);
                 _wasm = null;
@@ -201,7 +206,8 @@ function getTypeChart(): number[][] | null {
 async function initTypeChart() {
     if (_typeChart) return;
     try {
-        const { TypeChart } = await import('@/core/data/typechart');
+        // TypeChart 静态引入（不能用动态 import）：小程序端动态 import 被错编成
+        // `await "字符串"`，TypeChart 恒为 undefined，相克表静默失效。
         // typechart.ts 的 key 是首字母大写（Bug/Dark/…），先归一化到 lowercase 再查 TYPE_IDS。
         const chart: number[][] = Array.from({ length: 20 }, () => Array(20).fill(0));
         for (const [defName, entry] of Object.entries(TypeChart as Record<string, any>)) {
