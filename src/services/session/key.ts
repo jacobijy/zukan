@@ -16,6 +16,7 @@
  * （不该再重试，也不该当成网络错误报错）。
  */
 import { fetchKey } from '@/services/api/zukanKey';
+import { refresh } from '@/services/api/auth';
 import { RestRequestError } from '@/services/http';
 import { authGate, LoginDismissedError } from './authGate';
 import { getRefreshToken, clearSession } from './token';
@@ -47,9 +48,11 @@ function isUnauthenticated(err: unknown): boolean {
 function refreshOnce(): Promise<void> {
     if (refreshPromise) return refreshPromise;
 
-    // 动态 import 打断循环依赖：api/auth.ts → session/token.ts，
-    // 若在模块顶层 import 会形成 session ⇄ api 环。
-    const p = import('@/services/api/auth').then((m) => m.refresh()).then(() => undefined);
+    // 静态 import：api/auth.ts 只依赖 services/http 与 session/token，不 import
+    // 本模块，不构成 session ⇄ api 环（zukanKey 本已静态引入）。小程序端动态
+    // import 被错编成 await "字符串"，refresh() 会解构出 undefined 抛 TypeError，
+    // 冒泡成 401 → 被当成鉴权失败弹登录层。
+    const p = refresh().then(() => undefined);
 
     refreshPromise = p;
     // 无论成败都要清掉，否则第二次过期时会复用已 settle 的 promise
