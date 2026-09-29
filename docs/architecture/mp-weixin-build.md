@@ -1,8 +1,10 @@
 # 微信小程序构建与平台适配
 
-图鉴主目标是 H5，小程序是次要平台。要让微信小程序真正能跑、能上传，仅有四处
+图鉴主目标是 H5，小程序是次要平台。要让微信小程序真正能跑、能上传，有几处
 平台差异需要维护：devtools 与 WASM 用 uni-app 的**条件编译**，Tailwind 兼容靠
-`tailwind.config.js` 按平台开关，外加一个产物瘦身脚本。本文是唯一说明处。
+`tailwind.config.js` 按平台开关，产物瘦身脚本，再加一层**运行时**平台分流
+（wasm 初始化、解密产物如何喂给 `<image>`）——后者不写进 `#ifdef`，而是运行时
+探测能力，避免 vue-tsc 看到重复声明。本文是唯一说明处。
 
 ## 命令
 
@@ -40,18 +42,66 @@ new URL('zukan_wasm_bg.wasm', import.meta.url)  // + fetch / instantiateStreamin
 ```
 
 这套在微信小程序里全不可用：`import.meta.url`、`fetch` 远程 wasm、
-`instantiateStreaming` 都没有。但生成的 `__wbg_init(input)` 若直接收到
-`BufferSource`，会走 `WebAssembly.instantiate(bytes)` —— 这条小程序支持。因此：
+`instantiateStreaming` 都没有，且微信没有标准 `WebAssembly` 全局。
+小程序改用 **`WXWebAssembly`**，其 `instantiate` 第一参直接是**代码包内
+`.wasm` 的路径字符串**（不读字节、不 fetch，由运行时自己加载），wasm-bindgen
+的 glue 已被 vite 插件 `adaptWasmToWx` 改造成走这条路径。因此：
 
 1. `scripts/copy-wasm.mjs` 把 `infra/wasm/pkg/zukan_wasm_bg.wasm` 拷到
    `src/static/wasm/`（只有 src/static 下的文件才会进小程序包）。已嵌入
    dev/build 命令开头；单独执行用 `pnpm copy:wasm`。
-2. `src/infra/wasm/index.ts` 里 `#ifdef MP-WEIXIN` 分支用
-   `uni.getFileSystemManager().readFileSync('/static/wasm/zukan_wasm_bg.wasm')`
-   读字节，再 `module.default(bytes)`；其他平台仍 `module.default()`。
+2. `src/infra/wasm/index.ts` 里 `#ifdef MP-WEIXIN` 分支把
+   `/static/wasm/zukan_wasm_bg.wasm` 这个**路径**传给 `wasmModule.default(path)`
+   （不是先读字节再传 `BufferSource`）；其他平台仍 `module.default()`。
+3. wasm-bindgen 的 glue 在 mp-weixin 下必须**静态引入**：动态 `import()` 在该
+   平台会被错编成 `await "字符串"` 而失效。
 
 > 重新构建 Rust WASM（wasm-pack）后 copy 脚本会自动把新 wasm 同步进包，无需手操。
 > 构建期那条 `new URL(...) doesn't exist at build time` 警告来自 pkg JS 里的默认
+> 兜底分支，小程序运行时传的是路径、走不到它，可忽略。
+
+### 动态 `import()` 在小程序端整体失效（比 wasm 更广）
+
+上面只提了 glue，但根因是平台级的：**uni-app 的 mp-weixin 编译器把 `import('x')`
+编译成 `await "x.js"`** —— 只 await 一个字符串字面量，不加载任何模块。
+所以任何形式都拿不到模块对象：
+
+- 解构 → `const { f } = await "..."` → `f` 是 `undefined`，静默失效
+- `.then(m => m.f())` → `"字符串".then is not a function`，TypeError 抛到外层 catch
+- `#ifdef` 条件编译挡不住：编译在剥离宏之后发生
+
+**唯一稳妥的断环手段是让依赖方向本身不闭合**，或改用无 Vue/平台依赖的纯函数 +
+注入（见 `services/pokemon/pokemon.ts` 的 `NameResolvers`、`services/pokemon/
+evolution.ts` 的 `EvolutionResolvers`）。已因此修过的点：`boot.ts`（i18n store）、
+`services/pokemon/pokemon.ts`（i18n store）、`services/pokemon/evolution.ts`（两个
+store）、`pages/calc/calc-engine.ts`（wasm pkg + TypeChart）、`services/session/key.ts`
+（authApi.refresh）。
+
+排查手法：`grep -rn 'import(' src`，逐个看它要拿的东西在小程序上是必须成功的还是可
+静默降级的。**注意 `services/meta/moveRefs.ts` 仍是动态 import**（刻意：让模块顶层
+无平台依赖，好在 node 单测环境跑）。目前它所在调用链都在 H5 才走，但一旦小程序端
+页面依赖 `moveRefs` 反查，会静默拿到空索引 —— 接之前先把那处改成静态引入。
+
+核对方式：构建后 grep 产物，出现 `"./xxx.js"` 紧跟 `.then` 就是漏网的动态 import：
+
+```bash
+grep -rn '\.then' dist/dev/mp-weixin --include=*.js | grep '"\./' 
+```
+
+### 解密产物如何喂给 `<image>`（运行时分流，非 `#ifdef`）
+
+解密链在两端**完全共用**（`decryptZukan` 同一份 wasm、同一 DEK、同一 ZKDX），
+只有产物落地这一个原语平台相关，收口在 `src/services/resources/objectUrl.ts`：
+
+- **H5**：`URL.createObjectURL(new Blob(...))` / `revokeObjectURL`。
+- **小程序**：没有 Blob URL（`URL` 整个为 `undefined`，直接调即 TypeError）。
+  改为把解密后的字节用 `uni.getFileSystemManager().writeFile` 写进
+  `${USER_DATA_PATH}/zukan-img/` 下的本地文件，返回**文件路径**给 `<image>`；
+  release 时 `unlink` 删掉该文件。
+
+引用计数 / LRU / 限流（`imageCache`）两端一致，不受影响。注意这一层与
+`binaryStorage` 的持久化缓存不同：这里落的是**明文**（临时、可回收），
+持久化缓存层另按 `storageBackend` 决定是否落密文。
 > 兜底分支，小程序运行时永远传字节、走不到它，可忽略。
 
 ## 适配三：Tailwind 在小程序的两处兼容

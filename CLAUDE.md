@@ -163,11 +163,21 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
   物种名/形态名/特性名已接通 i18n 名称组，i18n 未就绪时回落 `pokemon-{id}` / `form-{id}` 占位。
 - `simulate.vue` 是纯 UI 骨架，所有交互 handler 都是 `noop`。
 - `pages/meta/*` 对战数据接**第三方明文公开 JSON**（`/assets/battle/`，Showdown slug、9 语言、不加密）：排行榜仅名次（无 %），单只配置含招式/道具/特性/性格选用率、SP 加点、队友；经 `http/assetRequest` 取数、`meta/adapter` 纯转换、`meta/battleDict` 翻译。契约见 `docs/data/battle-usage.md`。
-- `src/core/data/typechart.ts` 被 `calc-engine.ts` 动态 import，是移除的服务端模块的残留。
+- `src/core/data/typechart.ts` 是移除的服务端模块的残留，现由 `calc-engine.ts` 静态引入（JS 侧相克描述用）；WASM 内部另有完整 TypeChart。
 
 ### 循环依赖注意事项
 
-- `session/key.ts` 动态 import `api/auth.ts` —— 避免 `session ⇄ api` 顶层环。
+- **断环要靠依赖方向本身，不要用动态 import** —— 小程序端动态 `import()` 被错编成
+  `await "字符串"`，根本拿不到模块（详见 `docs/architecture/mp-weixin-build.md`
+  「动态 import 在小程序端整体失效」）。
+- `session/key.ts` 静态 import `api/auth.ts`（auth 只依赖 `http` 与 `session/token`，
+  不构成 `session ⇄ api` 环）；产物里已无动态 import。
+- `services/pokemon/pokemon.ts` 不 import store，名称解析器 `NameResolvers` 由
+  `store/pokemon` 注入；名称就绪/切语言的重映射由 store 侧 watch `i18n.lookup` 触发，
+  `store/i18n` 不反向 import store/pokemon。`services/pokemon/evolution.ts` 同理走
+  `EvolutionResolvers` 注入。
+- `meta/moveRefs.ts` 仍用动态 import 保持模块顶层无平台依赖（node 单测环境可跑），
+  是**已知小程序端陷阱** —— 目前仅 H5 调用链用到，接进小程序前必须改静态引入。
 - `authGate` 是模块单例而非 Pinia store —— 避免 `store ⇄ session` 环。
 - `clearSpriteCache()` 在 `mine.vue` 的登出路径调用，而非 `clearSession()` 内部 —— 避免 `session ⇄ resources` 环。
 
@@ -175,12 +185,24 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 
 四处平台差异，细则见 `docs/architecture/mp-weixin-build.md`：
 
+- **动态 `import()` 整体失效**：编译器把 `import('x')` 错编成 `await "x.js"`，
+  解构得 undefined、`.then` 抛 TypeError。断环一律靠依赖方向（注入 resolver /
+  纯函数 + 回调），别指望动态 import 当懒加载。核对：
+  `grep -rn '\.then' dist/dev/mp-weixin --include=*.js | grep '"\./'`。
+
 - **devtools 页 H5-only**：小程序不支持 `<component :is>`，`devtools.vue` 的动态组件机制整段 `#ifdef H5`。
-- **WASM 包内加载**：小程序没有 `import.meta.url` / fetch wasm / `instantiateStreaming`，
-  `infra/wasm/index.ts` 在 `#ifdef MP-WEIXIN` 下用 `uni.getFileSystemManager().readFileSync`
-  读 `/static/wasm/zukan_wasm_bg.wasm` 字节，再 `module.default(bytes)` 走
-  `WebAssembly.instantiate`。`scripts/copy-wasm.mjs`（`pnpm copy:wasm`）把 pkg 产物
-  拷进 `src/static/wasm/`，已嵌入 `dev/build:mp-weixin` 开头。
+- **WASM 包内加载**：小程序没有 `import.meta.url` / fetch wasm / `instantiateStreaming`
+  / 标准 `WebAssembly` 全局，改用 `WXWebAssembly`（`instantiate` 第一参是**代码包内
+  `.wasm` 路径字符串**，不读字节不 fetch）。`infra/wasm/index.ts` 在 `#ifdef MP-WEIXIN`
+  下把 `/static/wasm/zukan_wasm_bg.wasm` 这个路径传给 `wasmModule.default(path)`；
+  glue 由 vite 插件 `adaptWasmToWx` 改造，且必须**静态引入**（动态 `import()` 在该平台
+  会被错编成 `await "字符串"`）。`scripts/copy-wasm.mjs`（`pnpm copy:wasm`）把 pkg
+  产物拷进 `src/static/wasm/`，已嵌入 `dev/build:mp-weixin` 开头。
+- **解密产物落地（运行时分流，非 `#ifdef`）**：解密链两端完全共用（同一份 wasm /
+  DEK / ZKDX），只有喂 `<image>` 这一个原语平台相关，收口在
+  `services/resources/objectUrl.ts` —— H5 走 Blob URL；小程序没有 Blob URL（`URL`
+  整个 undefined），改用 `getFileSystemManager().writeFile` 把解密后的**明文**写进
+  `${USER_DATA_PATH}/zukan-img/` 再返回文件路径，release 时 `unlink`。
 - **Tailwind 兼容（`tailwind.config.js` 按 `UNI_PLATFORM` 判定）**：小程序端关 preflight
   （含不支持的 `:host`/`::backdrop`/`:where()`），并开 `experimental.optimizeUniversalDefaults`
   （**是 experimental 不是 future**）把 transform/ring 等工具类注入的 `*` 变量默认块
