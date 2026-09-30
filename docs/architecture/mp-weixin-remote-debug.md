@@ -63,6 +63,37 @@ pnpm dev:mp:watch --stop     # 只停 mp-weixin 的 watch
 
 日志 `dist/mp-weixin-watch.log`（`tail -f` 跟踪），pid 文件同目录，均落 `dist/` 已忽略。
 
+### watch 反复"聋"（已知故障，非脚本 bug）
+
+**现象**：watch 跑十几到二十几分钟后**停止增量编译**——进程还在、`--status` 报
+"运行中"，但改源码后产物 `dist/dev/mp-weixin/**` 的 mtime 不再更新、日志不再刷
+"DONE Build complete"。同步到调试主机看到的仍是旧产物。
+
+**诊断**：不是脚本逻辑问题（脚本只管启停，见上），也不是 inotify 配额——本机
+`fs.inotify.max_user_watches = 65536`、实测占用仅几十个，远未打满。同时常驻的
+`dev:h5` 和 mp watch 各起一个 esbuild `--service` 进程（共用同一份 esbuild 二进制），
+怀疑是 Vite/esbuild 的 chokidar watcher 在多 esbuild 实例 + 长时间运行下偶发停止投递
+文件事件。每次差量编译都刷的 `Circular chunk: session/key → … → session/key` 警告
+是另一条独立问题（见 `docs/caching/`、`docs/security/` 的 session 循环依赖），但会让
+esbuild 的增量 chunk 重建更不稳定，可能是诱因之一。
+
+**确认手法**（脚本查不出来，因为 `--status` 只探测进程存活、不探测是否仍在监听）：
+比对源码与产物的 mtime——源码比产物新、且产物无更新，即为已聋：
+
+```bash
+stat -c '%y %n' src/components/TabBar.vue dist/dev/mp-weixin/components/TabBar.wxss
+# 源码时间 > 产物时间 → watch 已聋
+```
+
+**处理**：重启 watch 即恢复（幂等，会先清旧的再起）：
+
+```bash
+pnpm dev:mp:watch --stop && pnpm dev:mp:watch
+```
+
+> 待办：给 `--status` 加"产物 vs 源码 mtime 对账"，让它能自报聋；或在脚本内检测到
+> 卡死后自动重启。目前只能靠上面手动比对 + 重启。
+
 ## 二、Mac/Windows 侧：把产物同步到本地（三选一）
 
 ### 方案 A（推荐）：Mutagen，毫秒级实时
@@ -155,6 +186,7 @@ powershell -ExecutionPolicy Bypass -File scripts\remote-debug\pull-mp-weixin.ps1
 | 现象 | 处理 |
 |------|------|
 | 改了代码工具没刷新 | 确认 `dev:mp-weixin` 在跑、同步会话在跑；工具里 `Ctrl/Cmd+B` 手动编译 |
+| 改了代码但产物 mtime 不更新 | watch 可能已"聋"（进程活但停止增量编译，见"watch 反复聋"）——比对源码/产物 mtime 确认，`--stop` 后重启 |
 | 模拟器请求失败/空白 | `.env.development.local` 的 IP 是否仍为本机 IP；工具是否勾了"不校验域名"；Mac 能否打开 `http://192.168.100.100:8080` |
 | 真机连不上后端 | 手机与 Linux 同 Wi-Fi；防火墙放行 8080；后端监听 0.0.0.0 |
 | WASM/解密报错 | dev 构建已 `copy-wasm`；确认 `dist/dev/mp-weixin/static/wasm` 存在 |
