@@ -180,6 +180,15 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 小程序端 Tailwind 关 preflight（无全局 box-sizing:border-box），默认 content-box：
+   track 的 height:100% + padding:8px 会把实际总高撑到 80px，溢出被 shell 的
+   overflow:hidden 从底部裁掉 → 条内整体偏下。显式 border-box 让 height 含 padding，
+   与 H5（有 preflight）对齐。 */
+.tabbar-shell,
+.tab-bar-track {
+  box-sizing: border-box;
+}
+
 .tabbar-shell {
   position: fixed;
   left: 16px;
@@ -257,10 +266,10 @@ onMounted(() => {
    字 ink 锚在基线上，于是比 H5 内联 svg（flex 几何居中）整体偏下。
    用 transform: translate 上移抵消。WebView 渲染器不支持独立 `translate` 属性，故用 transform；
    弹跳动画（.tab-icon--mp-pop）复用同一位移，避免 scale 覆盖掉居中。
-   ⚠️ -2px 需调参时改两处：此处 + @keyframes tab-icon-mp-pop（keyframes 内 var() 在
+   ⚠️ -4px 需调参时改两处：此处 + @keyframes tab-icon-mp-pop（keyframes 内 var() 在
    默认 WebView 渲染器不可靠，故不用 CSS 变量）。 */
 .tab-icon--mp {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
 }
 
 .tab-icon__paths {
@@ -294,10 +303,10 @@ onMounted(() => {
 
 @keyframes tab-icon-mp-pop {
   0% {
-    transform: translateY(-2px) scale(0.72);
+    transform: translateY(-4px) scale(0.72);
   }
   100% {
-    transform: translateY(-2px) scale(1);
+    transform: translateY(-4px) scale(1);
   }
 }
 
