@@ -256,7 +256,9 @@ onMounted(() => {
 /* MP 字形校正：本字体 OS/2 win ascent≫descent，line-height:1 下行盒基线偏低，
    字 ink 锚在基线上，于是比 H5 内联 svg（flex 几何居中）整体偏下。
    用 transform: translate 上移抵消。WebView 渲染器不支持独立 `translate` 属性，故用 transform；
-   弹跳动画（.tab-icon--mp-pop）复用同一位移，避免 scale 覆盖掉居中。 */
+   弹跳动画（.tab-icon--mp-pop）复用同一位移，避免 scale 覆盖掉居中。
+   ⚠️ -2px 需调参时改两处：此处 + @keyframes tab-icon-mp-pop（keyframes 内 var() 在
+   默认 WebView 渲染器不可靠，故不用 CSS 变量）。 */
 .tab-icon--mp {
   transform: translateY(-2px);
 }
