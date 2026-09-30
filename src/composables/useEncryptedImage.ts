@@ -3,6 +3,11 @@
  *
  * 把 `EncryptedSprite` 里那套「视口感知懒加载 + 离屏取消 + 引用计数配对」抽成
  * 与种类无关的逻辑，宝可梦立绘（pokemon）与道具图标（item）共用。引擎差异
+ * 见 `spriteCache.ts` / `itemImage.ts`；渐进式加载与 404 回落在 `spriteLoader.ts`。
+ *
+ * 改这里后要 `pnpm dev:mp:watch` 跑一次让 mp-weixin 产物更新；
+ * 若 watch 没检测到，`--stop` 后重启（已知偶发漏检）。
+ *
  * （远端路径 / 缓存 / 调度）在 `spriteCache` / `itemImage` 里，这里只负责：
  *
  * - 进视口附近（提前 200px）才开始下载解密，首屏不把不可见的图也一起解了；
@@ -18,7 +23,7 @@
  * 返回的状态交给组件渲染：`blobUrl` 有值显示图片；`loading` 为真显示骨架；
  * 两者都否（`failed`）显示组件自己的兜底图 / 占位盒。
  */
-import { ref, nextTick, onMounted, onUnmounted, watch, type Ref } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted, watch, getCurrentInstance, type Ref } from 'vue';
 import { acquireSprite, releaseSprite } from '@/services/resources/spriteCache';
 import { acquireItemIcon, releaseItemIcon } from '@/services/resources/itemImage';
 import { isImageAbortError } from '@/services/resources/imageCache';
@@ -110,6 +115,9 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
     const loading = ref(true);
     const failed = ref(false);
     const wrapperRef = ref<unknown>(null);
+    // 组件实例须在 setup 同步期捕获：startWxObserving 经 nextTick 异步执行，
+    // 那时再调 getCurrentInstance() 会返回 null
+    const currentInstance = getCurrentInstance();
     /**
      * 当前**由本 composable 持有**引用的图。
      *
@@ -255,22 +263,47 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
         return el instanceof HTMLElement ? el : null;
     }
 
-    /** 微信小程序：uni.createIntersectionObserver 按 selector 观察根元素 */
+    /**
+     * 微信小程序：观察组件根节点。
+     *
+     * **必须走组件实例自带的 createIntersectionObserver**（uni-mp-weixin 的
+     * `initComponentInstance` 把 MP_METHODS 直接绑到组件 ctx，闭包里的
+     * `ctx.$scope` 是 wx 原生 Component 实例；调它等价于
+     * `this.createIntersectionObserver(...)`，选择器作用域限定在本组件）。
+     *
+     * 两种「不这么写」的坑，都踩过：
+     * - 传 Vue proxy：uni 的 API wrapper 会先跑 `processArgs()`，对
+     *   `PublicInstanceProxy` 做 `for (const key in ...)` 枚举，触发 Vue 的
+     *   `Avoid app logic that relies on enumerating keys on a component
+     *   instance` 警告；生产模式 ownKeys 返回空数组，proxy 被当成空对象传给
+     *   wx，observer 找不到节点。
+     * - 传 null（页面级）：wx 页面级 observer 的选择器跨不过自定义组件边界，
+     *   选不到组件根 `.sprite-wrapper`，回调永不触发（现象：
+     *   `Node ".sprite-wrapper" is not found`，懒加载彻底失效）。
+     */
     function startWxObserving(): void {
-        // 传 `null` 而不是组件实例：传实例时 wx 内部会对 Vue proxy 做 `ownKeys()`
-        // 枚举，dev 下报 `Avoid app logic that relies on enumerating keys`、
-        // 生产模式返回空数组会让 selector 解析失败、观察器静默失效。
-        // 传 `null` = 页面级 observer（作用域为当前页面，selector 可全页查找）。
-        // `enablePageScrollObserver` 是 wx 2.11+ 新增的选项，uni 的类型定义过时未收录，
-        // 用 `as any` 断言绕过；不开启时页面级滚动不会触发回调，懒加载会失效。
-        const ob = uni.createIntersectionObserver(null, {
-            thresholds: [0, 0.01],
-            enablePageScrollObserver: true,
-        } as any);
+        // uni-mp-weixin 把 `createIntersectionObserver` 直接绑到组件 ctx
+        // （initComponentInstance），调它等价于 `this.createIntersectionObserver(...)`，
+        // 选择器作用域限定在本组件。ctx 是 Vue 内部字段，用 cast 断言。
+        const ctx: {
+            createIntersectionObserver?: (options: {
+                thresholds: number[];
+            }) => any;
+        } | null = currentInstance
+            ? (currentInstance as unknown as { ctx: Record<string, unknown> }).ctx
+            : null;
+
+        const ob: any = typeof ctx?.createIntersectionObserver === 'function'
+            ? ctx.createIntersectionObserver({ thresholds: [0, 0.01] })
+            : (uni as any).createIntersectionObserver(null, {
+                  thresholds: [0, 0.01],
+                  enablePageScrollObserver: true,
+              });
+
         // 提前 200px 起跑，滚动时看不到骨架
         ob.relativeToViewport({ top: 200, bottom: 200 });
         if (!rootSelector) throw new Error('微信视口观察需要 rootSelector');
-        ob.observe(rootSelector, (res) => {
+        ob.observe(rootSelector, (res: { intersectionRatio: number }) => {
             if (res.intersectionRatio > 0) {
                 if (blobUrl.value || controller) return;
                 void load(getId(), curVariant());
