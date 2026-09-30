@@ -18,7 +18,7 @@
  * 返回的状态交给组件渲染：`blobUrl` 有值显示图片；`loading` 为真显示骨架；
  * 两者都否（`failed`）显示组件自己的兜底图 / 占位盒。
  */
-import { ref, nextTick, onMounted, onUnmounted, watch, getCurrentInstance, type Ref } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted, watch, type Ref } from 'vue';
 import { acquireSprite, releaseSprite } from '@/services/resources/spriteCache';
 import { acquireItemIcon, releaseItemIcon } from '@/services/resources/itemImage';
 import { isImageAbortError } from '@/services/resources/imageCache';
@@ -110,10 +110,6 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
     const loading = ref(true);
     const failed = ref(false);
     const wrapperRef = ref<unknown>(null);
-    // 组件实例须在 setup 同步期捕获：startWxObserving 经 nextTick 异步执行，
-    // 那时再调 getCurrentInstance() 会返回 null
-    const currentInstance = getCurrentInstance();
-
     /**
      * 当前**由本 composable 持有**引用的图。
      *
@@ -261,9 +257,16 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
 
     /** 微信小程序：uni.createIntersectionObserver 按 selector 观察根元素 */
     function startWxObserving(): void {
-        const ob = uni.createIntersectionObserver(currentInstance?.proxy ?? (currentInstance as any), {
+        // 传 `null` 而不是组件实例：传实例时 wx 内部会对 Vue proxy 做 `ownKeys()`
+        // 枚举，dev 下报 `Avoid app logic that relies on enumerating keys`、
+        // 生产模式返回空数组会让 selector 解析失败、观察器静默失效。
+        // 传 `null` = 页面级 observer（作用域为当前页面，selector 可全页查找）。
+        // `enablePageScrollObserver` 是 wx 2.11+ 新增的选项，uni 的类型定义过时未收录，
+        // 用 `as any` 断言绕过；不开启时页面级滚动不会触发回调，懒加载会失效。
+        const ob = uni.createIntersectionObserver(null, {
             thresholds: [0, 0.01],
-        });
+            enablePageScrollObserver: true,
+        } as any);
         // 提前 200px 起跑，滚动时看不到骨架
         ob.relativeToViewport({ top: 200, bottom: 200 });
         if (!rootSelector) throw new Error('微信视口观察需要 rootSelector');
