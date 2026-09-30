@@ -26,6 +26,7 @@
 | 加密 | [security/auth-session.md](security/auth-session.md) | DEK 唯一入口、401 恢复决策树、登录弹层去重 |
 | 缓存 | [caching/resource-cache.md](caching/resource-cache.md) | resourceManager 三层缓存、inflight 去重、版本失效 |
 | 缓存 | [caching/sprite-cache.md](caching/sprite-cache.md) | 加密图片（sprite + 道具图标）：imageCache 三条调度不变量 + imagePersist 四条持久化不变量 + 渐进式两段加载 + 回落落点记录 + 对战图标（字符串键 / 赛季版本化，待接入） |
+| 缓存 | [caching/fs-backend-plan.md](caching/fs-backend-plan.md) | **方案，未实现**：小程序 / App 加密资源本地缓存 —— fs 后端（USER_DATA_PATH 存密文）、按用途注入、可配置预算 + 保护集、加密下载去重 |
 
 > 历史文档保留在 [`archive/`](archive/)，不再维护。包括早期加密方案稿、解密流程稿、
 > 旧架构图、REST/encrypted-assets 归档稿等。需要追溯「当初为什么这么设计」时再翻。
