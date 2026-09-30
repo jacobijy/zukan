@@ -1,8 +1,23 @@
 # 小程序 / App 加密资源本地缓存（fs 后端方案）
 
-> **状态：方案，未实现。** 本文描述要做的改动，代码未落地。
+> **状态：主线已实现（步骤 1–3 + sprite 最小闭环）；第 4 步下载去重尚未做。**
+> 已落地的：`cacheConfig.ts`、`binaryStorage` 的 fs 后端、`imagePersist` 注入后端 +
+> `isPersistable` + 保护集淘汰、`spritePersist` 注入 fs + 配置预算、对应单测。
+> 已验证：`pnpm type-check` 0 error、全量 `pnpm test` 529 passed、`pnpm build:mp-weixin` 通过。
+> **真机行为（小程序 / App 实际读写 fs）尚未验证** —— 需在微信开发者工具 / 真机
+> 「进页面 → 重进 → 不重下」确认，见下文「落地顺序」第 4 步。
 > 已实现的部分见 [./sprite-cache.md](./sprite-cache.md)（imageCache / imagePersist）
 > 与 [./resource-cache.md](./resource-cache.md)（resourceManager）。
+>
+> **与初版方案的两处偏差**（实现时定下的更干净做法）：
+> 1. **不往 `storageBackend` 联合类型加 `'fs'`。** `storageBackend` 描述的是
+>    `binaryStorage` 单例（FB bundle 用的，仍是 idb/uni/memory）。fs 是**按用途注入**的
+>    独立后端，用 `hasFileSystemBackend()` 判断是否注入、用 `store !== binaryStorage`
+>    判断注入的后端能否持久化，两个关注点分开。`isPersistable = storageBackend !== 'memory'
+>    && (store !== binaryStorage || storageBackend === 'idb')`。
+> 2. **淘汰仍用插入序，不用 mtime。** 初版想用 fs 的文件 mtime 免费拿 LRU，但那要给
+>    `BinaryStorage` 接口加 `stat`、并在 3 个测试 mock 里都实现它，得不偿失。插入序（近似
+>    FIFO）够用，且保持接口干净。
 
 ## 要解决的问题
 
@@ -168,18 +183,57 @@ IDB 给 `key → 插入序号`，fs 给 `key → mtime`。保护集判断（`id 
 ### 4. （可选，单独提交）下载去重：加密资源统一下载入口
 
 `resourceManager.fetchDecrypted`（`:153/:160`）与 `imageCache.fetchBytes`（`:243/:250`）
-各写了一份几乎相同的「`getKey` → `buildCdnUrl` → `fetchBinary` → `decryptZukan` → 403 重签重下」。
+各写了一份几乎相同的「`getKey` → `buildCdnUrl` → `fetchBinary` → 403 重签重下」编排。
+（注：两处的**失败重试策略不完全一样** —— resourceManager 是解密/解码失败后删 cacheKey
+整轮重下、且 `allowKeyRetry=false` 时不再重签；imageCache 是密文解密失败删盘上那份。
+这层差异**留在调用方**，不并入新函数。）
 
 `fetchBinary` **本身不动** —— 它是纯传输层（只发 `uni.request` 拿 arraybuffer），
 在 `services/http/` 里是干净的叶子节点。把 `getKey` / `buildCdnUrl` / `decryptZukan` /
 403 重签塞进去会让 http 层反向依赖 `session` / `resources`，破坏依赖方向。
 
-正确做法是在 `fetchBinary` **之上**新增一个加密资源下载器
-（`src/services/resources/encryptedDownload.ts`），收口那段重复编排，
-`resourceManager` 与 `imageCache` 都改调它。依赖方向干净（往上的依赖，不形成环）。
+在 `fetchBinary` **之上**新增 `src/services/resources/encryptedDownload.ts`，收口**只有**
+「签名 → 下载 → 403 清 key 重签重下一次」这一真·逐字相同的块，返回**密文**，不解密：
+
+```ts
+export async function downloadEncrypted(
+    remotePath: string,
+    signal?: AbortSignal,
+): Promise<Uint8Array> {            // 返回密文，调用方自己 decryptZukan
+    const key = await getKey();
+    let { cdn } = key;
+    try {
+        return await fetchBinary(buildCdnUrl(remotePath, cdn), { signal });
+    } catch (err) {
+        if (err instanceof BinaryRequestError && err.statusCode === 403) {
+            clearKeyCache();
+            cdn = (await getKey()).cdn;
+            return await fetchBinary(buildCdnUrl(remotePath, cdn), { signal });
+        }
+        throw err;
+    }
+}
+```
+
+**选定的方案 A（只收口网络 + 签名，返回密文）**，不连解密一起收口。理由：
+
+- 解密之后两边走完全不同的路（resourceManager 接解码器，imageCache 接 `sniffImageMime`
+  + `createImageObjectUrl`），把解密绑进去会让下游差异被吞进函数、难读。
+- 403 重签是两段**真正逐字相同**的部分，只收口它就消掉了重复。
+- dek 由调用方各取：`getKey()` 内部有 `keyPromise` 单例缓存，多调一次几乎零成本。
+
+调用方改动：
+```ts
+// resourceManager.fetchDecrypted：存储命中直接用，miss 才 downloadEncrypted
+bytes = await downloadEncrypted(spec.remotePath);
+// imageCache.fetchBytes
+encrypted = await downloadEncrypted(remotePath, signal);
+```
+
+`decryptZukan` 仍在调用方（各自的解密后处理不同）。
 
 这一步是**纯重构，不解决任何功能问题**，且动 `imageCache` 的下载路径、和缓存不变量挨得近，
-建议与主线分开提交、分开发。
+建议与主线（fs 后端，解决重下）分开提交、分开发。
 
 ## 不做 / 保持原状
 

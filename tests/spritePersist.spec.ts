@@ -31,6 +31,12 @@ vi.mock('@/infra/storage/binaryStorage', () => ({
     get storageBackend() {
         return backend;
     },
+    get fsStorage() {
+        return fsStoreMock;
+    },
+    get hasFileSystemBackend() {
+        return () => hasFs;
+    },
     binaryStorage: {
         async get(key: string) {
             return disk.get(key) ?? null;
@@ -55,6 +61,31 @@ vi.mock('@/infra/storage/binaryStorage', () => ({
         },
     },
 }));
+
+/** fs 后端替身：有 fs 时 sprite 持久层注入它，数据落这里而非 disk */
+let hasFs = false;
+let fsDisk: Map<string, Uint8Array>;
+const fsStoreMock = {
+    async get(key: string) {
+        return fsDisk.get(key) ?? null;
+    },
+    async put(key: string, data: Uint8Array) {
+        fsDisk.set(key, data);
+    },
+    async delete(key: string) {
+        fsDisk.delete(key);
+    },
+    async clear(prefix?: string) {
+        // 先快照再删：边遍历边 delete 是未定义行为
+        // eslint-disable-next-line unicorn/no-useless-spread -- 见上，这个 spread 不是多余的
+        for (const k of [...fsDisk.keys()]) {
+            if (!prefix || k.startsWith(prefix)) fsDisk.delete(k);
+        }
+    },
+    async keys(prefix?: string) {
+        return [...fsDisk.keys()].filter((k) => !prefix || k.startsWith(prefix));
+    },
+};
 
 /** uni storage 的同步替身（索引存这里） */
 let kv: Map<string, unknown>;
@@ -86,7 +117,9 @@ function bytesOfSize(n: number): Uint8Array {
 
 beforeEach(() => {
     backend = 'idb';
+    hasFs = false;
     disk = new Map();
+    fsDisk = new Map();
     putFailKeys = new Set();
     keysCalls = 0;
     kv = new Map();
@@ -309,6 +342,70 @@ describe('字节预算淘汰', () => {
         // 唯一的条目被删掉了，账目必须一起归零 —— 留着会让预算永久少一块
         expect(mod.spritePersistStats().bytes).toBe(0);
         expect(disk.size).toBe(0);
+    });
+});
+
+describe('fs 后端（小程序 / App 图片持久层）', () => {
+    const MB = 1024 * 1024;
+
+    /** 有 fs 后端时重建持久层 —— 注入 fsStorage，数据落 fsDisk 不落 disk */
+    async function freshFsPersist(): Promise<PersistModule> {
+        backend = 'uni';
+        hasFs = true;
+        return freshPersist();
+    }
+
+    it('fs 后端启用并持久化（不再 no-op）—— 存进 fsDisk，不碰 uniStorage 的 disk', async () => {
+        const mod = await freshFsPersist();
+
+        await mod.saveSpriteBytes(1, 'home', bytesOfSize(1000));
+
+        expect(mod.spritePersistStats()).toMatchObject({ enabled: true, entries: 1, bytes: 1000 });
+        expect(fsDisk.size).toBe(1);
+        expect(disk.size).toBe(0);
+        expect(await mod.loadSpriteBytes(1, 'home')).not.toBeNull();
+    });
+
+    it('无 fs 后端且非 IDB（uniStorage）时仍 no-op —— 不把图片塞进 10MB storage', async () => {
+        backend = 'uni';
+        hasFs = false;
+        const mod = await freshPersist();
+
+        await mod.saveSpriteBytes(1, 'home', bytesOfSize(1000));
+
+        expect(mod.spritePersistStats()).toMatchObject({ enabled: false, entries: 0, bytes: 0 });
+        expect(disk.size).toBe(0);
+        expect(fsDisk.size).toBe(0);
+    });
+
+    it('fs 预算来自 CACHE_CONFIG（40MB），非 fs 时仍 60MB', async () => {
+        expect((await freshFsPersist()).spritePersistStats().maxBytes).toBe(40 * MB);
+        hasFs = false;
+        expect((await freshPersist()).spritePersistStats().maxBytes).toBe(60 * MB);
+    });
+
+    it('保护集：淘汰先删非保护项（id > 100），保护项（id ≤ 100）后删', async () => {
+        const mod = await freshFsPersist();
+
+        // 预算 40MB；塞 1 张保护(id=1, 25MB) + 2 张非保护(id=101,102 各 20MB) = 65MB > 40
+        // 非保护先删（101→45，仍>40；102→25 ≤40），两张非保护都删完，保护项 id=1 留着
+        await mod.saveSpriteBytes(1, 'home', bytesOfSize(25 * MB));
+        await mod.saveSpriteBytes(101, 'home', bytesOfSize(20 * MB));
+        await mod.saveSpriteBytes(102, 'home', bytesOfSize(20 * MB));
+
+        expect(fsDisk.has('sprite:v1:1/home')).toBe(true);
+        expect(fsDisk.has('sprite:v1:101/home')).toBe(false);
+        expect(fsDisk.has('sprite:v1:102/home')).toBe(false);
+    });
+
+    it('保护集删不干净时回落到保护项 —— 保护是优先保留不是永不删', async () => {
+        const mod = await freshFsPersist();
+
+        // 只塞一张 50MB 的保护项（id=1），非保护为空，必须删掉它
+        await mod.saveSpriteBytes(1, 'home', bytesOfSize(50 * MB));
+
+        expect(mod.spritePersistStats().bytes).toBe(0);
+        expect(fsDisk.size).toBe(0);
     });
 });
 

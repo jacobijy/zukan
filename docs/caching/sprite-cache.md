@@ -22,7 +22,8 @@
 
 - `imageCache.ts` — `createImageCache(spec, persist, opts)`：限流调度 + 引用计数 +
   内存 LRU + 离屏取消。每种类一个实例，LRU / 任务队列 / 并发槽互不影响。
-- `imagePersist.ts` — `createImagePersist(spec, maxBytes)`：IndexedDB 密文持久化。
+- `imagePersist.ts` — `createImagePersist(spec, maxBytes, store?, protectedIdMax?)`：密文持久化。
+  H5 用 IDB（默认 `store`），小程序 / App 注入 `fsStorage`（见 [./fs-backend-plan.md](./fs-backend-plan.md)）。
   每种类独立索引 / 预算 / 对账状态，**道具图不挤占 sprite 的 60MB 配额**。
 - `imageKind.ts` — `IMAGE_KINDS.pokemon` / `.item`：远端路径函数、MIME 兜底
   （解密后按字节嗅探真实格式，`spec.mime` 只在嗅探失败时用；详见 `imageMime.ts`）、
@@ -145,8 +146,10 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
 
 1. **落盘的是 ZKDX 密文，不是解密后的图片。** 存明文等于把加密资源以可直接使用的形式留在用户磁盘，
    加密链路白做。
-2. **只在 `storageBackend === 'idb'`（H5）启用。** 小程序 `uni.setStorage` 总量约 10MB，塞图片
-   会把 FB 主数据顶出配额。非 IDB 后端全模块 no-op。
+2. **dev 内存后端全程 no-op；其余平台按后端启用。** H5 走 IDB（默认 `binaryStorage`）；
+   小程序 / App 注入 `fsStorage`（`USER_DATA_PATH` 存密文，200MB 额度、与本地缓存共享、
+   不占 storage 的 10MB）。`uniStorage`（10MB）不存图片 —— 否则把 FB 主数据顶出配额。
+   见 [./fs-backend-plan.md](./fs-backend-plan.md)。
 3. **索引（uni storage）与数据（IDB）是两条独立写入，必然短暂不一致**，两个方向都要自愈：
    - 索引有 / 数据无 → 按 miss 走网络并摘掉幽灵索引项；
    - 数据有 / 索引无 → 开局 `reconcile()` 对账删孤儿。
@@ -155,6 +158,8 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
    **各清各的前缀**，与 FB bundle 同一版本号同步失效）。
 
 按插入序 FIFO 淘汰（LRU 每次命中要回写索引，多一次 IDB 往返，不值），索引落盘带 500ms 防抖。
+**保护集**：fs 后端下 id ≤ `CACHE_CONFIG.protectedIdMax`（默认 100）的图鉴优先保留，
+非保护项删完仍超预算才回落删保护项（H5 按 0 关）。预算与保护集集中配置见 `cacheConfig.ts`。
 磁盘 key 形如 `<root>v<ver>:<id>[/<variant>]`（pokemon 带 variant，item 不带）；
 索引 key sprite 为 `zukan_sprite_index`、item 为 `zukan_item_img_index`。
 
@@ -211,9 +216,9 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
 落盘的只有「首发 404 过」的条目（今天约 9 条，不到 1 KB）。若把 1300+ id 的正常结论
 全存下来，索引会涨到几十 KB，而收益是零。
 
-**所有平台都开**，与 `imagePersist` 的「仅 IDB」不同：那个存的是几十 MB 密文，
-会挤爆小程序 10MB 配额；这个是几百字节，而且小程序**没有密文持久化**，反而更需要
-省掉这些 404。
+**所有平台都开**，与 `imagePersist` 的「按后端启用」不同：那个存几十 MB 密文（H5 走 IDB、
+小程序 / App 走 fs，都不占 10MB storage），这个是几百字节、走 uni storage 索引；
+小程序现在**有**密文持久化（fs 后端）了，但省掉注定 404 的请求仍更划算。
 
 ### 三条约定
 

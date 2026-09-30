@@ -178,6 +178,154 @@ const uniStorage: BinaryStorage = {
 };
 
 // ─────────────────────────────────────────────────────────
+// 文件系统后端（小程序 / App 图片密文持久层专用）
+// ─────────────────────────────────────────────────────────
+//
+// 用 USER_DATA_PATH 的本地文件存 ZKDX **密文**，给加密图片持久层注入用。
+// 与 objectUrl.ts 的 zukan-img/ 明文临时落点分开（不同目录、不同生命周期）：
+// 这里是跨刷新缓存，objectUrl 那里是 <image> 原语的临时文件、release 即删。
+//
+// 刻意**不**塞进 binaryStorage 单例 —— 那是 FB bundle 用的，FB 走 uniStorage
+// （10MB 装得下几个 bundle 即够）。fs 后端单独导出供 imagePersist 注入。
+//
+// 用 *Sync 变体（writeFileSync/readFileSync/... 均存在于 uni 类型），外包 Promise
+// 适配 BinaryStorage 接口，使上层 async 调用与 IDB 后端形态一致。
+//
+// 配额：USER_DATA_PATH 是本地缓存 + 用户文件共享的 200MB（不占 storage 的 10MB）。
+// 生命周期跟随代码包（清缓存 / 卸载即清），无需自管清理。
+
+const FS_CACHE_DIR = 'zukan-cache';
+
+/**
+ * key → 文件名的**全转义**映射（单射，可无损还原）。
+ *
+ * 只转 `_` `/` `:` 三个字符：当前 key 格式里出现的特殊字符就是这三个。
+ * 转义顺序里 `_` 必须最先 —— 否则把 `/` `:` 转成 `%2F` `%3A` 后引入的下划线
+ * 会被二次转义。`fileNameToKey` 是逆操作，顺序相反（先还原 `%5F` 之类）。
+ * 单射性由 tests 断言 `fileNameToKey(keyToFileName(k)) === k` 锁住。
+ */
+function keyToFileName(key: string): string {
+    return key
+        .replace(/_/g, '%5F')
+        .replace(/\//g, '%2F')
+        .replace(/:/g, '%3A');
+}
+
+function fileNameToKey(name: string): string {
+    return name
+        .replace(/%3A/g, ':')
+        .replace(/%2F/g, '/')
+        .replace(/%5F/g, '_');
+}
+
+function fsBaseDir(): string | null {
+    // node 测试环境无 uni 全局；typeof 判断（不能用 uni 直接取属性，会 ReferenceError）
+    if (typeof uni === 'undefined') return null;
+    const userPath = (uni as any).env?.USER_DATA_PATH as string | undefined;
+    return userPath ? `${userPath}/${FS_CACHE_DIR}` : null;
+}
+
+/** 取精确的底层 ArrayBuffer（fs 只收 ArrayBuffer/string） */
+function toArrayBuffer(data: Uint8Array): ArrayBuffer {
+    return data.byteOffset === 0 && data.byteLength === data.buffer.byteLength
+        ? data.buffer
+        : data.slice().buffer;
+}
+
+/** 读文件 → Uint8Array；不存在或读失败返回 null（按 miss 处理） */
+function readFileSyncSafe(dir: string, key: string): Uint8Array | null {
+    const filePath = `${dir}/${keyToFileName(key)}`;
+    try {
+        const raw = uni.getFileSystemManager().readFileSync(filePath);
+        // readFileSync 无 encoding 时返回 ArrayBuffer；类型是 string | ArrayBuffer，显式判
+        if (raw instanceof ArrayBuffer) return new Uint8Array(raw);
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * fs 后端实例。`USER_DATA_PATH` 不存在（H5 / 测试环境）时返回**退化后端**：
+ * 恒 miss、写入 no-op —— 等同未持久化，不抛错，让上层无脑注入。
+ */
+function createFsStorage(): BinaryStorage {
+    const base = fsBaseDir();
+
+    // 退化后端：无文件系统时的安全默认
+    if (!base) {
+        return {
+            get: async () => null,
+            put: async () => undefined,
+            delete: async () => undefined,
+            clear: async () => undefined,
+            keys: async () => [],
+        };
+    }
+
+    // 非空绑定：base 在 guard 后必然为 string，但闭包里 TS 会重新加宽回 string | null，
+    // 这里钉死一个非 null const 供闭包捕获。
+    const dir: string = base;
+
+    function ensureDir(): void {
+        try {
+            uni.getFileSystemManager().mkdirSync(dir, true);
+        } catch {
+            /* 已存在 / 已就绪，忽略 */
+        }
+    }
+
+    return {
+        async get(key) {
+            return readFileSyncSafe(dir, key);
+        },
+        async put(key, data) {
+            ensureDir();
+            try {
+                uni.getFileSystemManager().writeFileSync(`${dir}/${keyToFileName(key)}`, toArrayBuffer(data));
+            } catch (err) {
+                // 持久化是纯优化，写不进（配额满 / 磁盘满）下次重下即可，静默
+                console.warn('[binaryStorage] fs 写入失败，跳过持久化', key, err);
+            }
+        },
+        async delete(key) {
+            try {
+                uni.getFileSystemManager().unlinkSync(`${dir}/${keyToFileName(key)}`);
+            } catch {
+                /* 不存在，忽略 */
+            }
+        },
+        async clear(prefix) {
+            const keys = await this.keys(prefix);
+            await Promise.all(keys.map((k) => this.delete(k)));
+        },
+        async keys(prefix) {
+            try {
+                const names = uni.getFileSystemManager().readdirSync(dir);
+                const all = names.map((n) => fileNameToKey(n));
+                return prefix ? all.filter((k) => k.startsWith(prefix)) : all;
+            } catch {
+                // 目录尚未创建 / 读取失败 —— 空缓存
+                return [];
+            }
+        },
+    };
+}
+
+/** fs 后端单例（H5 上为退化后端）。供 imagePersist 注入。 */
+export const fsStorage: BinaryStorage = createFsStorage();
+
+/**
+ * 当前平台是否有可用的文件系统持久后端（小程序 / App）。
+ * H5 没有 USER_DATA_PATH，返回 false —— 图片持久层此时走 IDB。
+ * 与 `storageBackend`（描述 binaryStorage 单例）正交：那是 FB bundle 的后端，
+ * 这个决定图片持久层该注入 fs 还是默认 IDB。
+ */
+export function hasFileSystemBackend(): boolean {
+    return fsBaseDir() !== null;
+}
+
+// ─────────────────────────────────────────────────────────
 // 内存后端（仅 dev）
 // ─────────────────────────────────────────────────────────
 

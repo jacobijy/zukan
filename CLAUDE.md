@@ -82,7 +82,7 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 | FB bundle 解码结果 | `resourceManager.ts` | 内存 LRU（12 条） | — | 版本号变化 |
 | FB bundle 密文 | `resourceManager.ts` via `binaryStorage` | IndexedDB | 跨刷新 | `pruneOtherVersions` |
 | sprite Blob URL | `spriteCache.ts`（`imageCache` pokemon 实例） | 内存 LRU（320 条） | — | 刷新即清空 |
-| sprite 密文 | `spritePersist.ts`（`imagePersist` pokemon 实例）via `binaryStorage` | IndexedDB（仅 IDB 后端） | 跨刷新 | `pruneSpriteVersions` |
+| sprite 密文 | `spritePersist.ts`（`imagePersist` pokemon 实例）via 注入的存储后端 | H5: IDB / 小程序·App: fs（`USER_DATA_PATH`，200MB） | 跨刷新 | `pruneSpriteVersions` |
 | sprite 回落落点 | `spriteAvailability.ts` via `uni storage`（key `zukan_sprite_avail`） | KV（**全平台**，仅几百字节） | 跨刷新 | `pruneSpriteAvailability` |
 | 道具图标 Blob URL | `itemImage.ts`（`imageCache` item 实例） | 内存 LRU（200 条） | — | 刷新即清空 |
 | 道具图标密文 | `itemImage.ts`（`imagePersist` item 实例，前缀 `item-img:`）via `binaryStorage` | IndexedDB（仅 IDB 后端） | 跨刷新 | `pruneItemIconVersions` |
@@ -112,8 +112,10 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 
 1. **落盘的是 ZKDX 密文，不是解密后的图片。** 存明文等于把加密资源以可直接使用的
    形式留在用户磁盘上，加密链路白做。
-2. **只在 `storageBackend === 'idb'` 启用。** 小程序 `uni.setStorage` 总量约 10MB，
-   塞图片会把 FB 主数据顶出配额；非 IDB 时全模块 no-op。
+2. **dev 内存后端 no-op；其余按后端启用。** H5 走 IDB（默认 `binaryStorage`）；小程序 / App
+   注入 `fsStorage`（`USER_DATA_PATH` 存密文，200MB、与本地缓存共享、不占 storage 的 10MB），
+   注入点在 `spritePersist.ts`（按 `hasFileSystemBackend()` 决定）。`uniStorage`（10MB）不存图片。
+   见 `docs/caching/fs-backend-plan.md`。
 3. **索引（localStorage）与数据（IDB）是两条独立写入，必然会不一致。** 两个方向都要兜：
    索引有数据没有 → 按 miss 走网络并摘掉幽灵项；数据有索引没有 → `reconcile()` 开局对账删孤儿。
 4. **内存 `clear*()`（登出）刻意不清磁盘** —— 密文没 DEK 解不开，不构成泄露，
@@ -412,6 +414,7 @@ setup(__props) {
    `src/constants/generations.ts`、或加密图片资源层（`src/services/resources/imageCache.ts`、
    `imagePersist.ts`、`imageKind.ts`、`spriteCache.ts`、`spritePersist.ts`、`itemImage.ts`、
    `spriteLoader.ts`、`spriteAvailability.ts`、`imageMime.ts`、`src/constants/spriteVariants.ts`、
+   `src/constants/cacheConfig.ts`、`src/infra/storage/binaryStorage.ts`、
    `src/composables/useEncryptedImage.ts`、`src/services/devtools/assetProbe.ts`）时尤其别跳过
 3. `pnpm dev:h5` 起服务后用**移动端 UA** curl 一遍改动的页面与组件，确认 200：
    ```bash

@@ -20,20 +20,30 @@
  * 谁都能从 IndexedDB 里把整套图导出来。代价是每次启动要重新解密（AES-GCM
  * 走 WASM，实测每张 sub-ms 量级），换来磁盘上没有可直接使用的图。
  *
- * ## 只在 IndexedDB 上启用
+ * ## 启用条件
  *
- * 小程序端 `uni.setStorage` 总量约 10MB，上千张图塞进去会把 FB bundle 顶出
- * 配额 —— 主数据比图片重要得多。因此 `storageBackend !== 'idb'` 时所有写入
- * 都是 no-op，读取恒 miss，行为退化回「只有内存缓存」，不影响正确性。
+ * dev 的内存后端（`storageBackend === 'memory'`）全程 no-op。其余平台启用：
+ * - **H5**：默认 `binaryStorage`（IndexedDB，配额大）。
+ * - **小程序 / App**：注入 `fsStorage`（USER_DATA_PATH 存密文，200MB 额度，
+ *   与本地缓存共享、不占 storage 的 10MB）。注入点是 `spritePersist.ts` 等实例，
+ *   按 `hasFileSystemBackend()` 决定注入 fs 还是默认 IDB。
+ *
+ * 历史：本模块曾硬编码「仅 IDB 启用」，因为小程序的 `uni.setStorage` 只有 10MB，
+ * 塞图片会顶出 FB bundle。改用 fs 后端后小程序也启用（见 `docs/caching/fs-backend-plan.md`）。
  *
  * ## 字节预算与淘汰
  *
- * IDB 没有「超额自动淘汰」，写满会让浏览器抛 QuotaExceededError 或直接清掉
+ * IDB / fs 都没有「超额自动淘汰」，写满会让浏览器抛 QuotaExceededError 或直接清掉
  * 整个源的存储。所以自己记账：维护一份 key → 字节数的索引，超出 `maxBytes`
  * 时按**插入序**（近似 FIFO）删到预算内。
  *
  * 刻意用 FIFO 而不是 LRU：LRU 要每次读命中都写一次索引，把「读缓存」从 1 次
- * IDB 往返变成 2 次，而这类图的访问模式是「滚过一遍就不再回头」，LRU 收益有限。
+ * 存储往返变成 2 次，而这类图的访问模式是「滚过一遍就不再回头」，LRU 收益有限。
+ * （fs 后端虽能用文件 mtime 免费拿到 LRU 效果，但那要给 `BinaryStorage` 接口
+ * 加 stat、并在 3 个测试 mock 里都实现它，得不偿失 —— 保持插入序。）
+ *
+ * **保护集**：id ≤ `protectedIdMax` 的条目优先保留（首屏常用图鉴常驻），
+ * 非保护项删完仍超预算才回落删保护项。0 表示不启用（H5 / 道具按 0 传）。
  *
  * ## 索引的一致性
  *
@@ -43,8 +53,9 @@
  *   因此 `reconcile()` 首次使用时拿 `keys()` 与索引对账，删掉孤儿数据。
  */
 
-import { binaryStorage, storageBackend } from '@/infra/storage/binaryStorage';
+import { binaryStorage, storageBackend, type BinaryStorage } from '@/infra/storage/binaryStorage';
 import { currentDataVersion } from '@/services/resources/dataVersion';
+import { CACHE_CONFIG } from '@/constants/cacheConfig';
 import type { ImageKindSpec } from '@/services/resources/imageKind';
 
 /** 索引落盘防抖：滚动时会连续写入几十条，逐条同步写 storage 会卡主线程 */
@@ -71,11 +82,6 @@ export interface ImagePersist {
     stats: () => { enabled: boolean; entries: number; bytes: number; maxBytes: number };
 }
 
-/** 持久化是否生效。非 IDB 后端全程 no-op，见文件头。 */
-function isIdbBackend(): boolean {
-    return storageBackend === 'idb';
-}
-
 function emptyIndex(): ImageIndex {
     return { v: currentDataVersion(), e: {} };
 }
@@ -83,8 +89,19 @@ function emptyIndex(): ImageIndex {
 /**
  * 为一个图片种类创建持久层。每个种类拥有独立的索引 / 预算 / 对账状态，
  * 互不影响（道具图不会挤占宝可梦立绘的 60MB 预算）。
+ *
+ * `store` 可选：默认全局 `binaryStorage`（H5 的 IDB）。小程序 / App 的图片持久层
+ * 注入 `fsStorage`（USER_DATA_PATH 存密文），FB bundle 仍走默认。
+ *
+ * `protectedIdMax`：id ≤ 此值的条目在淘汰时优先保留（首屏常用图鉴常驻）。
+ * 默认从 `CACHE_CONFIG` 取；0 表示不启用保护集（H5 / 道具按 0 传）。
  */
-export function createImagePersist(spec: ImageKindSpec, maxBytes: number): ImagePersist {
+export function createImagePersist(
+    spec: ImageKindSpec,
+    maxBytes: number,
+    store: BinaryStorage = binaryStorage,
+    protectedIdMax: number = CACHE_CONFIG.protectedIdMax,
+): ImagePersist {
     const root = spec.persistRoot;
     const indexStorageKey = spec.indexStorageKey;
 
@@ -92,6 +109,16 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
     let totalBytes = 0;
     let flushTimer: ReturnType<typeof setTimeout> | null = null;
     let reconciled = false;
+
+    /**
+     * 持久化是否生效。三种情况 no-op：
+     * - dev 内存后端（`storageBackend === 'memory'`）—— 明确不持久化；
+     * - 没注入 fs 且不是 IDB（即 `store === binaryStorage` 而它是 `uniStorage`）——
+     *   `uniStorage` 只有 10MB，塞图片会顶出 FB bundle，所以只在「注入 fs」或「IDB」时启用。
+     * fs 后端即便在无文件系统平台上被注入（退化实例），自身也恒 no-op，这里照常启用即可。
+     */
+    const isPersistable =
+        storageBackend !== 'memory' && (store !== binaryStorage || storageBackend === 'idb');
 
     function storageKey(id: number | string, variant: string): string {
         // 前缀（root）已区隔种类，key 内不再带目录名 —— 保持 pokemon 的
@@ -162,16 +189,16 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
      * 孤儿多活几秒无所谓，它们唯一的害处是不占预算却占磁盘。
      */
     function reconcile(): void {
-        if (reconciled || !isIdbBackend()) return;
+        if (reconciled || !isPersistable) return;
         reconciled = true;
 
         void (async () => {
             try {
                 const idx = loadIndex();
-                const all = await binaryStorage.keys(root);
+                const all = await store.keys(root);
                 const orphans = all.filter((k) => !(k in idx.e));
                 if (orphans.length === 0) return;
-                await Promise.all(orphans.map((k) => binaryStorage.delete(k).catch(() => {})));
+                await Promise.all(orphans.map((k) => store.delete(k).catch(() => {})));
             } catch (err) {
                 console.warn('[imagePersist] 对账失败', root, err);
             }
@@ -181,24 +208,48 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
     // ── 淘汰 ──────────────────────────────────────────────────
 
     /**
-     * 删到预算内。按索引插入序（近似 FIFO）取最旧的删。
-     * 删除失败也把索引项摘掉：留着会让预算永久性地少一块，
-     * 那条数据交给下次 `reconcile` 当孤儿收走。
+     * 解析 key 里的数字 id（`sprite:v1:123/front` → 123）用于保护集判断。
+     * 取第一段冒号后的纯数字前缀；取不到或非有限数返回 -1（不保护）。
+     */
+    function keyId(key: string): number {
+        const seg = key.split(':')[2] ?? '';
+        const m = /^(\d+)/.exec(seg);
+        return m ? Number(m[1]) : -1;
+    }
+
+    /**
+     * 删到预算内。两阶段：先淘汰**非保护项**（id > protectedIdMax），
+     * 非保护项删完仍超预算才回落到保护项。保护是「优先保留」而非「永不删」。
+     *
+     * 各阶段内按索引插入序（近似 FIFO）取最旧的删。fs 后端本可用文件 mtime 拿到
+     * 更准的 LRU 序，但那要给 `BinaryStorage` 接口加 stat、并在 3 个测试 mock 里都
+     * 实现它，得不偿失 —— 统一用插入序。删除失败也把索引项摘掉，
+     * 那条数据交给下次 reconcile 当孤儿收走。
      */
     async function evictToBudget(): Promise<void> {
         const idx = loadIndex();
         const victims: string[] = [];
 
-        for (const [key, size] of Object.entries(idx.e)) {
+        // 候选按「保护与否」分两组，各自按淘汰序排；先排空非保护组。
+        // protectedIdMax <= 0 表示不启用保护集，退化成纯插入序（近似 FIFO）。
+        const candidates = Object.entries(idx.e);
+        const unprotected =
+            protectedIdMax > 0 ? candidates.filter(([k]) => keyId(k) > protectedIdMax) : candidates;
+        const protectedSet =
+            protectedIdMax > 0 ? candidates.filter(([k]) => keyId(k) <= protectedIdMax) : [];
+        for (const group of [unprotected, protectedSet]) {
+            for (const [key, size] of group) {
+                if (totalBytes <= maxBytes) break;
+                victims.push(key);
+                totalBytes -= size;
+                delete idx.e[key];
+            }
             if (totalBytes <= maxBytes) break;
-            victims.push(key);
-            totalBytes -= size;
-            delete idx.e[key];
         }
 
         if (victims.length === 0) return;
         flushIndex();
-        await Promise.all(victims.map((k) => binaryStorage.delete(k).catch(() => {})));
+        await Promise.all(victims.map((k) => store.delete(k).catch(() => {})));
     }
 
     // ── 公共 API ──────────────────────────────────────────────
@@ -210,7 +261,7 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
      * 或用户手动清了 IDB 留下的幽灵项。
      */
     async function loadBytes(id: number | string, variant: string): Promise<Uint8Array | null> {
-        if (!isIdbBackend()) return null;
+        if (!isPersistable) return null;
         reconcile();
 
         const key = storageKey(id, variant);
@@ -218,7 +269,7 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
         if (!(key in idx.e)) return null;
 
         try {
-            const bytes = await binaryStorage.get(key);
+            const bytes = await store.get(key);
             if (bytes) return bytes;
             // 幽灵索引项：自愈
             totalBytes -= idx.e[key] ?? 0;
@@ -237,7 +288,7 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
      * 失败静默：持久化是纯优化，写不进去下次重下就好，不该影响当前这张图的显示。
      */
     async function saveBytes(id: number | string, variant: string, encrypted: Uint8Array): Promise<void> {
-        if (!isIdbBackend()) return;
+        if (!isPersistable) return;
 
         const key = storageKey(id, variant);
         const idx = loadIndex();
@@ -245,7 +296,7 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
         if (key in idx.e) totalBytes -= idx.e[key] ?? 0;
 
         try {
-            await binaryStorage.put(key, encrypted);
+            await store.put(key, encrypted);
         } catch (err) {
             // 配额满或序列化失败。把索引项摘掉保持一致，下次访问按 miss 走网络。
             console.warn('[imagePersist] 写入失败，跳过持久化', key, err);
@@ -268,7 +319,7 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
      * 盘上那份可能是旧 DEK 加密的，留着会让每次刷新都重复一次「解密失败 → 重下」。
      */
     async function dropBytes(id: number | string, variant: string): Promise<void> {
-        if (!isIdbBackend()) return;
+        if (!isPersistable) return;
 
         const key = storageKey(id, variant);
         const idx = loadIndex();
@@ -277,7 +328,7 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
             delete idx.e[key];
             scheduleFlush();
         }
-        await binaryStorage.delete(key).catch(() => {});
+        await store.delete(key).catch(() => {});
     }
 
     /**
@@ -301,20 +352,20 @@ export function createImagePersist(spec: ImageKindSpec, maxBytes: number): Image
         reconciled = false;
         flushIndex();
 
-        if (!isIdbBackend()) return;
+        if (!isPersistable) return;
         try {
-            const all = await binaryStorage.keys(root);
+            const all = await store.keys(root);
             const stale = all.filter((k) => !k.startsWith(keepPrefix));
-            await Promise.all(stale.map((k) => binaryStorage.delete(k).catch(() => {})));
+            await Promise.all(stale.map((k) => store.delete(k).catch(() => {})));
         } catch (err) {
             console.warn('[imagePersist] 清理旧版本失败', root, err);
         }
     }
 
     function stats(): { enabled: boolean; entries: number; bytes: number; maxBytes: number } {
-        const idx = isIdbBackend() ? loadIndex() : null;
+        const idx = isPersistable ? loadIndex() : null;
         return {
-            enabled: isIdbBackend(),
+            enabled: isPersistable,
             entries: idx ? Object.keys(idx.e).length : 0,
             bytes: idx ? totalBytes : 0,
             maxBytes,
