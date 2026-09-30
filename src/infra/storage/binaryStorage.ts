@@ -197,6 +197,35 @@ const uniStorage: BinaryStorage = {
 const FS_CACHE_DIR = 'zukan-cache';
 
 /**
+ * 当前平台的 FileSystemManager。小程序端是 `wx.getFileSystemManager()`，
+ * App / H5 的 uni-app 运行时注入的是 `uni.getFileSystemManager()`；node 测试
+ * 环境两者都缺，返回 null。
+ *
+ * **关键**：小程序端 `uni` 不是全局对象（`typeof uni === 'undefined'`），只有
+ * `wx`；这里必须同时识别两个全局，否则小程序端会误判成「无文件系统」、fs 后端
+ * 整体退化成 no-op（踩过 —— 「fs 读失败: readdirSync:fail no such file or
+ * directory http://usr/zukan-cache/」就是这个 bug）。
+ */
+function getFS(): {
+    mkdirSync: (path: string, recursive?: boolean) => void;
+    writeFileSync: (path: string, data: ArrayBuffer | string, encoding?: string) => void;
+    readFileSync: (path: string, encoding?: string) => ArrayBuffer | string;
+    unlinkSync: (path: string) => void;
+    readdirSync: (path: string) => string[];
+    statSync: (path: string) => { size: number; lastModifiedTime: number };
+} | null {
+    if (typeof wx !== 'undefined') {
+        const fs = (wx as any).getFileSystemManager?.();
+        return fs ?? null;
+    }
+    if (typeof uni !== 'undefined') {
+        const fs = (uni as any).getFileSystemManager?.();
+        return fs ?? null;
+    }
+    return null;
+}
+
+/**
  * key → 文件名的**全转义**映射（单射，可无损还原）。
  *
  * 只转 `_` `/` `:` 三个字符：当前 key 格式里出现的特殊字符就是这三个。
@@ -219,10 +248,17 @@ function fileNameToKey(name: string): string {
 }
 
 function fsBaseDir(): string | null {
-    // node 测试环境无 uni 全局；typeof 判断（不能用 uni 直接取属性，会 ReferenceError）
-    if (typeof uni === 'undefined') return null;
-    const userPath = (uni as any).env?.USER_DATA_PATH as string | undefined;
-    return userPath ? `${userPath}/${FS_CACHE_DIR}` : null;
+    // USER_DATA_PATH 暴露点因平台而异：App/H5 的 uni-app 运行时注入 `uni.env`；
+    // 小程序只有 `wx.env`（uni 不存在）。两个都查，命中哪个算哪个。
+    if (typeof uni !== 'undefined') {
+        const userPath = (uni as any).env?.USER_DATA_PATH as string | undefined;
+        if (userPath) return `${userPath}/${FS_CACHE_DIR}`;
+    }
+    if (typeof wx !== 'undefined') {
+        const userPath = (wx as any).env?.USER_DATA_PATH as string | undefined;
+        if (userPath) return `${userPath}/${FS_CACHE_DIR}`;
+    }
+    return null;
 }
 
 /** 取精确的底层 ArrayBuffer（fs 只收 ArrayBuffer/string） */
@@ -234,9 +270,11 @@ function toArrayBuffer(data: Uint8Array): ArrayBuffer {
 
 /** 读文件 → Uint8Array；不存在或读失败返回 null（按 miss 处理） */
 function readFileSyncSafe(dir: string, key: string): Uint8Array | null {
+    const fs = getFS();
+    if (!fs) return null;
     const filePath = `${dir}/${keyToFileName(key)}`;
     try {
-        const raw = uni.getFileSystemManager().readFileSync(filePath);
+        const raw = fs.readFileSync(filePath);
         // readFileSync 无 encoding 时返回 ArrayBuffer；类型是 string | ArrayBuffer，显式判
         if (raw instanceof ArrayBuffer) return new Uint8Array(raw);
         return null;
@@ -246,14 +284,15 @@ function readFileSyncSafe(dir: string, key: string): Uint8Array | null {
 }
 
 /**
- * fs 后端实例。`USER_DATA_PATH` 不存在（H5 / 测试环境）时返回**退化后端**：
+ * fs 后端实例。`USER_DATA_PATH` 不存在（H5 无 fs / 测试环境）时返回**退化后端**：
  * 恒 miss、写入 no-op —— 等同未持久化，不抛错，让上层无脑注入。
  */
 function createFsStorage(): BinaryStorage {
     const base = fsBaseDir();
+    const fs = getFS();
 
     // 退化后端：无文件系统时的安全默认
-    if (!base) {
+    if (!base || !fs) {
         return {
             get: async () => null,
             put: async () => undefined,
@@ -266,10 +305,11 @@ function createFsStorage(): BinaryStorage {
     // 非空绑定：base 在 guard 后必然为 string，但闭包里 TS 会重新加宽回 string | null，
     // 这里钉死一个非 null const 供闭包捕获。
     const dir: string = base;
+    const fsMgr: NonNullable<ReturnType<typeof getFS>> = fs;
 
     function ensureDir(): void {
         try {
-            uni.getFileSystemManager().mkdirSync(dir, true);
+            fsMgr.mkdirSync(dir, true);
         } catch {
             /* 已存在 / 已就绪，忽略 */
         }
@@ -282,7 +322,7 @@ function createFsStorage(): BinaryStorage {
         async put(key, data) {
             ensureDir();
             try {
-                uni.getFileSystemManager().writeFileSync(`${dir}/${keyToFileName(key)}`, toArrayBuffer(data));
+                fsMgr.writeFileSync(`${dir}/${keyToFileName(key)}`, toArrayBuffer(data));
             } catch (err) {
                 // 持久化是纯优化，写不进（配额满 / 磁盘满）下次重下即可，静默
                 console.warn('[binaryStorage] fs 写入失败，跳过持久化', key, err);
@@ -290,7 +330,7 @@ function createFsStorage(): BinaryStorage {
         },
         async delete(key) {
             try {
-                uni.getFileSystemManager().unlinkSync(`${dir}/${keyToFileName(key)}`);
+                fsMgr.unlinkSync(`${dir}/${keyToFileName(key)}`);
             } catch {
                 /* 不存在，忽略 */
             }
@@ -301,7 +341,7 @@ function createFsStorage(): BinaryStorage {
         },
         async keys(prefix) {
             try {
-                const names = uni.getFileSystemManager().readdirSync(dir);
+                const names = fsMgr.readdirSync(dir);
                 const all = names.map((n) => fileNameToKey(n));
                 return prefix ? all.filter((k) => k.startsWith(prefix)) : all;
             } catch {
