@@ -8,33 +8,40 @@
  *
  * 不变量（详见 `imagePersist.ts` 文件头）：
  * 1. 落盘的是 ZKDX **密文**，不是解密后的 PNG。
- * 2. dev 内存后端 no-op；H5 走 IDB，小程序 / App 注入 fs 后端（USER_DATA_PATH 存密文）。
+ * 2. dev 内存后端 no-op；H5 走 IDB，小程序 / App 走 fs 后端（USER_DATA_PATH 存密文）。
+ *    后端按 `spec.fsBackend` 由运行时分发，不在 import 期定型（见下文 MAX_BYTES）。
  * 3. 索引（uni storage）与数据是两条独立写入，双向自愈（幽灵项 / 孤儿）。
  * 4. `clearSpriteCache()`（登出）刻意不清磁盘 —— 密文没 DEK 解不开，版本升级走
  *    `pruneSpriteVersions`。
  */
 import { createImagePersist } from '@/services/resources/imagePersist';
 import { imageKindSpec } from '@/services/resources/imageKind';
-import { fsStorage, hasFileSystemBackend } from '@/infra/storage/binaryStorage';
+import { hasFileSystemBackend } from '@/infra/storage/binaryStorage';
 import { CACHE_CONFIG } from '@/constants/cacheConfig';
 
-const USE_FS = hasFileSystemBackend();
-
 /**
- * H5（IDB，配额大）用 60MB、不启用保护集；小程序 / App（fs，200MB 与本地缓存共享）
- * 用配置预算 + 前 100 号保护。`USE_FS` 决定注入 fs 后端还是默认 IDB。
+ * 磁盘预算按后端取：fs（小程序 / App）共享 200MB 本地缓存额度，给 40MB；
+ * IDB（H5）配额大得多，给 200MB 基本无感。
+ *
+ * 运行时判定，不在 import 期定型 —— 小程序端 `wx` 尚未就绪时会拿错后端。
  */
-const MAX_BYTES = (USE_FS ? CACHE_CONFIG.fsBudgetMB : 60) * 1024 * 1024;
-const PROTECTED_ID_MAX = USE_FS ? CACHE_CONFIG.protectedIdMax : 0;
+const MAX_BYTES = (hasFileSystemBackend() ? CACHE_CONFIG.fsBudgetMB : 200) * 1024 * 1024;
+
+/** 图鉴前 N 号优先保留（见 imagePersist.ts）。fs 后端才需要，IDB 上淘汰压力小 */
+const PROTECTED_ID_MAX = CACHE_CONFIG.protectedIdMax;
 
 /**
  * pokemon 种类的持久层单例。`spriteCache` 复用同一实例（load/save/drop 与
  * 版本清理必须共享同一份内存索引状态），道具种类的单例在 `itemImage.ts`。
+ *
+ * 后端由 `spec.fsBackend` 决定（注入 `imageBinaryStorage`，运行时按平台
+ * 分发 fs / IDB），不必在这里显式注入 —— 模块加载期定型会因 `wx` 未就绪
+ * 而永久 no-op。
  */
 export const pokemonImagePersist = createImagePersist(
     imageKindSpec('pokemon'),
     MAX_BYTES,
-    USE_FS ? fsStorage : undefined,
+    undefined,
     PROTECTED_ID_MAX,
 );
 

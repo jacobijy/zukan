@@ -11,10 +11,11 @@
 >
 > **与初版方案的两处偏差**（实现时定下的更干净做法）：
 > 1. **不往 `storageBackend` 联合类型加 `'fs'`。** `storageBackend` 描述的是
->    `binaryStorage` 单例（FB bundle 用的，仍是 idb/uni/memory）。fs 是**按用途注入**的
->    独立后端，用 `hasFileSystemBackend()` 判断是否注入、用 `store !== binaryStorage`
->    判断注入的后端能否持久化，两个关注点分开。`isPersistable = storageBackend !== 'memory'
->    && (store !== binaryStorage || storageBackend === 'idb')`。
+>    `binaryStorage` 单例（FB bundle 用的，仍是 idb/uni/memory）。fs 是**按种类分发**的
+>    独立后端：`ImageKindSpec.fsBackend` 标记哪些种类走 fs，由
+>    `imageBinaryStorage`（运行时分发存储）在每次调用时按 `hasFileSystemBackend()`
+>    挑 fs / IDB / no-op。`isPersistable = storageBackend !== 'memory' &&
+>    (hasFileSystemBackend() || storageBackend === 'idb')`。
 > 2. **淘汰仍用插入序，不用 mtime。** 初版想用 fs 的文件 mtime 免费拿 LRU，但那要给
 >    `BinaryStorage` 接口加 `stat`、并在 3 个测试 mock 里都实现它，得不偿失。插入序（近似
 >    FIFO）够用，且保持接口干净。
@@ -143,6 +144,37 @@ reconcile 的存在本身就是为「索引与数据不一致」兜底，如果 
 **注意**：注入的 fs 后端必须在**有文件系统**时创建（`uni.env.USER_DATA_PATH` 存在）。
 H5 没有文件系统，注入点要判：`storageBackend === 'fs' ? fsStorage : binaryStorage`，
 H5 上 `storageBackend === 'idb'`，自然走默认 `binaryStorage`（IDB），不受影响。
+
+#### 落地时的两处修正（踩过再改回来的）
+
+1. **不能在模块加载期按 `hasFileSystemBackend()` 分支选 store** —— 小程序端 `wx`
+   是运行时注入的全局，模块 import 那一刻可能尚未就绪，`hasFileSystemBackend()`
+   返回 false 会让 store 定型成退化的 fs 后端，图片永不持久化（现象：
+   「不再重下但图加载不出」）。落地改成 `binaryStorage.ts` 导出一个
+   `imageBinaryStorage` **运行时分发存储**：每个方法调用时按 `hasFileSystemBackend()`
+   现场挑 fs / IDB / no-op（分发规则见下），store 本身是稳定的。
+   `imagePersist.ts` 的 `isPersistable` 也改成运行时调用 `hasFileSystemBackend()`，
+   不再读模块加载期的快照。
+2. **`isPersistable` 不再用 `store !== binaryStorage` 判** —— 一旦 store 由种类标记
+   （`spec.fsBackend`）静态决定，这个判定就退化成「种类是否开了 fs」。改成
+   `storageBackend !== 'memory' && (hasFileSystemBackend() || storageBackend === 'idb')`，
+   即「后端能用」的语义，与种类解耦：H5 上 fs 不可用但 IDB 可用 → 启用；
+   假想的仅 uniStorage 平台 → 不启用（不塞 10MB 配额）。
+3. **预算按平台取**：`spritePersist.ts` 的 `MAX_BYTES` 由
+   `hasFileSystemBackend() ? fsBudgetMB : 200` 决定，H5 的 IDB 配额大，
+   给到 200MB 基本无感；`protectedIdMax` 只在 fs 后端有意义（IDB 淘汰压力小）。
+4. **种类差异下沉到 `ImageKindSpec`**：加 `fsBackend?: boolean` 字段（默认 false），
+   由 `imagePersist.ts` 的默认参数 `store = spec.fsBackend ? imageBinaryStorage : binaryStorage`
+   读。sprite 是唯一开 fs 的种类；道具图标密文极小、种类多，暂留在 IDB，
+   等 fs 通路验证稳了再逐个开启。
+
+**运行时分发规则**（`imageBinaryStorage`）：
+
+| `hasFileSystemBackend()` | `storageBackend` | 分发到 | 说明 |
+|---|---|---|---|
+| true | 任意 | `fsStorage` | 小程序 / App，USER_DATA_PATH 200MB |
+| false | `'idb'` | `binaryStorage`（IDB） | H5 |
+| false | `'uni'` | `fsStorage`（退化 no-op） | 假想平台，**绝不回落 uniStorage**（10MB 会顶出 FB） |
 
 ### 3. 预算与淘汰：可配置 + 保护集
 

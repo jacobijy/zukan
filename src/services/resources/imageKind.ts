@@ -30,12 +30,22 @@ export interface ImageKindSpec {
      * id 为数字（pokemon/item）或字符串（对战图标，见 battleImage.ts）。
      */
     remotePath: (id: number | string, variant: string) => string;
+    /**
+     * 持久层是否用 fs 后端（USER_DATA_PATH 存密文，200MB，小程序 / App）。
+     *
+     * 默认 false = 走 H5 的 IDB。sprite 是唯一开 fs 的种类（预算走
+     * `CACHE_CONFIG.fsBudgetMB`）；道具图标密文极小（约 400 字节 / 张）
+     * 且种类多，暂时留在 IDB，等 fs 通路验证稳了再逐个开启。
+     */
+    fsBackend?: boolean;
 }
 
 const POKEMON: ImageKindSpec = {
     mime: 'image/png',
     persistRoot: 'sprite:',
     indexStorageKey: 'zukan_sprite_index',
+    // 首屏常用图鉴常驻本地，配合 CACHE_CONFIG.fsBudgetMB / protectedIdMax
+    fsBackend: true,
     remotePath: (id, variant) => `/assets/encrypted/pokemon/${id}/${variant}.bin`,
 };
 

@@ -23,10 +23,13 @@
  * ## 启用条件
  *
  * dev 的内存后端（`storageBackend === 'memory'`）全程 no-op。其余平台启用：
- * - **H5**：默认 `binaryStorage`（IndexedDB，配额大）。
- * - **小程序 / App**：注入 `fsStorage`（USER_DATA_PATH 存密文，200MB 额度，
- *   与本地缓存共享、不占 storage 的 10MB）。注入点是 `spritePersist.ts` 等实例，
- *   按 `hasFileSystemBackend()` 决定注入 fs 还是默认 IDB。
+ * - **有 fs 后端**（小程序 / App）：sprite 等标记 `fsBackend` 的种类用 fs
+ *   （USER_DATA_PATH 存密文，200MB 额度，与本地缓存共享、不占 storage 的 10MB）。
+ * - **只有 IDB**（H5）：所有种类走 `binaryStorage`（IndexedDB）。
+ * - **`uniStorage`（10MB）不存图片** —— 那会把 FB bundle 顶出去。
+ *
+ * 后端选择按种类标记 `spec.fsBackend`，由 `imageBinaryStorage` **运行时**分发
+ * （模块加载时 `wx` 可能未就绪，定型会永久 no-op）。
  *
  * 历史：本模块曾硬编码「仅 IDB 启用」，因为小程序的 `uni.setStorage` 只有 10MB，
  * 塞图片会顶出 FB bundle。改用 fs 后端后小程序也启用（见 `docs/caching/fs-backend-plan.md`）。
@@ -53,9 +56,14 @@
  *   因此 `reconcile()` 首次使用时拿 `keys()` 与索引对账，删掉孤儿数据。
  */
 
-import { binaryStorage, storageBackend, type BinaryStorage } from '@/infra/storage/binaryStorage';
+import {
+    binaryStorage,
+    storageBackend,
+    hasFileSystemBackend,
+    imageBinaryStorage,
+    type BinaryStorage,
+} from '@/infra/storage/binaryStorage';
 import { currentDataVersion } from '@/services/resources/dataVersion';
-import { CACHE_CONFIG } from '@/constants/cacheConfig';
 import type { ImageKindSpec } from '@/services/resources/imageKind';
 
 /** 索引落盘防抖：滚动时会连续写入几十条，逐条同步写 storage 会卡主线程 */
@@ -90,17 +98,18 @@ function emptyIndex(): ImageIndex {
  * 为一个图片种类创建持久层。每个种类拥有独立的索引 / 预算 / 对账状态，
  * 互不影响（道具图不会挤占宝可梦立绘的 60MB 预算）。
  *
- * `store` 可选：默认全局 `binaryStorage`（H5 的 IDB）。小程序 / App 的图片持久层
- * 注入 `fsStorage`（USER_DATA_PATH 存密文），FB bundle 仍走默认。
+ * 默认后端按种类标记 `spec.fsBackend` 选：开 fs 的注入 `imageBinaryStorage`
+ * （运行时分发 fs / IDB，见该导出），其余用全局 `binaryStorage`（H5 的 IDB）。
+ * FB bundle 仍走 `binaryStorage`，与图片持久层无关。
  *
  * `protectedIdMax`：id ≤ 此值的条目在淘汰时优先保留（首屏常用图鉴常驻）。
- * 默认从 `CACHE_CONFIG` 取；0 表示不启用保护集（H5 / 道具按 0 传）。
+ * 仅 fs 后端实例传；H5 / 道具传 0 表示不启用（预算宽裕，淘汰压力小）。
  */
 export function createImagePersist(
     spec: ImageKindSpec,
     maxBytes: number,
-    store: BinaryStorage = binaryStorage,
-    protectedIdMax: number = CACHE_CONFIG.protectedIdMax,
+    store: BinaryStorage = spec.fsBackend ? imageBinaryStorage : binaryStorage,
+    protectedIdMax: number = 0,
 ): ImagePersist {
     const root = spec.persistRoot;
     const indexStorageKey = spec.indexStorageKey;
@@ -111,14 +120,17 @@ export function createImagePersist(
     let reconciled = false;
 
     /**
-     * 持久化是否生效。三种情况 no-op：
+     * 持久化是否生效。两种情况 no-op：
      * - dev 内存后端（`storageBackend === 'memory'`）—— 明确不持久化；
-     * - 没注入 fs 且不是 IDB（即 `store === binaryStorage` 而它是 `uniStorage`）——
-     *   `uniStorage` 只有 10MB，塞图片会顶出 FB bundle，所以只在「注入 fs」或「IDB」时启用。
-     * fs 后端即便在无文件系统平台上被注入（退化实例），自身也恒 no-op，这里照常启用即可。
+     * - 当前平台既没有 fs 后端、也没有 IDB —— 此时只能靠 `uniStorage`
+     *   （10MB），塞图片会把 FB bundle 顶出去，所以直接不启用。
+     *
+     * **运行期判定**（不缓存到模块加载时的快照）：`hasFileSystemBackend()`
+     * 每次重查 `wx`，因为小程序端 `wx` 是运行时注入的全局，import 那一刻
+     * 可能尚未就绪。
      */
     const isPersistable =
-        storageBackend !== 'memory' && (store !== binaryStorage || storageBackend === 'idb');
+        storageBackend !== 'memory' && (hasFileSystemBackend() || storageBackend === 'idb');
 
     function storageKey(id: number | string, variant: string): string {
         // 前缀（root）已区隔种类，key 内不再带目录名 —— 保持 pokemon 的

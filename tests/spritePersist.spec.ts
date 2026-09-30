@@ -7,8 +7,9 @@
  * 2. **索引与数据最终一致。** 两者是独立写入，中间刷新必然不一致；
  *    「索引有数据没有」要按 miss 自愈，「数据有索引没有」要被对账收走 ——
  *    后者不修就是永不被预算计入、永不被淘汰的磁盘泄漏。
- * 3. **只在 IndexedDB 上启用。** 小程序端配额只有约 10MB，塞 sprite 会把
- *    FB 主数据顶出去。
+ * 3. **按平台启用持久化。** fs 后端（小程序 / App）走 USER_DATA_PATH；
+ *    无 fs 时回落到 IDB（H5）；仅 `uniStorage`（10MB）时整体 no-op，
+ *    避免塞图片把 FB bundle 顶出去。
  *
  * 后半段是与 `spriteCache` 的联调：确认「二次加载不走网络」这个本次改动的目的
  * 真的达成了 —— 单测 `spritePersist` 自己读写通了不代表 `spriteCache` 接对了。
@@ -19,57 +20,81 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // 替身：内存版 binaryStorage + uni storage
 // ─────────────────────────────────────────────────────────
 
-/** 当前模拟的后端类型。`storageBackend === 'idb'` 才启用持久化。 */
-let backend: 'idb' | 'uni';
+/** 当前模拟的后端类型。`storageBackend === 'memory'` 时 imagePersist 整体 no-op。 */
+let backend: 'idb' | 'uni' | 'memory';
+/** 当前平台是否有 fs 后端（小程序 / App）。false 模拟 H5。 */
+let hasFs: boolean;
 
 let disk: Map<string, Uint8Array>;
+/** fs 后端落点（sprite 持久层只在 fs 可用时写这里） */
+let fsDisk: Map<string, Uint8Array>;
+/** fs 后端 keys() 调用计数（与 binaryStorage 的 keysCalls 对应） */
+let fsKeysCalls: number;
 /** put 失败注入：命中的 key 抛错（模拟 quota） */
 let putFailKeys: Set<string>;
 let keysCalls: number;
 
-vi.mock('@/infra/storage/binaryStorage', () => ({
-    get storageBackend() {
-        return backend;
-    },
-    get fsStorage() {
-        return fsStoreMock;
-    },
-    get hasFileSystemBackend() {
-        return () => hasFs;
-    },
-    binaryStorage: {
-        async get(key: string) {
-            return disk.get(key) ?? null;
-        },
-        async put(key: string, data: Uint8Array) {
-            if (putFailKeys.has(key)) throw new Error('QuotaExceededError');
-            disk.set(key, data);
-        },
-        async delete(key: string) {
-            disk.delete(key);
-        },
-        async clear(prefix?: string) {
-            // 先快照再删：边遍历边 delete 是未定义行为
-            // eslint-disable-next-line unicorn/no-useless-spread -- 见上，这个 spread 不是多余的
-            for (const k of [...disk.keys()]) {
-                if (!prefix || k.startsWith(prefix)) disk.delete(k);
-            }
-        },
-        async keys(prefix?: string) {
-            keysCalls += 1;
-            return [...disk.keys()].filter((k) => !prefix || k.startsWith(prefix));
-        },
-    },
-}));
+/**
+ * 图片持久层实际用的 store：模拟 imageBinaryStorage 的运行时分发。
+ * fs 可用 → fsDisk；无 fs + idb 后端 → disk（H5 回落 IDB）；
+ * 无 fs + 非 idb 后端 → 空实现（imagePersist 的 isPersistable 已拦截，
+ * 这里只为不崩，见「fs 后端不可用 + uni-storage 后端」用例）。
+ */
+function pickImageStore(): BinaryStorage {
+    if (hasFs) return fsStoreMock;
+    if (backend === 'idb') return diskStoreMock;
+    return noopStoreMock;
+}
 
-/** fs 后端替身：有 fs 时 sprite 持久层注入它，数据落这里而非 disk */
-let hasFs = false;
-let fsDisk: Map<string, Uint8Array>;
+const noopStoreMock = {
+    async get(): Promise<Uint8Array | null> {
+        return null;
+    },
+    async put(): Promise<void> {
+        return;
+    },
+    async delete(): Promise<void> {
+        return;
+    },
+    async clear(): Promise<void> {
+        return;
+    },
+    async keys(): Promise<string[]> {
+        return [];
+    },
+};
+
+const diskStoreMock = {
+    async get(key: string) {
+        return disk.get(key) ?? null;
+    },
+    async put(key: string, data: Uint8Array) {
+        if (putFailKeys.has(key)) throw new Error('QuotaExceededError');
+        disk.set(key, data);
+    },
+    async delete(key: string) {
+        disk.delete(key);
+    },
+    async clear(prefix?: string) {
+        // 先快照再删：边遍历边 delete 是未定义行为
+        // eslint-disable-next-line unicorn/no-useless-spread -- 见上，这个 spread 不是多余的
+        for (const k of [...disk.keys()]) {
+            if (!prefix || k.startsWith(prefix)) disk.delete(k);
+        }
+    },
+    async keys(prefix?: string) {
+        keysCalls += 1;
+        return [...disk.keys()].filter((k) => !prefix || k.startsWith(prefix));
+    },
+};
+
+/** fs 后端替身：fs 可用时数据落这里而非 disk。 */
 const fsStoreMock = {
     async get(key: string) {
         return fsDisk.get(key) ?? null;
     },
     async put(key: string, data: Uint8Array) {
+        if (putFailKeys.has(key)) throw new Error('QuotaExceededError');
         fsDisk.set(key, data);
     },
     async delete(key: string) {
@@ -83,14 +108,33 @@ const fsStoreMock = {
         }
     },
     async keys(prefix?: string) {
+        fsKeysCalls += 1;
         return [...fsDisk.keys()].filter((k) => !prefix || k.startsWith(prefix));
     },
 };
+
+vi.mock('@/infra/storage/binaryStorage', () => ({
+    get storageBackend() {
+        return backend;
+    },
+    hasFileSystemBackend: () => hasFs,
+    // 运行时按 hasFs / backend 分发，模拟 imageBinaryStorage 的真实语义
+    get imageBinaryStorage() {
+        return pickImageStore();
+    },
+    get fsStorage() {
+        return hasFs ? fsStoreMock : noopStoreMock;
+    },
+    get binaryStorage() {
+        return diskStoreMock;
+    },
+}));
 
 /** uni storage 的同步替身（索引存这里） */
 let kv: Map<string, unknown>;
 
 type PersistModule = typeof import('@/services/resources/spritePersist');
+import type { BinaryStorage } from '@/infra/storage/binaryStorage';
 
 async function freshPersist(): Promise<PersistModule> {
     vi.resetModules();
@@ -117,9 +161,10 @@ function bytesOfSize(n: number): Uint8Array {
 
 beforeEach(() => {
     backend = 'idb';
-    hasFs = false;
+    hasFs = true;
     disk = new Map();
     fsDisk = new Map();
+    fsKeysCalls = 0;
     putFailKeys = new Set();
     keysCalls = 0;
     kv = new Map();
@@ -141,24 +186,58 @@ afterEach(() => {
 });
 
 describe('启用条件', () => {
-    it('非 IDB 后端全程 no-op —— 小程序配额留给 FB 主数据', async () => {
+    it('fs 后端启用（默认）—— 数据落 fsDisk 不落 disk', async () => {
+        const mod = await freshPersist();
+
+        await mod.saveSpriteBytes(1, 'home', bytesOfSize(1000));
+
+        expect(fsDisk.size).toBe(1);
+        // binaryStorage（uniStorage）不该被写入 —— 那是 FB bundle 的后端
+        expect(disk.size).toBe(0);
+        expect(await mod.loadSpriteBytes(1, 'home')).not.toBeNull();
+        expect(mod.spritePersistStats()).toMatchObject({ enabled: true, entries: 1, bytes: 1000 });
+    });
+
+    it('fs 后端不可用 + IDB 后端（H5）—— 数据落 disk 不落 fsDisk', async () => {
+        // 覆盖「H5 上 fsStorage 恒退化、但图片持久层必须回落到 IDB」这条路径：
+        // 若这里写不进 disk，H5 就丢了跨刷新的 sprite 缓存。
+        hasFs = false;
+        backend = 'idb';
+        const mod = await freshPersist();
+
+        await mod.saveSpriteBytes(1, 'home', bytesOfSize(1000));
+
+        expect(disk.size).toBe(1);
+        expect(fsDisk.size).toBe(0);
+        expect(await mod.loadSpriteBytes(1, 'home')).not.toBeNull();
+        expect(mod.spritePersistStats()).toMatchObject({ enabled: true, entries: 1, bytes: 1000 });
+    });
+
+    it('fs 后端不可用 + uni-storage 后端 —— 全程 no-op，不写 10MB 配额', async () => {
+        // 假想的 uni-storage 平台：既无 fs 也无 IDB。不能为了启用持久层
+        // 回落 uniStorage —— 那只有 10MB，塞图片会把 FB bundle 顶出去。
+        hasFs = false;
         backend = 'uni';
         const mod = await freshPersist();
 
         await mod.saveSpriteBytes(1, 'home', bytesOfSize(1000));
 
         expect(disk.size).toBe(0);
-        expect(await mod.loadSpriteBytes(1, 'home')).toBeNull();
+        expect(fsDisk.size).toBe(0);
         expect(mod.spritePersistStats()).toMatchObject({ enabled: false, entries: 0, bytes: 0 });
     });
 
-    it('IDB 后端正常存取', async () => {
+    it('dev 内存后端全程 no-op', async () => {
+        // storageBackend === 'memory' 时 imagePersist 整体 no-op，不写 fsDisk
+        backend = 'memory';
         const mod = await freshPersist();
 
         await mod.saveSpriteBytes(1, 'home', bytesOfSize(1000));
 
-        expect(disk.size).toBe(1);
-        expect(mod.spritePersistStats()).toMatchObject({ enabled: true, entries: 1, bytes: 1000 });
+        expect(fsDisk.size).toBe(0);
+        // 既不该写 fsDisk 也不该写 uniStorage
+        expect(disk.size).toBe(0);
+        expect(mod.spritePersistStats()).toMatchObject({ enabled: false, entries: 0, bytes: 0 });
     });
 });
 
@@ -246,8 +325,8 @@ describe('索引与数据的一致性', () => {
         await first.saveSpriteBytes(1, 'home', new Uint8Array([1, 2, 3]));
         await vi.advanceTimersByTimeAsync(600);
 
-        // 用户手动清了 IDB，索引还在
-        disk.clear();
+        // 用户手动清了 fs，索引还在
+        fsDisk.clear();
 
         const second = await freshPersist();
         expect(await second.loadSpriteBytes(1, 'home')).toBeNull();
@@ -259,13 +338,13 @@ describe('索引与数据的一致性', () => {
         const mod = await freshPersist();
 
         // 上次「写数据成功但索引没来得及落盘」留下的孤儿
-        disk.set('sprite:v1:1/home', new Uint8Array([1]));
-        disk.set('sprite:v1:2/home', new Uint8Array([2]));
+        fsDisk.set('sprite:v1:1/home', new Uint8Array([1]));
+        fsDisk.set('sprite:v1:2/home', new Uint8Array([2]));
 
         await mod.loadSpriteBytes(3, 'home');
         await flush();
 
-        expect(disk.size).toBe(0);
+        expect(fsDisk.size).toBe(0);
     });
 
     it('对账只跑一次，不给每次读都加一趟 getAllKeys', async () => {
@@ -276,7 +355,7 @@ describe('索引与数据的一致性', () => {
         await mod.loadSpriteBytes(3, 'home');
         await flush();
 
-        expect(keysCalls).toBe(1);
+        expect(fsKeysCalls).toBe(1);
     });
 
     it('对账不误删索引里记着的条目', async () => {
@@ -289,7 +368,7 @@ describe('索引与数据的一致性', () => {
         await second.loadSpriteBytes(1, 'home');
         await vi.advanceTimersByTimeAsync(100);
 
-        expect(disk.has('sprite:v1:1/home')).toBe(true);
+        expect(fsDisk.has('sprite:v1:1/home')).toBe(true);
     });
 
     it('写入失败（quota）不留下索引项', async () => {
@@ -310,82 +389,50 @@ describe('字节预算淘汰', () => {
     it('超出预算后按插入序删到预算内', async () => {
         const mod = await freshPersist();
 
-        // MAX_BYTES = 60MB；7 × 10MB = 70MB 触发淘汰
-        for (let id = 1; id <= 7; id += 1) {
+        // MAX_BYTES = 40MB（fs 预算）；6 × 8MB = 48MB 触发淘汰
+        for (let id = 1; id <= 6; id += 1) {
             // eslint-disable-next-line no-await-in-loop -- 插入序即淘汰序，并发会打乱
-            await mod.saveSpriteBytes(id, 'home', bytesOfSize(10 * MB));
+            await mod.saveSpriteBytes(id, 'home', bytesOfSize(8 * MB));
         }
 
-        expect(mod.spritePersistStats().bytes).toBeLessThanOrEqual(60 * MB);
+        expect(mod.spritePersistStats().bytes).toBeLessThanOrEqual(40 * MB);
         // 删的是最早那个，不是最新那个
-        expect(disk.has('sprite:v1:1/home')).toBe(false);
-        expect(disk.has('sprite:v1:7/home')).toBe(true);
+        expect(fsDisk.has('sprite:v1:1/home')).toBe(false);
+        expect(fsDisk.has('sprite:v1:6/home')).toBe(true);
     });
 
     it('没超预算时一个都不删', async () => {
         const mod = await freshPersist();
 
-        for (let id = 1; id <= 5; id += 1) {
+        for (let id = 1; id <= 4; id += 1) {
             // eslint-disable-next-line no-await-in-loop -- 同上
-            await mod.saveSpriteBytes(id, 'home', bytesOfSize(10 * MB));
+            await mod.saveSpriteBytes(id, 'home', bytesOfSize(8 * MB));
         }
 
-        expect(mod.spritePersistStats()).toMatchObject({ entries: 5, bytes: 50 * MB });
-        expect(disk.size).toBe(5);
+        expect(mod.spritePersistStats()).toMatchObject({ entries: 4, bytes: 32 * MB });
+        expect(fsDisk.size).toBe(4);
     });
 
     it('单张就超预算时不会把自己删光后仍留着账', async () => {
         const mod = await freshPersist();
 
-        await mod.saveSpriteBytes(1, 'home', bytesOfSize(70 * MB));
+        await mod.saveSpriteBytes(1, 'home', bytesOfSize(50 * MB));
 
         // 唯一的条目被删掉了，账目必须一起归零 —— 留着会让预算永久少一块
         expect(mod.spritePersistStats().bytes).toBe(0);
-        expect(disk.size).toBe(0);
+        expect(fsDisk.size).toBe(0);
     });
 });
 
 describe('fs 后端（小程序 / App 图片持久层）', () => {
     const MB = 1024 * 1024;
 
-    /** 有 fs 后端时重建持久层 —— 注入 fsStorage，数据落 fsDisk 不落 disk */
-    async function freshFsPersist(): Promise<PersistModule> {
-        backend = 'uni';
-        hasFs = true;
-        return freshPersist();
-    }
-
-    it('fs 后端启用并持久化（不再 no-op）—— 存进 fsDisk，不碰 uniStorage 的 disk', async () => {
-        const mod = await freshFsPersist();
-
-        await mod.saveSpriteBytes(1, 'home', bytesOfSize(1000));
-
-        expect(mod.spritePersistStats()).toMatchObject({ enabled: true, entries: 1, bytes: 1000 });
-        expect(fsDisk.size).toBe(1);
-        expect(disk.size).toBe(0);
-        expect(await mod.loadSpriteBytes(1, 'home')).not.toBeNull();
-    });
-
-    it('无 fs 后端且非 IDB（uniStorage）时仍 no-op —— 不把图片塞进 10MB storage', async () => {
-        backend = 'uni';
-        hasFs = false;
-        const mod = await freshPersist();
-
-        await mod.saveSpriteBytes(1, 'home', bytesOfSize(1000));
-
-        expect(mod.spritePersistStats()).toMatchObject({ enabled: false, entries: 0, bytes: 0 });
-        expect(disk.size).toBe(0);
-        expect(fsDisk.size).toBe(0);
-    });
-
-    it('fs 预算来自 CACHE_CONFIG（40MB），非 fs 时仍 60MB', async () => {
-        expect((await freshFsPersist()).spritePersistStats().maxBytes).toBe(40 * MB);
-        hasFs = false;
-        expect((await freshPersist()).spritePersistStats().maxBytes).toBe(60 * MB);
+    it('fs 预算来自 CACHE_CONFIG（40MB）', async () => {
+        expect((await freshPersist()).spritePersistStats().maxBytes).toBe(40 * MB);
     });
 
     it('保护集：淘汰先删非保护项（id > 100），保护项（id ≤ 100）后删', async () => {
-        const mod = await freshFsPersist();
+        const mod = await freshPersist();
 
         // 预算 40MB；塞 1 张保护(id=1, 25MB) + 2 张非保护(id=101,102 各 20MB) = 65MB > 40
         // 非保护先删（101→45，仍>40；102→25 ≤40），两张非保护都删完，保护项 id=1 留着
@@ -399,7 +446,7 @@ describe('fs 后端（小程序 / App 图片持久层）', () => {
     });
 
     it('保护集删不干净时回落到保护项 —— 保护是优先保留不是永不删', async () => {
-        const mod = await freshFsPersist();
+        const mod = await freshPersist();
 
         // 只塞一张 50MB 的保护项（id=1），非保护为空，必须删掉它
         await mod.saveSpriteBytes(1, 'home', bytesOfSize(50 * MB));
@@ -416,7 +463,7 @@ describe('删除与版本清理', () => {
         await mod.saveSpriteBytes(1, 'home', bytesOfSize(100));
         await mod.dropSpriteBytes(1, 'home');
 
-        expect(disk.size).toBe(0);
+        expect(fsDisk.size).toBe(0);
         expect(mod.spritePersistStats()).toMatchObject({ entries: 0, bytes: 0 });
     });
 
@@ -428,14 +475,15 @@ describe('删除与版本清理', () => {
     it('pruneSpriteVersions 只删别的版本，保留 keepVersion', async () => {
         const mod = await freshPersist();
 
-        disk.set('sprite:v1:1/home', new Uint8Array([1]));
-        disk.set('sprite:v1:2/home', new Uint8Array([2]));
-        disk.set('sprite:v2:1/home', new Uint8Array([3]));
-        disk.set('fb:v1:gen:1', new Uint8Array([4]));
+        fsDisk.set('sprite:v1:1/home', new Uint8Array([1]));
+        fsDisk.set('sprite:v1:2/home', new Uint8Array([2]));
+        fsDisk.set('sprite:v2:1/home', new Uint8Array([3]));
+        // fb 前缀不属于 sprite root，不该被清
+        fsDisk.set('fb:v1:gen:1', new Uint8Array([4]));
 
         await mod.pruneSpriteVersions(2);
 
-        expect([...disk.keys()].toSorted()).toEqual(['fb:v1:gen:1', 'sprite:v2:1/home']);
+        expect([...fsDisk.keys()].toSorted()).toEqual(['fb:v1:gen:1', 'sprite:v2:1/home']);
     });
 
     it('pruneSpriteVersions 用参数而不是存储里的版本号 —— 调用点在写新版本号之前', async () => {
@@ -443,11 +491,11 @@ describe('删除与版本清理', () => {
 
         // 存储里还是旧版本 1，但要保留的是即将写入的 2
         kv.set('zukan_data_version', 1);
-        disk.set('sprite:v2:1/home', new Uint8Array([1]));
+        fsDisk.set('sprite:v2:1/home', new Uint8Array([1]));
 
         await mod.pruneSpriteVersions(2);
 
-        expect(disk.has('sprite:v2:1/home')).toBe(true);
+        expect(fsDisk.has('sprite:v2:1/home')).toBe(true);
     });
 });
 
@@ -527,7 +575,7 @@ describe('spriteCache 联调', () => {
         await mod.acquireSprite(1, 'home');
         await vi.advanceTimersByTimeAsync(600);
 
-        const stored = [...disk.values()];
+        const stored = [...fsDisk.values()];
         expect(stored).toHaveLength(1);
         expect(stored[0]).toBe(CIPHERTEXT);
         expect(stored[0]).not.toBe(PLAINTEXT);
@@ -584,7 +632,7 @@ describe('spriteCache 联调', () => {
         const first = await freshCache();
         await first.acquireSprite(1, 'home');
         await vi.advanceTimersByTimeAsync(600);
-        expect(disk.size).toBe(1);
+        expect(fsDisk.size).toBe(1);
 
         const second = await freshCache();
         decryptZukan.mockReset().mockImplementation(() => {
@@ -595,7 +643,7 @@ describe('spriteCache 联调', () => {
         await expect(second.acquireSprite(1, 'home')).rejects.toThrow('offline');
         await vi.advanceTimersByTimeAsync(600);
 
-        expect(disk.size).toBe(0);
+        expect(fsDisk.size).toBe(0);
     });
 
     it('clearSpriteCache 不动磁盘 —— 密文没密钥解不开，留着下次登录还能命中', async () => {
@@ -604,23 +652,23 @@ describe('spriteCache 联调', () => {
 
         await mod.acquireSprite(1, 'home');
         await vi.advanceTimersByTimeAsync(600);
-        expect(disk.size).toBe(1);
+        expect(fsDisk.size).toBe(1);
 
         mod.clearSpriteCache();
 
-        expect(disk.size).toBe(1);
+        expect(fsDisk.size).toBe(1);
         expect(mod.spriteCacheStats()).toMatchObject({ entries: 0 });
     });
 
-    it('非 IDB 后端时退化为改动前行为：每次都走网络', async () => {
-        backend = 'uni';
+    it('dev 内存后端时退化为改动前行为：每次都走网络', async () => {
+        backend = 'memory';
         const first = await freshCache();
         await first.acquireSprite(1, 'home');
 
         const second = await freshCache();
         await second.acquireSprite(1, 'home');
 
-        expect(disk.size).toBe(0);
+        expect(fsDisk.size).toBe(0);
         expect(fetchBinary).toHaveBeenCalledTimes(2);
     });
 });

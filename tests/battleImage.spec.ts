@@ -50,6 +50,10 @@ vi.mock('@/infra/storage/binaryStorage', () => ({
     get storageBackend() {
         return backend;
     },
+    // 对战图标 spec.fsBackend 未开启，isPersistable 需要它；测试环境无 fs，返回 false。
+    // 数据实际走 binaryStorage（disk），符合「H5 走 IDB」的默认路径。
+    hasFileSystemBackend: () => false,
+    imageBinaryStorage: null as unknown,
     binaryStorage: {
         async get(key: string) {
             return disk.get(key) ?? null;

@@ -352,7 +352,16 @@ function createFsStorage(): BinaryStorage {
     };
 }
 
-/** fs 后端单例（H5 上为退化后端）。供 imagePersist 注入。 */
+/**
+ * fs 后端单例。供 imagePersist 注入。
+ *
+ * **模块加载时创建**：小程序端 `wx` 在模块加载那一刻通常已就绪（实测
+ * `wx.env.USER_DATA_PATH` 有值），所以可以直接 `createFsStorage()` 定型。
+ * 若未来发现某平台 `wx` 在 import 时未就绪、导致退化，再改成懒初始化
+ * （用 Proxy 包装），但**不要**用「`let inst = null` + 在 Proxy handler
+ * 里赋值」的模式 —— ES Module 的 live binding 会让该赋值失效，每次访问
+ * 都重新跑 `createFsStorage()`，每次都退化。
+ */
 export const fsStorage: BinaryStorage = createFsStorage();
 
 /**
@@ -360,10 +369,52 @@ export const fsStorage: BinaryStorage = createFsStorage();
  * H5 没有 USER_DATA_PATH，返回 false —— 图片持久层此时走 IDB。
  * 与 `storageBackend`（描述 binaryStorage 单例）正交：那是 FB bundle 的后端，
  * 这个决定图片持久层该注入 fs 还是默认 IDB。
+ *
+ * 注意：**每次都重查** `wx` / `uni` —— 模块加载时 `wx` 可能尚未就绪，
+ * 所以图片持久层要用 `imageBinaryStorage`（运行时分发）而不是在 import 期
+ * 定型选一个后端。
  */
 export function hasFileSystemBackend(): boolean {
     return fsBaseDir() !== null;
 }
+
+/**
+ * 图片持久层的**运行时分发**存储：每个方法调用时按当前平台选实际后端，
+ * 而不是模块加载时定型。
+ *
+ * 为什么必须运行时：小程序端 `wx` 是运行时注入的全局对象，模块加载那一刻
+ * 可能还没就绪。若那时调 `hasFileSystemBackend()` 定型，会永远拿到 false →
+ * 选中 IDB（小程序上退化 no-op）→ 图片永不持久化。分发把判定推迟到真正
+ * 读写的时刻，那时平台上下文必然就绪。
+ *
+ * 分发规则：
+ * - 有 fs 后端 → 用 fs（USER_DATA_PATH 存密文，200MB，不占 storage 的 10MB）
+ * - 无 fs 但 `storageBackend === 'idb'`（H5）→ 用 `binaryStorage`（IDB）
+ * - 无 fs 且非 IDB（假想的 uni-storage 平台）→ 保持 fs 退化 no-op，
+ *   **绝不回落 uniStorage** —— 那里只有 10MB，塞图片会把 FB bundle 顶出去。
+ */
+function pickImageStore(): BinaryStorage {
+    if (hasFileSystemBackend()) return fsStorage;
+    return storageBackend === 'idb' ? binaryStorage : fsStorage;
+}
+
+export const imageBinaryStorage: BinaryStorage = {
+    get(key) {
+        return pickImageStore().get(key);
+    },
+    put(key, data) {
+        return pickImageStore().put(key, data);
+    },
+    delete(key) {
+        return pickImageStore().delete(key);
+    },
+    clear(prefix) {
+        return pickImageStore().clear(prefix);
+    },
+    keys(prefix) {
+        return pickImageStore().keys(prefix);
+    },
+};
 
 // ─────────────────────────────────────────────────────────
 // 内存后端（仅 dev）
