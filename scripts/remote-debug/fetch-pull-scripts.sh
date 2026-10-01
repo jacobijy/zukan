@@ -9,13 +9,16 @@
 #
 # 用法：
 #   bash fetch-pull-scripts.sh [目标目录]      # 默认拉到当前目录
-# 环境变量：
-#   REMOTE=user@host REMOTE_DIR=~/Code/zukan/scripts/remote-debug \
+# 地址与路径优先读环境变量：
+#   REMOTE=user@host REMOTE_DIR=/abs/path（或家目录相对路径 Code/...）
 #     bash fetch-pull-scripts.sh [目标目录]
 #
 # 连本引导脚本都没有时（新机器首次），直接粘贴这行等价命令：
 #   sftp -r jacobi@192.168.100.100:Code/zukan/scripts/remote-debug
 # 区别只是那行会拉成 remote-debug/ 目录；本脚本把内容平铺进目标目录。
+#
+# 注意 REMOTE_DIR 不要以 ~/ 开头：sftp 的 host:path 不展开 ~（OpenSSH 10 亦然），
+# 会被当成字面目录；脚本会自动把 ~/ 剥成家目录相对路径。
 set -euo pipefail
 
 REMOTE="${REMOTE:-jacobi@192.168.100.100}"
@@ -33,13 +36,25 @@ mkdir -p "$LOCAL_DIR"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
-# get -r 拉回的是目录本身（basename remote-debug），先到临时目录再把内容平铺进
+# 目标是目录本身（basename remote-debug），先拉到临时目录再把内容平铺进
 # 目标目录，不在 LOCAL_DIR 下再套一层 remote-debug。
-# -p 保留远端权限/mtime；-q 安静；BatchMode=yes 只走密钥，不卡在密码提示。
+# BatchMode=yes 只走密钥，不卡在密码提示。
+#
+# sftp 的 host:path 不展开开头的 ~/（实测 OpenSSH 10 仍不展开，旧版同样），
+# 而相对路径以登录后的家目录为起点，所以这里把 "~/Code/..." 剥成 "Code/..."；
+# 绝对路径（/ 开头）原样保留。
 remote_dir="${REMOTE_DIR%/}"
+case "$remote_dir" in
+    '~')   remote_dir=. ;;
+    '~/'*) remote_dir="${remote_dir#'~/'}" ;;   # 引号必须有：裸 ~/ 会被波浪线展开成 $HOME/
+esac
+
+# 必须走 batch（-b -）显式 get -r：直接写 `sftp -r host:目录` 时，sftp 不会递归
+# 下载，而是 cd 进该目录并进入交互式（再配 -q 时屏幕上就只剩一个 sftp> 提示符）。
+# -p 保留远端权限/mtime。
 if (
     cd "$tmp"
-    sftp -p -q -r -o BatchMode=yes "$REMOTE:$remote_dir"
+    printf 'get -p -r "%s"\n' "$remote_dir" | sftp -b - -o BatchMode=yes "$REMOTE"
 ); then
     :
 else
