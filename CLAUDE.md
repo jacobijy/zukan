@@ -174,6 +174,10 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
   「动态 import 在小程序端整体失效」）。
 - `session/key.ts` 静态 import `api/auth.ts`（auth 只依赖 `http` 与 `session/token`，
   不构成 `session ⇄ api` 环）；产物里已无动态 import。
+- 曾有环 `key → api/zukanKey → token → key`，回边是 `clearSession()` 反向 import
+  `clearKeyCache`。断法：`token.ts` 暴露 `onSessionClear(hook)`，`key.ts` 把
+  `clearKeyCache` 注入注册，`token` 保持零 import 的最底层。钩子惰性注册但安全
+  （有 DEK 缓存 ⇒ key 模块必已加载 ⇒ 钩子已在）。详见 `docs/security/auth-session.md`。
 - `services/pokemon/pokemon.ts` 不 import store，名称解析器 `NameResolvers` 由
   `store/pokemon` 注入；名称就绪/切语言的重映射由 store 侧 watch `i18n.lookup` 触发，
   `store/i18n` 不反向 import store/pokemon。`services/pokemon/evolution.ts` 同理走

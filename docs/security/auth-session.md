@@ -35,8 +35,22 @@
 
 ## 循环依赖防护
 
-- `key.ts` 用**动态 import** 引 `api/auth.ts`（`import('@/services/api/auth')`），
-  打断 `api/auth → session/token → ... → api/auth` 的顶层环。
+曾经的环：
+
+```
+session/key → api/zukanKey → session/token → session/key
+```
+
+- 闭合回边是 `token → key`：`clearSession()` 为了顺带清 DEK，反向 import 了
+  上层的 `clearKeyCache`。
+- **断法是依赖反转（注入回调），不是动态 import**：`token.ts` 暴露
+  `onSessionClear(hook)`，`key.ts` 在模块加载时把 `clearKeyCache` 注册进去；
+  `clearSession()` 改为遍历触发这些钩子。依赖方向回到 `key → token`，回边消失。
+  小程序端动态 `import()` 会被错编成 `await "字符串"`，本来也不能用来断环。
+- 钩子是惰性注册的，但安全：钩子存在 ⇔ key 模块已被加载 ⇔ 可能存在 DEK 缓存。
+  若 key 从没被 import，`keyCache` 本就是 null，漏清也无物可清。
+- `key.ts` **静态** import `api/auth.ts` 与 `api/zukanKey.ts`：auth 只依赖 `http`
+  与 `session/token`，不反向依赖 key，不构成 `session ⇄ api` 环；产物里无动态 import。
 - `clearSpriteCache()` 在 `mine.vue` 的登出路径调用，**不在** `clearSession()` 内部 ——
   否则 `session ⇄ resources` 成环。
 - `authGate` 是模块单例而非 Pinia store（见上）。

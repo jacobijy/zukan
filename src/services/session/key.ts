@@ -19,7 +19,7 @@ import { fetchKey } from '@/services/api/zukanKey';
 import { refresh } from '@/services/api/auth';
 import { RestRequestError } from '@/services/http';
 import { authGate, LoginDismissedError } from './authGate';
-import { getRefreshToken, clearSession } from './token';
+import { getRefreshToken, clearSession, onSessionClear } from './token';
 import type { DekResponse } from './types';
 
 let keyCache: DekResponse | null = null;
@@ -129,3 +129,7 @@ export function clearKeyCache(): void {
     keyCache = null;
     keyPromise = null;
 }
+
+// 注入而非反向 import：clearSession() 清 token 时经此钩子一并清 DEK 缓存。
+// 依赖方向保持 key → token，闭合环的 token → key 回边被消除。
+onSessionClear(clearKeyCache);
