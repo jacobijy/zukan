@@ -14,6 +14,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - mp-weixin 后台常驻：`pnpm dev:mp:watch`（幂等，已在跑就复用；`--status` 看状态、`--stop` 停止）。
   按命令行匹配 `uni.js -p mp-weixin`，不会误杀共用 4000 端口的 `dev:h5`；停止按进程组杀，
   否则 `bash` 包装层不透传 SIGTERM 会留孤儿 uni。详见 docs/architecture/mp-weixin-remote-debug.md
+- mp-weixin watch 看门狗（推荐长期常驻）：systemd user 服务 `zukan-mp-watch.service`（仓库模板
+  `scripts/systemd/`）。watch 缺失（含重启机器后）自动拉起；watch「聋」（进程活但停止增量编译）
+  时先抓现场到 `dist/watchdog/`（区分 inotify 丢事件 vs esbuild 卡死）再自动重启。运行日志
+  `dist/mp-watchdog.log`；安装/运维见 docs/architecture/mp-weixin-remote-debug.md「watch 反复聋」
 - 启动/构建快应用：`pnpm dev:quickapp-webview` / `pnpm dev:quickapp-webview-huawei`（build 同理）
 
 自动化门禁：`pnpm type-check`（必须 0 error）、`pnpm test`（vitest）、`pnpm lint`（oxlint，目前只报 warning）、

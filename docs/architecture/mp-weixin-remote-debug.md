@@ -52,6 +52,9 @@ pnpm dev:mp:watch --status   # 看状态
 pnpm dev:mp:watch --stop     # 只停 mp-weixin 的 watch
 ```
 
+> **长期常驻推荐直接用下文「watch 反复聋」的看门狗 systemd 服务**：watch 缺失
+> （含重启机器后）自动拉起、聋了自动抓现场并重启。`pnpm dev:mp:watch` 适合临时手动起。
+
 前者的价值在于它是幂等且按命令行识别 `uni.js -p mp-weixin` 的——不会误杀共用
 4000 端口的 `dev:h5`。两个容易踩的点，脚本里已处理：
 
@@ -63,36 +66,66 @@ pnpm dev:mp:watch --stop     # 只停 mp-weixin 的 watch
 
 日志 `dist/mp-weixin-watch.log`（`tail -f` 跟踪），pid 文件同目录，均落 `dist/` 已忽略。
 
-### watch 反复"聋"（已知故障，非脚本 bug）
+### watch 反复"聋"（已知故障；已由看门狗自动兜底，根因待定）
 
-**现象**：watch 跑十几到二十几分钟后**停止增量编译**——进程还在、`--status` 报
-"运行中"，但改源码后产物 `dist/dev/mp-weixin/**` 的 mtime 不再更新、日志不再刷
-"DONE Build complete"。同步到调试主机看到的仍是旧产物。
+**现象**：watch 跑十几到二十几分钟后**停止增量编译**——进程还在，但改源码后产物
+`dist/dev/mp-weixin/**` 的 mtime 不再更新、日志不再刷 "DONE Build complete"。
+同步到调试主机看到的仍是旧产物。注意与另一种情况区分：**机器重启后** watch 是裸
+后台进程、不会自启，表现为进程整个消失（不是聋）。下面的看门狗两种都覆盖。
 
-**诊断**：不是脚本逻辑问题（脚本只管启停，见上），也不是 inotify 配额——本机
-`fs.inotify.max_user_watches = 65536`、实测占用仅几十个，远未打满。同时常驻的
-`dev:h5` 和 mp watch 各起一个 esbuild `--service` 进程（共用同一份 esbuild 二进制），
-怀疑是 Vite/esbuild 的 chokidar watcher 在多 esbuild 实例 + 长时间运行下偶发停止投递
-文件事件。每次差量编译都刷的 `Circular chunk: session/key → … → session/key` 警告
-是另一条独立问题（见 `docs/caching/`、`docs/security/` 的 session 循环依赖），但会让
-esbuild 的增量 chunk 重建更不稳定，可能是诱因之一。
+**诊断（根因尚未现场坐实）**：不是启停脚本逻辑问题，也不是 inotify 配额——本机
+`fs.inotify.max_user_watches = 65536`、实测占用约三百个 watch，远未打满。两个待
+区分的嫌疑：**(A)** Vite/chokidar 的 inotify watcher 在长时间运行下偶发停止投递
+文件事件（日志连「开始差量编译」都不打）；**(B)** uni 常驻的 esbuild `--service`
+子进程卡死（日志停在「开始差量编译」却永不出 DONE）。此前每次构建都刷的
+`Circular chunk: session/key → … → session/key` 警告曾是嫌疑诱因，**已于
+2026-10-01（commit 7bc7431）断环、构建警告消失**，是否降低聋的频率仍待观察。
 
-**确认手法**（脚本查不出来，因为 `--status` 只探测进程存活、不探测是否仍在监听）：
-比对源码与产物的 mtime——源码比产物新、且产物无更新，即为已聋：
+**自动兜底：看门狗 + systemd user 服务**
+
+`scripts/mp-watch-watchdog.mjs` 常驻，每 20s 一轮：
+
+- watch 进程不在（含开机后未自启）→ 自动拉起；若前置步骤进行中（uni 未起、但
+  pidfile 的 bash 还活）则等待，不会重复开。
+- watch 在但疑似聋 → mtime 对账：`src/` 最新源码改动比 `dist/dev/mp-weixin` 最新
+  产物「新」超过 90s、且连续 3 轮如此，才判定；随后**先抓一帧现场**到
+  `dist/watchdog/incident-*.log`（uni/esbuild 进程状态与 stat、inotify 计数、
+  3s strace、watch 日志末尾），再自动重启。抓现场是为了区分上面的 A/B。
+
+安装（本机已开 Linger，登录前/重启后服务自启）：
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp scripts/systemd/zukan-mp-watch.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now zukan-mp-watch.service
+```
+
+运维：
+
+```bash
+systemctl --user status zukan-mp-watch.service   # 看门狗状态
+tail -f dist/mp-watchdog.log                      # 看门狗运行日志
+ls -t dist/watchdog/                              # 历次判聋的现场（默认留 10 份）
+systemctl --user stop zukan-mp-watch.service      # 停止，连带 cgroup 内的被管 watch
+```
+
+> unit 里写死了 nvm 的 node 版本路径（`v24.15.0`）。node 升级后需同步改
+> `~/.config/systemd/user/zukan-mp-watch.service` 与仓库模板
+> `scripts/systemd/zukan-mp-watch.service`，再 `daemon-reload` + `restart`。
+> 判聋阈值/间隔可用 `MP_WATCHDOG_*` 环境变量在 unit 里覆盖。
+
+**手动确认/处理**（看门狗不可用时）：比对源码与产物 mtime，源码明显更新即为已聋，
+`pnpm dev:mp:watch --stop && pnpm dev:mp:watch` 重启：
 
 ```bash
 stat -c '%y %n' src/components/TabBar.vue dist/dev/mp-weixin/components/TabBar.wxss
 # 源码时间 > 产物时间 → watch 已聋
 ```
 
-**处理**：重启 watch 即恢复（幂等，会先清旧的再起）：
-
-```bash
-pnpm dev:mp:watch --stop && pnpm dev:mp:watch
-```
-
-> 待办：给 `--status` 加"产物 vs 源码 mtime 对账"，让它能自报聋；或在脚本内检测到
-> 卡死后自动重启。目前只能靠上面手动比对 + 重启。
+> 待办：拿到一两份 incident 现场后区分 A/B 并针对性根治——A 则让 chokidar 走
+> `usePolling`（不靠内核投递），B 则处理常驻 esbuild（消多实例 / 升级）。目标是
+> 以后不再依赖重启，看门狗只是定位期的无感兜底。
 
 ## 二、Mac/Windows 侧：把产物同步到本地（三选一）
 
@@ -186,7 +219,8 @@ powershell -ExecutionPolicy Bypass -File scripts\remote-debug\pull-mp-weixin.ps1
 | 现象 | 处理 |
 |------|------|
 | 改了代码工具没刷新 | 确认 `dev:mp-weixin` 在跑、同步会话在跑；工具里 `Ctrl/Cmd+B` 手动编译 |
-| 改了代码但产物 mtime 不更新 | watch 可能已"聋"（进程活但停止增量编译，见"watch 反复聋"）——比对源码/产物 mtime 确认，`--stop` 后重启 |
+| 改了代码但产物 mtime 不更新 | watch 可能已"聋"——看门狗会自动抓现场并重启（见"watch 反复聋"）；手动则比对源码/产物 mtime 确认后 `--stop` 重启 |
+| 重启机器后 watch 没了 | 正常：watch 是裸进程。若已装看门狗 systemd 服务会自动拉起；否则手动 `pnpm dev:mp:watch` |
 | 模拟器请求失败/空白 | `.env.development.local` 的 IP 是否仍为本机 IP；工具是否勾了"不校验域名"；Mac 能否打开 `http://192.168.100.100:8080` |
 | 真机连不上后端 | 手机与 Linux 同 Wi-Fi；防火墙放行 8080；后端监听 0.0.0.0 |
 | WASM/解密报错 | dev 构建已 `copy-wasm`；确认 `dist/dev/mp-weixin/static/wasm` 存在 |

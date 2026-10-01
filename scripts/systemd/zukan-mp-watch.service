@@ -1,0 +1,16 @@
+[Unit]
+Description=Zukan mp-weixin watch watchdog
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Code/zukan
+# 显式给出 node(nvm) 与 pnpm 的目录，不依赖登录 shell 是否加载 nvm；watchdog
+# 内部用 `node` 与 `bash -lc pnpm`，都吃这个 PATH。node 用 nvm 升级后改这里的版本路径。
+Environment="PATH=%h/.nvm/versions/node/v24.15.0/bin:%h/.local/share/pnpm/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=%h/.nvm/versions/node/v24.15.0/bin/node %h/Code/zukan/scripts/mp-watch-watchdog.mjs
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

@@ -21,57 +21,15 @@
 import { spawnSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  ROOT,
+  WATCH_LOG as LOG,
+  PIDFILE,
+  pidfileAlive,
+  findMpWatch as findWatch,
+} from './lib/mpWatchProc.mjs';
 
-const ROOT = process.cwd();
-const LOG = path.join(ROOT, 'dist', 'mp-weixin-watch.log');
-const PIDFILE = path.join(ROOT, 'dist', 'mp-weixin-watch.pid');
 const ARGV = process.argv.slice(2);
-
-/** pidfile 记录的 bash 是否仍存活（即 watch 是否还在跑） */
-function pidfileAlive() {
-    const raw = fs.readFileSync(PIDFILE, 'utf8').trim();
-    const pid = Number(raw);
-    if (!Number.isInteger(pid) || pid <= 0) return null;
-    try {
-        process.kill(pid, 0); // 只探测存活，不发信号
-        return pid;
-    } catch {
-        return null;
-    }
-}
-
-/**
- * 找出所有正在跑的 mp-weixin watch：返回 [{ pid, pgid }]。
- *
- * 直接扫 /proc，不用 `ps -C node`——本机 node 进程的 comm 名是 `MainThread`
- * 而非 `node`，`-C` 会漏掉全部。也不只用命令行匹配外壳进程：真正的 uni 子进程
- * 才持有产物写入权，停止时按进程组杀（见 stop），避免留下孤儿。
- *
- * 匹配条件：cmdline 含 vite-plugin-uni/bin/uni.js 且结尾为 `-p mp-weixin`。
- * 这样不会误伤 `dev:h5`（它的 uni 命令行不带 `-p`，且共用 4000 端口）。
- */
-function findWatch() {
-    const out = [];
-    for (const pidStr of fs.readdirSync('/proc')) {
-        if (!/^\d+$/.test(pidStr)) continue;
-        let cmdline, stat;
-        try {
-            cmdline = fs.readFileSync(`/proc/${pidStr}/cmdline`, 'utf8');
-            stat = fs.readFileSync(`/proc/${pidStr}/stat`, 'utf8');
-        } catch {
-            continue; // 进程已退出
-        }
-        const args = cmdline.split('\0').filter(Boolean);
-        if (!args.some((a) => a.includes('vite-plugin-uni/bin/uni.js'))) continue;
-        const tail = args.slice(-2);
-        if (tail[tail.length - 2] !== '-p' || tail[tail.length - 1] !== 'mp-weixin') continue;
-        // stat 里 pgid 是第 5 个字段（comm 可能含空格，取最后一个 ')' 之后）
-        const afterClose = stat.slice(stat.lastIndexOf(')') + 2);
-        const pgid = Number(afterClose.split(' ')[3]);
-        out.push({ pid: Number(pidStr), pgid });
-    }
-    return out;
-}
 
 function stop() {
     const found = findWatch();
