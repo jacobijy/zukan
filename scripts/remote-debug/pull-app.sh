@@ -51,6 +51,8 @@ echo "从 $REMOTE:$REMOTE_DIR"
 echo "  → $LOCAL_DIR（每 ${INTERVAL}s 轮询，--delete 保持镜像，Ctrl-C 停止）"
 
 while true; do
-    rsync -az --delete -e "$SSH_CMD" "$REMOTE:$REMOTE_DIR" "$LOCAL_DIR/"
+    # 源末尾必须带 /：rsync 不带 / 时拷的是目录本身，会在 LOCAL_DIR 下再套一层 app。
+    # %/ 先归一化，避免配置里已带 / 时出现 //。
+    rsync -az --delete -e "$SSH_CMD" "$REMOTE:${REMOTE_DIR%/}/" "$LOCAL_DIR/"
     sleep "$INTERVAL"
 done
