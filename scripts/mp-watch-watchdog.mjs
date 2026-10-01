@@ -72,10 +72,10 @@ function newestFile(root, filter) {
     for (const ent of ents) {
       const full = path.join(dir, ent.name);
       if (ent.isDirectory()) {
-        if (!filter?.(full, true)) continue;
+        if (filter && !filter(full, true)) continue;
         walk(full);
       } else if (ent.isFile()) {
-        if (!filter?.(full, false)) continue;
+        if (filter && !filter(full, false)) continue;
         let st;
         try {
           st = fs.statSync(full);
@@ -135,8 +135,9 @@ function captureSnapshot(reason, src, prod) {
 
   p(`# watchdog 现场快照 ${new Date().toISOString()}`);
   p(`# 原因: ${reason}`);
-  p(`# srcNewest : ${new Date(src.mtime).toISOString()}  ${path.relative(ROOT, src.file)}`);
-  p(`# prodNewest: ${new Date(prod.mtime).toISOString()}  ${path.relative(ROOT, prod.file)}`);
+  const rel = (f) => (f ? path.relative(ROOT, f) : '(未找到文件)');
+  p(`# srcNewest : ${new Date(src.mtime).toISOString()}  ${rel(src.file)}`);
+  p(`# prodNewest: ${new Date(prod.mtime).toISOString()}  ${rel(prod.file)}`);
   p(`# 源码比产物新 ${Math.round((src.mtime - prod.mtime) / 1000)}s`);
   p('');
 
@@ -161,6 +162,9 @@ function captureSnapshot(reason, src, prod) {
 
   p('## esbuild service 进程');
   p(sh("ps -eo pid,ppid,etime,stat,args | grep '[e]sbuild'").out || '(无)');
+  p('');
+  p('## dev:h5 是否在跑（对照「h5 并存致 mp 聋」假设）');
+  p(sh("ps -eo pid,ppid,etime,args | grep '[b]in/uni.js' | grep -v 'mp-weixin'").out || '(h5 未运行)');
   p('');
   p('## watch 日志末尾 40 行');
   try {
