@@ -105,6 +105,18 @@ while true; do pnpm build:app; sleep 5; done
 
 ## 二、把资源同步到 Mac/Windows（三选一）
 
+> **新机器首次、本地还没 clone 仓库**：pull 脚本本身在 Linux 的
+> `scripts/remote-debug/` 里。先粘贴一行 sftp 把它们取回来：
+>
+> ```bash
+> sftp -r jacobi@192.168.100.100:Code/zukan/scripts/remote-debug
+> ```
+>
+> 拉成 `remote-debug/` 目录（先配 ssh 免密，并手动 `ssh` 一次确认主机指纹）。
+> 仓库里的 `scripts/remote-debug/fetch-pull-scripts.sh` 是等价引导脚本，会把内容
+> 平铺到指定目录：`bash fetch-pull-scripts.sh [目标目录]`（默认当前目录）。
+> 取回脚本后再按下面的方案同步资源。
+
 ### 方案 A（推荐）：Mutagen，毫秒级实时
 
 Mac 上：

@@ -224,6 +224,7 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
 - **远程编辑（Linux）+ 另一台 Mac/Windows 调试**：Linux watch 构建，Mutagen/rsync/SFTP 把
   `dist/dev/mp-weixin` 同步到调试主机本地目录（Windows 可用自带 OpenSSH sftp + robocopy 的
   `scripts/remote-debug/pull-mp-weixin.ps1`，零安装），开发者工具导入并监听刷新；源码只在 Linux 一份。
+  新机器首次可用 `scripts/remote-debug/fetch-pull-scripts.sh`（sftp）先拉回这批 pull 脚本。
   见 `docs/architecture/mp-weixin-remote-debug.md`。
 
 ### Android / iOS（App）资源编译与远程调试
