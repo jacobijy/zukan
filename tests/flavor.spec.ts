@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 import {
     buildFlavorBundle,
     cleanFlavorText,
+    cleanSpeciesFlavorText,
     EFFECT_LANGS,
     EMPTY_FLAVOR_LANGS,
     flavorSize,
@@ -54,6 +55,31 @@ describe('cleanFlavorText', () => {
 
     it('压缩连续空白并去首尾空白', () => {
         expect(cleanFlavorText('  a   b\tc  ')).toBe('a b c');
+    });
+});
+
+describe('cleanSpeciesFlavorText', () => {
+    it('把字面的 \\n（反斜杠+n 两字符）转成真换行', () => {
+        // JS 源码里 '\\n' 才是「反斜杠 + n」两字符
+        expect(cleanSpeciesFlavorText('A strange\\nseed.')).toBe('A strange\nseed.');
+    });
+
+    it('兼容字面 \\r\\n 与 \\r，逐行保留', () => {
+        expect(cleanSpeciesFlavorText('a\\r\\nb\\nc\\rd')).toBe('a\nb\nc\nd');
+    });
+
+    it('真实换行 / 连续空白仍折成空格（与 cleanFlavorText 一致）', () => {
+        expect(cleanSpeciesFlavorText('a\nb')).toBe('a b');
+        expect(cleanSpeciesFlavorText('  x   y  ')).toBe('x y');
+    });
+
+    it('软连字符照常去除，且不影响换行', () => {
+        const shy = String.fromCharCode(0xad);
+        expect(cleanSpeciesFlavorText(`Poke${shy}mon\\nnext`)).toBe('Pokemon\nnext');
+    });
+
+    it('去掉转换后首尾的换行 / 空白', () => {
+        expect(cleanSpeciesFlavorText('\\nfirst\\n')).toBe('first');
     });
 });
 
@@ -204,6 +230,13 @@ describe('mergeVersionedFlavorRefs（species 多版本保留）', () => {
     it('没有任何非空版本的 id 不进表', () => {
         const next = mergeVersionedFlavorRefs(new Map(), [{ id: 9, text: '', version: 1 }]);
         expect(next.has(9)).toBe(false);
+    });
+
+    it('species 文本里的字面 \\n 被保留为真换行（走 cleanSpeciesFlavorText）', () => {
+        const next = mergeVersionedFlavorRefs(new Map(), [
+            { id: 1, text: 'line1\\nline2', version: 40 },
+        ]);
+        expect(next.get(1)).toEqual([{ version: 40, text: 'line1\nline2' }]);
     });
 });
 

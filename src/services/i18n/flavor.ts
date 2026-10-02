@@ -92,6 +92,26 @@ export function cleanFlavorText(text: string): string {
 }
 
 /**
+ * 物种图鉴描述（species）专用清理 —— 与 `cleanFlavorText` 的差异：**保留段落换行**。
+ *
+ * 部分物种描述（上游/解包转义未还原）把换行存成字面的 `\n`（反斜杠 + n 两字符）：
+ * `\s` 匹配不到它，微信 `<text>` 也只认真换行，于是文本里直接显示 “\n” 且不换行。
+ *
+ * 1. 先去软连字符、把**真实**空白（真换行 `\n`/`\f`/`\r`、连续空格）折成单空格；
+ * 2. 再把字面的 `\r\n` / `\n` / `\r` 转成真换行，渲染端以 `white-space: pre-line`
+ *    按行展示（见 `PokedexEntry.vue`）。
+ *
+ * 刻意「先折真空白、再转义字面」：只新增对字面 `\n` 的处理，不改变既有真换行行为。
+ */
+export function cleanSpeciesFlavorText(text: string): string {
+    return text
+        .replace(SOFT_HYPHEN, '')
+        .replace(WHITESPACE_RUN, ' ')
+        .replace(/\\r\\n|\\n|\\r/g, '\n')
+        .trim();
+}
+
+/**
  * 把一片的原始描述行合并进查找表。片号按 id 分档，同一 id 不会跨片，
  * 但**同一片内同一 id 仍可能多版本**（历史 PokeAPI + 游戏解包追加），
  * 仍按 version 取最大。返回**新 Map**（不改入参），调用方整体替换引用触发响应式。
@@ -136,7 +156,7 @@ export function mergeVersionedFlavorRefs(
             versions = new Map();
             byId.set(f.id, versions);
         }
-        versions.set(f.version, cleanFlavorText(f.text));
+        versions.set(f.version, cleanSpeciesFlavorText(f.text));
     }
 
     const next: VersionedFlavorMap = new Map();

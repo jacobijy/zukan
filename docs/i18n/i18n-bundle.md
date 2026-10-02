@@ -70,6 +70,11 @@
   - moves / abilities / items 仍只留 version 最大一条（`mergeFlavorRefs`；moves 等的
     version 是 **version_group_id**），这些栏目展示一句即可——实测各版本组的招式
     说明基本相同，不做版本切换。
+- **换行（仅 species 保留）**：species 走专用 `cleanSpeciesFlavorText` —— 真实空白
+  （含真换行 `\n`/`\f`/`\r`、连续空格）仍折成单空格，但部分描述（游戏解包/上游
+  转义未还原，见下「补充文本来源」）把换行存成**字面的 `\n`（反斜杠+n 两字符）**，
+  会被转成真换行保留；`PokedexEntry.vue` 以 `white-space: pre-line` 按行展示
+  （H5 与小程序一致）。其余三族走 `cleanFlavorText`，不保留换行。
 - 体积：EN species 片最大 ~400 KB，moves/abilities/items 片 8–118 KB；合计约等于
   旧整包 2.7 MB，但每次只拉一片。
 

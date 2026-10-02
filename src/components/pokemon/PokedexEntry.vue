@@ -5,8 +5,8 @@
             <text class="rounded-full border border-[#e1e4eb] bg-[#f5f6fa] px-3 py-1 text-[10px] font-black tracking-[0.14em] text-[#8d929c]">DEX</text>
         </view>
 
-        <!-- 描述正文是卡片主体：位于标题与底部版本标签之间 -->
-        <text v-if="text" class="dex-entry__text block text-[15px] font-medium leading-relaxed text-[#4b5060]">{{ text }}</text>
+        <!-- 描述正文是卡片主体：pre-line 保留段落换行（数据已把字面 \n 转为真换行） -->
+        <text v-if="text" class="dex-entry__text block whitespace-pre-line text-[15px] font-medium leading-relaxed text-[#4b5060]">{{ text }}</text>
         <text v-else class="dex-entry__text block text-sm font-semibold text-[#8d929c]">{{ t('detail.pokedex.loading') }}</text>
 
         <!--
