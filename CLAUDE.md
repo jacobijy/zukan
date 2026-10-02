@@ -288,7 +288,7 @@ src/components/
              InfoGrid/InfoCard、StatsChart、MovesList、MoveCard、EvolutionChain、
              PokedexEntry（图鉴描述，按需取 flavor）、PokedexVersionPicker（描述按游戏版本切换的软件图标条）
   dex/       图鉴列表上下文：DexToolbar、FilterBar、GenerationDrawer、
-             DexEmptyState、FavoritesBanner、VirtualGrid（定高网格）、
+             DexEmptyState、FavoritesBanner、VirtualGrid（定高网格，scroll-view 根元素跨端）、
              VirtualList（单列定高虚拟列表，scroll-view 根元素，archive 列表用）
   archive/   资料中心图鉴栏目：MoveRow/AbilityRow/ItemRow/TypeRow、
              ItemIcon（道具图标，走加密图片通道）、FlavorTextCard（特性/道具描述，按需取 flavor）、

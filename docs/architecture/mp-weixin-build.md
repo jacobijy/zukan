@@ -188,14 +188,12 @@ SFC、无需条件编译。
 `playEnterAnimation`，在 onMounted（首次）与 onShow（保活后切回）各播一次；来源格
 由切换前写入的 storage 记录。
 
-### 残留：VirtualGrid 微信首次全量渲染（仅一次）
+### VirtualGrid 已适配跨端 scroll-view
 
-`components/dex/VirtualGrid.vue` 仍是 H5 的 DOM 模型（根为 `<view>`、依赖 `window`），
-微信 appService 无 window → 虚拟化降级、**首次**进入图鉴全量渲染约 1025 张卡。
-
-- 路径 B 保活后该全量**只发生一次**：切走再切回页面不重建，不再“加载久 / 回顶端”。
-- 若要消除首次全量，仍需把 VirtualGrid 按 `VirtualList.vue` 适配：根改
-  `<scroll-view>`、几何用 `uni.getSystemInfoSync` / `createSelectorQuery`。
+`components/dex/VirtualGrid.vue` 根元素已由 `<view>` 改为 `<scroll-view scroll-y>`，
+几何用 `uni.getSystemInfoSync`（首帧估算）+ `createSelectorQuery`（实测校准），
+因此微信端不再降级全量渲染，滚动时窗口正常更新（原先普通 view 无 `bindscroll`，
+首屏之后不加载新卡片）。实现细节见 `docs/ui/virtual-list.md`「跨端」。
 
 ## 发布 checklist
 

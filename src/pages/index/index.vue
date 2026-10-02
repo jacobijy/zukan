@@ -55,23 +55,26 @@
 
             <!--
                 虚拟化列表：DOM 只保留视口附近的行（1025 条实测 3083 → 35 节点）。
+                外层 flex-1 min-h-0 提供确定高度，scroll-view 根的 VirtualGrid
+                以 h-full 填满 —— 小程序 scroll-view 必须有明确高度才能滚动。
                 列数与 gap 的响应式定义只写在 grid-class 里一处，组件从
-                computed style 读回来算窗口，不复制断点。
+                解析后的 grid-template-columns 读回来算窗口，不复制断点。
             -->
-            <VirtualGrid
-                v-else
-                :items="matchedPokemons"
-                :item-key="pokemonKey"
-                scroller-class="custom-scrollbar flex-1 min-h-0 px-3 pb-5 pt-4 sm:px-5"
-                grid-class="mx-auto max-w-[1400px] grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fill,minmax(310px,1fr))] sm:gap-4 2xl:grid-cols-[repeat(auto-fill,minmax(340px,1fr))]"
-                @touchstart="handleTouchStart"
-                @touchmove="handleTouchMove"
-                @touchend="handleTouchEnd"
-            >
-                <template #default="{ item }">
-                    <PokemonCard :pokemon="item as IPokemonCardModel" />
-                </template>
-            </VirtualGrid>
+            <view v-else class="flex-1 min-h-0">
+                <VirtualGrid
+                    :items="matchedPokemons"
+                    :item-key="pokemonKey"
+                    scroller-class="custom-scrollbar h-full min-h-0 px-3 pb-5 pt-4 sm:px-5"
+                    grid-class="mx-auto max-w-[1400px] grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fill,minmax(310px,1fr))] sm:gap-4 2xl:grid-cols-[repeat(auto-fill,minmax(340px,1fr))]"
+                    @touchstart="handleTouchStart"
+                    @touchmove="handleTouchMove"
+                    @touchend="handleTouchEnd"
+                >
+                    <template #default="{ item }">
+                        <PokemonCard :pokemon="item as IPokemonCardModel" />
+                    </template>
+                </VirtualGrid>
+            </view>
         </view>
 
         <!-- 本页固定对应第 0 个 tab；切换由 TabBar 内部 switchTab 完成，
@@ -303,15 +306,16 @@ const handleTouchEnd = () => {
 }
 
 .custom-scrollbar {
-    &::-webkit-scrollbar {
+    /* 根是 <uni-scroll-view>，真正滚动的是内部 .uni-scroll-view，需 :deep 穿透 */
+    :deep(.uni-scroll-view)::-webkit-scrollbar {
         width: 6px;
     }
 
-    &::-webkit-scrollbar-track {
+    :deep(.uni-scroll-view)::-webkit-scrollbar-track {
         background: transparent;
     }
 
-    &::-webkit-scrollbar-thumb {
+    :deep(.uni-scroll-view)::-webkit-scrollbar-thumb {
         border-radius: 3px;
         background: rgba(48, 55, 72, 0.18);
 

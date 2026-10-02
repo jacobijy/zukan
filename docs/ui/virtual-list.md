@@ -8,8 +8,29 @@ DOM 只保留视口附近的行，长列表（~1025 张卡）也只挂载几十�
 - 窗口算术抽成纯函数 `src/utils/virtualWindow.ts::computeVirtualWindow`，
   按「行」算偏移，off-by-one / 越界由 `tests/virtualWindow.spec.ts` 守着。
 - 卡片高度**不硬编码**：运行时用首个渲染子元素实测（历史实测约 98px @ mobile、106px ≥640px）。
-- 列数与 gap **不写在 JS 里**：从 `getComputedStyle(grid).gridTemplateColumns` 读回来，
+- 列数与 gap **不写在 JS 里**：从解析后的 `grid-template-columns` 读回来，
   断点只在组件的 `grid-class` 里定义一次，避免 JS 和 CSS 两套布局各说各话。
+
+## 跨端：根元素是 scroll-view
+
+根元素统一为 `<scroll-view scroll-y>`（H5 与小程序同一套模板，不做 `#ifdef` 双根），
+与 `VirtualList.vue` 一致。普通 `<view>` 在小程序里没有 scroll 事件
+（`bindscroll` 为 scroll-view 专属），用它做滚动容器会让 scrollTop 恒为 0、
+滚动后窗口不更新（现象：首屏之后空白，「下拉不加载新卡片」）。
+
+- **滚动事件**：读跨端一致的 `e.detail.scrollTop`，rAF 节流（跟手、不用 debounce）。
+- **几何测量**：H5 用 DOM 实测（`clientHeight` / `getComputedStyle` /
+  `getBoundingClientRect`）；小程序无 DOM，用
+  `uni.createSelectorQuery().in(instance.proxy)` 实测 scroll-view 高度、grid 的
+  `gridTemplateColumns`/`rowGap`、首子元素高度。
+- **首帧估算**：小程序挂载时先用 `uni.getSystemInfoSync()`（windowWidth/windowHeight）
+  估算列数、卡高、视口高，否则首帧拿不到几何会降级全量渲染 ~1025 张卡；
+  measure 后用实测值覆盖。
+- **回顶**：小程序不能直接写 DOM scrollTop，用受控 `:scroll-top`。该属性仅在值
+  变化时滚动，故回顶时先置非 0、`nextTick` 归 0，保证连续回顶也生效。
+- **高度前提**：调用方须让组件有确定高度 —— index.vue 在其外包一层
+  `flex-1 min-h-0`，组件 `scroller-class` 用 `h-full`（微信 scroll-view 必须有
+  明确高度才能滚动）。
 
 ## 改 PokemonCard 高度前先想清楚
 
