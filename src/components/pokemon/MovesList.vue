@@ -24,7 +24,7 @@
 
       <template v-if="isExpanded(group.key)">
         <view v-if="group.moves.length === 0" class="section-empty mt-3">
-          {{ t('moves.empty', { label: group.label }) }}
+          {{ interp('moves.empty', { label: group.label }) }}
         </view>
         <view v-else class="mt-3 flex flex-col gap-2">
           <MoveCard
@@ -43,6 +43,7 @@
 import { glyph } from '@/components/icon/glyphs'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { interp } from '@/services/i18n/ui-i18n'
 import MoveCard from '@/components/pokemon/MoveCard.vue'
 
 const { t } = useI18n()

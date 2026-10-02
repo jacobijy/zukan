@@ -3,7 +3,7 @@
         <view class="archive-row__main">
             <text class="archive-row__title">{{ name }}</text>
         </view>
-        <text v-if="count > 0" class="archive-row__meta">{{ t('archive.pokemonCount', { n: count }) }}</text>
+        <text v-if="count > 0" class="archive-row__meta">{{ interp('archive.pokemonCount', { n: count }) }}</text>
         <!-- #ifdef MP-WEIXIN -->
         <text class="ic archive-row__chevron text-[16px]">{{ glyph('chevron-right') }}</text>
         <!-- #endif -->
@@ -19,6 +19,7 @@
 import { glyph } from '@/components/icon/glyphs';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { interp } from '@/services/i18n/ui-i18n';
 import { useI18nStore } from '@/store/i18n';
 
 const props = withDefaults(

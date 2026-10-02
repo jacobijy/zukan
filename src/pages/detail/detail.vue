@@ -129,6 +129,7 @@ import InfoCard from '@/components/pokemon/InfoCard.vue'
 import { usePokemonStore } from '@/store/pokemon'
 import { useI18nStore } from '@/store/i18n'
 import { useI18n } from 'vue-i18n'
+import { interp } from '@/services/i18n/ui-i18n'
 import { genForPokemonId, loadMovesForPokemon, loadEvolutionChain, makeEvolutionResolvers } from '@/services/pokemon'
 import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
@@ -200,7 +201,7 @@ const formIndex = computed(() =>
 const currentFormLabel = computed(() => {
     const p = pokemon.value
     if (p.isDefault) return t('detail.form.default')
-    return p.formLabel || t('detail.form.label', { id: p.id })
+    return p.formLabel || interp('detail.form.label', { id: p.id })
 })
 const switchForm = (delta: 1 | -1) => {
     if (formCount.value <= 1) return

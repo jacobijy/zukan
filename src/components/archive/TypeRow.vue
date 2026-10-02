@@ -3,7 +3,7 @@
         <!-- 徽章本身即「底色 + 属性名」，不再另出名称文字 -->
         <TypeBadge :type="slug" size="xl" variant="pill" />
         <view class="archive-row__main"></view>
-        <text class="archive-row__meta">{{ t('archive.pokemonCount', { n: count }) }}</text>
+        <text class="archive-row__meta">{{ interp('archive.pokemonCount', { n: count }) }}</text>
         <!-- #ifdef MP-WEIXIN -->
         <text class="ic archive-row__chevron text-[16px]">{{ glyph('chevron-right') }}</text>
         <!-- #endif -->
@@ -18,6 +18,7 @@
 <script lang="ts" setup>
 import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
+import { interp } from '@/services/i18n/ui-i18n';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 
 defineProps<{

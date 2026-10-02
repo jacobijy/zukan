@@ -69,6 +69,7 @@
 import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useI18n } from 'vue-i18n';
+import { interp } from '@/services/i18n/ui-i18n';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import LoginModal from '@/components/shared/LoginModal.vue';
@@ -122,7 +123,7 @@ async function confirmDelete(team: TeamSummary): Promise<void> {
     const confirmed = await new Promise<boolean>((resolve) => {
         uni.showModal({
             title: t('teams.delete'),
-            content: t('teams.confirmDelete', { name: team.name }),
+            content: interp('teams.confirmDelete', { name: team.name }),
             confirmText: t('teams.delete'),
             cancelText: t('common.cancel'),
             success: (r) => resolve(!!r.confirm),

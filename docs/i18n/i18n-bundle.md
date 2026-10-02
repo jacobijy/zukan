@@ -204,6 +204,23 @@ fb:v{N}:i18n:flavor:<lang>:effects
 UI 文案不走进程 bundle，写在 `src/services/i18n/ui-messages.ts`（按 locale 分组的消息表），
 `ui-i18n.ts` 提供查找。新增 UI 语言：扩展 `UiLocale`、`UI_LANGUAGES`，补对应消息。
 
+### 插值兜底（`interp`）
+
+带参数的文案（`{count}` / `{id}` / `{label}` …）一律经 `ui-i18n.ts::interp(key, params)` 渲染，
+**不要直接 `t(key, { ... })`**：
+
+- uni-app 在 **mp/app 构建时把 `vue-i18n` 重定向到自带的 runtime-only 版**（
+  `uni-cli-shared/lib/vue-i18n/dist/vue-i18n.runtime.esm-bundler.js`，**无 message-compiler**），
+  它需要消息预编译，而项目消息表是普通字符串对象 → 微信端 `t(key, { count })` 无法插值、
+  返回 `{count}` 原文；
+- H5 经 `vite.config.ts` 的 alias 配对完整版（`vue-i18n.mjs`，带 compiler），插值正常；
+- `interp` 在 `t()` 结果上做**幂等**替换：H5 已插值 → 找不到 `{k}` 原文、原样返回；微信端
+  保留 `{k}` → 手动替换。两种情况输出都正确。
+
+正解是让 mp/app 也用完整 vue-i18n（或预编译消息），但 `vite.config.ts` 注释已说明
+mp 无法直接复用 H5 的 alias（uni runtime 版依赖 9.1.9 core-base 的 `handleFlatJson`）。
+升级 uni / 全面预编译后再移除 `interp`。
+
 ## 启动与切换
 
 - `boot.ts` 预取最新世代数值 bundle + 解析后的内容语言名称组（`prefetchI18nNames`）。

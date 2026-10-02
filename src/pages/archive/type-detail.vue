@@ -12,7 +12,7 @@
                     <TypeBadge :type="slug" size="lg" variant="pill" />
                     <view class="min-w-0">
                         <text class="block text-xl font-black tracking-[-0.02em] text-[#24262b]">{{ name }}</text>
-                        <text class="mt-1 block text-[12px] font-bold text-[#8d929c]">{{ t('archive.pokemonCount', { n: pokemon.length }) }}</text>
+                        <text class="mt-1 block text-[12px] font-bold text-[#8d929c]">{{ interp('archive.pokemonCount', { n: pokemon.length }) }}</text>
                     </view>
                 </view>
 
@@ -28,6 +28,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { interp } from '@/services/i18n/ui-i18n';
 import { onLoad } from '@dcloudio/uni-app';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';

@@ -43,7 +43,7 @@
                     <svg data-ic="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4"><path d="M12 5v14M5 12h14"></path></svg>
                     <!-- #endif -->
                     <text>{{ t('teams.addMember') }}</text>
-                    <text class="add-member__count">{{ t('teams.memberCount', { count: payload.members.length }) }}</text>
+                    <text class="add-member__count">{{ interp('teams.memberCount', { count: payload.members.length }) }}</text>
                 </view>
             </view>
         </scroll-view>
@@ -57,6 +57,7 @@
 import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useI18n } from 'vue-i18n';
+import { interp } from '@/services/i18n/ui-i18n';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import LoginModal from '@/components/shared/LoginModal.vue';
 import FormatSwitch from '@/components/meta/FormatSwitch.vue';

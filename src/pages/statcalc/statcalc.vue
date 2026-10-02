@@ -127,8 +127,8 @@
                         <view class="sc-footer">
                             <text class="sc-ev-total" :class="{ 'sc-ev-total--full': pointsFull }">
                                 {{ mode === 'champion'
-                                    ? t('statcalc.spTotal', { used: spTotal, max: MAX_SP_TOTAL })
-                                    : t('statcalc.evTotal', { used: evTotal, max: MAX_EV_TOTAL }) }}
+                                    ? interp('statcalc.spTotal', { used: spTotal, max: MAX_SP_TOTAL })
+                                    : interp('statcalc.evTotal', { used: evTotal, max: MAX_EV_TOTAL }) }}
                             </text>
                             <view class="sc-quick">
                                 <template v-if="mode === 'classic'">
@@ -169,6 +169,7 @@
 <script lang="ts" setup>
 import { ref, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { interp } from '@/services/i18n/ui-i18n';
 import { glyph } from '@/components/icon/glyphs';
 import { usePokemonStore } from '@/store/pokemon';
 import { useI18nStore } from '@/store/i18n';

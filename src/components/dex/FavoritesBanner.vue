@@ -14,7 +14,7 @@
                 </view>
                 <view>
                     <text class="block text-sm font-black text-[#4c3506]">{{ t('dex.banner.title') }}</text>
-                    <text class="block text-xs font-semibold text-[#8a6a17]">{{ t('dex.banner.count', { count }) }}</text>
+                    <text class="block text-xs font-semibold text-[#8a6a17]">{{ interp('dex.banner.count', { count }) }}</text>
                 </view>
             </view>
             <button class="panel-button rounded-full bg-white px-4 py-2 text-xs font-black text-[#4c3506] shadow-[inset_0_1px_0_#ffffff,0_8px_18px_rgba(111,82,9,0.12)] active:scale-95" @click="emit('show-all')">{{ t('dex.banner.showAll') }}</button>
@@ -25,6 +25,7 @@
 <script lang="ts" setup>
 import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
+import { interp } from '@/services/i18n/ui-i18n';
 const { t } = useI18n();
 defineProps<{ count: number }>();
 

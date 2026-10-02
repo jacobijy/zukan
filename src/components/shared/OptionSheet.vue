@@ -138,7 +138,7 @@
                 </view>
                 <view v-else-if="filteredOptions.length > visibleOptions.length" class="sheet-more">
                     <text class="sheet-more__text">{{
-                        t('common.narrowSearch', { count: filteredOptions.length })
+                        interp('common.narrowSearch', { count: filteredOptions.length })
                     }}</text>
                 </view>
             </scroll-view>
@@ -150,6 +150,7 @@
 import { computed, ref, watch } from 'vue';
 import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
+import { interp } from '@/services/i18n/ui-i18n';
 
 export interface SheetOption {
     id: string;

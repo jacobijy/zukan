@@ -74,7 +74,7 @@
             <view class="relative z-10 flex items-center justify-between gap-3">
                 <view>
                     <text class="block text-[13px] font-bold text-[#3b3f48]">{{ t('mine.statusSynced') }}</text>
-                    <text class="mt-1 block text-[12px] font-medium leading-5 text-[#8a8f99]">{{ t('mine.statusDesc', { count: favoritesCount }) }}</text>
+                    <text class="mt-1 block text-[12px] font-medium leading-5 text-[#8a8f99]">{{ interp('mine.statusDesc', { count: favoritesCount }) }}</text>
                 </view>
                 <view class="status-card__meter">
                     <text>{{ favoritesCount }}</text>
@@ -104,6 +104,7 @@ import { selectVisibleProviders } from '@/services/platform/providerConfig';
 import { usePokemonStore } from '@/store/pokemon';
 import { useI18nStore } from '@/store/i18n';
 import { useI18n } from 'vue-i18n';
+import { interp } from '@/services/i18n/ui-i18n';
 import { LANGUAGES, UI_LANGUAGES, resolveContentLang, resolveUiLocale } from '@/services/i18n/languages';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';

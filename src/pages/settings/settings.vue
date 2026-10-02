@@ -64,6 +64,7 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { interp } from '@/services/i18n/ui-i18n';
 import { glyph } from '@/components/icon/glyphs';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import ListRow from '@/components/shared/ListRow.vue';
@@ -95,7 +96,7 @@ const uiOptions = computed<SheetOption[]>(() => {
         {
             id: AUTO_LANG,
             label: t('language.followSystem'),
-            subtitle: t('language.systemHint', { lang: sysLabel }),
+            subtitle: interp('language.systemHint', { lang: sysLabel }),
         },
         ...UI_LANGUAGES.map((l) => ({ id: l.id, label: l.label })),
     ];
@@ -108,7 +109,7 @@ const contentOptions = computed<SheetOption[]>(() => {
         {
             id: AUTO_LANG,
             label: t('language.followSystem'),
-            subtitle: t('language.systemHint', { lang: sysLabel }),
+            subtitle: interp('language.systemHint', { lang: sysLabel }),
         },
         ...LANGUAGES.map((l) => ({ id: l.id, label: l.label })),
     ];
