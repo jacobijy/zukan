@@ -5,10 +5,18 @@
 
             <view class="relative z-10 flex items-center gap-3">
                 <view class="specimen-card__portrait relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-[20px] border border-[#e5e7ee] bg-[#f5f6fa] shadow-[inset_0_1px_0_#ffffff,0_12px_22px_rgba(48,55,72,0.08)] sm:h-20 sm:w-20">
+                    <!--
+                      本卡片只在 VirtualGrid 窗口（overscan 2 行）内挂载 —— 虚拟化本身
+                      已做可见性裁剪，故挂载即加载（eager）；滑出窗口由组件卸载时
+                      abort 在途 + release。不再用 IntersectionObserver：它在 scroll-view
+                      内部滚动时相对 viewport 的判定不触发，会让滑动后新卡片的图下载
+                      成功却不渲染。
+                    -->
                     <EncryptedSprite
                       :pokemon-id="props.pokemon.id"
                       variant="home"
                       :has-sprite="props.pokemon.hasSprite"
+                      eager
                       img-class="relative z-10 h-16 w-16 drop-shadow-[0_10px_10px_rgba(48,55,72,0.14)] sm:h-[70px] sm:w-[70px]"
                       skeleton-class="h-16 w-16 sm:h-[70px] sm:w-[70px]"
                     />

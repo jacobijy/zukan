@@ -1,6 +1,8 @@
 <template>
     <view class="archive-row" @click="emit('select')">
-        <ItemIcon :id="itemId" />
+        <!-- 本行只在 VirtualList 窗口内挂载（虚拟化已裁剪可见性），故 eager：
+             挂载即加载，避开 scroll-view 内 IntersectionObserver 相对 viewport 不触发的坑 -->
+        <ItemIcon :id="itemId" eager />
         <view class="archive-row__main">
             <text class="archive-row__title">{{ name }}</text>
         </view>

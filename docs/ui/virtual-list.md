@@ -32,6 +32,24 @@ DOM 只保留视口附近的行，长列表（~1025 张卡）也只挂载几十�
   `flex-1 min-h-0`，组件 `scroller-class` 用 `h-full`（微信 scroll-view 必须有
   明确高度才能滚动）。
 
+## 虚拟列表内的图片：直接 eager，不用 IntersectionObserver
+
+VirtualGrid / VirtualList 本身已经做了**行级可见性裁剪**（只挂载视口 + overscan
+附近的项），比 IntersectionObserver 的像素级判定更激进。因此列表项内的图片
+（`PokemonCard` 内 `EncryptedSprite`、`ItemRow` 内 `ItemIcon`）一律传 `eager`：
+
+- 组件被挂载 ⇒ 必在视口附近 ⇒ onMounted 立即加载；
+- 滑出窗口 ⇒ VirtualGrid 直接卸载该卡片 ⇒ onUnmounted abort 在途 + release
+  （等价于 observer 的离屏取消，且更直接）；
+- overscan 2 行 ≈ 200px 提前量，与原 observer 的 200px margin 相当。
+
+**为什么不能再靠 observer 的 `relativeToViewport()`**：微信里被观察节点在
+scroll-view **内部**滚动时，相对页面视口的判定不触发（节点被 scroll-view 裁剪），
+于是滑动后新卡片的图片其实已下载/解密成功，结果却写不回组件、一直停在骨架 ——
+表现为「图已下载但不渲染」。`relativeTo('.scroll-view')` 虽可解，但图片组件在
+深层自定义组件内、选不到作为祖先的 scroll-view（组件级 observer 作用域受限），
+故虚拟化场景统一走 eager。非虚拟列表（详情页主图等）仍按需 eager / observer。
+
 ## 改 PokemonCard 高度前先想清楚
 
 定高假设要求：同一断点内**每张卡高度恒定**。下面这些改动会打破假设，导致卡片重叠或滚动条长度错误：
