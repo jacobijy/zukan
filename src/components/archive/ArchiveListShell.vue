@@ -25,13 +25,16 @@
                         <text v-if="emptyDesc" class="mt-2 block text-sm font-medium leading-6 text-[#8d929c]">{{ emptyDesc }}</text>
                     </view>
 
-                    <!-- 虚拟列表：glass-panel 衬底 + 裁剪圆角，VirtualList 自身是滚动容器 -->
+                    <!--
+                        列表区域：调用方把 <VirtualList> 整体放进 #list。
+                        刻意不在本壳内嵌 VirtualList + 透传作用域插槽：那会形成
+                        页面 → 本壳 → VirtualList 的三级作用域插槽链，uni-app 编译到
+                        微信时会在循环里重复展开本壳的同名 <slot>（报 "More than one
+                        slot named ..."，且只有第一行能收到内容）。改为单一具名 slot，
+                        slot 链收敛成 页面 → VirtualList 两级。
+                    -->
                     <view v-else class="glass-panel h-full overflow-hidden">
-                        <VirtualList :items="items" :item-height="ROW_HEIGHT" :item-key="itemKey" class="h-full">
-                            <template #default="slotProps">
-                                <slot :item="slotProps.item" :index="slotProps.index"></slot>
-                            </template>
-                        </VirtualList>
+                        <slot name="list"></slot>
                     </view>
                 </view>
             </view>
@@ -39,12 +42,8 @@
     </view>
 </template>
 
-<script lang="ts" setup generic="T">
+<script lang="ts" setup>
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
-import VirtualList from '@/components/dex/VirtualList.vue';
-
-/** 虚拟列表固定行高；与 global.css `.archive-row` 高度一致（定高虚拟化前提） */
-const ROW_HEIGHT = 68;
 
 defineProps<{
     title: string;
@@ -54,8 +53,5 @@ defineProps<{
     empty: boolean;
     emptyTitle: string;
     emptyDesc?: string;
-    /** 完整数据（过滤后的全量） */
-    items: readonly T[];
-    itemKey?: (item: T, index: number) => string | number;
 }>();
 </script>

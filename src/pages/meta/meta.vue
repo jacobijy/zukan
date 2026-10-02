@@ -6,8 +6,6 @@
         :empty="!loading && rows.length === 0"
         :empty-title="t('meta.emptyTitle')"
         :empty-desc="t('meta.emptyDesc')"
-        :items="rows"
-        :item-key="rowKey"
     >
         <template #tools>
             <FormatSwitch :model-value="format" @update:model-value="onFormatChange" />
@@ -19,14 +17,23 @@
             </view>
         </template>
 
-        <template #default="{ item, index }">
-            <UsageRankingRow
-                :rank="index + 1"
-                :name="item.name"
-                :form="item.form"
-                :species-id="item.speciesId"
-                @select="goPokemonMeta(item.slug)"
-            />
+        <template #list>
+            <VirtualList
+                :items="rows"
+                :item-key="rowKey"
+                :item-height="68"
+                class="h-full"
+            >
+                <template #default="{ item, index }">
+                    <UsageRankingRow
+                        :rank="index + 1"
+                        :name="item.name"
+                        :form="item.form"
+                        :species-id="item.speciesId"
+                        @select="goPokemonMeta(item.slug)"
+                    />
+                </template>
+            </VirtualList>
         </template>
     </ArchiveListShell>
 </template>
@@ -36,6 +43,7 @@ import { computed, ref, shallowRef } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useI18n } from 'vue-i18n';
 import ArchiveListShell from '@/components/archive/ArchiveListShell.vue';
+import VirtualList from '@/components/dex/VirtualList.vue';
 import UsageRankingRow from '@/components/meta/UsageRankingRow.vue';
 import FormatSwitch from '@/components/meta/FormatSwitch.vue';
 import { useI18nStore } from '@/store/i18n';

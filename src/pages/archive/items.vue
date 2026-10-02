@@ -6,15 +6,23 @@
         :empty="!loading && filteredIds.length === 0"
         :empty-title="t('archive.emptyTitle')"
         :empty-desc="t('archive.emptyDesc')"
-        :items="filteredIds"
-        :item-key="idKey"
     >
         <template #tools>
             <SearchBar v-model="keyword" :placeholder="t('archive.searchItems')" />
         </template>
 
-        <template #default="{ item: id }">
-            <ItemRow :item-id="id" @select="goDetail(id)" />
+        <template #list>
+            <!-- item-height 68 = global.css .archive-row 高度（定高虚拟化前提） -->
+            <VirtualList
+                :items="filteredIds"
+                :item-key="idKey"
+                :item-height="68"
+                class="h-full"
+            >
+                <template #default="{ item: id }">
+                    <ItemRow :item-id="id" @select="goDetail(id)" />
+                </template>
+            </VirtualList>
         </template>
     </ArchiveListShell>
 </template>
@@ -26,6 +34,7 @@ import { onLoad } from '@dcloudio/uni-app';
 import ArchiveListShell from '@/components/archive/ArchiveListShell.vue';
 import SearchBar from '@/components/shared/SearchBar.vue';
 import ItemRow from '@/components/archive/ItemRow.vue';
+import VirtualList from '@/components/dex/VirtualList.vue';
 import { useI18nStore } from '@/store/i18n';
 
 const { t } = useI18n();

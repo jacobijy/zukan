@@ -298,7 +298,7 @@ src/components/
              ItemIcon（道具图标，走加密图片通道）、FlavorTextCard（特性/道具描述，按需取 flavor）、
              MoveFlavorCard（招式描述，单条最新说明 + 效果段）、
              TypeMatchupCard（相克表）、PokemonMiniList/PokemonMiniRow、
-             ArchiveListShell（列表页骨架）
+             ArchiveListShell（列表页骨架，#list 插槽注入 VirtualList，不内嵌）
   calc/      计算器上下文：CalcCard、ChipRow、LevelStepper、
              DamageResultCard、CalcSideCard、StatInputRow
   sprite/    图片加载：EncryptedSprite（宝可梦立绘，走加密图片通道）

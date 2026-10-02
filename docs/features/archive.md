@@ -16,7 +16,8 @@
 `FlavorTextCard`（特性/道具描述卡，按需 `ensureFlavor()`）、
 `MoveFlavorCard`（招式描述卡，单条最新说明 + 效果段）、`TypeMatchupCard`（相克表）、
 `PokemonMiniList`/`PokemonMiniRow`（详情页的宝可梦反查列表）、
-`ArchiveListShell`（列表页骨架：DetailNavbar + SearchBar 插槽 + 虚拟列表）。
+`ArchiveListShell`（列表页骨架：DetailNavbar + `#tools` 插槽 + `#list` 插槽，
+加载/空态/列表三态与确定高度的 flex 容器都在壳内；**不含 VirtualList**）。
 
 详情页的招式卡（`components/pokemon/MoveCard.vue`）可点：`uni.navigateTo` 跳到
 `archive/move-detail?id=`。
@@ -45,8 +46,14 @@ flavor 多表构建在 `tests/flavor.spec.ts`。
   `components/dex/VirtualList.vue`——单列定高（68px）虚拟列表，
   **根元素是 `scroll-view`**（小程序端的滚动容器；H5 同样工作），
   窗口算术复用 `utils/virtualWindow.ts::computeVirtualWindow`（columns=1）。
-  属性只有 18 行，不虚拟化。`ArchiveListShell` 用 flex 布局给 VirtualList
-  确定高度，不嵌套 scroll-view。
+  属性只有 18 行，不虚拟化。
+- **ArchiveListShell 不含 VirtualList（插槽链只有两级）**：各列表页把
+  `<VirtualList>` 整体塞进 `#list`，`ArchiveListShell` 只负责 navbar / `#tools` /
+  加载·空态 / 给 VirtualList 的 `h-full` 容器。刻意不让壳内嵌 VirtualList 再透传
+  作用域插槽 —— 那会形成 **页面 → 壳 → VirtualList 的三级作用域插槽链**，uni-app
+  编译到微信时会在壳的循环里重复展开同一个 `<slot>`（报
+  `More than one slot named "d" ...`，且只第一行能收到内容，其余行内容缺失）。
+  两级（页面 → VirtualList）用动态 slot 名，微信接受。
 - **道具图标走加密资源通道**：`ItemIcon` 不是本地静态图，而是和宝可梦立绘
   同一条管线 —— 服务器 `encrypted-assets/items/<id>.bin`（扁平、无 variant），
   经 `resources/itemImage.ts`（`imageCache`/`imagePersist` 的 item 实例）下载 /

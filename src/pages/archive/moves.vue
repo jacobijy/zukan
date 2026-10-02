@@ -7,8 +7,6 @@
             :empty="!loading && filtered.length === 0"
             :empty-title="t('archive.emptyTitle')"
             :empty-desc="t('archive.emptyDesc')"
-            :items="filtered"
-            :item-key="moveKey"
         >
             <template #tools>
                 <SearchBar v-model="keyword" :placeholder="t('archive.searchMoves')" />
@@ -42,8 +40,17 @@
                 </view>
             </template>
 
-            <template #default="{ item }">
-                <MoveRow :move="item" @select="goDetail(item.id)" />
+            <template #list>
+                <VirtualList
+                    :items="filtered"
+                    :item-key="moveKey"
+                    :item-height="68"
+                    class="h-full"
+                >
+                    <template #default="{ item }">
+                        <MoveRow :move="item" @select="goDetail(item.id)" />
+                    </template>
+                </VirtualList>
             </template>
         </ArchiveListShell>
 
@@ -69,6 +76,7 @@ import { glyph } from '@/components/icon/glyphs';
 import ArchiveListShell from '@/components/archive/ArchiveListShell.vue';
 import FilterChipButton from '@/components/archive/FilterChipButton.vue';
 import MoveRow from '@/components/archive/MoveRow.vue';
+import VirtualList from '@/components/dex/VirtualList.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import SearchBar from '@/components/shared/SearchBar.vue';
 import { ALL_TYPE_SLUGS, getTypeColor, getTypeMeta } from '@/constants/pokemonTypes';

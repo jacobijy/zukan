@@ -10,7 +10,7 @@
 
 赛制（单人/双人）下的宝可梦排名（各 262）。
 
-- 用 `components/archive/ArchiveListShell.vue`：DetailNavbar + 单列 68px 定高虚拟列表。
+- 用 `components/archive/ArchiveListShell.vue`：DetailNavbar + `#list` 里的单列 68px 定高虚拟列表（VirtualList 由本页注入，见 archive.md「ArchiveListShell 不含 VirtualList」）。
 - `#tools`：`meta/FormatSwitch.vue`（单人/双人）+ **只读当前赛季标签**（`loadBattleMeta().season`）；
   已移除赛季弹层（历史赛季 404）。
 - 行组件 `meta/UsageRankingRow.vue`：排名（前三金色）+ 精灵图 + 名称（+形态小字）；

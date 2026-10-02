@@ -6,15 +6,22 @@
         :empty="!loading && filteredIds.length === 0"
         :empty-title="t('archive.emptyTitle')"
         :empty-desc="t('archive.emptyDesc')"
-        :items="filteredIds"
-        :item-key="idKey"
     >
         <template #tools>
             <SearchBar v-model="keyword" :placeholder="t('archive.searchAbilities')" />
         </template>
 
-        <template #default="{ item: id }">
-            <AbilityRow :ability-id="id" :count="countOf(id)" @select="goDetail(id)" />
+        <template #list>
+            <VirtualList
+                :items="filteredIds"
+                :item-key="idKey"
+                :item-height="68"
+                class="h-full"
+            >
+                <template #default="{ item: id }">
+                    <AbilityRow :ability-id="id" :count="countOf(id)" @select="goDetail(id)" />
+                </template>
+            </VirtualList>
         </template>
     </ArchiveListShell>
 </template>
@@ -26,6 +33,7 @@ import { onLoad } from '@dcloudio/uni-app';
 import ArchiveListShell from '@/components/archive/ArchiveListShell.vue';
 import SearchBar from '@/components/shared/SearchBar.vue';
 import AbilityRow from '@/components/archive/AbilityRow.vue';
+import VirtualList from '@/components/dex/VirtualList.vue';
 import { loadAbilityPokemonIndex } from '@/services/pokemon/archive';
 import { useI18nStore } from '@/store/i18n';
 
