@@ -147,6 +147,24 @@ grep -rn '\.then' dist/dev/mp-weixin --include=*.js | grep '"\./'
    `::backdrop` 都不再生成，且带工具类的元素才需要这些默认值，行为等价。
    构建时那条 `experimental features: optimizeUniversalDefaults` 是提示，可忽略。
 
+### 关 preflight 的补偿：手动补 border-box
+
+preflight 还负责把全局盒模型设为 border-box（`*,::before,::after{box-sizing:border-box}`）。
+微信 **WebView 默认 content-box**（遵循 Web 标准；Skyline 才默认 border-box），关掉
+preflight 后若不补，`width:100%` / grid 1fr 轨道 + padding/border 会**横向溢出**
+屏幕（图鉴页 VirtualGrid scroll-view、详情页 InfoCard/SpecimenHero 都踩过）。
+
+在 `src/static/styles/global.css` 基础重置区**显式列举元素**补上：
+
+```css
+view, text, image, scroll-view, swiper, swiper-item, button, input, textarea,
+label, navigator, icon, progress, ::before, ::after { box-sizing: border-box; }
+```
+
+**不能写裸 `*`**：weapp-tailwindcss 会把 `*` 收窄成 `view,text,:before,:after`，
+漏掉 `scroll-view`（VirtualGrid 根），溢出依旧。H5 端这条与 preflight 重复、无害，
+让两端盒模型一致；box-border / box-content 工具类特异性更高，仍可覆盖。
+
 ## 适配四：构建产物瘦身（只动 dist，不碰 src）
 
 微信限制：**单个主包/分包 ≤ 2MB，整包 ≤ 30MB**（见微信「分包加载」文档）。

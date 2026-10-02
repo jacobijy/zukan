@@ -3,6 +3,33 @@
 @tailwind utilities;
 
 /* 基础样式重置 */
+
+/*
+ * 盒模型统一 border-box。
+ * H5 由 Tailwind preflight 保证；但微信端刻意关闭 preflight（其含微信不支持的
+ * :host / ::backdrop / :where()），而微信 WebView 默认是 content-box —— 于是
+ * width:100% / grid 1fr 轨道 + padding/border 会横向溢出屏幕（图鉴、详情页）。
+ * 显式列举元素（不能用裸 `*`：weapp-tailwindcss 会把它收窄成 view,text，
+ * 漏掉 scroll-view）；box-border / box-content 工具类因特异性更高仍可覆盖。
+ */
+view,
+text,
+image,
+scroll-view,
+swiper,
+swiper-item,
+button,
+input,
+textarea,
+label,
+navigator,
+icon,
+progress,
+::before,
+::after {
+    box-sizing: border-box;
+}
+
 page {
     min-height: 100vh;
 }

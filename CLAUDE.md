@@ -217,6 +217,10 @@ sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存
   （含不支持的 `:host`/`::backdrop`/`:where()`），并开 `experimental.optimizeUniversalDefaults`
   （**是 experimental 不是 future**）把 transform/ring 等工具类注入的 `*` 变量默认块
   收敛到实际 class，消掉 `*` 与 `::backdrop`。H5 两者都维持默认。
+  关 preflight 的补偿：微信 WebView 默认 content-box，需在 `global.css` **显式列举**
+  元素（view/text/image/**scroll-view**/button/… + ::before/::after）补
+  `box-sizing:border-box`，否则 width:100%/grid + padding 横向溢出（图鉴、详情）；
+  不能写裸 `*`（weapp-tailwindcss 收窄成 view,text，漏掉 scroll-view）。
 - **产物瘦身只动 dist**：属性/分类贴纸 s/l 在源里是测试守护的成套资源（别删源），
   `scripts/slim-mp-weixin.mjs` 在 build 后从产物剔除当前不渲染的 s/l。
 - 微信**主包 ≤ 2MB**（按真实字节算，别看 `du`）；发布前需在 `manifest.json` 填
