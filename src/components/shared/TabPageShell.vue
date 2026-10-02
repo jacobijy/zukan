@@ -21,7 +21,12 @@
 <script lang="ts" setup>
 import NavBar from '@/components/NavBar.vue';
 import TabBar from '@/components/TabBar.vue';
+import { useHideNativeTabBar } from '@/composables/useHideNativeTabBar';
 import { computed } from 'vue';
+
+// 壳被 features/data/mine 三个 tab 页直接使用：在此隐藏原生 tabBar，
+// 统一改用自定义胶囊（保活仍由原生 tabBar 机制提供）
+useHideNativeTabBar();
 
 const props = defineProps<{
     title: string;

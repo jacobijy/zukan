@@ -37,6 +37,7 @@
 
 <script lang="ts" setup>
 import { glyph } from '@/components/icon/glyphs';
+import { navigateToAuto } from '@/utils/navigation';
 
 const props = withDefaults(defineProps<{
     title: string;
@@ -51,11 +52,12 @@ const emit = defineEmits<{ back: [] }>();
 const handleBack = () => {
     emit('back');
     // H5 直接刷新/深链进入时页面栈只有当前页，navigateBack 走 history.back()
-    // 且 fail 回调不可靠，必须显式判断栈深，没有上一页就 reLaunch 兜底。
+    // 且 fail 回调不可靠，必须显式判断栈深；无上一页时跳到 fallback（默认是
+    // tabBar 页，navigateToAuto 自动走 switchTab 保活）。
     if (getCurrentPages().length > 1) {
         uni.navigateBack();
     } else {
-        uni.reLaunch({ url: props.fallbackUrl });
+        navigateToAuto(props.fallbackUrl);
     }
 };
 </script>

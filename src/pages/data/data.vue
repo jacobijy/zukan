@@ -101,6 +101,7 @@ import TabPageShell from "@/components/shared/TabPageShell.vue";
 import ListRow from "@/components/shared/ListRow.vue";
 import { useI18nStore } from '@/store/i18n';
 import { getTypeName } from '@/constants/pokemonTypes';
+import { navigateToAuto } from '@/utils/navigation';
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();
@@ -148,12 +149,8 @@ const popularPokemons = computed(() =>
 );
 
 const goOverview = (item: OverviewEntry) => {
-    if (item.tab) {
-        // tab 页不能压栈（TabBar 用 reLaunch 切换）
-        uni.reLaunch({ url: item.url });
-    } else {
-        uni.navigateTo({ url: item.url });
-    }
+    // tab 项自动 switchTab（保活）；其余普通子页 navigateTo
+    navigateToAuto(item.url);
 };
 
 const goToDetail = (id: number) => {

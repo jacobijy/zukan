@@ -107,6 +107,7 @@ import { useI18n } from 'vue-i18n';
 import { LANGUAGES, UI_LANGUAGES, resolveContentLang, resolveUiLocale } from '@/services/i18n/languages';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { glyph } from '@/components/icon/glyphs';
 
 const pokemonStore = usePokemonStore();
@@ -132,6 +133,11 @@ const showLogin = computed({
 });
 
 const loggedIn = ref(isAuthenticated());
+// 页面由 switchTab 保活、不再重跑 setup，onShow 时刷新登录态
+// （用户在别处登录/登出后切到本页也能正确反映）
+onShow(() => {
+    loggedIn.value = isAuthenticated();
+});
 
 // 平台在页面生命周期内不变；默认（未配置 VITE_AUTH_PROVIDERS）为 []，绑定区不出现。
 const visibleProviders = selectVisibleProviders(detectPlatform());

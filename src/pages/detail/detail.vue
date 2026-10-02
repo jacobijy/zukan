@@ -113,8 +113,6 @@
                 <view class="h-4"></view>
             </view>
         </scroll-view>
-
-        <TabBar v-model="currentTab" @change="onTabChange" />
     </view>
 </template>
 
@@ -122,7 +120,6 @@
 import EvolutionChain from '@/components/pokemon/EvolutionChain.vue'
 import MovesList from '@/components/pokemon/MovesList.vue'
 import StatsChart from '@/components/pokemon/StatsChart.vue'
-import TabBar from '@/components/TabBar.vue'
 import DetailNavbar from '@/components/shared/DetailNavbar.vue'
 import FavoriteButton from '@/components/shared/FavoriteButton.vue'
 import SpecimenHero from '@/components/pokemon/SpecimenHero.vue'
@@ -247,12 +244,6 @@ const toggleFavorite = () => {
 const goBack = () => {
     // DetailNavbar 内部已处理 navigateBack / reLaunch 兜底
 }
-
-const currentTab = ref(0);
-
-const onTabChange = (_index: number) => {
-    // 预留：需要时在这里响应 tab 切换
-};
 
 onLoad(async (options: any) => {
     const id = Number(options?.id)

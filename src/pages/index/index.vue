@@ -74,7 +74,9 @@
             </VirtualGrid>
         </view>
 
-        <TabBar v-model="currentTab" @change="onTabChange" />
+        <!-- 本页固定对应第 0 个 tab；切换由 TabBar 内部 switchTab 完成，
+             页面不回写选中态（保活后回写会让切回时高亮错格）-->
+        <TabBar :model-value="0" />
 
         <GenerationDrawer
             v-model:visible="showGenerationPanel"
@@ -103,6 +105,7 @@ import LoginModal from "@/components/shared/LoginModal.vue";
 import PokemonCard from "@/components/pokemon/PokemonCard.vue";
 import VirtualGrid from "@/components/dex/VirtualGrid.vue";
 import TabBar from "@/components/TabBar.vue";
+import { useHideNativeTabBar } from "@/composables/useHideNativeTabBar";
 import { usePokemonStore } from "@/store/pokemon";
 import { useI18n } from 'vue-i18n';
 import { authGate, LoginDismissedError } from "@/services/session/authGate";
@@ -123,6 +126,8 @@ const showLogin = computed({
 });
 
 const pokemonStore = usePokemonStore();
+// 隐藏 pages.json 声明的原生 tabBar，改用自定义胶囊
+useHideNativeTabBar();
 const { t } = useI18n();
 const { matchedPokemons, matchedCount } = storeToRefs(pokemonStore);
 const { fetchPokemon, setCriteria } = pokemonStore;
@@ -176,7 +181,6 @@ async function onLoginSuccess() {
 const currentFilterTypes = ref<string[]>([]);
 const currentSort = ref<DexSortKey>('id');
 const isShow = ref(false);
-const currentTab = ref(0);
 const showFavoritesOnly = ref(false);
 const showGenerationPanel = ref(false);
 const selectedGeneration = ref<string | null>(null);
@@ -243,10 +247,6 @@ watch(
 
 const filterToggle = (value: boolean) => {
     isShow.value = value;
-};
-
-const onTabChange = (index: number) => {
-    currentTab.value = index;
 };
 
 const touchStartX = ref(0);

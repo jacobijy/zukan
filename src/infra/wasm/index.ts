@@ -40,7 +40,14 @@ export async function initWasm(): Promise<void> {
         // #endif
         wasmReady = true;
         console.log('✅ WASM module initialized');
-    })();
+    })().catch((err) => {
+        // 失败清空 initPromise 以允许后续重试；并把根因醒目打出来 —
+        // WXWebAssembly 的 reject 信息是区分「不支持的 opcode / link error /
+        // 路径或文件错误 / 内存」的唯一依据。
+        initPromise = null;
+        console.error('[wasm] 初始化失败', err);
+        throw err;
+    });
 
     return initPromise;
 }

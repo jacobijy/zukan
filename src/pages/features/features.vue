@@ -78,6 +78,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { glyph } from '@/components/icon/glyphs';
 import TabPageShell from "@/components/shared/TabPageShell.vue";
+import { navigateToAuto } from "@/utils/navigation";
 import ListRow from "@/components/shared/ListRow.vue";
 
 const { t } = useI18n();
@@ -91,7 +92,8 @@ const featureItems = computed(() => [
 ]);
 
 const goToPage = (url: string) => {
-    uni.navigateTo({ url });
+    // /pages/data/data 是 tabBar 页 → 自动 switchTab（保活）；其余 navigateTo
+    navigateToAuto(url);
 };
 
 const onTabChange = (_index: number) => {

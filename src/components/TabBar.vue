@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { useI18n } from 'vue-i18n';
 import { raf } from '@/utils/raf';
 import { glyph } from '@/components/icon/glyphs';
@@ -133,6 +134,8 @@ const currentTab = computed(() => props.modelValue)
 /** 滑块当前所在格（0-3），与 currentTab 解耦以控制动画时机 */
 const indicatorIndex = ref(props.modelValue)
 const enableTransition = ref(false)
+/** 是否已完成首次挂载（用于区分首次 onShow 与保活后的 onShow） */
+let hasMounted = false
 
 const indicatorStyle = computed(() => ({
   transform: `translateX(${indicatorIndex.value * 100}%)`,
@@ -141,25 +144,32 @@ const indicatorStyle = computed(() => ({
 const switchTab = (index: number) => {
   if (currentTab.value === index) return
 
-  // 记录来源 tab，供新页面挂载后播放一次滑动动画
+  // 记录来源 tab，供目标页播放指示器滑动动画（首次挂载或保活后 onShow）
   uni.setStorageSync(TAB_SLIDE_FROM_KEY, currentTab.value)
   emit('change', index)
-  uni.reLaunch({ url: pages[index] })
+  // switchTab：tab 页由原生 tabBar 机制保活（只创建一次），切回走 onShow、不重建，
+  // 页面状态与滚动位置由平台保留。原为 reLaunch（每次销毁重建 → 回顶、卡顿）。
+  uni.switchTab({ url: pages[index] })
 }
 
-onMounted(() => {
+/** 读 storage 里记录的来源格；无有效记录返回 null */
+function readFromIndex(): number | null {
   const stored = uni.getStorageSync(TAB_SLIDE_FROM_KEY)
-  const fromIndex =
-    stored !== '' && stored !== undefined && !Number.isNaN(Number(stored))
-      ? Number(stored)
-      : null
+  if (stored === '' || stored === undefined || Number.isNaN(Number(stored))) return null
+  return Number(stored)
+}
 
+/**
+ * 进入本页时播放指示器滑动：先无动画定位到来源格，下一帧滑到本页格。
+ * 首次挂载与保活后 onShow 共用；storage 读完即删，避免重复播放。
+ */
+function playEnterAnimation(): void {
+  const targetIndex = props.modelValue
+  const fromIndex = readFromIndex()
   uni.removeStorageSync(TAB_SLIDE_FROM_KEY)
 
-  const targetIndex = props.modelValue
-
   if (fromIndex !== null && fromIndex !== targetIndex) {
-    // 先无动画定位到来源格，再滑到目标格（仅一次）
+    enableTransition.value = false
     indicatorIndex.value = fromIndex
     nextTick(() => {
       raf(() => {
@@ -168,7 +178,7 @@ onMounted(() => {
       })
     })
   } else {
-    // 刷新或直接打开：无动画，直接落位
+    // 无有效来源（刷新/直开）：直接落位，仅打开过渡开关
     indicatorIndex.value = targetIndex
     nextTick(() => {
       raf(() => {
@@ -176,6 +186,17 @@ onMounted(() => {
       })
     })
   }
+}
+
+onMounted(() => {
+  playEnterAnimation()
+  hasMounted = true
+})
+
+// 保活后再次切回本页（onMounted 不再触发）：重播来源 → 本页滑动。
+// 首次 onShow 早于 onMounted，此时 hasMounted 为 false、跳过（交给 onMounted）避免重复。
+onShow(() => {
+  if (hasMounted) playEnterAnimation()
 })
 </script>
 
