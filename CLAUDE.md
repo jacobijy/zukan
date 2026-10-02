@@ -65,7 +65,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `src/pages/` 下没有其他游离页面文件。
 
-主列表流程集中在 `src/pages/index/index.vue`。该页面从 Pinia store 加载数据，在页面级状态中组合搜索、类型筛选、仅收藏、世代筛选和排序，把条件推给 store，再由 `VirtualGrid` 虚拟化渲染 `PokemonCard` 列表（已无分页 / 无限滚动）。顶部导航和底部 TabBar 分别封装为 `NavBar.vue` 和 `TabBar.vue`；TabBar 使用 `uni.reLaunch` 切换页面，并通过 storage key 在页面间播放指示器滑动动画。
+主列表流程集中在 `src/pages/index/index.vue`。该页面从 Pinia store 加载数据，在页面级状态中组合搜索、类型筛选、仅收藏、世代筛选和排序，把条件推给 store，再由 `VirtualGrid` 虚拟化渲染 `PokemonCard` 列表（已无分页 / 无限滚动）。顶部导航和底部 TabBar 分别封装为 `NavBar.vue` 和 `TabBar.vue`。Tab 切换走 **`uni.switchTab`**：`pages.json` 声明原生 `tabBar`（不设 custom）、由 `useHideNativeTabBar` 在 onShow 调 `uni.hideTabBar()` 隐藏原生条，tab 页因此被**平台保活**（只创建一次、切走 onHide、切回 onShow，页面状态与滚动位置保留，不再像旧的 `reLaunch` 每次销毁重建、回顶）。自定义胶囊 `TabBar.vue` 在 onMounted / onShow 经 storage 记录的来源格播放指示器滑动动画；指向 tab 的跳转统一走 `utils/navigation` 的 `navigateToAuto`。
 
 宝可梦数据来自加密的 FlatBuffers bundle：`src/services/resources/resourceManager.ts` 下载 `/assets/encrypted/fb/gen-N.bin`（三层缓存 memory LRU → binaryStorage 即 IndexedDB → 网络），WASM 解密后由 `src/services/pokemon/pokemon.ts` 把四张并行表（`baseEntries`/`statEntries`/`typeEntries`/`abilityEntries`；`eggGroupEntries` 被解码但未使用）按 id join 成 UI 模型。注意 **gen-N.bin 是"全物种在第 N 世代的数值快照"**（1351 条形态 / 1025 个默认形态，id 从 1 起），不是"第 N 世代新增的宝可梦"。`mergeBundleToModel` 返回的 `IPokemonBaseModel` 中 `name` 当前为 `'pokemon-{id}'` 占位符，`image` 为 `/static/default.png` —— 卡面图来自 `EncryptedSprite`，不是 model 字段。model 还带 `genderRate`（PokeAPI 口径：-1 无性别 / 0 恒雄 / 8 恒雌），详情页 hero 的性别切换用它门禁（-1 隐藏开关、0/8 锁定、1–7 可切换），见 `GenderSlider.vue`。
 

@@ -60,6 +60,26 @@ new URL('zukan_wasm_bg.wasm', import.meta.url)  // + fetch / instantiateStreamin
 > 构建期那条 `new URL(...) doesn't exist at build time` 警告来自 pkg JS 里的默认
 > 兜底分支，小程序运行时传的是路径、走不到它，可忽略。
 
+### 排障：`invalid value type 'externref'` —— 先升级开发者工具
+
+微信端报 `[wasm] 初始化失败 CompileError: WebAssembly.instantiate(): invalid
+value type 'externref', enable with --experimental-wasm-reftypes` 时，**wasm 本身
+没问题**：当前 pkg wasm 自 2026-08-27（`d980d05`）起未再重建、真实含 22 处
+externref（rustc 1.82+ 对 `wasm32-unknown-unknown` 默认开启 reference-types），
+而**旧版开发者工具**的 `WXWebAssembly` 模拟引擎（底层 V8 未开 reftypes）会拒绝它，
+真机 / 新版开发者工具则能正常实例化。
+
+- 现象只出现在**某一台机器的旧版开发者工具 + 调试库**，换机器或更新工具即恢复
+  （2026-10-01 实测：工具 `2.01.2510290` + 调试库 3.17.2 报错，更新后正常）。
+  报错里出现标准 `WebAssembly.instantiate()` 字样（而非 `WXWebAssembly`）就是工具
+  内部转译且未开 reftypes 的信号。
+- **先升级开发者工具，再怀疑代码。** 核对 wasm 是否真用了 externref 要解析字节
+  （数 type/import/global 段里的值类型），别直接 `grep externref` —— 那会命中
+  name section 中 `__wbindgen_externref_table_*` 符号名，不代表真用了该值类型。
+- 不要用 `RUSTFLAGS="-C target-feature=-reference-types"` 硬关：wasm-bindgen
+  0.2.126 的库 cfg 与 CLI 对表的预期会不一致，wasm-bindgen 阶段报
+  `failed to find __wbindgen_externref_table_dealloc`。
+
 ### 动态 `import()` 在小程序端整体失效（比 wasm 更广）
 
 上面只提了 glue，但根因是平台级的：**uni-app 的 mp-weixin 编译器把 `import('x')`
@@ -143,6 +163,39 @@ grep -rn '\.then' dist/dev/mp-weixin --include=*.js | grep '"\./'
 当前发布产物实测约 **1.41 MiB（1,481,792 字节）**，主包达标。
 注意别用 `du -sh` 判断（小文件按 4K 块对齐会严重虚高，曾显示 4.1M），
 用 `find . -type f -printf '%s\n' | awk '{s+=$1}END{print s}'` 算真实字节。
+
+## 适配五：tab 保活（路径 B）与首页虚拟列表残留限制
+
+### tab 切换：原生 tabBar 保活 + 自定义胶囊（路径 B）
+
+原先底部胶囊内部用 `uni.reLaunch`，每次切 tab 都销毁重建页面 → 切回加载久、回顶端。
+现采用**路径 B**，把保活交给平台、视觉仍完全自定义：
+
+- `pages.json` 顶层声明原生 `tabBar`（**不设 `custom`**；list 只填 pagePath + text、
+  不填图标）；
+- 每个 tab 页 onShow 经 `composables/useHideNativeTabBar` 调 `uni.hideTabBar()`
+  隐藏原生条（`index.vue` 与 `TabPageShell.vue` 各接入一次）；
+- 自定义胶囊 `components/TabBar.vue` 作为普通 SFC 仍放在各 tab 页，内部
+  `reLaunch → switchTab`。tab 页只创建一次、切走 onHide、切回 onShow。
+- 指向 tab 的跳转统一走 `utils/navigation` 的 `navigateToAuto`（tab → switchTab，
+  否则 navigateTo）；`detail` 子页不再挂胶囊。
+
+为什么不用微信原生 `custom-tab-bar`：那目录是原生 wxml（uni-app 原样拷贝、不编译
+Vue），且 H5 不认 `custom:true`，会被迫维护两套实现。路径 B 的胶囊在两端是同一个
+SFC、无需条件编译。
+
+指示器动画：4 个 TabBar 是各页独立实例。`TabBar` 把「来源格 → 本页格」滑动抽成
+`playEnterAnimation`，在 onMounted（首次）与 onShow（保活后切回）各播一次；来源格
+由切换前写入的 storage 记录。
+
+### 残留：VirtualGrid 微信首次全量渲染（仅一次）
+
+`components/dex/VirtualGrid.vue` 仍是 H5 的 DOM 模型（根为 `<view>`、依赖 `window`），
+微信 appService 无 window → 虚拟化降级、**首次**进入图鉴全量渲染约 1025 张卡。
+
+- 路径 B 保活后该全量**只发生一次**：切走再切回页面不重建，不再“加载久 / 回顶端”。
+- 若要消除首次全量，仍需把 VirtualGrid 按 `VirtualList.vue` 适配：根改
+  `<scroll-view>`、几何用 `uni.getSystemInfoSync` / `createSelectorQuery`。
 
 ## 发布 checklist
 
