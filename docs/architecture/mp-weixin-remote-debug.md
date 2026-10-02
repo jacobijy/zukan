@@ -14,7 +14,7 @@ VS Code (Remote-SSH)  ──编辑──▶  Linux 192.168.100.100
                                   │ pnpm dev:mp-weixin (watch)
                                   ▼
                             dist/dev/mp-weixin （小，无 node_modules）
-                                  │ Mutagen / rsync / SFTP（局域网，毫秒~2s）
+                                  │ Mutagen / Python 调用 rsync（局域网，毫秒~2s）
                                   ▼
                             Mac 本地目录 ◀── 微信开发者工具监听、自动编译
                                   │
@@ -137,8 +137,20 @@ stat -c '%y %n' src/components/TabBar.vue dist/dev/mp-weixin/components/TabBar.w
 > ```
 >
 > 拉成 `remote-debug/` 目录（先配 ssh 免密，并手动 `ssh` 一次确认主机指纹）。
-> 仓库里的 `scripts/remote-debug/fetch-pull-scripts.sh` 是等价引导脚本，会把内容
-> 平铺到指定目录：`bash fetch-pull-scripts.sh [目标目录]`（默认当前目录）。
+> 取回后可用 Python 引导脚本调用 rsync 拉取并更新脚本目录：
+> `python remote-debug/fetch-pull-scripts.py [目标目录]`（默认当前目录）。
+> 拉取时会排除 `pull.conf`、`pull.conf.local`、`__pycache__/`、`.pytest_cache/`、`.mypy_cache/`、`.ruff_cache/`、
+> `.tox/`、`.coverage`、`.DS_Store`、`Thumbs.db` 和 `*.py[cod]`。
+>
+> 目前统一使用通用配置文件 `scripts/remote-debug/pull.conf`（可覆盖同目录的
+> `pull.conf.local`），以及单一 Python 入口：
+>
+> ```bash
+> python3 scripts/remote-debug/pull.py --target mp-weixin --once
+> ```
+>
+> Python 脚本通过命令行调用系统 `rsync`。每个变更文件会输出同步时间、远端 mtime、
+> 大小、传输字节数、变更标记和路径。参数详情见 [`scripts/remote-debug/README.md`](../../scripts/remote-debug/README.md)。
 > 取回脚本后再按下面的方案同步产物。
 
 ### 方案 A（推荐）：Mutagen，毫秒级实时
@@ -160,28 +172,28 @@ mutagen sync create \
 - 常用：`mutagen sync list`、`mutagen sync monitor zukan-mp`、`mutagen sync terminate zukan-mp`。
 - Windows：装 Mutagen 后命令相同（路径写成 `%USERPROFILE%\zukan-mp-weixin`）。
 
-### 方案 B（零安装）：rsync 轮询拉取
+### 方案 B（Python + rsync）：轮询同步
 
-仓库里已带 `scripts/remote-debug/pull-mp-weixin.sh`，在 Mac 上：
+统一入口是 `scripts/remote-debug/pull.py`，在 Mac 上：
 
 ```bash
 # 先配免密：ssh-keygen && ssh-copy-id jacobi@192.168.100.100
-bash scripts/remote-debug/pull-mp-weixin.sh
+python3 scripts/remote-debug/pull.py --target mp-weixin
 ```
 
-每秒 `rsync -az --delete` 把产物镜像到 `~/zukan-mp-weixin`。目录小，开销可忽略；
-延迟约 1s。可用 `REMOTE` / `LOCAL_DIR` 等环境变量改地址。
+每秒调用 `rsync -az --delete` 把产物镜像到 `~/zukan-mp-weixin`，只传输有变化的文件并清理
+过期项目，延迟约 1s。需要安装 Python 3、rsync 和 OpenSSH，并确保 `rsync`、`ssh` 在 PATH
+中。配置优先级：`命令行参数 / 环境变量 > pull.conf.local > pull.conf`；SSH 密钥和端口可用
+`SSH_KEY` / `SSH_PORT` 配置。
 
 > 不建议用 sshfs / NFS 直接挂载再让开发者工具读：FUSE 上的文件事件不可靠，
 > 开发者工具经常不自动刷新、扫描也慢。同步成本地真实目录最稳（这也是本方案
 > 与"挂载远端目录"的关键区别）。
 
-### 方案 C（Windows 零安装）：系统自带 sftp + robocopy
+### 方案 C（Windows）：Python + rsync
 
-Windows 10 1809+ / 11 自带 OpenSSH 客户端（`sftp.exe`）和 `robocopy.exe`，
-不用装 Mutagen / rsync / Cygwin。仓库已带 `scripts/remote-debug/pull-mp-weixin.ps1`：
-每轮先用 SFTP 把产物整目录（`get -R`）下载到临时目录，再 `robocopy /MIR` 镜像到
-本地（**含删除同步**）；某轮失败只告警、保留本地上一版并继续重试。
+Windows 使用同一份 Python 实现，但仍需安装 rsync（例如 MSYS2、Cygwin 或 WSL 提供的
+rsync），并让 `rsync` 和 `ssh` 命令可从运行 Python 的终端找到。
 
 先在 **PowerShell** 里配置免密（Windows 没有 `ssh-copy-id`）：
 
@@ -194,14 +206,12 @@ ssh jacobi@192.168.100.100   # 首次连接确认主机指纹，之后脚本才�
 然后开始同步：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\remote-debug\pull-mp-weixin.ps1
+py -3 scripts\remote-debug\pull.py --target mp-weixin
 ```
 
-- 默认每 2s 一轮；可用环境变量改默认：`$env:INTERVAL='1'`、`$env:REMOTE='user@host'`、
-  `$env:REMOTE_DIR='/path'`、`$env:LOCAL_DIR='C:\path'`，非默认密钥路径用
-  `$env:SSH_KEY='C:\path\id_ed25519'`。
-- 延迟约 1–3s，功能等同方案 B，全程不安装第三方软件。**Mac 没必要用**（直接跑 .sh）。
-- 前提：系统「可选功能」里已安装"OpenSSH 客户端"（Win10 1809+ 默认有）。
+- 默认每 1s 一轮；可用命令行参数、环境变量或 `pull.conf.local` 覆盖地址、目录、间隔和
+  密钥。每轮会输出 rsync 传输文件的时间戳、大小、传输字节、变更标记和路径，并附统计。
+- 单次同步可用 `py -3 scripts\remote-debug\pull.py --target mp-weixin --once`。
 
 ## 三、微信开发者工具（Mac/Windows 上做一次）
 
@@ -237,7 +247,7 @@ powershell -ExecutionPolicy Bypass -File scripts\remote-debug\pull-mp-weixin.ps1
 | 真机连不上后端 | 手机与 Linux 同 Wi-Fi；防火墙放行 8080；后端监听 0.0.0.0 |
 | WASM/解密报错 | dev 构建已 `copy-wasm`；确认 `dist/dev/mp-weixin/static/wasm` 存在 |
 | 同步报 SSH 错 | 配免密密钥；确认地址、`REMOTE_DIR` 路径 |
-| 方案 C 报 sftp/robocopy 错 | 先手动 `ssh` 一次接受主机指纹；确认"OpenSSH 客户端"可选功能已装、公钥已上传；robocopy 退出码 ≥8 时单独跑一次看具体错误 |
+| Python 同步报错 | 确认 rsync / ssh 已安装并在 PATH 中、公钥已上传、远端主机密钥已在 `known_hosts` 中，并核对 `REMOTE` / `REMOTE_DIR` |
 
 ## 可选：进一步自动化（以后再说）
 
