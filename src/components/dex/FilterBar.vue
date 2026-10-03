@@ -1,5 +1,5 @@
 <template>
-  <view class="filter-panel fixed z-[999] bg-white shadow-[0_12px_30px_rgba(48,55,72,0.12)] border-b border-[#e5e7ee] animate-slideDown overflow-visible" :style="{ top: 'calc(var(--status-bar-height) + var(--navbar-content-height))' }">
+  <view class="filter-panel fixed z-[999] bg-white shadow-[0_12px_30px_rgba(48,55,72,0.12)] border-b border-[#e5e7ee] animate-slideDown overflow-visible" :style="{ top: 'var(--navbar-total-height)' }">
     <view class="px-5 py-4 flex flex-col gap-4">
       <view class="flex items-center justify-between pr-8">
         <text class="text-base font-bold text-[#24262b]">{{ t('dex.filter.title') }}</text>

@@ -5,7 +5,7 @@
             :style="{
                 '--page-panel-x': showGenerationPanel ? '-280px' : '0px',
                 '--page-panel-scale': showGenerationPanel ? '0.95' : '1',
-                paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))'
+                paddingTop: 'var(--navbar-total-height)'
             }"
         >
             <NavBar :title="t('nav.pokedex')" />

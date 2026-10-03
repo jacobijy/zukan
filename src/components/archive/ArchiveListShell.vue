@@ -1,10 +1,10 @@
 <template>
-    <view class="archive-page min-h-screen page-bg flex flex-col" :style="{ paddingTop: 'var(--status-bar-height)' }">
+    <view class="archive-page min-h-screen page-bg flex flex-col">
         <DetailNavbar :title="title" :fallback-url="fallbackUrl" />
 
         <view
             class="relative z-10 flex flex-1 flex-col"
-            style="margin-top: calc(var(--status-bar-height) + 52px); height: calc(100vh - var(--status-bar-height) - 52px)"
+            style="margin-top: var(--navbar-total-height); height: calc(100vh - var(--navbar-total-height))"
         >
             <view v-if="$slots.tools" class="flex-shrink-0 px-4 pb-2 pt-2">
                 <view class="mx-auto w-full max-w-[720px]">

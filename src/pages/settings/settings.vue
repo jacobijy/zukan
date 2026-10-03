@@ -1,10 +1,10 @@
 <template>
-    <view class="settings-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
+    <view class="settings-page min-h-screen page-bg" :style="{ paddingBottom: '40px' }">
         <DetailNavbar :title="t('settings.title')" @back="goBack" />
 
         <scroll-view
             scroll-y
-            class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6"
+            class="relative z-10 h-[calc(100vh-var(--navbar-total-height))] mt-[var(--navbar-total-height)] px-4 pb-6"
         >
             <view class="mx-auto max-w-[720px] flex flex-col gap-3 pt-3">
                 <text class="section-label">{{ t('settings.sectionLanguage') }}</text>

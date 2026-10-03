@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { onError, onLaunch, onUnhandledRejection } from "@dcloudio/uni-app";
+import { applySafeArea } from "@/infra/platform/applySafeArea";
 import { bootPrefetch } from "@/services/boot";
 onLaunch(() => {
+  // 安全区注入：读系统状态栏高度写成 CSS 变量，供全站 padding/导航栏消费。
+  // 必须在 bootPrefetch 之前，避免首帧标题压进刘海/挖孔。
+  applySafeArea();
   // 后台预热：拉 /api/v1/zukan/key + 版本对比 + 预取最新一代 bundle。
   // 不 await，网络失败也不阻塞 UI。
   bootPrefetch();
@@ -16,9 +20,24 @@ onUnhandledRejection((res) => {
 });
 </script>
 <style>
+/*
+ * 顶部安全区 / 导航栏高度 —— 唯一真相源。
+ *
+ * `--status-bar-height` 由 applySafeArea() 在启动时写成 :root 的内联值
+ * （App/小程序=实际状态栏高度、H5=0，且 JS 侧已并入 H5 的 safe-area-inset-top）。
+ * 这里只在 :root 给一个「注入前首帧」默认 0px；**不要在 page 上重新声明它**，否则 page 的声明
+ * 会覆盖从 :root 继承来的 JS 值（同一元素上 stylesheet 声明 > 继承值），把注入值顶成 0。
+ * page 只消费、不重定义。
+ */
+:root {
+  --status-bar-height: 0px;
+}
+
 page {
-  /* 顶部红条内容区高度；输入框/按钮恒为红条的 72% */
+  /* 顶部红条内容区高度；输入框/按钮恒为红条的 72%。
+     各页面曾用硬编码 52px 当此值，现统一走 --navbar-total-height，clamp 变高时留白自动跟随。 */
   --navbar-content-height: clamp(52px, 10vmin, 60px);
+  --navbar-total-height: calc(var(--status-bar-height) + var(--navbar-content-height));
   --navbar-control-height: calc(var(--navbar-content-height) * 0.72);
 }
 

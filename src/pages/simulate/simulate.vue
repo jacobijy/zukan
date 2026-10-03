@@ -1,8 +1,8 @@
 <template>
-    <view class="sim-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
+    <view class="sim-page min-h-screen page-bg" :style="{ paddingBottom: '40px' }">
         <DetailNavbar :title="t('simulate.title')" @back="goBack" />
 
-        <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6">
+        <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--navbar-total-height))] mt-[var(--navbar-total-height)] px-4 pb-6">
             <view class="mx-auto max-w-[720px] flex flex-col gap-3 pt-3">
                 <view class="sim-card">
                     <view class="sim-head">

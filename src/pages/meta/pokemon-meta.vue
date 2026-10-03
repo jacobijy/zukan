@@ -1,10 +1,10 @@
 <template>
-    <view class="archive-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '40px' }">
+    <view class="archive-page min-h-screen page-bg" :style="{ paddingBottom: '40px' }">
         <DetailNavbar :title="heroName" fallback-url="/pages/meta/meta" />
 
         <scroll-view
             scroll-y
-            class="relative z-10 mt-[calc(var(--status-bar-height)+52px)] h-[calc(100vh-var(--status-bar-height)-52px)] px-4 pb-6"
+            class="relative z-10 mt-[var(--navbar-total-height)] h-[calc(100vh-var(--navbar-total-height))] px-4 pb-6"
         >
             <view v-if="loading" class="flex h-full items-center justify-center">
                 <view class="field-loader"></view>

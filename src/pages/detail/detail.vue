@@ -1,12 +1,12 @@
 <template>
-    <view class="detail-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)', paddingBottom: '100px' }">
+    <view class="detail-page min-h-screen page-bg">
         <DetailNavbar :title="pokemon.name || t('detail.titleFallback')" fallback-url="/pages/index/index" @back="goBack">
             <template #right>
                 <FavoriteButton :active="isFavorite" @toggle="toggleFavorite" />
             </template>
         </DetailNavbar>
 
-        <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--status-bar-height)-100px)] mt-[calc(var(--status-bar-height)+64px)] px-4 pb-4">
+        <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--navbar-total-height))] mt-[var(--navbar-total-height)] px-4 pb-4">
             <view class="mx-auto max-w-[1000px]">
                 <SpecimenHero
                     :pokemon="pokemon"

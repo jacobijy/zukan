@@ -1,5 +1,5 @@
 <template>
-    <view class="min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)' }">
+    <view class="min-h-screen page-bg">
         <DetailNavbar :title="isNew ? t('teams.create') : t('teams.editTitle')" fallback-url="/pages/teams/teams">
             <template #right>
                 <view class="save-trigger" :class="{ 'save-trigger--busy': store.saving }" @click="onSave">
@@ -8,7 +8,7 @@
             </template>
         </DetailNavbar>
 
-        <scroll-view scroll-y class="edit-scroll mt-[calc(var(--status-bar-height)+52px)] h-[calc(100vh-var(--status-bar-height)-52px)]">
+        <scroll-view scroll-y class="edit-scroll mt-[var(--navbar-total-height)] h-[calc(100vh-var(--navbar-total-height))]">
             <view class="mx-auto flex max-w-[720px] flex-col gap-4 px-4 pb-16 pt-3">
                 <!-- 名称 + 赛制 -->
                 <view class="glass-panel edit-head">

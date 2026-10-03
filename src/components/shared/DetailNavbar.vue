@@ -1,5 +1,5 @@
 <template>
-    <view class="det-navbar fixed left-0 right-0 top-0 z-[1000] flex items-center justify-between px-4" :style="{ paddingTop: 'var(--status-bar-height)', height: 'calc(var(--status-bar-height) + 52px)' }">
+    <view class="det-navbar fixed left-0 right-0 top-0 z-[1000] flex items-center justify-between px-4" :style="{ paddingTop: 'var(--status-bar-height)', height: 'var(--navbar-total-height)' }">
         <button class="det-navbar__btn" @click="handleBack">
             <!-- #ifdef MP-WEIXIN -->
             <text class="ic text-[20px]">{{ glyph('arrow-left') }}</text>

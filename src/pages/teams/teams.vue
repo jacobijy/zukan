@@ -1,8 +1,8 @@
 <template>
-    <view class="min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)' }">
+    <view class="min-h-screen page-bg">
         <DetailNavbar :title="t('teams.title')" fallback-url="/pages/data/data" />
 
-        <scroll-view scroll-y class="teams-scroll mt-[calc(var(--status-bar-height)+52px)] h-[calc(100vh-var(--status-bar-height)-52px)]">
+        <scroll-view scroll-y class="teams-scroll mt-[var(--navbar-total-height)] h-[calc(100vh-var(--navbar-total-height))]">
             <view class="mx-auto flex max-w-[720px] flex-col gap-4 px-4 pb-12 pt-3">
                 <!-- 未登录引导 -->
                 <view v-if="store.needsLogin" class="login-nudge">

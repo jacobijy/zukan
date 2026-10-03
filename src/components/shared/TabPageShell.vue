@@ -2,7 +2,7 @@
     <view
         class="min-h-screen page-bg"
         :style="{
-            paddingTop: 'calc(var(--status-bar-height) + var(--navbar-content-height))',
+            paddingTop: 'var(--navbar-total-height)',
             paddingBottom: '104px'
         }"
     >

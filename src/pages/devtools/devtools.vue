@@ -1,10 +1,10 @@
 <template>
-    <view class="devtools-page min-h-screen page-bg" :style="{ paddingTop: 'var(--status-bar-height)' }">
+    <view class="devtools-page min-h-screen page-bg">
         <DetailNavbar title="开发者工具" fallback-url="/pages/mine/mine" />
 
         <scroll-view
             scroll-y
-            class="relative z-10 h-[calc(100vh-var(--status-bar-height))] mt-[calc(var(--status-bar-height)+52px)] px-4 pb-6"
+            class="relative z-10 h-[calc(100vh-var(--navbar-total-height))] mt-[var(--navbar-total-height)] px-4 pb-6"
         >
             <view class="mx-auto max-w-[720px] pt-3 pb-10">
                 <!-- #ifdef H5 -->
