@@ -9,10 +9,34 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-from remote_sync import build_rsync_command, parse_config, run_rsync
+from remote_sync import build_rsync_command, get_target_config, parse_config, run_rsync
 
 
 class RsyncCommandTests(unittest.TestCase):
+    def test_mp_weixin_uses_mp_config_keys(self) -> None:
+        config = get_target_config(
+            "mp-weixin",
+            {
+                "MP_REMOTE_DIR": "/remote/mp",
+                "MP_LOCAL_DIR": "/local/mp",
+            },
+            {},
+        )
+        self.assertEqual(config["remote_dir"], "/remote/mp")
+        self.assertEqual(config["local_dir"], "/local/mp")
+
+    def test_mp_weixin_keeps_compatibility_with_expanded_config_keys(self) -> None:
+        config = get_target_config(
+            "mp-weixin",
+            {
+                "MP_WEIXIN_REMOTE_DIR": "/legacy/remote",
+                "MP_WEIXIN_LOCAL_DIR": "/legacy/local",
+            },
+            {},
+        )
+        self.assertEqual(config["remote_dir"], "/legacy/remote")
+        self.assertEqual(config["local_dir"], "/legacy/local")
+
     def test_parse_config_preserves_quoted_windows_path(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             config_file = Path(temp_dir) / "pull.conf"

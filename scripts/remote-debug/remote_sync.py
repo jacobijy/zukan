@@ -66,18 +66,18 @@ def resolve_local_path(value: str) -> Path:
 
 
 def get_target_config(target: str, config: dict[str, str], env: dict[str, str]) -> dict[str, str]:
-    target_key = target.replace("-", "_").upper()
+    target_keys = ("MP", "MP_WEIXIN") if target == "mp-weixin" else ("APP",)
     return {
         "remote": env.get("REMOTE") or config.get("REMOTE") or "jacobi@192.168.100.100",
         "remote_dir": (
             env.get("REMOTE_DIR")
-            or config.get(f"{target_key}_REMOTE_DIR")
+            or next((config[f"{key}_REMOTE_DIR"] for key in target_keys if f"{key}_REMOTE_DIR" in config), None)
             or config.get("REMOTE_DIR")
             or TARGET_DEFAULTS[target]["remote_dir"]
         ),
         "local_dir": (
             env.get("LOCAL_DIR")
-            or config.get(f"{target_key}_LOCAL_DIR")
+            or next((config[f"{key}_LOCAL_DIR"] for key in target_keys if f"{key}_LOCAL_DIR" in config), None)
             or config.get("LOCAL_DIR")
             or TARGET_DEFAULTS[target]["local_dir"]
         ),
