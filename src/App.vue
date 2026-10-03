@@ -21,19 +21,24 @@ onUnhandledRejection((res) => {
 </script>
 <style>
 /*
- * 顶部安全区 / 导航栏高度 —— 唯一真相源。
+ * 顶部安全区 / 导航栏高度 —— 两层：env 基线 + JS 兜底。
  *
- * `--status-bar-height` 由 applySafeArea() 在启动时写成 :root 的内联值
- * （App/小程序=实际状态栏高度、H5=0，且 JS 侧已并入 H5 的 safe-area-inset-top）。
- * 这里只在 :root 给一个「注入前首帧」默认 0px；**不要在 page 上重新声明它**，否则 page 的声明
- * 会覆盖从 :root 继承来的 JS 值（同一元素上 stylesheet 声明 > 继承值），把注入值顶成 0。
- * page 只消费、不重定义。
+ * 第一层（全局基线，本文件 page）：--status-bar-height 取 env(safe-area-inset-top)，现代浏览器 /
+ * 新 webview 正确返回刘海、状态栏高度，一处对全站生效。
+ *
+ * 第二层（JS 权威值，逐页根绑定）：applySafeArea 把 uni.getSystemInfoSync().statusBarHeight 写入
+ * 响应式真相源，各页面根经 usePageSafeArea() 内联覆盖本页变量——env 返 0 的老基础库 / 部分安卓
+ * XWeb 靠它修正；env 正确时两者相等、覆盖无害。H5 / App 另由 applySafeArea 写 :root。
+ *
+ * :root 的 0px 只是 env 之前的首帧默认。
  */
 :root {
   --status-bar-height: 0px;
 }
 
 page {
+  /* 第一层基线：设备安全区 env；env 缺失 / 返 0 时由页面根 JS 权威值兜底（usePageSafeArea）。 */
+  --status-bar-height: env(safe-area-inset-top, 0px);
   /* 顶部红条内容区高度；输入框/按钮恒为红条的 72%。
      各页面曾用硬编码 52px 当此值，现统一走 --navbar-total-height，clamp 变高时留白自动跟随。 */
   --navbar-content-height: clamp(52px, 10vmin, 60px);

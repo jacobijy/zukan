@@ -1,5 +1,5 @@
 <template>
-    <view class="archive-page min-h-screen page-bg" :style="{ paddingBottom: '40px' }">
+    <view class="archive-page min-h-screen page-bg" :style="[pageSafeArea, { paddingBottom: '40px' }]">
         <DetailNavbar :title="t('archive.moveDetailTitle')" fallback-url="/pages/archive/moves" />
 
         <scroll-view
@@ -86,6 +86,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { onLoad } from '@dcloudio/uni-app';
@@ -97,7 +98,9 @@ import InfoCard from '@/components/pokemon/InfoCard.vue';
 import MoveFlavorCard from '@/components/archive/MoveFlavorCard.vue';
 import { loadMoveList, type MoveListRow } from '@/services/pokemon/archive';
 import { typeStrs } from '@/utils/helpers';
-import { useI18nStore } from '@/store/i18n';
+import { useI18nStore } from '@/store/i18n'
+
+const pageSafeArea = usePageSafeArea();
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();

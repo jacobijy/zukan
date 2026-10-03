@@ -1,5 +1,5 @@
 <template>
-    <view class="min-h-screen page-bg">
+    <view class="min-h-screen page-bg" :style="pageSafeArea">
         <DetailNavbar :title="isNew ? t('teams.create') : t('teams.editTitle')" fallback-url="/pages/teams/teams">
             <template #right>
                 <view class="save-trigger" :class="{ 'save-trigger--busy': store.saving }" @click="onSave">
@@ -54,6 +54,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useI18n } from 'vue-i18n';
@@ -72,7 +73,9 @@ import {
     type TeamFormat,
     type TeamMember,
     type TeamPayload,
-} from '@/services/teams/team-model';
+} from '@/services/teams/team-model'
+
+const pageSafeArea = usePageSafeArea();
 
 const MAX_MEMBERS = LIMITS.maxMembers;
 

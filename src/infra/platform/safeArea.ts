@@ -25,8 +25,8 @@ export interface SafeAreaLikeInfo extends PlatformLikeInfo {
  * - **App / 小程序**：`uni.getSystemInfoSync().statusBarHeight`——自定义导航栏（`navigationStyle: custom`）
  *   必须由自己给顶部留出状态栏，否则标题压进刘海 / 挖孔。iOS 刘海 ~44–59，Android 挖孔 ~24–48。
  *   uni-app 的 `statusBarHeight` 已经是可直接用于布局的 px。
- * - **H5**：`0`。浏览器的地址栏 / 视口在 safe-area 之外，浏览器内 `padding-top: 0` 恰好够用。
- *   真正的 PWA 全屏安全区由 CSS 侧的 `env(safe-area-inset-top)` 兜住（见 App.vue 的 `max(...)`）。
+ * - **H5**：`env(safe-area-inset-top, 0px)`。普通浏览器 env 为 0（视口在安全区外，表现同 0）；
+ *   iPhone Safari / PWA 全屏（`index.html` 配 `viewport-fit=cover`）时 env 即刘海高度。
  *
  * 容错：读不到 / 抛错 / 非有限数值时一律回退 `0`——宁可不留白（退化为改动前的现状），
  * 也不能让一个坏值把整条安全区链算崩。
@@ -37,8 +37,9 @@ export interface SafeAreaLikeInfo extends PlatformLikeInfo {
  */
 export function resolveStatusBarHeight(host: HostPlatform, info: SafeAreaLikeInfo | null | undefined): string {
     const platform = resolvePlatform(host, info);
-    // H5 走 CSS env() 兜底，JS 侧不占位。
-    if (platform === 'h5') return '0px';
+    // H5 走 env()：普通浏览器为 0、PWA/全屏 Safari 为刘海值。右操作数是 env 而非
+    // var(--status-bar-height) 自身，不构成自引用循环。
+    if (platform === 'h5') return 'env(safe-area-inset-top, 0px)';
 
     const raw = info?.statusBarHeight;
     if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {

@@ -1,5 +1,5 @@
 <template>
-    <view class="detail-page min-h-screen page-bg">
+    <view class="detail-page min-h-screen page-bg" :style="pageSafeArea">
         <DetailNavbar :title="pokemon.name || t('detail.titleFallback')" fallback-url="/pages/index/index" @back="goBack">
             <template #right>
                 <FavoriteButton :active="isFavorite" @toggle="toggleFavorite" />
@@ -117,6 +117,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import EvolutionChain from '@/components/pokemon/EvolutionChain.vue'
 import MovesList from '@/components/pokemon/MovesList.vue'
 import StatsChart from '@/components/pokemon/StatsChart.vue'
@@ -135,6 +136,8 @@ import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
 import { glyph } from '@/components/icon/glyphs'
+
+const pageSafeArea = usePageSafeArea();
 
 const pokemonStore = usePokemonStore()
 const i18nStore = useI18nStore()

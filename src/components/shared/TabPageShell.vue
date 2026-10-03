@@ -1,10 +1,10 @@
 <template>
     <view
         class="min-h-screen page-bg"
-        :style="{
+        :style="[pageSafeArea, {
             paddingTop: 'var(--navbar-total-height)',
             paddingBottom: '104px'
-        }"
+        }]"
     >
         <NavBar :title="title" />
 
@@ -22,7 +22,11 @@
 import NavBar from '@/components/NavBar.vue';
 import TabBar from '@/components/TabBar.vue';
 import { useHideNativeTabBar } from '@/composables/useHideNativeTabBar';
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { computed } from 'vue';
+
+// 页面根注入安全区变量（微信靠 wxml 数据驱动；H5/App 与 document 注入一致）
+const pageSafeArea = usePageSafeArea();
 
 // 壳被 features/data/mine 三个 tab 页直接使用：在此隐藏原生 tabBar，
 // 统一改用自定义胶囊（保活仍由原生 tabBar 机制提供）

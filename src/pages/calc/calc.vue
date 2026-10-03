@@ -1,7 +1,7 @@
 <template>
     <view
         class="calc-page min-h-screen page-bg"
-        :style="{ paddingBottom: '40px' }"
+        :style="[pageSafeArea, { paddingBottom: '40px' }]"
     >
         <DetailNavbar :title="t('calc.title')" @back="goBack" />
 
@@ -202,6 +202,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { glyph } from '@/components/icon/glyphs';
@@ -233,7 +234,9 @@ import {
     getDefItemLabel,
     toCalcMoveOptions,
     type MoveOption,
-} from './calc-options';
+} from './calc-options'
+
+const pageSafeArea = usePageSafeArea();
 
 const { t } = useI18n();
 const pokemonStore = usePokemonStore();

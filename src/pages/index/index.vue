@@ -1,5 +1,5 @@
 <template>
-    <view class="dex-page h-screen flex flex-col relative overflow-hidden" :style="{ paddingBottom: '100px' }">
+    <view class="dex-page h-screen flex flex-col relative overflow-hidden" :style="[pageSafeArea, { paddingBottom: '100px' }]">
         <view
             class="page-switch-panel relative z-10 flex flex-col flex-1 min-h-0"
             :style="{
@@ -109,6 +109,7 @@ import PokemonCard from "@/components/pokemon/PokemonCard.vue";
 import VirtualGrid from "@/components/dex/VirtualGrid.vue";
 import TabBar from "@/components/TabBar.vue";
 import { useHideNativeTabBar } from "@/composables/useHideNativeTabBar";
+import { usePageSafeArea } from "@/composables/usePageSafeArea";
 import { usePokemonStore } from "@/store/pokemon";
 import { useI18n } from 'vue-i18n';
 import { authGate, LoginDismissedError } from "@/services/session/authGate";
@@ -131,6 +132,8 @@ const showLogin = computed({
 const pokemonStore = usePokemonStore();
 // 隐藏 pages.json 声明的原生 tabBar，改用自定义胶囊
 useHideNativeTabBar();
+// 页面根注入安全区变量（微信靠 wxml 数据驱动）
+const pageSafeArea = usePageSafeArea();
 const { t } = useI18n();
 const { matchedPokemons, matchedCount } = storeToRefs(pokemonStore);
 const { fetchPokemon, setCriteria } = pokemonStore;

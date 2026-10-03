@@ -1,5 +1,5 @@
 <template>
-    <view class="settings-page min-h-screen page-bg" :style="{ paddingBottom: '40px' }">
+    <view class="settings-page min-h-screen page-bg" :style="[pageSafeArea, { paddingBottom: '40px' }]">
         <DetailNavbar :title="t('settings.title')" @back="goBack" />
 
         <scroll-view
@@ -62,6 +62,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { interp } from '@/services/i18n/ui-i18n';
@@ -79,7 +80,9 @@ import {
     resolveContentLang,
     resolveUiLocale,
     type UiLangSetting,
-} from '@/services/i18n/languages';
+} from '@/services/i18n/languages'
+
+const pageSafeArea = usePageSafeArea();
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();

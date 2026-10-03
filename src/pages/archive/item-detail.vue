@@ -1,5 +1,5 @@
 <template>
-    <view class="archive-page min-h-screen page-bg" :style="{ paddingBottom: '40px' }">
+    <view class="archive-page min-h-screen page-bg" :style="[pageSafeArea, { paddingBottom: '40px' }]">
         <DetailNavbar :title="t('archive.itemDetailTitle')" fallback-url="/pages/archive/items" />
 
         <scroll-view
@@ -24,13 +24,16 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { onLoad } from '@dcloudio/uni-app';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import FlavorTextCard from '@/components/archive/FlavorTextCard.vue';
 import ItemIcon from '@/components/archive/ItemIcon.vue';
-import { useI18nStore } from '@/store/i18n';
+import { useI18nStore } from '@/store/i18n'
+
+const pageSafeArea = usePageSafeArea();
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();

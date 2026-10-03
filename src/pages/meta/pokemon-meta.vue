@@ -1,5 +1,5 @@
 <template>
-    <view class="archive-page min-h-screen page-bg" :style="{ paddingBottom: '40px' }">
+    <view class="archive-page min-h-screen page-bg" :style="[pageSafeArea, { paddingBottom: '40px' }]">
         <DetailNavbar :title="heroName" fallback-url="/pages/meta/meta" />
 
         <scroll-view
@@ -46,6 +46,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { computed, ref, shallowRef } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useI18n } from 'vue-i18n';
@@ -78,7 +79,9 @@ import {
     type RateRowVM,
     type SpreadRowVM,
     type TeammateRowVM,
-} from '@/services/meta';
+} from '@/services/meta'
+
+const pageSafeArea = usePageSafeArea();
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();

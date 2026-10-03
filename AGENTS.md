@@ -365,6 +365,28 @@ src/pages/<name>/<name>-options.ts   仅该页用的选项/常量表
    核对方式：`pnpm build:h5 && grep -rl "<实现体标识>" dist/build/h5` 应无命中 ——
    **这条只能靠拉产物验证，`type-check` 与用例都看不见**。
 
+### 顶部安全区 / 刘海（新增页面必做）
+
+页面标题不得压进手机刘海 / 灵动岛 / 状态栏。架构是 **env 基线 + JS 兜底**，详见
+[docs/ui/safe-area.md](docs/ui/safe-area.md)。
+
+- **每个页面根节点绑定 `usePageSafeArea()`**；用 `TabPageShell` / `ArchiveListShell`
+  的页面壳已内置、无需重复：
+  ```vue
+  <view :style="[pageSafeArea, { /* 本页原有样式 */ }]">
+  <!-- script setup 内： const pageSafeArea = usePageSafeArea() -->
+  ```
+  它把 `--status-bar-height` 与 `--navbar-total-height` **一起**内联到页根：现代端取
+  `env(safe-area-inset-top)`，env 返 0 的老基础库 / 部分安卓 XWeb 由
+  `getSystemInfoSync().statusBarHeight` 兜底。
+- **布局占位只用 `var(--navbar-total-height)`**（= 状态栏 + 红条内容高）。不要硬编码
+  52px、不要自己读 `getSystemInfoSync`、也不要在多处叠加 padding-top。顶部固定件
+  （NavBar / DetailNavbar / GenerationDrawer）已自行消费 `--status-bar-height`。
+- **两变量必须一起下发**：`--navbar-total-height` 在 `page` 上算定后，后代单改
+  `--status-bar-height` 不会让它重算——这正是 `usePageSafeArea` 同时返回两者的原因。
+- 改完跑 `pnpm test -- safeArea`，并按移动端 UA curl 页面确认 200；真机像素（刘海/挖孔）
+  仍需在微信开发者工具 / 设备上确认。
+
 ### scoped CSS 的特异性陷阱（踩过两次）
 
 如果基础规则（`.list-row__icon`）在组件的 `scoped` 里，而配色变体

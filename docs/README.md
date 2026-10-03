@@ -12,6 +12,7 @@
 | 架构 | [architecture/platform-managers.md](architecture/platform-managers.md) | 按平台区分的管理对象：检测层/能力闸门/Manager 三层职责边界，Base→App→iOS/Android 类层次，如何加平台操作 |
 | UI | [ui/component-conventions.md](ui/component-conventions.md) | 先建组件再写页面、目录划分、scoped CSS 陷阱、`<script setup>` 单例陷阱 |
 | UI | [ui/virtual-list.md](ui/virtual-list.md) | VirtualGrid 定高虚拟化的耦合与改动注意 |
+| UI | [ui/safe-area.md](ui/safe-area.md) | 顶部状态栏 / 刘海适配：env 基线 + JS 兜底两层注入、为何微信需逐页、验证方法 |
 | UI | [ui/software-icons.md](ui/software-icons.md) | HOME 作品版本徽章（世代切换用）：22 枚 128px 透明 PNG 静态资源、文件→游戏→世代映射、引用方式，不走加密 |
 | UI | [ui/type-icons.md](ui/type-icons.md) | HOME 属性贴纸：type_NN 编号=标准 type id（01–18；19–36 为未用变体）、`typeIconPath`、白底圆形 TypeBadgeIcon vs 文字 TypeBadge，不走加密 |
 | 数据 | [data/bundle-decode.md](data/bundle-decode.md) | FlatBuffers bundle 清单、五表 join、`hasSprite` 资源标记、EVO1 进化树、三套 id 空间与 form 重映射 |

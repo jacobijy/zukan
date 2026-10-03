@@ -1,5 +1,5 @@
 <template>
-    <view class="archive-page min-h-screen page-bg" :style="{ paddingBottom: '40px' }">
+    <view class="archive-page min-h-screen page-bg" :style="[pageSafeArea, { paddingBottom: '40px' }]">
         <DetailNavbar :title="t('archive.typeDetailTitle')" fallback-url="/pages/archive/types" />
 
         <scroll-view
@@ -26,6 +26,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { interp } from '@/services/i18n/ui-i18n';
@@ -36,7 +37,9 @@ import TypeMatchupCard from '@/components/archive/TypeMatchupCard.vue';
 import PokemonMiniList from '@/components/archive/PokemonMiniList.vue';
 import { loadTypePokemonIndex } from '@/services/pokemon/archive';
 import { getTypeMeta } from '@/constants/pokemonTypes';
-import { useI18nStore } from '@/store/i18n';
+import { useI18nStore } from '@/store/i18n'
+
+const pageSafeArea = usePageSafeArea();
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();

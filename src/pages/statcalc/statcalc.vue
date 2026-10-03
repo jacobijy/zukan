@@ -1,7 +1,7 @@
 <template>
     <view
         class="statcalc-page min-h-screen page-bg"
-        :style="{ paddingBottom: '40px' }"
+        :style="[pageSafeArea, { paddingBottom: '40px' }]"
     >
         <DetailNavbar :title="t('statcalc.title')" @back="goBack" />
 
@@ -167,6 +167,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { ref, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { interp } from '@/services/i18n/ui-i18n';
@@ -201,7 +202,9 @@ import {
     MAX_SP_PER_STAT,
     CHAMPION_LEVEL,
     type StatKey,
-} from './statcalc-engine';
+} from './statcalc-engine'
+
+const pageSafeArea = usePageSafeArea();
 
 type Mode = 'classic' | 'champion';
 

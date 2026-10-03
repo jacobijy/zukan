@@ -1,5 +1,5 @@
 <template>
-    <view class="devtools-page min-h-screen page-bg">
+    <view class="devtools-page min-h-screen page-bg" :style="pageSafeArea">
         <DetailNavbar title="开发者工具" fallback-url="/pages/mine/mine" />
 
         <scroll-view
@@ -42,6 +42,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 /**
  * 开发者工具页壳。
  *
@@ -60,7 +61,9 @@
  */
 import { onMounted, shallowRef, ref, type Component } from 'vue';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
-import { devtoolsEnabled } from '@/services/devtools/enabled';
+import { devtoolsEnabled } from '@/services/devtools/enabled'
+
+const pageSafeArea = usePageSafeArea();
 
 type ToolId = 'probe' | 'text';
 

@@ -1,5 +1,5 @@
 <template>
-    <view class="sim-page min-h-screen page-bg" :style="{ paddingBottom: '40px' }">
+    <view class="sim-page min-h-screen page-bg" :style="[pageSafeArea, { paddingBottom: '40px' }]">
         <DetailNavbar :title="t('simulate.title')" @back="goBack" />
 
         <scroll-view scroll-y class="relative z-10 h-[calc(100vh-var(--navbar-total-height))] mt-[var(--navbar-total-height)] px-4 pb-6">
@@ -87,11 +87,14 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { glyph } from '@/components/icon/glyphs';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
-import LevelStepper from '@/components/calc/LevelStepper.vue';
+import LevelStepper from '@/components/calc/LevelStepper.vue'
+
+const pageSafeArea = usePageSafeArea();
 
 const { t } = useI18n();
 

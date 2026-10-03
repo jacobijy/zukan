@@ -1,5 +1,5 @@
 <template>
-    <view class="archive-page min-h-screen page-bg flex flex-col">
+    <view class="archive-page min-h-screen page-bg flex flex-col" :style="pageSafeArea">
         <DetailNavbar :title="title" :fallback-url="fallbackUrl" />
 
         <view
@@ -44,6 +44,10 @@
 
 <script lang="ts" setup>
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
+
+// 页面根注入安全区变量（微信靠 wxml 数据驱动，覆盖框架 app.wxss 的静态 25px）
+const pageSafeArea = usePageSafeArea();
 
 defineProps<{
     title: string;

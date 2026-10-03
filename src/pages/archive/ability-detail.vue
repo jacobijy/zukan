@@ -1,5 +1,5 @@
 <template>
-    <view class="archive-page min-h-screen page-bg" :style="{ paddingBottom: '40px' }">
+    <view class="archive-page min-h-screen page-bg" :style="[pageSafeArea, { paddingBottom: '40px' }]">
         <DetailNavbar :title="t('archive.abilityDetailTitle')" fallback-url="/pages/archive/abilities" />
 
         <scroll-view
@@ -34,6 +34,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { interp } from '@/services/i18n/ui-i18n';
@@ -43,7 +44,9 @@ import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import FlavorTextCard from '@/components/archive/FlavorTextCard.vue';
 import PokemonMiniList from '@/components/archive/PokemonMiniList.vue';
 import { loadAbilityPokemonIndex } from '@/services/pokemon/archive';
-import { useI18nStore } from '@/store/i18n';
+import { useI18nStore } from '@/store/i18n'
+
+const pageSafeArea = usePageSafeArea();
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();

@@ -1,5 +1,5 @@
 <template>
-    <view class="min-h-screen page-bg">
+    <view class="min-h-screen page-bg" :style="pageSafeArea">
         <DetailNavbar :title="t('teams.title')" fallback-url="/pages/data/data" />
 
         <scroll-view scroll-y class="teams-scroll mt-[var(--navbar-total-height)] h-[calc(100vh-var(--navbar-total-height))]">
@@ -66,6 +66,7 @@
 </template>
 
 <script lang="ts" setup>
+import { usePageSafeArea } from '@/composables/usePageSafeArea';
 import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useI18n } from 'vue-i18n';
@@ -77,7 +78,9 @@ import TeamListRow from '@/components/teams/TeamListRow.vue';
 import { useTeamsStore } from '@/store/teams';
 import { authGate } from '@/services/session/authGate';
 import type { TeamSummary } from '@/services/api/teams';
-import { glyph } from '@/components/icon/glyphs';
+import { glyph } from '@/components/icon/glyphs'
+
+const pageSafeArea = usePageSafeArea();
 
 const { t } = useI18n();
 const store = useTeamsStore();
