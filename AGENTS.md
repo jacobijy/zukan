@@ -1,460 +1,96 @@
 # AGENTS.md
 
-This file provides guidance to AI agents (Claude Code, etc.) when working with code in this repository.
+给 AI agent（Claude Code 等）的仓库工作指引。本文件只放**必须始终遵守的规则、常用命令、
+架构入口、改动后的门禁**；实现细节都在 `docs/`，索引见 [docs/README.md](docs/README.md)。
 
 ## 常用命令
 
 - 安装依赖：`pnpm install`
-- 启动 H5 开发服务：`pnpm dev:h5`
+- 启动 H5 开发服务：`pnpm dev:h5`（端口 4000）
 - 构建 H5 产物：`pnpm build:h5`
 - 构建 App（Android/iOS）本地打包资源：`pnpm build:app`（产物 `dist/build/app`，一套资源三端共用）
 - 类型检查：`pnpm type-check`
 - 单元测试：`pnpm test`（`pnpm test:watch` 进 watch 模式）
 - 启动/构建小程序等平台：`pnpm dev:mp-weixin`、`pnpm build:mp-weixin` 等（`alipay`/`baidu`/`qq`/`jd`/`kuaishou`/`lark`/`toutiao`/`xhs` 同理）
-- mp-weixin 后台常驻：`pnpm dev:mp:watch`（幂等，已在跑就复用；`--status` 看状态、`--stop` 停止）。
-  按命令行匹配 `uni.js -p mp-weixin`，不会误杀共用 4000 端口的 `dev:h5`；停止按进程组杀，
-  否则 `bash` 包装层不透传 SIGTERM 会留孤儿 uni。详见 docs/architecture/mp-weixin-remote-debug.md
-- mp-weixin watch 看门狗（推荐长期常驻）：systemd user 服务 `zukan-mp-watch.service`（仓库模板
-  `scripts/systemd/`）。watch 缺失（含重启机器后）自动拉起；watch「聋」（进程活但停止增量编译）
-  时先抓现场到 `dist/watchdog/`（区分 inotify 丢事件 vs esbuild 卡死）再自动重启。运行日志
-  `dist/mp-watchdog.log`；安装/运维见 docs/architecture/mp-weixin-remote-debug.md「watch 反复聋」
+- mp-weixin 后台常驻 watch：`pnpm dev:mp:watch`（幂等；`--status` / `--stop`）；长期常驻推荐
+  systemd 看门狗 `zukan-mp-watch.service`（watch 缺失自动拉起、「聋」时抓现场再重启）。
+  详见 [docs/architecture/mp-weixin-remote-debug.md](docs/architecture/mp-weixin-remote-debug.md)
 - 启动/构建快应用：`pnpm dev:quickapp-webview` / `pnpm dev:quickapp-webview-huawei`（build 同理）
 
-自动化门禁：`pnpm type-check`（必须 0 error）、`pnpm test`（vitest）、`pnpm lint`（oxlint，目前只报 warning）、
-`pnpm format:check`（prettier，仅覆盖 `src/**/*.ts`；有 3 个历史文件未合规，改到它们时再顺手 `format:write`）。
-项目在 devDependencies 里配置了 stylelint，但**没有暴露对应的 package script**。
-
-### 测试约定
-
-- 配置在 `vitest.config.ts`，**刻意不复用 `vite.config.ts`** —— 后者装了
-  `@dcloudio/vite-plugin-uni`，插件要求完整的 uni-app 上下文（pages.json、manifest.json、
-  平台环境变量），在 node 测试环境跑不起来。
-- 用例放 `tests/*.spec.ts`，已纳入 `tsconfig.json` 的 include，所以 `type-check` 也管测试代码。
-- 环境是 `node`，**没有** uni 全局。要覆盖 `uni.getStorageSync` 这类平台 API 时在用例里
-  `vi.stubGlobal('uni', …)`（`tests/favorites.spec.ts` 有一份与 uni-h5 语义一致的 storage stub 可抄）。
-- **测数据要跨越分页边界。** 图鉴的核心 bug 就是"筛选只作用于首页 20 条"，数据集小于
-  一页的用例根本发现不了。同理属性筛选的测试数据必须含双属性宝可梦，否则
-  `some` / `every`（OR / AND）在单属性数组上等价，测不出区别 —— 这两个盲区都是变异测试查出来的。
-- **写完用例把 bug 注回去确认它变红。** 绿灯本身不证明用例有效。
+门禁命令：`pnpm type-check`（必须 0 error）、`pnpm test`（vitest）、`pnpm lint`
+（oxlint，目前只报 warning）、`pnpm format:check`（prettier，仅覆盖 `src/**/*.ts`；
+有 3 个历史文件未合规，改到它们时顺手 `format:write`）。
 
 ## 环境变量
 
-- `VITE_API_BASE_URL` — zukan-server 地址（含协议，末尾无斜杠）。`src/services/*`（含 `resources/resourceManager.ts`、`resources/spriteCache.ts`）均通过该变量拼接远端 URL。仓库根目录提供 `.env.development` 作为本地默认值（`http://localhost:8080`）；若连远端服务需自行覆盖。
-
-## 架构概览
-
-这是一个基于 Vue 3、uni-app 和 Vite 的宝可梦图鉴应用。`src/main.ts` 创建 SSR app，安装 Pinia，注册 `uni-icons`，并引入 `src/static/styles/global.css`。`vite.config.ts` 启用 uni-app Vite 插件，开发服务端口为 4000，并将 `@/*` 映射到 `src/*`；`tsconfig.json` 中也配置了同样的路径别名。
-
-路由由 uni-app 的 `src/pages.json` 控制，不使用 Vue Router。当前注册的页面：
-
-| 页面 | 路径 | 状态 |
-|------|------|------|
-| 图鉴列表 | `pages/index/index` | 主页面 |
-| 宝可梦详情 | `pages/detail/detail` | 键页 |
-| 功能中心 | `pages/features/features` | 导航枢纽 |
-| 资料中心 | `pages/data/data` | 键页 |
-| 个人中心 | `pages/mine/mine` | 键页 |
-| 伤害计算器 | `pages/calc/calc` | 键页（计算引擎在 `calc-engine.ts`） |
-| 能力值计算器 | `pages/statcalc/statcalc` | 键页（纯 TS 能力值公式在 `statcalc-engine.ts`，性格表在 `statcalc-options.ts`） |
-| 对战模拟器 | `pages/simulate/simulate` | **UI 骨架**（`noop` 占位，无实际交互） |
-| 设置 | `pages/settings/settings` | 子页（`DetailNavbar`，语言等系统设置；点选项弹 `OptionSheet`） |
-| 属性/招式/特性/道具图鉴 | `pages/archive/*` | 资料中心四个栏目，列表页 + 详情页共 8 个（`types`/`type-detail`、`moves`/`move-detail`、`abilities`/`ability-detail`、`items`/`item-detail`）；数据流见 `docs/features/archive.md` |
-| 开发者工具 | `pages/devtools/devtools` | **dev-only 子页**（我的 → 开发者工具），顶部 tab 切两个工具：**资源探测器**（取服务端 ZKDX 密文 → 解密 → 显示图片与元信息，绕开一切缓存）与**文本浏览**（按语言/组/表列 i18n 名称与描述，走 resourceManager 缓存）。门禁 `import.meta.env.DEV`，两个实现体都动态 import，正式构建被 Rollup 剔除。见 `docs/security/encryption-pipeline.md` 6.0 / 6.0.1 |
-| 对战数据 | `pages/meta/meta`、`pages/meta/pokemon-meta` | 子页 ×2（资料中心 → 对战详情）：赛制（单人/双人）的宝可梦**使用率排行榜**（上游只给名次无 %），点行进**对战配置**（招式/道具/特性/性格选用率 + SP 加点 + 队友）；明文公开 JSON（不加密，slug 体系），见 `docs/data/battle-usage.md`、`docs/features/metagame-usage.md` |
-| 我的队伍 | `pages/teams/teams`、`pages/teams/team-edit` | 子页 ×2（**功能页签**进入）：自建队伍 CRUD + **完整组队器**（赛制 + ≤6 成员；每成员物种形态/特性/道具/性格/≤4 招式/SP 0–32）。payload 对后端不透明、只存稳定 id；写前 `authGate.requireLogin()`；可「套用对战热门配置」（meta rank1 反查 id）。普通 JSON 不涉 DEK，见 `docs/data/teams.md`、`docs/features/teams.md` |
-
-`src/pages/` 下没有其他游离页面文件。
-
-主列表流程集中在 `src/pages/index/index.vue`。该页面从 Pinia store 加载数据，在页面级状态中组合搜索、类型筛选、仅收藏、世代筛选和排序，把条件推给 store，再由 `VirtualGrid` 虚拟化渲染 `PokemonCard` 列表（已无分页 / 无限滚动）。顶部导航和底部 TabBar 分别封装为 `NavBar.vue` 和 `TabBar.vue`。Tab 切换走 **`uni.switchTab`**：`pages.json` 声明原生 `tabBar`（不设 custom）、由 `useHideNativeTabBar` 在 onShow 调 `uni.hideTabBar()` 隐藏原生条，tab 页因此被**平台保活**（只创建一次、切走 onHide、切回 onShow，页面状态与滚动位置保留，不再像旧的 `reLaunch` 每次销毁重建、回顶）。自定义胶囊 `TabBar.vue` 在 onMounted / onShow 经 storage 记录的来源格播放指示器滑动动画；指向 tab 的跳转统一走 `utils/navigation` 的 `navigateToAuto`。
-
-宝可梦数据来自加密的 FlatBuffers bundle：`src/services/resources/resourceManager.ts` 下载 `/assets/encrypted/fb/gen-N.bin`（三层缓存 memory LRU → binaryStorage 即 IndexedDB → 网络），WASM 解密后由 `src/services/pokemon/pokemon.ts` 把四张并行表（`baseEntries`/`statEntries`/`typeEntries`/`abilityEntries`；`eggGroupEntries` 被解码但未使用）按 id join 成 UI 模型。注意 **gen-N.bin 是"全物种在第 N 世代的数值快照"**（1351 条形态 / 1025 个默认形态，id 从 1 起），不是"第 N 世代新增的宝可梦"。`mergeBundleToModel` 返回的 `IPokemonBaseModel` 中 `name` 当前为 `'pokemon-{id}'` 占位符，`image` 为 `/static/default.png` —— 卡面图来自 `EncryptedSprite`，不是 model 字段。model 还带 `genderRate`（PokeAPI 口径：-1 无性别 / 0 恒雄 / 8 恒雌），详情页 hero 的性别切换用它门禁（-1 隐藏开关、0/8 锁定、1–7 可切换），见 `GenderSlider.vue`。
-
-`src/store/pokemon.ts` 用 setup 风格 Pinia store 封装：**对 `defaultPokemons`（按 species 去重后的 ~1025 条）筛选排序**得到 `matchedPokemons`（`src/utils/dexFilter.ts`），**不分页**——列表渲染交给 `dex/VirtualGrid.vue` 定高虚拟化，DOM 只保留视口附近的行。页面只通过 `setCriteria()` 推条件（全量替换，不是 merge）。历史坑：早先是"先分页再筛选"，选任意非第一世代会把首页 20 条全滤掉 → 列表空 → 容器无内容 → 滚动不触发 → 死锁。收藏走 `uni.getStorageSync`（兼容小程序），并兼容早期裸 `localStorage` 写下的 JSON 字符串。默认 gen 是 9（`DEFAULT_GEN_ID = 9`），与 `LATEST_GEN_ID = 9`（`boot.ts`）保持一致。
-
-sprite 图片走独立通道：`EncryptedSprite.vue` 只管视口检测，缓存 / 解密 / Blob URL 生命周期在 `src/services/resources/spriteCache.ts` —— **模块级共享 + 引用计数**，`refs > 0` 的条目不会被 LRU 撤销（撤销即裂图）。列表默认懒加载（进视口前不下载），必然可见的场景传 `eager`。跨刷新缓存由 `spritePersist.ts` 补充（IndexedDB 存 ZKDX 密文，非 IDB 后端 no-op）。
-
-**立绘走渐进式两段加载 + 404 回落链**：服务器上 `front`（96×96，约 1.9 KB）与 `home`（512×512，约 122 KB）差约 65 倍，而列表卡只渲染 64–70px。所以先拉 `front` 点亮整屏（一屏 20 张约 38 KB），再后台换 `home`；主 variant 404 时按 `home → artwork → front → /static/default.png` 逐个试（**只有 404 才回落**，解密失败等真故障立即抛出，否则真故障会伪装成数据缺口）。**`female` / `home-female` 的 404 例外**：这两个 variant 只有 103 个 id 有，缺席说明「该形态不分性别」，所以链里给它们插一步无性别版本（`home-female → home`、`female → front`、`dream-female → dream`，插在通用回落之前）；`shiny` 刻意不这样配对 —— 闪光缺失时回落非闪光是把错的东西显示出来。variant 常量的唯一定义处是 `src/constants/spriteVariants.ts`（含 `SPRITE_DEGENDERED`、`SPRITE_SHINY_FALLBACKS`（闪光链全闪光，绝不回落非闪闪图）、`heroVariant`（详情页 hero 的 home 系三选一）与诊断用的 `SPRITE_VARIANT_CATALOG`），编排在 `src/services/resources/spriteLoader.ts`（纯函数、无 Vue 依赖，因此能在 node 测试环境跑）。数据层的 `hasSprite === false` 时**一个请求都不发**，直接落占位图。**该 prop 是三态**：显式 `true`/`false` 来自数据层，**缺省必须保持 `undefined`（=未知，照常请求、靠 404 回落）**，所以 `EncryptedSprite` 在 `withDefaults` 里显式写了 `hasSprite: undefined`——Vue 会把「缺席的 Boolean prop」隐式置成 `false` 而非 `undefined`，漏掉这行会让不传该字段的 `EvolutionNode` 把整棵进化链全判成「无图」、一个请求都不发（踩过，详见 `docs/caching/sprite-cache.md`「hasSprite prop 是三态」）。回落链的实际落点由 `src/services/resources/spriteAvailability.ts` **按资源版本记在本地 KV**（全平台启用，只记偏离默认的约 9 条、<1 KB），下次刷新直接从对的 variant 开始；**记录只是提示** —— 按记录直取仍 404 就丢弃记录、回到完整链，否则一次偶发 404 会被永久固化成「这张没图」。该模块不被 `spriteLoader` 直接 import，而是由 composable 以 `hint` 注入，好让编排层保持无平台依赖。详见 `docs/caching/sprite-cache.md`。
-
-**道具图标走同一条加密图片通道**：引擎已泛化为种类无关的 `imageCache.ts`（限流/引用计数/LRU/离屏取消）+ `imagePersist.ts`（密文持久化）工厂，差异（远端路径 / MIME 兜底 / 持久化前缀 / 预算）由 `imageKind.ts` 的 `ImageKindSpec` 注入；`spriteCache.ts`/`spritePersist.ts` 是 pokemon 实例的薄封装（原名不变），道具实例在 `itemImage.ts`（远端 `/assets/encrypted/items/<id>.bin`，扁平无 variant）。视口懒加载/引用配对两组件共用 `composables/useEncryptedImage.ts`，`archive/ItemIcon.vue` 是道具侧组件（404 回落中性占位盒）。引擎的资源标识已从 `number` 泛化为 `number | string`。对战详情页的**道具选用率行**用第三个实例 `resources/battleImage.ts`：字符串键 + **按赛季版本化**的 ZKDX 加密图标 `/assets/encrypted/battle/<season>/icons/items/<英文显示名>.bin`（`<season>` 取 `meta.json` 的 season；persist root `battle-img:s<season>:`，引擎按赛季建），`meta/BattleItemIcon.vue` 渲染，文件名 = rows 的 `item.name`（`encodeURIComponent`、无需映射），404 / 未登录回落琥珀 bag glyph；精灵/属性同类能力已具备但 UI 暂未接（meta 精灵仍用图鉴 EncryptedSprite）。契约见 `docs/data/battle-usage.md`「图标」、`encryption-pipeline.md` §4.6。
-
-**Blob 的 MIME 按明文字节嗅探**（`imageMime.ts`），`spec.mime` 只是兜底 —— `dream` variant 全是 SVG，而**浏览器对 SVG 不做内容嗅探**，标成 `image/png` 就一律不渲染（栅格格式标错反而无害，所以这个 bug 只在 SVG 上暴露）。详见 `docs/caching/sprite-cache.md`。
-
-### 缓存层级总览
-
-| 缓存 | 文件 | 层级 | 持久化 | 版本失效 |
-|------|------|------|--------|----------|
-| FB bundle 解码结果 | `resourceManager.ts` | 内存 LRU（12 条） | — | 版本号变化 |
-| FB bundle 密文 | `resourceManager.ts` via `binaryStorage` | IndexedDB | 跨刷新 | `pruneOtherVersions` |
-| sprite Blob URL | `spriteCache.ts`（`imageCache` pokemon 实例） | 内存 LRU（320 条） | — | 刷新即清空 |
-| sprite 密文 | `spritePersist.ts`（`imagePersist` pokemon 实例）via 注入的存储后端 | H5: IDB / 小程序·App: fs（`USER_DATA_PATH`，200MB） | 跨刷新 | `pruneSpriteVersions` |
-| sprite 回落落点 | `spriteAvailability.ts` via `uni storage`（key `zukan_sprite_avail`） | KV（**全平台**，仅几百字节） | 跨刷新 | `pruneSpriteAvailability` |
-| 道具图标 Blob URL | `itemImage.ts`（`imageCache` item 实例） | 内存 LRU（200 条） | — | 刷新即清空 |
-| 道具图标密文 | `itemImage.ts`（`imagePersist` item 实例，前缀 `item-img:`）via `binaryStorage` | IndexedDB（仅 IDB 后端） | 跨刷新 | `pruneItemIconVersions` |
-| 对战图标（道具已接） | `battleImage.ts`（字符串键、按赛季实例，root `battle-img:s<season>:`） | 内存 LRU 300 + IDB 密文（仅 IDB） | 跨刷新 | 换赛季路径/root 变，reconcile 清旧 |
-| 密钥 DEK | `session/key.ts` | 内存单例 | — | 登出 / 403 重签 |
-
-### 加密图片下载调度（imageCache 三条不变量，sprite 与道具共用）
-
-1. **限流 4 并发**。不限流时几十个请求同时丢给浏览器，浏览器 FIFO 排队，
-   当前视口排在已划过去的行后面。
-2. **优先级 → 批间 LIFO → 批内 FIFO**。出队排序键是 `(priority, batch, seq)`：
-   `priority` 大优先（默认 0，渐进式 preview 传 1）→ `batch` 每帧自增、大者优先 →
-   同批 `seq` 小者优先。纯 LIFO 会让首屏「从下往上」冒；纯 FIFO 则退回原 bug。
-   **`priority` 必须压过 `batch`** —— 否则第一张卡的高清（更新的 batch）会插到
-   其余卡的 preview 前面，退化成「第一张先高清、其余仍黑着」。
-   同一张图被不同 priority 同时要时取 max。
-3. **离屏取消**。组件的 IntersectionObserver **不是一次性的** ——
-   滑出视口要 abort 腾出槽位（不取消的话已划走的下载会占槽 100–300ms）。
-   多 waiter 时只有 waiters 归零才真取消，否则列表卡片卸载会连累详情页。
-
-> 渐进式加载的引用所有权：加载途中 preview 的引用归 `loadSpriteChain`，返回后才移交
-> `useEncryptedImage` 的 `held`。**两边都记会导致卸载时归还两次**，把别人的 refs 扣成 0
-> → 在屏图被 revoke → 裂图。返回 `stale` / 抛错时引用已由 `loadSpriteChain` 归还，
-> 调用方不得再 release。
-
-### 加密图片跨刷新缓存（imagePersist 四条不变量，sprite 与道具各自独立实例）
-
-1. **落盘的是 ZKDX 密文，不是解密后的图片。** 存明文等于把加密资源以可直接使用的
-   形式留在用户磁盘上，加密链路白做。
-2. **dev 内存后端 no-op；其余按后端启用。** H5 走 IDB（默认 `binaryStorage`）；小程序 / App
-   注入 `fsStorage`（`USER_DATA_PATH` 存密文，200MB、与本地缓存共享、不占 storage 的 10MB），
-   注入点在 `spritePersist.ts`（按 `hasFileSystemBackend()` 决定）。`uniStorage`（10MB）不存图片。
-   见 `docs/caching/fs-backend-plan.md`。
-3. **索引（localStorage）与数据（IDB）是两条独立写入，必然会不一致。** 两个方向都要兜：
-   索引有数据没有 → 按 miss 走网络并摘掉幽灵项；数据有索引没有 → `reconcile()` 开局对账删孤儿。
-4. **内存 `clear*()`（登出）刻意不清磁盘** —— 密文没 DEK 解不开，不构成泄露，
-   留着下次登录还能命中。版本升级走 `resourceManager.pruneOtherVersions`（sprite 与道具
-   各清各的前缀：`pruneSpriteVersions` / `pruneItemIconVersions`；sprite 回落落点记录另走
-   `pruneSpriteAvailability`，**版本不符即整表丢弃、同步落盘**，不走 500ms 防抖以避开刷新竞态）。
-
-> 注意 `spriteAvailability` **刻意不遵守上面第 2 条**：它存的是几百字节的 variant 名，
-> 不是图片，挤不爆小程序配额；而小程序恰恰没有密文持久化，更需要省掉这些必然 404 的请求。
-
-### 认证与会话（`src/services/session/`）
-
-`getKey()` 是全 app 拿 DEK 的唯一入口（boot、resourceManager、加密图片引擎 `imageCache` 共 3 类调用点——后者同时服务 sprite 与道具图标，403 重试时各再调一次）。
-401 恢复策略收敛在这里，而不是散在每个调用点：
-
-```
-401 UNAUTHENTICATED
-  ├─ 本地有 refresh token → authApi.refresh() → 重试一次
-  │    └─ refresh 也失败 → clearSession() → 弹登录层
-  └─ 无 refresh token     → 弹登录层 → 登录成功后重试
-```
-
-用户关闭登录层则抛 `LoginDismissedError`，调用方应**静默降级**（不重试、不报错）。
-`authGate` 是模块级单例（不是 Pinia store，否则会形成 `store ⇄ session` 循环依赖），
-负责去重登录弹层 —— 6 个 `getKey` 调用点不会各开一个弹窗。
-
-`keyPromise` 的清理必须挂在 `.finally` 上（`key.ts:102-105`）：
-`.catch` 返回新 promise，回调在微任务里才跑，期间进来的并发调用者会复用注定 reject 的 promise。
-
-### 当前已知的占位 / 模拟数据
-
-- `pokemon.ts:mergeBundleToModel` 的 `image` 为 `/static/default.png`（卡面图走 `EncryptedSprite`），
-  `description` 字段为空、`moves`/`evolutionChain` 为空数组。图鉴描述不进 model，
-  而是详情页 `PokedexEntry.vue` 按 `speciesId` 从 i18n **描述组**按需取：描述组按
-  **族 × id 档位分片**（`flavor/<family>-sNN.bin`，`NN=(id-1)//128`，契约常量
-  `FLAVOR_SLICE_SIZE` 前后端各持一份），store 的 `ensureFlavorEntry(family, id)`
-  按实体算片号、逐片拉取累积合并（**species 保留全部游戏版本** `FlavorVersion[]`：
-  详情页 `PokedexVersionPicker` 用软件图标按版本切换，只列「有图标（X/Y 起）∩ 该物种有描述」
-  的版本、`constants/versionIcons.ts` 持 PokeAPI version_id→图标映射，老版本无图标时兜底取
-  version 最大一条纯文本；moves/abilities/items 只取最新一条（version 是 version_group_id，
-  实测各版本组招式说明基本相同，不做版本切换）；空语言 cs/pt-br/ja-roma 由
-  `resolveFlavorLang` 静态名单回落 en，不逐 id 换英文。招式「效果」段经 MDAT
-  `Move.effect_id` join `move_effects`（`keyMoveEffectsByMoveId`——原表主键是稀疏
-  move_effect_id，曾是已知缺陷），非 en/fr/de 内容语言回落英文 short_effect 显示，
-  特性效果则维持非 en/fr/de 隐藏。详情页招式卡 `MoveCard` 可点跳 `archive/move-detail`
-  （其描述卡为 `archive/MoveFlavorCard.vue`））。见 `docs/i18n/`、`docs/ui/software-icons.md`。
-  物种名/形态名/特性名已接通 i18n 名称组，i18n 未就绪时回落 `pokemon-{id}` / `form-{id}` 占位。
-- `simulate.vue` 是纯 UI 骨架，所有交互 handler 都是 `noop`。
-- `pages/meta/*` 对战数据接**第三方明文公开 JSON**（`/assets/battle/`，Showdown slug、9 语言、不加密）：排行榜仅名次（无 %），单只配置含招式/道具/特性/性格选用率、SP 加点、队友；经 `http/assetRequest` 取数、`meta/adapter` 纯转换、`meta/battleDict` 翻译。契约见 `docs/data/battle-usage.md`。
-- `src/core/data/typechart.ts` 是移除的服务端模块的残留，现由 `calc-engine.ts` 静态引入（JS 侧相克描述用）；WASM 内部另有完整 TypeChart。
-
-### 循环依赖注意事项
-
-- **断环要靠依赖方向本身，不要用动态 import** —— 小程序端动态 `import()` 被错编成
-  `await "字符串"`，根本拿不到模块（详见 `docs/architecture/mp-weixin-build.md`
-  「动态 import 在小程序端整体失效」）。
-- `session/key.ts` 静态 import `api/auth.ts`（auth 只依赖 `http` 与 `session/token`，
-  不构成 `session ⇄ api` 环）；产物里已无动态 import。
-- 曾有环 `key → api/zukanKey → token → key`，回边是 `clearSession()` 反向 import
-  `clearKeyCache`。断法：`token.ts` 暴露 `onSessionClear(hook)`，`key.ts` 把
-  `clearKeyCache` 注入注册，`token` 保持零 import 的最底层。钩子惰性注册但安全
-  （有 DEK 缓存 ⇒ key 模块必已加载 ⇒ 钩子已在）。详见 `docs/security/auth-session.md`。
-- `services/pokemon/pokemon.ts` 不 import store，名称解析器 `NameResolvers` 由
-  `store/pokemon` 注入；名称就绪/切语言的重映射由 store 侧 watch `i18n.lookup` 触发，
-  `store/i18n` 不反向 import store/pokemon。`services/pokemon/evolution.ts` 同理走
-  `EvolutionResolvers` 注入。
-- `meta/moveRefs.ts` 仍用动态 import 保持模块顶层无平台依赖（node 单测环境可跑），
-  是**已知小程序端陷阱** —— 目前仅 H5 调用链用到，接进小程序前必须改静态引入。
-- `authGate` 是模块单例而非 Pinia store —— 避免 `store ⇄ session` 环。
-- `clearSpriteCache()` 在 `mine.vue` 的登出路径调用，而非 `clearSession()` 内部 —— 避免 `session ⇄ resources` 环。
-
-### 微信小程序（mp-weixin）构建
-
-四处平台差异，细则见 `docs/architecture/mp-weixin-build.md`：
-
-- **动态 `import()` 整体失效**：编译器把 `import('x')` 错编成 `await "x.js"`，
-  解构得 undefined、`.then` 抛 TypeError。断环一律靠依赖方向（注入 resolver /
-  纯函数 + 回调），别指望动态 import 当懒加载。核对：
-  `grep -rn '\.then' dist/dev/mp-weixin --include=*.js | grep '"\./'`。
-
-- **devtools 页 H5-only**：小程序不支持 `<component :is>`，`devtools.vue` 的动态组件机制整段 `#ifdef H5`。
-- **WASM 包内加载**：小程序没有 `import.meta.url` / fetch wasm / `instantiateStreaming`
-  / 标准 `WebAssembly` 全局，改用 `WXWebAssembly`（`instantiate` 第一参是**代码包内
-  `.wasm` 路径字符串**，不读字节不 fetch）。`infra/wasm/index.ts` 在 `#ifdef MP-WEIXIN`
-  下把 `/static/wasm/zukan_wasm_bg.wasm` 这个路径传给 `wasmModule.default(path)`；
-  glue 由 vite 插件 `adaptWasmToWx` 改造，且必须**静态引入**（动态 `import()` 在该平台
-  会被错编成 `await "字符串"`）。`scripts/copy-wasm.mjs`（`pnpm copy:wasm`）把 pkg
-  产物拷进 `src/static/wasm/`，已嵌入 `dev/build:mp-weixin` 开头。
-- **解密产物落地（运行时分流，非 `#ifdef`）**：解密链两端完全共用（同一份 wasm /
-  DEK / ZKDX），只有喂 `<image>` 这一个原语平台相关，收口在
-  `services/resources/objectUrl.ts` —— H5 走 Blob URL；小程序没有 Blob URL（`URL`
-  整个 undefined），改用 `getFileSystemManager().writeFile` 把解密后的**明文**写进
-  `${USER_DATA_PATH}/zukan-img/` 再返回文件路径，release 时 `unlink`。
-- **Tailwind 兼容（`tailwind.config.js` 按 `UNI_PLATFORM` 判定）**：小程序端关 preflight
-  （含不支持的 `:host`/`::backdrop`/`:where()`），并开 `experimental.optimizeUniversalDefaults`
-  （**是 experimental 不是 future**）把 transform/ring 等工具类注入的 `*` 变量默认块
-  收敛到实际 class，消掉 `*` 与 `::backdrop`。H5 两者都维持默认。
-  关 preflight 的补偿：微信 WebView 默认 content-box，需在 `global.css` **显式列举**
-  元素（view/text/image/**scroll-view**/button/… + ::before/::after）补
-  `box-sizing:border-box`，否则 width:100%/grid + padding 横向溢出（图鉴、详情）；
-  不能写裸 `*`（weapp-tailwindcss 收窄成 view,text，漏掉 scroll-view）。
-- **产物瘦身只动 dist**：属性/分类贴纸 s/l 在源里是测试守护的成套资源（别删源），
-  `scripts/slim-mp-weixin.mjs` 在 build 后从产物剔除当前不渲染的 s/l。
-- 微信**主包 ≤ 2MB**（按真实字节算，别看 `du`）；发布前需在 `manifest.json` 填
-  `mp-weixin.appid`，再用微信开发者工具导入 `dist/build/mp-weixin` 上传。
-- **远程编辑（Linux）+ 另一台 Mac/Windows 调试**：Linux watch 构建，Mutagen/rsync/SFTP 把
-  `dist/dev/mp-weixin` 同步到调试主机本地目录（Windows 可用自带 OpenSSH sftp + robocopy 的
-  `scripts/remote-debug/pull-mp-weixin.ps1`，零安装），开发者工具导入并监听刷新；源码只在 Linux 一份。
-  新机器首次可用 `scripts/remote-debug/fetch-pull-scripts.sh`（sftp）先拉回这批 pull 脚本。
-  见 `docs/architecture/mp-weixin-remote-debug.md`。
-
-### Android / iOS（App）资源编译与远程调试
-
-拓扑同微信：源码只在 Linux，对端 Mac/Windows 只做调试/打包主机。**Linux 只编译
-「本地打包资源」`pnpm build:app`（`dist/build/app`，一套资源 android/iPhone/iPad 共用），
-不产 apk/ipa、不云打包**；Mutagen/rsync/SFTP（`pull-app.sh`；Windows 零安装另有
-`scripts/remote-debug/pull-app.ps1`，自带 sftp + robocopy）同步后，
-对端把资源套进**同版本 App 离线 SDK** 原生工程（Android Studio 的 HBuilder-Integrate-AS /
-Xcode 的 HBuilder-Hello，放 `apps/<appid>/`），编译运行调试。三个硬性前置：
-`src/manifest.json` 填真实 DCloud appid/name（appid 由 dev.dcloud.net.cn 或 HBuilderX
-重新获取，不能空填）、**编译器版本 5.15 与离线 SDK 版本严格一致**、对端按
-appid+包名/Bundle ID+签名 SHA1 申请 AppKey。唯一的编译期适配在 `vite.config.ts`：
-`zukan-inline-app-dynamic-import` 把工程里多处破环用的动态 import 内联进单文件
-`app-service.js`（App service 强制 IIFE，动态 import 产生 chunk 会直接构建失败；
-H5/小程序不受影响）。**wasm 在真机的运行时加载尚未验证**（沿用 `new URL + import.meta.url`，
-离线 JSCore 未必支持），真机先验、必要时加 `#ifdef APP-PLUS` 的 `plus.io` 读字节分支。
-见 `docs/architecture/app-remote-debug.md`。
-
-### 平台管理对象（services/platform/managers）
-
-平台交互操作（首批为第三方登录/绑定，以后支付、推送、分享等）收口到**按平台的管理
-对象**：`getPlatformManager()` 按当前平台返回单例。三层分工勿混：`infra/platform/` 纯
-检测 + 静态能力矩阵、`providerConfig.ts` 平台支持 ∩ 后端启用（UI 是否渲染的唯一依据）、
-`managers/` 执行操作（**不复制矩阵**，平台差异如微信 app_type 仍调 infra 纯函数）。类层次
-`BasePlatformManager` → `AppManager`（App 共性）→ `AppIosManager`/`AppAndroidManager`，
-另含 `MpWeixinManager`/`H5Manager`/`UnknownManager`。见
-`docs/architecture/platform-managers.md`。
-
-全局宝可梦接口声明在 `src/pokemon.d.ts`，因此许多 `.vue` 文件会直接使用 `IPokemonBaseModel` 和 `IPokemonCardModel`，无需显式导入。`src/model/` 存放更底层的数据模型和枚举，例如基础种族值和属性定义。
-
-样式主要写在 Vue 模板中的 Tailwind utility class 中，少量组件使用 scoped SCSS/CSS 处理尺寸或动画。`tailwind.config.js` 配置了宝可梦属性颜色，并扫描 `index.html` 和所有源码 Vue/TS/JS 文件。导航栏尺寸相关的共享 CSS 变量定义在 `src/App.vue`，被 `NavBar` 和页面布局 padding 复用。
-
-静态资源位于 `src/static/`。uni-app 模板和数据中的静态资源通常使用 `/static/...` 路径引用。
-
-### `docs/` 目录
-
-按主题分类，入口是 `docs/README.md`（索引）。改哪块读哪块：
-
-- `docs/architecture/` — 架构总览、测试约定
-- `docs/ui/` — 组件化约定、scoped CSS / `<script setup>` 陷阱、VirtualGrid 定高耦合
-- `docs/data/` — FlatBuffers bundle 解码与五表 join、三套 id 空间、筛选排序收藏
-- `docs/i18n/` — 多语言 names/flavor bundle、UI/内容双语言、回落策略
-- `docs/features/` — 伤害计算器数据流（改 calc 前必读）
-- `docs/security/` — ZKDX 加密全链路、DEK 认证与会话
-- `docs/caching/` — resourceManager 三层缓存、spriteCache/spritePersist 不变量
-- `docs/archive/` — 旧文档（早期加密稿、解密稿、旧架构图、REST/encrypted-assets 归档稿），不再维护
-
-## 组件化约定（写新页面时必须遵守）
-
-**先建组件，再写页面。不要先把整页代码堆在 `.vue` 里之后再回头拆。**
-
-### 目录划分
-
-```
-src/components/
-  shared/    跨页面通用：TabPageShell、ListRow、DetailNavbar、
-             FavoriteButton、PokeballLogo、LoginModal、OptionSheet、SearchBar
-  pokemon/   宝可梦领域：PokemonCard、TypeBadge、SpecimenHero、
-             ShinyToggle（闪光开关）、GenderSlider（性别滑块，蓝红双色 + genderRate 门禁）、
-             InfoGrid/InfoCard、StatsChart、MovesList、MoveCard、EvolutionChain、
-             PokedexEntry（图鉴描述，按需取 flavor）、PokedexVersionPicker（描述按游戏版本切换的软件图标条）
-  dex/       图鉴列表上下文：DexToolbar、FilterBar、GenerationDrawer、
-             DexEmptyState、FavoritesBanner、VirtualGrid（定高网格，scroll-view 根元素跨端）、
-             VirtualList（单列定高虚拟列表，scroll-view 根元素，archive 列表用）
-  archive/   资料中心图鉴栏目：MoveRow/AbilityRow/ItemRow/TypeRow、
-             ItemIcon（道具图标，走加密图片通道）、FlavorTextCard（特性/道具描述，按需取 flavor）、
-             MoveFlavorCard（招式描述，单条最新说明 + 效果段）、
-             TypeMatchupCard（相克表）、PokemonMiniList/PokemonMiniRow、
-             ArchiveListShell（列表页骨架，#list 插槽注入 VirtualList，不内嵌）
-  calc/      计算器上下文：CalcCard、ChipRow、LevelStepper、
-             DamageResultCard、CalcSideCard、StatInputRow
-  sprite/    图片加载：EncryptedSprite（宝可梦立绘，走加密图片通道）
-  meta/      对战数据：FormatSwitch（单人/双人分段）、UsageRankingRow（排行榜行）、
-             MetaRateSection（招式/道具/特性/性格选用率；招式行经 moveRefs 反查显示
-             属性徽章 + 物理/特殊/变化）、BattleItemIcon（道具行
-             赛季版本化加密图标，404 / 未登录回落 bag glyph）、
-             SpreadSection（SP 加点分布）、TeammateSection（常见队友）
-  teams/     自建队伍：MemberPicker（全屏物种/形态选择）、MemberCard（成员内联编辑，
-             内挂 4 个 OptionSheet）、SpreadEditor（SP 六维）、SelectedMoveChip、TeamListRow
-  devtools/  **dev-only** 排障工具：AssetProbeForm、AssetProbeCard（资源探测器）、
-             TextBrowseForm、TextEntryRow（i18n 文本浏览）
-             （文案硬编码中文，刻意不接 i18n）
-  (根目录)    NavBar、TabBar（跨页面底栏 / 顶栏，非 shared 子目录）
-src/composables/ 跨组件复用的组合式逻辑：useEncryptedImage（加密图片的视口懒加载 /
-             离屏取消 / 引用配对，EncryptedSprite 与 ItemIcon 共用）
-src/constants/   跨文件共享的数据表（pokemonTypes、generations、spriteVariants、
-             versionIcons（PokeAPI version_id→HOME 软件图标，纯静态 /static 非加密，
-             详情页图鉴描述版本切换用，见 docs/ui/software-icons.md））
-src/pages/<name>/<name>-options.ts   仅该页用的选项/常量表
-```
-
-新组件放进已有目录；只有确实出现新的业务上下文时才开新目录。
-
-### 写页面前先套用现成件
-
-- **tab 页**（features/data/mine 这类）直接用 `<TabPageShell title="…" :tabIndex="N">`，
-  不要重新写 NavBar + padding + TabBar 骨架
-- **详情类页**用 `DetailNavbar` + `SpecimenHero` + `InfoGrid`/`InfoCard`（`detail.vue` 就是标准模板）
-- **列表行**用 `ListRow`（配 `list-row__icon--*` 配色）；**属性徽章**用 `TypeBadge`
-- **单选/多选设置项**弹 `OptionSheet`（底部滑出，支持对勾、副标题、loading、多选确认），
-  不要用 `uni.showActionSheet`（不支持多选/副标题/自定义样式）。非 tab 子页用
-  `DetailNavbar` + `uni.navigateTo`（参考 `pages/settings/`）
-- **表单/选项分组**用 `CalcCard` + `ChipRow` + `LevelStepper`
-- 容器样式用 global.css 已有的 `glass-panel`、`archive-section`、`section-label`，
-  不要新写等价的 scoped 版本
-
-### 硬性规则
-
-1. **拆不拆组件看「数据隔离」和「可复用」，不看行数。** 满足任一条就抽组件：
-   - **能与页面其余部分数据隔离** —— 这块 UI 靠 props 进、events 出，自身闭环一片
-     状态/逻辑，抽出去后页面不再关心它的内部状态；
-   - **会被复用** —— 第二个地方（现在或可预见）要用同一段模板/CSS/交互，
-     就抽组件，不要复制粘贴后微调（上次重构删掉的 1000+ 行几乎全是这种重复）。
-   反过来，单纯行数大、但状态与页面深度耦合又无复用的内联块，不必为凑「短文件」硬拆。
-   页面始终只留：数据获取、页面级状态编排、组件组装。
-2. **配色/名称等数据表只能有一处定义。** 属性相关的一律从
-   `src/constants/pokemonTypes.ts` 取（`getTypeColor`/`getTypeLabel`/`getTypeShort`），
-   世代号段从 `src/constants/generations.ts` 取。不要在页面里再写一份 map。
-3. **不要给组件加没人读的 prop / 字段。** 传了但组件不消费的 prop 是死代码，
-   `type-check` 抓不到。`store/pokemon.ts` 的 `formattedId` 就是活例子 —— 没有组件读它。
-4. **命名避免撞车。** 组件名要能反映用途，`calc/PokemonCard.vue` 这种与
-   `pokemon/PokemonCard.vue` 同名但语义无关的必须改名（已改为 `CalcSideCard`）。
-5. **dev-only 页面走「页壳 + 动态 import 实现体」。** 门禁只有一处
-   （`src/services/devtools/enabled.ts` 的 `devtoolsEnabled = import.meta.env.DEV`），
-   页壳里 `if (!devtoolsEnabled) return;` 之后再 `await import('./Impl.vue')` ——
-   `DEV` 被 Vite 静态替换成字面量，正式构建里该分支恒假，Rollup 连整个分包一起丢掉。
-   换成运行时开关（localStorage 之类）就失去这个性质，实现体会被打进包里。
-   多个实现体时**每条 `import()` 都要是守卫块里的字面量**（`id === 'x' ? import('./A.vue')
-   : import('./B.vue')`），不要用 `loaders[id]()` 查表或 `import('./Dev'+id+'.vue')` 拼接 ——
-   前者要 Rollup 推完「守卫恒真 → 表没人引用 → 表里的 import 是死的」，后者让它把整个目录
-   打成分包，两种都可能把 dev-only 代码带进产物。
-   页壳本身仍要留在 `pages.json`（静态 JSON 无法条件注册），正式构建下只渲染「未启用」。
-   核对方式：`pnpm build:h5 && grep -rl "<实现体标识>" dist/build/h5` 应无命中 ——
-   **这条只能靠拉产物验证，`type-check` 与用例都看不见**。
-
-### 顶部安全区 / 刘海（新增页面必做）
-
-页面标题不得压进手机刘海 / 灵动岛 / 状态栏。架构是 **env 基线 + JS 兜底**，详见
-[docs/ui/safe-area.md](docs/ui/safe-area.md)。
-
-- **每个页面根节点绑定 `usePageSafeArea()`**；用 `TabPageShell` / `ArchiveListShell`
-  的页面壳已内置、无需重复：
-  ```vue
-  <view :style="[pageSafeArea, { /* 本页原有样式 */ }]">
-  <!-- script setup 内： const pageSafeArea = usePageSafeArea() -->
-  ```
-  它把 `--status-bar-height` 与 `--navbar-total-height` **一起**内联到页根：现代端取
-  `env(safe-area-inset-top)`，env 返 0 的老基础库 / 部分安卓 XWeb 由
-  `getSystemInfoSync().statusBarHeight` 兜底。
-- **布局占位只用 `var(--navbar-total-height)`**（= 状态栏 + 红条内容高）。不要硬编码
-  52px、不要自己读 `getSystemInfoSync`、也不要在多处叠加 padding-top。顶部固定件
-  （NavBar / DetailNavbar / GenerationDrawer）已自行消费 `--status-bar-height`。
-- **两变量必须一起下发**：`--navbar-total-height` 在 `page` 上算定后，后代单改
-  `--status-bar-height` 不会让它重算——这正是 `usePageSafeArea` 同时返回两者的原因。
-- 改完跑 `pnpm test -- safeArea`，并按移动端 UA curl 页面确认 200；真机像素（刘海/挖孔）
-  仍需在微信开发者工具 / 设备上确认。
-
-### scoped CSS 的特异性陷阱（踩过两次）
-
-如果基础规则（`.list-row__icon`）在组件的 `scoped` 里，而配色变体
-（`.list-row__icon--gold`）经 prop 从页面传入、定义在 global.css，
-那么编译后 `.list-row__icon[data-v-xxx]` 是 (0,2,0)，会盖掉变体的 (0,1,0)，
-变体的 `color` 失效。
-
-**规则：基础规则和它的变体必须同处一个作用域** —— 要么都在组件 scoped 里
-（`InfoCard.vue` 的 `.info-card__icon--*` 走这条），要么都在 global.css 里
-（`.list-row__icon*` 走这条）。
-
-同理：**slot 内容由父组件渲染，带的是父组件的 scope id**，子组件的 scoped
-样式选不中它；跨组件共用的动画/样式（如 `.field-loader`）要放 global.css。
-
-### 弹层关闭要直接 `v-if` 卸载，别靠 `transitionend`（踩过一次）
-
-给遮罩/弹层做退出动画时，常见写法是 `v-if="mounted"` + 监听面板的
-`transitionend` 再把 `mounted` 置 false。**在 uni-app H5 的 `<view>` 上
-`transitionend` 不可靠**（`propertyName` 匹配尤其不稳），结果节点不卸载：
-遮罩变透明但 `pointer-events: auto` 还在，全屏盖住下层，把背后的按钮点击吃掉。
-`OptionSheet` 因此出现"弹一次选择框、关掉后设置页返回按钮失灵"。
-
-**规则：弹层用 `v-if="visible"` 关闭即卸载，入场用 CSS `animation`，不做退出过渡。**
-这是 `LoginModal` 已验证可靠的模式。要等退出动画播完，得在 DOM 元素（非 uni 组件）
-上自己绑 transitionend 并兜底 setTimeout，复杂度不值得——直接卸载。
-
-### `<script setup>` 顶层不是模块作用域（踩过一次，两个 bug）
-
-写在 `<script setup>` 顶层的 `const cache = new Map()` 看着像模块级单例，
-编译后**落在 `setup()` 内部** —— 每个组件实例一份：
-
-```js
-setup(__props) {
-  const decryptedCache = new Map();   // ← 每实例独立，不是共享
-```
-
-`EncryptedSprite` 因此同时踩了两个坑：缓存命中率恒为 0（实例只查自己那一个 key），
-以及 `if (!cache.has(key))` 守卫恒假导致 `revokeObjectURL` 从不执行、Blob URL
-永久泄漏。`type-check` 看不见这类问题。
-
-**规则：需要跨实例共享的状态（缓存、连接池、引用计数）一律放独立 `.ts` 模块**，
-组件只调用它的 API。核对方法是拉一次编译产物，确认 `const` 在顶层而不是 `setup(` 之后。
-
-### 虚拟列表的定高耦合（VirtualGrid）
-
-`dex/VirtualGrid.vue` 是**定高**虚拟化：窗口计算假设同一断点内每张 `PokemonCard`
-高度恒定（实测值 98px @ mobile / 106px @ ≥640px，但已改为运行时用首个渲染子元素实测，
-不硬编码），用 `computeVirtualWindow` 纯函数按行算偏移。列数与 gap 不写在 JS 里 ——
-从 `getComputedStyle(grid).gridTemplateColumns` 读回来，断点只在 `grid-class` 里定义一次。
-
-**改 `PokemonCard` 高度前先想清楚**：多行名称、可变徽章数、动态内容都会打破定高假设，
-导致卡片重叠或滚动条长度错误。届时要么改成逐项测量的虚拟化（`ResizeObserver` 报高 +
-前缀和定位），要么退回 `content-visibility: auto`（它跳绘制但保留全部实例）。
-窗口算术的 off-by-one / 越界由 `tests/virtualWindow.spec.ts` 守着，改算法先跑它。
-
-### 每次改完必做
-
-1. `pnpm type-check` —— 必须 0 error
-2. `pnpm test` —— 必须全绿；改了 `src/utils/dexFilter.ts`、`src/store/pokemon.ts`、
-   `src/constants/generations.ts`、或加密图片资源层（`src/services/resources/imageCache.ts`、
-   `imagePersist.ts`、`imageKind.ts`、`spriteCache.ts`、`spritePersist.ts`、`itemImage.ts`、
-   `spriteLoader.ts`、`spriteAvailability.ts`、`imageMime.ts`、`src/constants/spriteVariants.ts`、
-   `src/constants/cacheConfig.ts`、`src/infra/storage/binaryStorage.ts`、
-   `src/composables/useEncryptedImage.ts`、`src/services/devtools/assetProbe.ts`）时尤其别跳过
-3. `pnpm dev:h5` 起服务后用**移动端 UA** curl 一遍改动的页面与组件，确认 200：
+- `VITE_API_BASE_URL` — zukan-server 地址（含协议，末尾无斜杠）。`src/services/*`
+  （含 `resources/resourceManager.ts`、`resources/spriteCache.ts`）均通过该变量拼接远端 URL。
+  仓库根目录提供 `.env.development` 作为本地默认值（`http://localhost:8080`），连远端需自行覆盖。
+
+## 必须始终遵守的规则
+
+组件与 UI：
+
+- **先建组件，再写页面**，不要先堆整页再回头拆；拆不拆看「数据隔离 / 可复用」不看行数。
+  目录划分与现成件清单见 [docs/ui/component-conventions.md](docs/ui/component-conventions.md)。
+- **配色 / 世代等数据表单一定义**：属性走 `src/constants/pokemonTypes.ts`，世代走
+  `src/constants/generations.ts`，不要在页面里复制 map；不要加没人读的 prop。
+- **跨实例共享的状态（缓存 / 连接池 / 引用计数）放独立 `.ts` 模块**，不要写在
+  `<script setup>` 顶层（编译后落在 `setup()` 内，每实例一份）。
+- **scoped CSS 的基础规则与配色变体必须同处一个作用域**；slot 内容带父组件 scope id，
+  子组件 scoped 选不中。
+- **弹层用 `v-if="visible"` 关闭即卸载**，入场用 CSS `animation`，不靠 `transitionend`
+  做退出过渡（uni-app H5 上不可靠）。
+- **新页面根节点绑 `usePageSafeArea()`**（用 TabPageShell / ArchiveListShell 的页面壳已内置）；
+  顶部占位只用 `var(--navbar-total-height)`，不硬编码、不自己读系统信息。
+  详见 [docs/ui/safe-area.md](docs/ui/safe-area.md)。
+
+缓存与加密图片：
+
+- **加密图片调度遵守 imageCache 三不变量、持久化遵守 imagePersist 四不变量**
+  （限流 4 并发 / priority 压过 batch / 离屏取消；只落密文 / 按后端启用 / 索引数据双向自愈 /
+  登出不清盘），全部缓存速查见 [docs/caching/overview.md](docs/caching/overview.md)。
+- **加密图片只在 404 时回落**，解密失败等真故障立即抛出；`hasSprite` prop 是三态，
+  缺省必须保持 `undefined`（Vue 会把缺席的 Boolean prop 隐式置 false）。
+
+依赖方向与平台：
+
+- **断环靠依赖方向本身（注入 resolver / 纯函数 + 回调），不用动态 `import()`** ——
+  小程序端动态 import 被错编成 `await "字符串"`，整体失效。`meta/moveRefs.ts` 是已知例外
+  （仅 H5 调用链使用），接进小程序前必须改静态引入。
+- **dev-only 页走「页壳 + 守卫块内字面量动态 import 实现体」**，门禁单点
+  `src/services/devtools/enabled.ts`；只能拉构建产物 grep 核对，type-check 与用例都看不见。
+- **登出清缓存在 `mine.vue` 路径调 `clearSpriteCache()`**，不放进 `clearSession()`
+  （避免 `session ⇄ resources` 环）。
+
+## 架构入口
+
+- 技术栈：Vue 3 `<script setup>` + uni-app（编译 H5 / 各小程序 / 快应用 / App）+ Vite + Pinia + Tailwind；Rust → WASM 负责解密 ZKDX、解码 FlatBuffers、伤害计算。
+- 入口文件：`src/main.ts`（建 app、装 Pinia / uni-icons、引 global.css）；`src/pages.json`
+  控路由（无 Vue Router）；`src/App.vue` 定义导航尺寸共享 CSS 变量；`src/pokemon.d.ts`
+  声明全局 `IPokemonBaseModel` / `IPokemonCardModel`（.vue 里无需导入）。
+- 主数据流：加密 FlatBuffers bundle → `resourceManager` 三层缓存（内存 LRU → IDB/存储 → 网络）
+  → WASM 解密解码 → `pokemon.ts` 五表 join → `store/pokemon` 全量筛选排序（不分页）
+  → `VirtualGrid` 定高虚拟化。sprite / 道具 / 对战图标走独立加密图片通道。
+- **页面权威清单与 tab 保活机制**：[docs/architecture/overview.md](docs/architecture/overview.md)
+  「页面清单」。
+- 改哪块读哪块（数据建模 / 多语言 / 认证加密 / 平台构建 / UI 陷阱）：[docs/README.md](docs/README.md)。
+
+## 改动后的门禁
+
+1. `pnpm type-check` —— 必须 0 error。
+2. `pnpm test` —— 必须全绿。改 `dexFilter.ts`、`store/pokemon.ts`、`constants/generations.ts`、
+   或加密图片资源层（`services/resources/imageCache.ts`、`imagePersist.ts`、`imageKind.ts`、
+   `spriteCache.ts`、`spritePersist.ts`、`itemImage.ts`、`spriteLoader.ts`、
+   `spriteAvailability.ts`、`imageMime.ts`、`constants/spriteVariants.ts`、
+   `constants/cacheConfig.ts`、`infra/storage/binaryStorage.ts`、`composables/useEncryptedImage.ts`、
+   `services/devtools/assetProbe.ts`）时尤其别跳过。
+3. `pnpm lint`、`pnpm format:check`。
+4. `pnpm dev:h5` 起服务后，用**移动端 UA** curl 改动的页面与组件，确认 200：
    ```bash
    UA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)'
    curl -s -o /dev/null -w '%{http_code}' -H "User-Agent: $UA" http://localhost:4000/src/pages/xxx/xxx.vue
    ```
-4. 涉及 CSS 变量绑定或 scoped 改写时，额外拉一次编译产物核对
-   （`?vue&type=style&index=0&scoped=true&lang.css`）—— 这类问题 `type-check` 看不见
+5. 涉及 CSS 变量绑定 / scoped 改写 / dev-only 代码时，额外拉编译产物核对
+   （样式请求 `?vue&type=style&index=0&scoped=true&lang.css`；dev-only 用
+   `pnpm build:h5 && grep -rl "<实现体标识>" dist/build/h5` 应无命中）——这类问题 type-check 看不见。

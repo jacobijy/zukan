@@ -19,14 +19,7 @@ src/
 ├── main.ts                    # 入口：创建 app，装 Pinia/uni-icons，引 global.css
 ├── App.vue                    # 根组件，定义导航栏尺寸等共享 CSS 变量
 ├── pokemon.d.ts               # 全局宝可梦接口（IPokemonBaseModel 等，无需导入）
-├── pages/                     # 页面路由（pages.json 控制，无 Vue Router）
-│   ├── index/index.vue        #   图鉴列表（主页面，VirtualGrid + PokemonCard）
-│   ├── detail/detail.vue      #   宝可梦详情
-│   ├── features/features.vue  #   功能中心（导航枢纽）
-│   ├── data/data.vue          #   资料中心
-│   ├── mine/mine.vue          #   个人中心
-│   ├── calc/                  #   伤害计算器（calc.vue + calc-engine.ts + calc-options.ts）
-│   └── simulate/simulate.vue  #   对战模拟器（UI 骨架，noop 占位）
+├── pages/                     # 页面路由（pages.json 控制，无 Vue Router）；完整清单见下「页面清单」
 ├── components/                # 按业务上下文分目录
 │   ├── shared/                #   跨页面通用：TabPageShell/DetailNavbar/ListRow/...
 │   ├── pokemon/               #   宝可梦领域：PokemonCard/TypeBadge/SpecimenHero/...
@@ -56,6 +49,32 @@ tests/                         # vitest 用例（node 环境，无 uni 全局）
 tools/                         # 数据处理脚本（python / typescript）
 ```
 
+## 页面清单
+
+权威页面登记表（`src/pages/` 下没有游离页面文件）：
+
+| 页面 | 路径 | 状态 |
+|------|------|------|
+| 图鉴列表 | `pages/index/index` | 主页面 |
+| 宝可梦详情 | `pages/detail/detail` | 键页 |
+| 功能中心 | `pages/features/features` | 导航枢纽 |
+| 资料中心 | `pages/data/data` | 键页 |
+| 个人中心 | `pages/mine/mine` | 键页 |
+| 伤害计算器 | `pages/calc/calc` | 键页（计算引擎在 `calc-engine.ts`） |
+| 能力值计算器 | `pages/statcalc/statcalc` | 键页（纯 TS 公式在 `statcalc-engine.ts`，性格表在 `statcalc-options.ts`） |
+| 对战模拟器 | `pages/simulate/simulate` | **UI 骨架**（`noop` 占位，无实际交互） |
+| 设置 | `pages/settings/settings` | 子页（`DetailNavbar`，语言等系统设置；点选项弹 `OptionSheet`） |
+| 属性/招式/特性/道具图鉴 | `pages/archive/*` | 资料中心四个栏目，列表页 + 详情页共 8 个（`types`/`type-detail`、`moves`/`move-detail`、`abilities`/`ability-detail`、`items`/`item-detail`）；数据流见 [../features/archive.md](../features/archive.md) |
+| 开发者工具 | `pages/devtools/devtools` | **dev-only 子页**（我的 → 开发者工具）：资源探测器（取密文 → 解密 → 显示，绕开缓存）+ 文本浏览（走 resourceManager）。门禁 `import.meta.env.DEV`，实现体动态 import，正式构建被 Rollup 剔除。见 [../security/encryption-pipeline.md](../security/encryption-pipeline.md) 6.0 / 6.0.1 |
+| 对战数据 | `pages/meta/meta`、`pages/meta/pokemon-meta` | 子页 ×2（资料中心 → 对战详情）：使用率排行榜（上游只给名次无 %）+ 对战配置（选用率 / SP 加点 / 队友）；明文公开 JSON，见 [../data/battle-usage.md](../data/battle-usage.md)、[../features/metagame-usage.md](../features/metagame-usage.md) |
+| 我的队伍 | `pages/teams/teams`、`pages/teams/team-edit` | 子页 ×2（**功能页签**进入）：队伍 CRUD + 完整组队器；payload 对后端不透明、只存稳定 id，写前 `authGate.requireLogin()`；普通 JSON 不涉 DEK，见 [../data/teams.md](../data/teams.md)、[../features/teams.md](../features/teams.md) |
+
+**tab 保活**：`pages.json` 声明原生 `tabBar`（不设 custom），由 `useHideNativeTabBar` 在 onShow 调
+`uni.hideTabBar()` 隐藏原生条，tab 页被**平台保活**（只创建一次、切走 onHide、切回 onShow，
+页面状态与滚动位置保留；旧的 `reLaunch` 方案每次销毁重建、回顶）。Tab 切换走 `uni.switchTab`，
+指向 tab 的跳转统一走 `utils/navigation` 的 `navigateToAuto`；自定义胶囊 `TabBar.vue` 在
+onMounted / onShow 播放指示器滑动动画。
+
 ## 分层
 
 1. **页面层**：`pages.json` 控制路由。页面只做数据获取、页面级状态编排、组件组装；
@@ -72,7 +91,7 @@ tools/                         # 数据处理脚本（python / typescript）
 4. **状态层**：Pinia setup 风格。`pokemon` store 对去重后的默认形态筛选排序，**不分页**，
    交给 VirtualGrid 定高虚拟化。详见 [../data/filtering-sort.md](../data/filtering-sort.md)。
 5. **基础设施层**：WASM（解密 / FlatBuffers 解码 / 伤害计算）、`binaryStorage` 跨平台存储。
-6. **core/ 残留**：`core/data/typechart.ts` 是移除的服务端模块残留，被 `calc-engine.ts` 动态 import。
+6. **core/ 残留**：`core/data/typechart.ts` 是移除的服务端模块残留，被 `calc-engine.ts` 静态 import（JS 侧相克描述用）；WASM 内部另有完整 TypeChart。
 
 ## 数据流向
 
@@ -102,10 +121,23 @@ tools/                         # 数据处理脚本（python / typescript）
 DEK 走鉴权接口 `/api/v1/zukan/key`，由 `services/session/key.ts::getKey()` 统一获取。
 完整链路见 [../security/encryption-pipeline.md](../security/encryption-pipeline.md)。
 
+数据语义要点（排查「图不对 / 名不对 / 列表空」前先读）：
+
+- **`gen-N.bin` 是「全物种在第 N 世代的数值快照」**（1351 条形态 / 1025 个默认形态，id 从 1 起），
+  不是「第 N 世代新增的宝可梦」。默认世代 `DEFAULT_GEN_ID = 9`，与 `LATEST_GEN_ID = 9`（`boot.ts`）一致。
+- **五表 join**：`pokemon.ts` 把 `baseEntries`/`statEntries`/`typeEntries`/`abilityEntries`
+  按 id join 成 UI 模型（`eggGroupEntries` 解码但未使用）。join 后 `name` 为 `pokemon-{id}` 占位、
+  `image` 为 `/static/default.png`——卡面图走加密图片通道，名称由 i18n 名称组注入，见
+  [../data/bundle-decode.md](../data/bundle-decode.md)。
+- **筛选在全量默认形态上做，不分页**：页面经 `setCriteria()` **全量替换**条件（不是 merge），
+  store 对按 species 去重的 ~1025 条筛选排序。历史坑「先分页再筛选 → 首页被滤空 →
+  滚动不触发 → 死锁」见 [../data/filtering-sort.md](../data/filtering-sort.md)。
+- 收藏走 `uni.getStorageSync`（兼容小程序与早期裸 localStorage 的 JSON 字符串）。
+
 ## 关键约束
 
 - **循环依赖防护**：
-  - `session/key.ts` 动态 import `api/auth.ts`，避免 `session ⇄ api` 顶层环；
+  - `session/key.ts` 静态 import `api/auth.ts`（auth 只依赖 `http` 与 `session/token`，不构成顶层环）；曾有的 `key → api/zukanKey → token → key` 环靠 `token.ts` 的 `onSessionClear` 钩子注入断环，详见 [../security/auth-session.md](../security/auth-session.md)；
   - `authGate` 是模块单例而非 Pinia store，避免 `store ⇄ session` 环；
   - `clearSpriteCache()` 在 `mine.vue` 登出路径调用，而非 `clearSession()` 内部，避免 `session ⇄ resources` 环。
 - **跨实例共享状态**：`<script setup>` 顶层的 `const` 编译后落在 `setup()` 内部，每实例一份。

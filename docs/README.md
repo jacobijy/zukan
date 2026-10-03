@@ -10,7 +10,7 @@
 | 架构 | [architecture/mp-weixin-remote-debug.md](architecture/mp-weixin-remote-debug.md) | 远程 Linux 编辑 + 另一台 Mac/Windows 跑开发者工具的调试流：watch 构建 + Mutagen/rsync 同步 dev 产物 + 工具设置与排障 |
 | 架构 | [architecture/app-remote-debug.md](architecture/app-remote-debug.md) | Android/iOS 调试流：Linux `build:app` 出本地打包资源（vite.config 内联动态 import）+ Mutagen/rsync 同步 + 对端 App 离线 SDK 工程（AS/Xcode）编译运行；版本/appid 对齐与 wasm 真机验证 |
 | 架构 | [architecture/platform-managers.md](architecture/platform-managers.md) | 按平台区分的管理对象：检测层/能力闸门/Manager 三层职责边界，Base→App→iOS/Android 类层次，如何加平台操作 |
-| UI | [ui/component-conventions.md](ui/component-conventions.md) | 先建组件再写页面、目录划分、scoped CSS 陷阱、`<script setup>` 单例陷阱 |
+| UI | [ui/component-conventions.md](ui/component-conventions.md) | 先建组件再写页面、目录划分、scoped CSS 陷阱、`<script setup>` 单例陷阱、弹层 v-if 卸载、dev-only 动态 import 门禁 |
 | UI | [ui/virtual-list.md](ui/virtual-list.md) | VirtualGrid 定高虚拟化的耦合与改动注意 |
 | UI | [ui/safe-area.md](ui/safe-area.md) | 顶部状态栏 / 刘海适配：env 基线 + JS 兜底两层注入、为何微信需逐页、验证方法 |
 | UI | [ui/software-icons.md](ui/software-icons.md) | HOME 作品版本徽章（世代切换用）：22 枚 128px 透明 PNG 静态资源、文件→游戏→世代映射、引用方式，不走加密 |
@@ -23,11 +23,13 @@
 | 功能 | [features/calc-engine.md](features/calc-engine.md) | 伤害计算器数据流、slug→id、招式 flags、WASM 硬编码 |
 | 功能 | [features/archive.md](features/archive.md) | 资料中心属性/招式/特性/道具图鉴：列表虚拟化、反查索引、flavor 多表、道具图标 manifest |
 | 功能 | [features/teams.md](features/teams.md) | 自建队伍组队器：我的队伍列表 + 编辑（成员/特性/道具/性格/招式/SP），登录保存、热门配置一键填充 |
+| 功能 | [features/metagame-usage.md](features/metagame-usage.md) | 对战使用率页面：排行榜 + 宝可梦对战配置页的数据流（明文 JSON，适配层 / 词典翻译） |
 | 加密 | [security/encryption-pipeline.md](security/encryption-pipeline.md) | ZKDX 格式、后端构建分发、前端解密、version 字节双身份、variant 体积对照与回落链、对战图标（§4.6，赛季版本化）、排障（含 dev-only 资源探测器） |
 | 加密 | [security/auth-session.md](security/auth-session.md) | DEK 唯一入口、401 恢复决策树、登录弹层去重 |
+| 缓存 | [caching/overview.md](caching/overview.md) | 全部缓存一张速查表：层级 / 持久化 / 版本失效 |
 | 缓存 | [caching/resource-cache.md](caching/resource-cache.md) | resourceManager 三层缓存、inflight 去重、版本失效 |
-| 缓存 | [caching/sprite-cache.md](caching/sprite-cache.md) | 加密图片（sprite + 道具图标）：imageCache 三条调度不变量 + imagePersist 四条持久化不变量 + 渐进式两段加载 + 回落落点记录 + 对战图标（字符串键 / 赛季版本化，待接入） |
-| 缓存 | [caching/fs-backend-plan.md](caching/fs-backend-plan.md) | **方案，未实现**：小程序 / App 加密资源本地缓存 —— fs 后端（USER_DATA_PATH 存密文）、按用途注入、可配置预算 + 保护集、加密下载去重 |
+| 缓存 | [caching/sprite-cache.md](caching/sprite-cache.md) | 加密图片（sprite + 道具图标）：imageCache 三条调度不变量 + imagePersist 四条持久化不变量 + 渐进式两段加载 + 回落落点记录 + 对战图标（字符串键 / 赛季版本化；道具已接，精灵待接） |
+| 缓存 | [caching/fs-backend-plan.md](caching/fs-backend-plan.md) | 小程序 / App 加密资源本地缓存 fs 后端：主线已实现（按种类注入、预算 + 保护集），真机行为待验证、下载去重未做 |
 
 > 历史文档保留在 [`archive/`](archive/)，不再维护。包括早期加密方案稿、解密流程稿、
 > 旧架构图、REST/encrypted-assets 归档稿等。需要追溯「当初为什么这么设计」时再翻。

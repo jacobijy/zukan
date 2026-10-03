@@ -5,8 +5,9 @@
 
 ## `getKey()` 是唯一入口
 
-全 app 拿 DEK 只通过 `src/services/session/key.ts::getKey()`。调用点共 3 个
-（`boot.ts`、`resourceManager`、`spriteCache`），CDN 403 重签时各再调一次。
+全 app 拿 DEK 只通过 `src/services/session/key.ts::getKey()`。调用点共 3 类
+（`boot.ts`、`resourceManager`、加密图片引擎 `imageCache`——后者同时服务 sprite 与道具图标），
+CDN 403 重签时各再调一次。
 
 职责：
 - **内存缓存 + 并发去重**：`keyCache` 命中直接返回；并发调用共享同一个 `keyPromise`。
