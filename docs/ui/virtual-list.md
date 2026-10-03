@@ -31,6 +31,13 @@ DOM 只保留视口附近的行，长列表（~1025 张卡）也只挂载几十�
 - **高度前提**：调用方须让组件有确定高度 —— index.vue 在其外包一层
   `flex-1 min-h-0`，组件 `scroller-class` 用 `h-full`（微信 scroll-view 必须有
   明确高度才能滚动）。
+- **几何测量必须忽略 0×0（H5 踩过）**：`switchTab` 销毁/塌陷 scroller 时，
+  ResizeObserver 会以 `clientHeight=0` 触发**最后一次**。若把它写进
+  `viewportHeight`，`active` 翻假 → 窗口算术降级 → `windowEntries` 退回**全量
+  ~1025 条**，上千张 eager 卡瞬时挂载、各拉一个 `front.bin`（网络面板里切页突发
+  几百个请求；小程序不复现，因其走 SelectorQuery 且切 tab 只 onHide 不卸载，
+  `measureMp` 本就带 `>0` 守卫）。`measureDom` 因此只在 `clientHeight>0` 时覆盖，
+  离屏/卸载的测量保留上次有效值。判断「该不该降级」只能信活着的正尺寸。
 
 ## 虚拟列表内的图片：直接 eager，不用 IntersectionObserver
 

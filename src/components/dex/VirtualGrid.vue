@@ -210,7 +210,12 @@ function measureDom(): void {
   const grid = toEl(gridRef.value)
   if (!scroller || !grid) return
 
-  viewportHeight.value = scroller.clientHeight
+  // 切 tab 销毁/塌陷时 ResizeObserver 会以 0×0 触发最后一次；若把 viewportHeight
+  // 写成 0，active 会翻假 → windowEntries 退回全量渲染，上千张 eager 卡瞬时挂载、
+  // 各拉一个 front.bin（只在 H5 复现：小程序走 measureMp，本就有 >0 守卫）。
+  // 非正高度一律保留上次有效值，不让离屏/卸载的测量污染几何。
+  const viewportH = scroller.clientHeight
+  if (viewportH > 0) viewportHeight.value = viewportH
 
   const cs = getComputedStyle(grid)
   // `repeat(auto-fill, …)` 被解析成具体轨道列表，数量即列数
