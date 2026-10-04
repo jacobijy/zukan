@@ -107,9 +107,12 @@ const select = (value: string) => {
 
 <style lang="scss" scoped>
 .generation-drawer {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* 底部让出 TabBar（距底 16 + 高 64 = 80）+ 安全区，使 footer 停在 TabBar 上方 */
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
     border-left: 1px solid #e5e7ee;
     border-radius: 28px 0 0 28px;
 }
@@ -171,7 +174,7 @@ const select = (value: string) => {
 
 .generation-drawer__footer {
     flex-shrink: 0;
-    padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+    padding: 12px 16px 14px;
     border-top: 1px solid #eef0f5;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 250, 254, 0.98));
 }
