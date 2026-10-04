@@ -15,13 +15,16 @@
 import { isInGeneration } from '@/constants/generations';
 
 /** 排序键。`id` 为默认（按全国编号升序）。 */
-export type DexSortKey = 'id' | 'name' | 'hp' | 'attack' | 'defense';
+export type DexSortKey = 'id' | 'hp' | 'attack' | 'defense' | 'spAttack' | 'spDefense';
 
 /** 排序键 → `stats[].name` 里的中文种族值名 */
-const STAT_NAME_BY_SORT: Partial<Record<DexSortKey, string>> = {
+const STAT_NAME_BY_SORT: Record<DexSortKey, string | null> = {
+    id: null,
     hp: 'HP',
     attack: '攻击',
     defense: '防御',
+    spAttack: '特攻',
+    spDefense: '特防',
 };
 
 export interface DexFilterCriteria {
@@ -82,8 +85,6 @@ export function filterAndSortPokemons(
     if (statName) {
         // 种族值降序（高的在前）
         list.sort((a, b) => statValue(b, statName) - statValue(a, statName));
-    } else if (sort === 'name') {
-        list.sort((a, b) => a.name.localeCompare(b.name));
     } else {
         list.sort((a, b) => a.id - b.id);
     }

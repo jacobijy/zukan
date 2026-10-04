@@ -12,6 +12,7 @@
 
             <DexToolbar
                 v-model:search="searchText"
+                v-model:sort="currentSort"
                 v-model:collapsed="isIndexCollapsed"
                 :favorites-active="showFavoritesOnly"
                 :generation-panel-open="showGenerationPanel"
@@ -26,7 +27,7 @@
                 @toggle-type-filter="filterToggle(!isShow)"
             />
 
-            <FilterBar v-show="isShow" @filterToggle="filterToggle" @filterChange="onFilterChange" />
+            <FilterBar :visible="isShow" @filterToggle="filterToggle" @filterChange="onFilterChange" />
 
             <FavoritesBanner
                 v-if="showFavoritesOnly"
@@ -195,9 +196,8 @@ const selectedGenerationLabel = computed(() => {
     return findGeneration(selectedGeneration.value)?.name ?? t('dex.generationFallback');
 });
 
-const onFilterChange = (filterData: { types: string[], sort: string }) => {
-    currentFilterTypes.value = filterData.types;
-    currentSort.value = filterData.sort as DexSortKey;
+const onFilterChange = (types: string[]) => {
+    currentFilterTypes.value = types;
 };
 
 const toggleFavoritesView = () => {
@@ -209,6 +209,9 @@ const toggleFavoritesView = () => {
 
 const toggleGenerationPanel = (visible: boolean) => {
     showGenerationPanel.value = visible;
+    if (visible) {
+        isShow.value = false;
+    }
 };
 
 const clearSearch = () => {
@@ -253,6 +256,9 @@ watch(
 
 const filterToggle = (value: boolean) => {
     isShow.value = value;
+    if (value) {
+        showGenerationPanel.value = false;
+    }
 };
 
 const touchStartX = ref(0);

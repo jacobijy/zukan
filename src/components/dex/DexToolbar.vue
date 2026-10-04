@@ -1,6 +1,6 @@
 <template>
     <view class="px-3 pt-2 sm:px-5 sm:pt-3">
-        <view class="mx-auto max-w-[1400px] overflow-hidden rounded-[24px] border border-[#e5e7ee] bg-white p-2.5 shadow-[0_14px_34px_rgba(48,55,72,0.08)] sm:rounded-[28px] sm:p-3">
+        <view class="mx-auto max-w-[1400px] rounded-[24px] border border-[#e5e7ee] bg-white p-2.5 shadow-[0_14px_34px_rgba(48,55,72,0.08)] sm:rounded-[28px] sm:p-3">
             <view class="flex items-center gap-2 sm:gap-3">
                 <view class="min-w-0 flex-1">
                     <SearchBar
@@ -9,6 +9,11 @@
                         @update:model-value="emit('update:search', $event)"
                     />
                 </view>
+
+                <SortSelect
+                    :model-value="sort"
+                    @update:model-value="emit('update:sort', $event)"
+                />
 
                 <button
                     class="icon-tool-button icon-tool-button--favorite panel-button"
@@ -71,7 +76,7 @@
 
                     <button
                         class="filter-stack__button"
-                        :class="typeFilterOpen ? 'filter-stack__button--active-red' : ''"
+                        :class="typeFilterOpen ? 'filter-stack__button--active-blue' : ''"
                         @click="emit('toggle-type-filter')"
                     >
                         <!-- #ifdef MP-WEIXIN -->
@@ -95,11 +100,15 @@
 import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
 import SearchBar from '@/components/shared/SearchBar.vue';
+import SortSelect from '@/components/dex/SortSelect.vue';
+import type { DexSortKey } from '@/utils/dexFilter';
 const { t } = useI18n();
 
 interface Props {
     /** 搜索词（v-model:search） */
     search: string;
+    /** 当前排序键（v-model:sort） */
+    sort: DexSortKey;
     /** 统计区是否收起（v-model:collapsed） */
     collapsed: boolean;
     /** 仅看收藏是否开启 */
@@ -122,6 +131,7 @@ defineProps<Props>();
 
 const emit = defineEmits<{
     'update:search': [value: string];
+    'update:sort': [value: DexSortKey];
     'update:collapsed': [value: boolean];
     'toggle-favorites': [];
     'toggle-generation': [];
@@ -192,10 +202,10 @@ const emit = defineEmits<{
     box-shadow: 0 10px 20px rgba(52, 184, 90, 0.18);
 }
 
-.filter-stack__button--active-red {
+.filter-stack__button--active-blue {
     color: #fff;
-    background: linear-gradient(135deg, #ff8a76, #f05245);
-    box-shadow: 0 10px 20px rgba(240, 82, 69, 0.18);
+    background: linear-gradient(135deg, #73b7ff, #357df4);
+    box-shadow: 0 10px 20px rgba(53, 125, 244, 0.18);
 }
 
 .filter-stack__icon {

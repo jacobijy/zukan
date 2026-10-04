@@ -49,19 +49,23 @@ const zhHans = {
         },
         filter: {
             title: '筛选和排序',
-            collapseHint: '点击右侧收起',
+            selectedCount: '已选 {count} 项',
+            done: '完成',
             typeFilter: '类型筛选',
             sortBy: '排序方式',
             sort: {
                 id: '编号',
-                name: '名称',
                 hp: 'HP',
-                attack: '攻击力',
-                defense: '防御力',
+                attack: '攻击',
+                defense: '防御',
+                spAttack: '特攻',
+                spDefense: '特防',
             },
         },
         drawer: {
             generationTitle: '世代索引',
+            back: '返回',
+            allGens: '全部世代',
         },
     },
     detail: {
@@ -484,19 +488,23 @@ const en: typeof zhHans = {
         },
         filter: {
             title: 'Filter & sort',
-            collapseHint: 'Tap right to collapse',
+            selectedCount: '{count} selected',
+            done: 'Done',
             typeFilter: 'Type filter',
             sortBy: 'Sort by',
             sort: {
                 id: 'Number',
-                name: 'Name',
                 hp: 'HP',
                 attack: 'Attack',
                 defense: 'Defense',
+                spAttack: 'Sp. Atk',
+                spDefense: 'Sp. Def',
             },
         },
         drawer: {
             generationTitle: 'Generations',
+            back: 'Back',
+            allGens: 'All generations',
         },
     },
     detail: {

@@ -1,183 +1,273 @@
 <template>
-  <view class="filter-panel fixed z-[999] bg-white shadow-[0_12px_30px_rgba(48,55,72,0.12)] border-b border-[#e5e7ee] animate-slideDown overflow-visible" :style="{ top: 'var(--navbar-total-height)' }">
-    <view class="px-5 py-4 flex flex-col gap-4">
-      <view class="flex items-center justify-between pr-8">
-        <text class="text-base font-bold text-[#24262b]">{{ t('dex.filter.title') }}</text>
-        <text class="text-xs font-medium text-[#9da2ad]">{{ t('dex.filter.collapseHint') }}</text>
+  <view class="filter-layer fixed inset-0 z-[998] pointer-events-none">
+    <view
+      v-if="visible"
+      class="filter-mask absolute inset-0 pointer-events-auto"
+      @click="closeFilterPanel"
+      @touchmove.stop.prevent
+    ></view>
+
+    <view
+      class="filter-panel fixed z-[1] pointer-events-auto"
+      :class="{ 'filter-panel--visible': visible }"
+      :style="{ top: 'calc(var(--navbar-total-height) + 8px)' }"
+    >
+      <view class="filter-panel__header">
+        <text class="filter-panel__title">{{ t('dex.typeFilter') }}</text>
+        <text v-if="selectedTypes.length" class="filter-selection-count">
+          {{ t('dex.filter.selectedCount', { count: selectedTypes.length }) }}
+        </text>
       </view>
 
-      <!-- 类型筛选 -->
-      <view class="flex flex-col gap-3">
-        <text class="text-sm font-semibold text-[#6f7480] tracking-wide">{{ t('dex.filter.typeFilter') }}</text>
-        <view class="flex flex-wrap gap-2 items-center">
-          <button
-            v-for="type in allTypes"
-            :key="type"
-            :class="['px-3.5 py-1.5 rounded-[20px] text-[13px] font-semibold text-white cursor-pointer transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] border-2 border-transparent shadow-[0_2px_6px_rgba(48,55,72,0.1)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(48,55,72,0.15)] active:translate-y-0', getTypeGradient(type), { 'border-white shadow-[0_0_0_3px_rgba(53,125,244,0.14),0_4px_12px_rgba(48,55,72,0.18)] scale-105': selectedTypes.includes(type) }]"
-            @click="toggleTypeFilter(type)"
-          >
-            {{ typeLabel(type) }}
-          </button>
-        </view>
-      </view>
-
-      <!-- 排序选项 -->
-      <view class="flex flex-col gap-2 relative w-[180px] max-w-full">
-        <text class="text-sm font-semibold text-[#6f7480] tracking-wide">{{ t('dex.filter.sortBy') }}</text>
-        <button class="filter-panel-btn w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#f5f6fa] border border-[#e1e4eb] rounded-[20px] text-sm font-semibold text-[#24262b] cursor-pointer transition-all duration-300 shadow-[inset_0_1px_0_#ffffff,0_2px_6px_rgba(48,55,72,0.06)] active:scale-[0.98]" @click="toggleSortDropdown">
-          <text>{{ currentSort.label }}</text>
-          <!-- #ifdef MP-WEIXIN -->
-          <text class="ic text-[16px] text-[#8d929c]">{{ glyph('chevron-down') }}</text>
-          <!-- #endif -->
-          <!-- #ifndef MP-WEIXIN -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-down" class="w-4 h-4 text-[#8d929c] transition-transform duration-200" :class="showSortDropdown ? 'rotate-180' : ''">
-            <path d="m6 9 6 6 6-6"></path>
-          </svg>
-          <!-- #endif -->
-        </button>
-        <view v-if="showSortDropdown" class="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-[0_12px_28px_rgba(48,55,72,0.12)] border border-[#e5e7ee] overflow-hidden z-[1000]">
-          <view
-            v-for="option in sortOptions"
-            :key="option.value"
-            class="px-4 py-3 flex items-center justify-between cursor-pointer transition-colors active:bg-[#f5f6fa]"
-            :class="currentSort.value === option.value ? 'bg-[#eef4ff] text-[#357df4]' : 'text-[#24262b]'"
-            @click="selectSort(option)"
-          >
-            <text class="text-sm font-semibold">{{ option.label }}</text>
-            <!-- #ifdef MP-WEIXIN -->
-            <text v-if="currentSort.value === option.value" class="ic text-[16px] text-[#357df4]">{{ glyph('check') }}</text>
-            <!-- #endif -->
-            <!-- #ifndef MP-WEIXIN -->
-            <svg v-if="currentSort.value === option.value" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" data-ic="check" class="w-4 h-4 text-[#357df4]">
-              <path d="m9 18 6-6-6-6"></path>
-            </svg>
-            <!-- #endif -->
+      <scroll-view scroll-y class="filter-panel__content">
+        <view class="filter-card">
+          <view class="filter-types">
+            <button
+              v-for="type in allTypes"
+              :key="type"
+              class="filter-type"
+              :class="{ 'filter-type--selected': selectedTypes.includes(type) }"
+              :aria-pressed="selectedTypes.includes(type)"
+              @click="toggleTypeFilter(type)"
+            >
+              <TypeBadge :type="type" size="xl" variant="pill" />
+            </button>
           </view>
         </view>
+      </scroll-view>
+
+      <view class="filter-panel__footer">
+        <PanelActions
+          :secondary-text="t('common.reset')"
+          :primary-text="t('dex.filter.done')"
+          @secondary="resetFilters"
+          @primary="closeFilterPanel"
+        />
       </view>
     </view>
-
-    <button class="filter-panel-btn absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 w-9 h-16 rounded-l-full bg-[linear-gradient(135deg,#73b7ff,#357df4)] shadow-[-4px_0_16px_rgba(53,125,244,0.24)] flex items-center justify-start pl-2 active:scale-95 transition-all" @click="closeFilterPanel">
-      <!-- #ifdef MP-WEIXIN -->
-      <text class="ic text-[16px] text-white">{{ glyph('chevron-right') }}</text>
-      <!-- #endif -->
-      <!-- #ifndef MP-WEIXIN -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-right" class="w-4 h-4">
-        <path d="m9 18 6-6-6-6"></path>
-      </svg>
-      <!-- #endif -->
-    </button>
   </view>
 </template>
 
 <script setup lang="ts">
-import { glyph } from '@/components/icon/glyphs'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ALL_TYPE_SLUGS, getTypeGradient, getTypeName } from '@/constants/pokemonTypes'
-import { useI18nStore } from '@/store/i18n'
+import { ALL_TYPE_SLUGS } from '@/constants/pokemonTypes'
+import TypeBadge from '@/components/pokemon/TypeBadge.vue'
+import PanelActions from '@/components/shared/PanelActions.vue'
+
+interface Props {
+  visible: boolean;
+}
+
+defineProps<Props>()
+
+const emit = defineEmits<{
+  filterChange: [types: string[]];
+  filterToggle: [visible: boolean];
+}>()
 
 const { t } = useI18n()
-const i18nStore = useI18nStore()
 
-/** 属性筛选名：优先内容语言，未就绪回落硬编码中文名 */
-const typeLabel = (slug: string) => i18nStore.typeName(slug) ?? getTypeName(slug)
-
-interface SortOption { value: string; label: string }
-
-// 全部可筛选属性
 const allTypes = ref<string[]>(ALL_TYPE_SLUGS)
-
-// 定义选中的类型
 const selectedTypes = ref<string[]>([])
 
-// 排序选项（label 随语言切换）
-const sortOptions = computed<SortOption[]>(() => [
-  { value: 'id', label: t('dex.filter.sort.id') },
-  { value: 'name', label: t('dex.filter.sort.name') },
-  { value: 'hp', label: t('dex.filter.sort.hp') },
-  { value: 'attack', label: t('dex.filter.sort.attack') },
-  { value: 'defense', label: t('dex.filter.sort.defense') }
-])
+const emitFilterChange = () => {
+  emit('filterChange', [...selectedTypes.value])
+}
 
-// 当前排序项（按 value 跟踪；label 随语言切换由 sortOptions 派生）
-const currentSortValue = ref('id')
-const currentSort = computed<SortOption>(
-  () => sortOptions.value.find(o => o.value === currentSortValue.value) ?? sortOptions.value[0],
-)
-const showSortDropdown = ref(false)
-
-// 切换类型筛选
 const toggleTypeFilter = (type: string) => {
-  if (selectedTypes.value.includes(type)) {
-    selectedTypes.value = selectedTypes.value.filter(t => t !== type)
-  } else {
-    selectedTypes.value.push(type)
-  }
-  emit('filterChange', {
-    types: selectedTypes.value,
-    sort: currentSort.value.value
-  })
+  selectedTypes.value = selectedTypes.value.includes(type)
+    ? selectedTypes.value.filter(selected => selected !== type)
+    : [...selectedTypes.value, type]
+  emitFilterChange()
 }
 
-const toggleSortDropdown = () => {
-  showSortDropdown.value = !showSortDropdown.value
-}
-
-const selectSort = (option: SortOption) => {
-  currentSortValue.value = option.value
-  showSortDropdown.value = false
-  emit('filterChange', {
-    types: selectedTypes.value,
-    sort: currentSort.value.value
-  })
+const resetFilters = () => {
+  selectedTypes.value = []
+  emitFilterChange()
 }
 
 const closeFilterPanel = () => {
-  showSortDropdown.value = false
   emit('filterToggle', false)
 }
-
-// 定义事件发射器
-const emit = defineEmits(['filterChange', 'filterToggle'])
 </script>
 
 <style lang="scss" scoped>
+$ios-blue: #007aff;
+$ios-bg: #f2f2f7;
+$ios-separator: rgba(60, 60, 67, 0.13);
+
+.filter-layer {
+  color: #1c1c1e;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.filter-mask {
+  background: rgba(0, 0, 0, 0.25);
+  animation: filter-mask-in 0.2s ease both;
+}
+
 .filter-panel {
+  left: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--navbar-total-height) - 24px - env(safe-area-inset-bottom));
+  max-height: calc(100dvh - var(--navbar-total-height) - 24px - env(safe-area-inset-bottom));
+  overflow: hidden;
+  overscroll-behavior: contain;
+  border-radius: 20px;
+  background: $ios-bg;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', Helvetica, sans-serif;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.985);
+  transform-origin: top center;
+  visibility: hidden;
+  transition: opacity 0.2s ease, transform 0.24s ease, visibility 0.24s;
+}
+
+.filter-panel--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+}
+
+/* ── 头部：标题居中，无关闭钮 ── */
+.filter-panel__header {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 12px 16px;
+  border-bottom: 0.5px solid $ios-separator;
+  background: #ffffff;
+}
+
+.filter-panel__title {
+  color: #1c1c1e;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.filter-selection-count {
+  position: absolute;
+  right: 16px;
+  color: $ios-blue;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 内容：白卡片内的属性标签 ── */
+.filter-panel__content {
+  flex: 1 1 0%;
+  height: 0;
+  min-height: 0;
+  padding: 14px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-card {
+  padding: 14px;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+/* ── 属性标签：按钮彻底重置，徽章严格居中 ── */
+.filter-types {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px 10px;
+}
+
+.filter-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  line-height: 1;
+  font-size: 0;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  touch-action: manipulation;
+}
+
+/* 徽章填满格子：18 个等宽对齐，避免右侧参差留空 */
+.filter-type :deep(.type-badge) {
   width: 100%;
 }
 
-.filter-panel-btn::after {
+.filter-type--selected {
+  box-shadow:
+    0 0 0 2px $ios-blue,
+    0 0 0 4.5px rgba(0, 122, 255, 0.15);
+  transform: scale(1.04);
+}
+
+.filter-type:active {
+  transform: scale(0.95);
+}
+
+.filter-type--selected:active {
+  transform: scale(1);
+}
+
+/* ── 底部操作 ── */
+.filter-panel__footer {
+  flex-shrink: 0;
+  padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
+  border-top: 0.5px solid $ios-separator;
+  background: $ios-bg;
+}
+
+/* uni-app 将 <button> 编译为 <uni-button>，默认边框挂在其 ::after 上，
+   必须用 class 选择器（元素选择器 button 命中不了） */
+.filter-type::after {
   border: none !important;
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+.filter-type:focus-visible {
+  outline: 2px solid rgba(0, 122, 255, 0.7);
+  outline-offset: 2px;
+}
+
+@keyframes filter-mask-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-mask,
+  .filter-panel,
+  .filter-panel button {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
+@media (min-width: 640px) {
+  .filter-panel {
+    left: 12px;
+    right: 12px;
+    max-width: 680px;
+    margin: 0 auto;
+    border-radius: 22px;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .filter-types {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px 10px;
   }
-}
-
-.animate-slideDown {
-  animation: slideDown 0.3s ease;
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.2s ease;
 }
 </style>

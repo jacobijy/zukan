@@ -41,6 +41,8 @@ function makeRoster(count = 1025): IPokemonBaseModel[] {
                 { name: 'HP', value: (id * 7) % 160 + 20 },
                 { name: '攻击', value: (id * 13) % 180 + 10 },
                 { name: '防御', value: (id * 29) % 150 + 15 },
+                { name: '特攻', value: (id * 31) % 170 + 25 },
+                { name: '特防', value: (id * 37) % 165 + 20 },
             ],
         } satisfies IPokemonBaseModel;
     });
@@ -89,6 +91,8 @@ describe('排序', () => {
         ['hp', 'HP'],
         ['attack', '攻击'],
         ['defense', '防御'],
+        ['spAttack', '特攻'],
+        ['spDefense', '特防'],
     ] as const)('按 %s 降序，首条是全表最高', (sort, statName) => {
         const matched = filterAndSortPokemons(roster, { sort: sort as DexSortKey });
         const globalMax = Math.max(...roster.map((p) => statOf(p, statName)));
@@ -102,13 +106,6 @@ describe('排序', () => {
         const matched = filterAndSortPokemons(roster, {});
         expect(matched[0].id).toBe(1);
         expect(matched.at(-1)!.id).toBe(1025);
-    });
-
-    it('按 name 字典序', () => {
-        const matched = filterAndSortPokemons(roster, { sort: 'name' });
-        const names = matched.map((p) => p.name);
-        const sorted = [...names].toSorted((a, b) => a.localeCompare(b));
-        expect(names).toEqual(sorted);
     });
 
     it('不改动入参数组', () => {
