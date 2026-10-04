@@ -5,15 +5,23 @@
             <text class="text-[10px] font-black tracking-[0.14em] text-[#8d929c]">SPREAD</text>
         </view>
 
-        <view v-if="rows.length" class="grid gap-3">
-            <view v-for="(row, i) in rows" :key="i" class="flex items-center gap-2.5">
-                <text class="w-36 flex-shrink-0 font-mono text-[12px] font-extrabold tabular-nums text-[#4a5060]">{{ formatSpread(row) }}</text>
+        <view v-if="rows.length" class="spread-card">
+            <!-- 表头 -->
+            <view class="spread-grid spread-grid--head">
+                <text class="spread-grid__rank">#</text>
+                <text v-for="(col, ci) in statColumns" :key="ci">{{ col }}</text>
+                <text class="spread-grid__pct">{{ t('meta.usageRate') }}</text>
+            </view>
 
-                <view class="h-1.5 flex-1 overflow-hidden rounded-full bg-[#eef0f5]">
-                    <view class="h-full rounded-full bg-gradient-to-r from-[#f5a05c] to-[#e07a2a]" :style="{ width: `${row.barWidth}%` }"></view>
-                </view>
-
-                <text class="w-11 flex-shrink-0 text-right font-mono text-[12px] font-extrabold tabular-nums text-[#24262b]">{{ row.pct }}%</text>
+            <!-- 数据行 -->
+            <view
+                v-for="(row, i) in rows"
+                :key="i"
+                class="spread-grid spread-grid--data"
+            >
+                <text class="spread-grid__rank">{{ i + 1 }}</text>
+                <text v-for="(value, vi) in statValues(row)" :key="vi">{{ value }}</text>
+                <text class="spread-grid__pct">{{ row.pct }}%</text>
             </view>
         </view>
 
@@ -22,6 +30,7 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { SpreadRowVM } from '@/services/meta';
 
@@ -32,13 +41,76 @@ defineProps<{
 
 const { t } = useI18n();
 
-// 紧凑 SP 读数：省略 0 值，如 `HP1 ATK32 SPE32`；全 0 记为 BALANCED
-function formatSpread(r: SpreadRowVM): string {
-    const parts: Array<[string, number]> = [
-        ['HP', r.hp], ['ATK', r.atk], ['DEF', r.def],
-        ['SPA', r.spa], ['SPD', r.spd], ['SPE', r.spe],
-    ];
-    const text = parts.filter(([, v]) => v > 0).map(([k, v]) => `${k}${v}`).join(' ');
-    return text || 'BALANCED';
-}
+// 六维列名复用 teams.sp 名称表（含速度），避免再复制一份
+const statColumns = computed(() => [
+    t('teams.sp.hp'), t('teams.sp.atk'), t('teams.sp.def'),
+    t('teams.sp.spa'), t('teams.sp.spd'), t('teams.sp.spe'),
+]);
+
+// 列顺序与 statColumns 对应：HP / 攻击 / 防御 / 特攻 / 特防 / 速度
+const statValues = (r: SpreadRowVM) => [r.hp, r.atk, r.def, r.spa, r.spd, r.spe];
 </script>
+
+<style lang="scss" scoped>
+$separator: rgba(60, 60, 67, 0.12);
+
+.spread-card {
+    border: 1px solid #e8eaf0;
+    border-radius: 14px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+/* # / 六项 / 使用率：数字列等宽 */
+.spread-grid {
+    display: grid;
+    grid-template-columns: 22px repeat(6, minmax(0, 1fr)) 50px;
+    align-items: center;
+}
+
+.spread-grid--head {
+    background: #f7f8fa;
+    border-bottom: 0.5px solid $separator;
+
+    text {
+        padding: 9px 0;
+        color: #8d929c;
+        font-size: 10px;
+        font-weight: 700;
+        text-align: center;
+    }
+}
+
+.spread-grid--data {
+    border-bottom: 0.5px solid $separator;
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    text {
+        padding: 8px 0;
+        color: #3a4050;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 12.5px;
+        font-weight: 600;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.spread-grid__rank {
+    color: #9aa0ac !important;
+}
+
+/* 使用率列右对齐，列头与数值对齐 */
+.spread-grid__pct {
+    padding-right: 10px !important;
+    text-align: right !important;
+}
+
+.spread-grid--data .spread-grid__pct {
+    color: #24262b !important;
+    font-weight: 800;
+}
+</style>

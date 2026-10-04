@@ -50,11 +50,10 @@ export function toRateRows<T extends RateLike>(rows: T[] | undefined): Array<T &
     }));
 }
 
-/** SP 加点：按 rank 升序，六项取整（缺省 0），barWidth 相对组内榜首。 */
+/** SP 加点：按 rank 升序，六项取整（缺省 0）；表格展示，无进度条。 */
 export function toSpreadRows(rows: SpreadRowJson[] | undefined): SpreadRowVM[] {
     return toRateRows(rows).map((r) => ({
         pct: r.pct,
-        barWidth: r.barWidth,
         hp: statInt(r.hp),
         atk: statInt(r.atk),
         def: statInt(r.def),

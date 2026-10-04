@@ -130,7 +130,6 @@ export interface RateRowVM {
 /** SP 加点行 VM */
 export interface SpreadRowVM {
     pct: number;
-    barWidth: number;
     hp: number;
     atk: number;
     def: number;

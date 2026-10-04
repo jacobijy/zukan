@@ -63,9 +63,9 @@ describe('toSpreadRows', () => {
         const out = toSpreadRows(rows);
         expect(out[0]).toMatchObject({ hp: 2, atk: 32, def: 0, spd: 7, spe: 32 });
     });
-    it('barWidth 相对 rank1', () => {
+    it('保留 pct 且按 rank 升序', () => {
         const out = toSpreadRows(rows);
-        expect(out.map((r) => r.barWidth)).toEqual([100, 50]);
+        expect(out.map((r) => r.pct)).toEqual([20, 10]);
     });
 });
 

@@ -341,7 +341,7 @@ const zhHans = {
         usernameLabel: '用户名',
         emailLabel: '邮箱',
         passwordLabel: '密码',
-        idPlaceholder: '例如 ash 或 ash@pallet.town',
+        idPlaceholder: '例如 ash 或 ash\\@pallet.town',
         usernamePlaceholder: '给自己起个训练师名',
         emailPlaceholder: '用于找回账号',
         passwordPlaceholderLogin: '输入登录密码',
@@ -398,6 +398,7 @@ const zhHans = {
         sectionNatures: '性格选用率',
         sectionSpreads: 'SP 加点分布',
         sectionTeammates: '常见队友',
+        usageRate: '使用率',
         pokemonEmpty: '暂无选用数据',
     },
     teams: {
@@ -787,7 +788,7 @@ const en: typeof zhHans = {
         usernameLabel: 'Username',
         emailLabel: 'Email',
         passwordLabel: 'Password',
-        idPlaceholder: 'e.g. ash or ash@pallet.town',
+        idPlaceholder: 'e.g. ash or ash\\@pallet.town',
         usernamePlaceholder: 'Pick a trainer name',
         emailPlaceholder: 'For account recovery',
         passwordPlaceholderLogin: 'Enter your password',
@@ -844,6 +845,7 @@ const en: typeof zhHans = {
         sectionNatures: 'Nature usage',
         sectionSpreads: 'SP spreads',
         sectionTeammates: 'Teammates',
+        usageRate: 'Usage',
         pokemonEmpty: 'No usage data',
     },
     teams: {
