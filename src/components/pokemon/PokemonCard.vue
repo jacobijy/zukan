@@ -40,7 +40,13 @@
                                 <!-- #endif -->
                             </button>
                         </view>
-                        <text class="mt-1 block min-w-0 truncate text-[20px] font-black leading-tight tracking-[-0.03em] text-[#24262b] sm:text-[21px]">{{ props.pokemon.name }}</text>
+                        <text v-if="props.pokemon.nameReady !== false" class="mt-1 block min-w-0 truncate text-[20px] font-black leading-tight tracking-[-0.03em] text-[#24262b] sm:text-[21px]">{{ props.pokemon.name }}</text>
+                        <!-- 名称表未就绪：三点跳动加载态，避免闪现 pokemon-xxx 占位 -->
+                        <view v-else class="name-loading mt-1" aria-label="名称加载中">
+                            <view class="name-loading__dot"></view>
+                            <view class="name-loading__dot"></view>
+                            <view class="name-loading__dot"></view>
+                        </view>
                     </view>
 
                     <view class="flex shrink-0 flex-col items-end justify-center gap-1">
@@ -85,6 +91,43 @@ const onClick = () => {
 </script>
 
 <style lang="scss" scoped>
+/* 名称加载态：三个点依次上下跳动，高度对齐名称行避免布局抖动 */
+.name-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 25px;
+}
+
+.name-loading__dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 9999px;
+    background: #c3c7d0;
+    animation: name-dot-pop 1.1s ease-in-out infinite;
+}
+
+.name-loading__dot:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.name-loading__dot:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes name-dot-pop {
+    0%,
+    60%,
+    100% {
+        opacity: 0.35;
+        transform: translateY(0);
+    }
+    30% {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+}
+
 .specimen-card__inner {
     isolation: isolate;
 }

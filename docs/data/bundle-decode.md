@@ -93,7 +93,9 @@ PKMB 是五张**并行表**，都按 pokemon id 对齐：
 - `ability(abilityId)` / `eggGroup(eggGroupId)` → 特性名 / 蛋组名
 
 i18n 未就绪时各字段回退占位符（`pokemon-{id}` / `form-{id}` / 数字 id），
-i18n 加载完成后 store 重映射一次。`image` 固定 `/static/default.png` —— 卡面图走
+i18n 加载完成后 store 重映射一次。merge 同时写入 `nameReady`（resolver 是否注入）：
+卡片在 `nameReady=false` 时渲染三点跳动的名称加载态，不露出 `pokemon-{id}` 占位。
+`image` 固定 `/static/default.png` —— 卡面图走
 `EncryptedSprite` 独立通道，不是 model 字段。
 
 ## 三套 id 空间（排查「图不对 / 名不对 / 404」的关键）

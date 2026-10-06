@@ -81,6 +81,11 @@ interface IPokemonBaseModel {
     /** 该形态是否有正面立绘；false 时 UI 应屏蔽该形态（不进卡片/详情左右切换） */
     hasSprite?: boolean;
     name: string;
+    /**
+     * 名称表是否就绪：false 表示 i18n 未注入，此时 `name` 为 `pokemon-{id}` 占位符，
+     * UI 应显示名称加载态而非占位文本；缺席（其它构造路径）视为就绪。
+     */
+    nameReady?: boolean;
     types: string[];
     abilities: string[];
     hiddenAbility: string;

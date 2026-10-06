@@ -84,8 +84,10 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
               ]
             : [];
 
-        // 物种名：i18n 未就绪时回落 `pokemon-<id>` 占位
+        // 物种名：i18n 未就绪时回落 `pokemon-<id>` 占位（供无加载态的消费方），
+        // 卡片据 nameReady=false 渲染三点加载动画而不显示该占位。
         const name = names?.species(b.speciesId) ?? `pokemon-${b.id}`;
+        const nameReady = names !== null;
         // 分类（genus，如「种子宝可梦」）：查 i18n species.genus
         const category = names?.genus(b.speciesId) ?? '';
         // 形态名（切换胶囊用）：默认形态无标签；非默认形态取 i18n 完整形态名
@@ -101,6 +103,7 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
             hasSprite: b.hasSprite,
             formLabel,
             name,
+            nameReady,
             types,
             abilities,
             hiddenAbility,

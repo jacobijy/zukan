@@ -107,7 +107,7 @@
 `src/store/i18n.ts` 加载 PKNM 后构建查找表，`pokemon.ts::mergeBundleToModel` 通过
 `NameResolvers`（species/genus/form/ability/eggGroup）取名：
 
-- store 未就绪时 resolver 为 `null`，merge 回落占位符（`pokemon-{id}` / `form-{id}` / 数字 id）；
+- store 未就绪时 resolver 为 `null`，merge 回落占位符（`pokemon-{id}` / `form-{id}` / 数字 id），并置 `nameReady=false`；卡片据此显示三点加载态而非占位名；
 - 名称就绪后 store 触发一次重映射，占位符被真实名替换。
 
 ### 上游数据缺口与回落
