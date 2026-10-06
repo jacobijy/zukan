@@ -25,7 +25,7 @@
 |------|------|------|
 | 特性 / 道具 / 招式 | `meta/MetaRateSection.vue` | 英文引用名翻译 + pct + 相对 rank1 的进度条 |
 | 性格 | `MetaRateSection` kind=nature | 名称 + pct，副行 `↑up ↓down`（图鉴 stat 名翻译） |
-| SP 加点 | `meta/SpreadSection.vue` | pct + 紧凑读数（`HP1 ATK32 SPE32`，0 值省略） |
+| SP 加点 | `meta/SpreadSection.vue` | 六维等宽数字表（含 0）+ pct；保留列说明表头（# / HP…SPE / 使用率），与其它分区一样平铺在 `.archive-section` 白卡上 |
 | 常见队友 | `meta/TeammateSection.vue` | 精灵图 + 名（无 pct），点按在同 format 下跳到该队友配置 |
 
 **道具行的图标**：道具行名称左侧用对战数据的道具图标，由 `meta/BattleItemIcon.vue` 渲染，

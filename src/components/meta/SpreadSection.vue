@@ -5,15 +5,15 @@
             <text class="text-[10px] font-black tracking-[0.14em] text-[#8d929c]">SPREAD</text>
         </view>
 
-        <view v-if="rows.length" class="spread-card">
-            <!-- 表头 -->
+        <view v-if="rows.length" class="spread-table">
+            <!-- 表头：仅作列说明，白底安静标签 + 发丝线分隔，不做灰底卡片 -->
             <view class="spread-grid spread-grid--head">
                 <text class="spread-grid__rank">#</text>
                 <text v-for="(col, ci) in statColumns" :key="ci">{{ col }}</text>
                 <text class="spread-grid__pct">{{ t('meta.usageRate') }}</text>
             </view>
 
-            <!-- 数据行 -->
+            <!-- 数据行：与其它面板一样平铺在 .archive-section 白卡上 -->
             <view
                 v-for="(row, i) in rows"
                 :key="i"
@@ -54,26 +54,19 @@ const statValues = (r: SpreadRowVM) => [r.hp, r.atk, r.def, r.spa, r.spd, r.spe]
 <style lang="scss" scoped>
 $separator: rgba(60, 60, 67, 0.12);
 
-.spread-card {
-    border: 1px solid #e8eaf0;
-    border-radius: 14px;
-    background: #ffffff;
-    overflow: hidden;
-}
-
-/* # / 六项 / 使用率：数字列等宽 */
+/* # / 六项 / 使用率：数字列等宽，内容平铺于外层白卡，不再内嵌带边容器 */
 .spread-grid {
     display: grid;
     grid-template-columns: 22px repeat(6, minmax(0, 1fr)) 50px;
     align-items: center;
 }
 
+/* 列说明行：无灰底；标签安静，底部发丝线把「说明」与数据分开 */
 .spread-grid--head {
-    background: #f7f8fa;
     border-bottom: 0.5px solid $separator;
 
     text {
-        padding: 9px 0;
+        padding: 0 0 9px;
         color: #8d929c;
         font-size: 10px;
         font-weight: 700;
@@ -89,7 +82,7 @@ $separator: rgba(60, 60, 67, 0.12);
     }
 
     text {
-        padding: 8px 0;
+        padding: 9px 0;
         color: #3a4050;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 12.5px;
