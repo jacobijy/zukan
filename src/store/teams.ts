@@ -15,16 +15,16 @@
  */
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
-import { teamsApi } from '@/services/api';
+import { authApi, teamsApi } from '@/services/api';
 import type { TeamSummary } from '@/services/api/teams';
 import { RestRequestError } from '@/services/http';
-import { isAuthenticated } from '@/services/session';
+import { clearSession, isAuthenticated } from '@/services/session';
 import { authGate, LoginDismissedError } from '@/services/session/authGate';
 import { emptyPayload, normalizePayload, validateTeam, type TeamPayload } from '@/services/teams/team-model';
 
 // ── 结果类型 ───────────────────────────────────────────
 export type InvalidReason = 'name-required' | 'name-too-long' | 'payload-too-large';
-export type ErrorReason = 'not-found' | 'conflict' | 'invalid-input';
+export type ErrorReason = 'not-found' | 'conflict' | 'invalid-input' | 'session-expired';
 
 export type SaveOutcome =
     | { status: 'saved'; id: string }
@@ -171,16 +171,12 @@ export const useTeamsStore = defineStore('teams', () => {
 
         saving.value = true;
         try {
-            if (currentId.value === null) {
-                const created = await teamsApi.createTeam(v.trimmedName, payload);
-                currentId.value = created.id;
-                upsertSummary(created);
-                return { status: 'saved', id: created.id };
-            }
-            const updated = await teamsApi.updateTeam(currentId.value, { name: v.trimmedName, payload });
-            upsertSummary(updated);
-            return { status: 'saved', id: updated.id };
+            return await runWithRetry(() => saveOnce(v.trimmedName, payload));
         } catch (e) {
+            if (isRestError(e) && e.statusCode === 401) {
+                // refresh 也失败 → 会话已清；提示重新登录
+                return { status: 'error', reason: 'session-expired' };
+            }
             if (isRestError(e)) {
                 const body = errBody(e);
                 if (e.statusCode === 404) {
@@ -198,6 +194,35 @@ export const useTeamsStore = defineStore('teams', () => {
             throw e;
         } finally {
             saving.value = false;
+        }
+    }
+
+    /** 发一次保存请求并更新摘要；不处理 401（由 save 外层做会话恢复重试）。 */
+    async function saveOnce(trimmedName: string, payload: TeamPayload): Promise<SaveOutcome> {
+        if (currentId.value === null) {
+            const created = await teamsApi.createTeam(trimmedName, payload);
+            currentId.value = created.id;
+            upsertSummary(created);
+            return { status: 'saved', id: created.id };
+        }
+        const updated = await teamsApi.updateTeam(currentId.value, { name: trimmedName, payload });
+        upsertSummary(updated);
+        return { status: 'saved', id: updated.id };
+    }
+
+    /** 401 → refresh 后重试一次；refresh 失败清会话并抛 401 由调用方映射。 */
+    async function runWithRetry<T>(fn: () => Promise<T>): Promise<T> {
+        try {
+            return await fn();
+        } catch (e) {
+            if (!(isRestError(e) && e.statusCode === 401)) throw e;
+            try {
+                await authApi.refresh();
+            } catch {
+                clearSession();
+                throw new RestRequestError('会话过期', 401);
+            }
+            return await fn();
         }
     }
 

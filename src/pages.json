@@ -155,6 +155,20 @@
         "navigationBarTitleText": "编辑队伍",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/templates/templates",
+      "style": {
+        "navigationBarTitleText": "我的模板",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/templates/template-edit",
+      "style": {
+        "navigationBarTitleText": "编辑模板",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

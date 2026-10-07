@@ -11,7 +11,12 @@ import { createPinia, setActivePinia } from 'pinia';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ctrl = vi.hoisted<Record<string, any>>(() => ({}));
 
-vi.mock('@/services/session', () => ({ isAuthenticated: () => ctrl.isAuth }));
+vi.mock('@/services/session', () => ({
+    isAuthenticated: () => ctrl.isAuth,
+    clearSession: () => {
+        ctrl.sessionCleared = true;
+    },
+}));
 
 vi.mock('@/services/session/authGate', async (importOriginal) => {
     const actual = await importOriginal<typeof import('@/services/session/authGate')>();
@@ -22,6 +27,9 @@ vi.mock('@/services/session/authGate', async (importOriginal) => {
 });
 
 vi.mock('@/services/api', () => ({
+    authApi: {
+        refresh: () => ctrl.refresh(),
+    },
     teamsApi: {
         listTeams: (...a: unknown[]) => ctrl.list(...a),
         createTeam: (...a: unknown[]) => ctrl.create(...a),
@@ -41,7 +49,9 @@ const gone = { id: 'gone', name: 'g', created_at: 'c', updated_at: 'u' };
 beforeEach(() => {
     setActivePinia(createPinia());
     ctrl.isAuth = true;
+    ctrl.sessionCleared = false;
     ctrl.requireLogin = vi.fn().mockResolvedValue(undefined);
+    ctrl.refresh = vi.fn().mockResolvedValue({ access_token: 'new-token' });
     ctrl.list = vi.fn().mockResolvedValue([]);
     ctrl.create = vi.fn().mockResolvedValue({});
     ctrl.get = vi.fn().mockResolvedValue({});
@@ -188,5 +198,44 @@ describe('rename', () => {
         expect(out).toEqual({ updated: true });
         expect(ctrl.update).toHaveBeenCalledWith('gone', { name: '新名' });
         expect(store.summaries[0].name).toBe('新名');
+    });
+});
+
+describe('401 会话恢复', () => {
+    it('保存遇 401 → refresh 成功后重试一次并保存成功', async () => {
+        const store = useTeamsStore();
+        store.beginCreate('新队');
+        ctrl.create = vi
+            .fn()
+            .mockRejectedValueOnce(new RestRequestError('过期', 401, { code: 'UNAUTHENTICATED' }))
+            .mockResolvedValueOnce({ id: 'srv', name: '新队', payload: {}, created_at: 'c', updated_at: 'u' });
+
+        const out = await store.save();
+        expect(out).toEqual({ status: 'saved', id: 'srv' });
+        expect(ctrl.refresh).toHaveBeenCalledOnce();
+        expect(ctrl.create).toHaveBeenCalledTimes(2);
+        expect(store.currentId).toBe('srv');
+    });
+
+    it('refresh 也失败 → 清会话并返回 session-expired，不再重试', async () => {
+        const store = useTeamsStore();
+        store.beginCreate('新队');
+        ctrl.create = vi.fn().mockRejectedValue(new RestRequestError('过期', 401, { code: 'UNAUTHENTICATED' }));
+        ctrl.refresh = vi.fn().mockRejectedValue(new Error('refresh 失败'));
+
+        const out = await store.save();
+        expect(out).toEqual({ status: 'error', reason: 'session-expired' });
+        expect(ctrl.sessionCleared).toBe(true);
+        expect(ctrl.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('非 401 错误不触发 refresh', async () => {
+        const store = useTeamsStore();
+        store.beginCreate('新队');
+        ctrl.create = vi.fn().mockRejectedValue(new RestRequestError('重名', 409, { code: 'CONFLICT' }));
+
+        const out = await store.save();
+        expect(out).toEqual({ status: 'error', reason: 'conflict' });
+        expect(ctrl.refresh).not.toHaveBeenCalled();
     });
 });

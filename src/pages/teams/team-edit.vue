@@ -48,7 +48,13 @@
             </view>
         </scroll-view>
 
-        <MemberPicker v-model:visible="pickerVisible" @pick="onPick" />
+        <PokemonPicker
+            v-model:visible="pickerVisible"
+            :title="t('teams.title')"
+            :form-title="t('teams.pickForm')"
+            :search-placeholder="t('teams.pickerSearch')"
+            @pick="onPick"
+        />
         <LoginModal v-model:visible="showLogin" @success="onLoginSuccess" />
     </view>
 </template>
@@ -62,9 +68,9 @@ import { interp } from '@/services/i18n/ui-i18n';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import LoginModal from '@/components/shared/LoginModal.vue';
 import FormatSwitch from '@/components/meta/FormatSwitch.vue';
-import MemberPicker from '@/components/teams/MemberPicker.vue';
+import PokemonPicker from '@/components/shared/PokemonPicker.vue';
 import MemberCard from '@/components/teams/MemberCard.vue';
-import { useTeamsStore } from '@/store/teams';
+import { useTeamsStore, type SaveOutcome } from '@/store/teams';
 import { authGate } from '@/services/session/authGate';
 import { glyph } from '@/components/icon/glyphs';
 import {
@@ -130,7 +136,14 @@ function onPick(speciesId: number, formId?: number): void {
 
 // ── 保存 ──
 async function onSave(): Promise<void> {
-    const outcome = await store.save();
+    let outcome: SaveOutcome;
+    try {
+        outcome = await store.save();
+    } catch {
+        // 非 RestRequestError（网络中断等）：兜底提示，避免静默失败
+        uni.showToast({ title: t('teams.errorGeneric'), icon: 'none' });
+        return;
+    }
 
     if (outcome.status === 'saved') {
         uni.showToast({ title: t('teams.saved'), icon: 'none' });
@@ -138,6 +151,9 @@ async function onSave(): Promise<void> {
         // 静默：用户主动关闭了登录层
     } else if (outcome.status === 'invalid') {
         uni.showToast({ title: invalidText(outcome.reason), icon: 'none' });
+    } else if (outcome.reason === 'session-expired') {
+        // 会话已失效且刷新失败 → 引导重新登录
+        uni.showToast({ title: t('teams.errorAuth'), icon: 'none' });
     } else {
         uni.showToast({ title: outcome.message ?? t('teams.errorGeneric'), icon: 'none' });
     }

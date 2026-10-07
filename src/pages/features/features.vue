@@ -60,6 +60,14 @@
                     </svg>
                     <!-- #endif -->
                     <!-- #ifdef MP-WEIXIN -->
+                    <text v-else-if="item.icon === 'bookmark'" class="ic text-[24px]">{{ glyph('bookmark') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg v-else-if="item.icon === 'bookmark'" data-ic="bookmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+                    </svg>
+                    <!-- #endif -->
+                    <!-- #ifdef MP-WEIXIN -->
                     <text v-else class="ic text-[24px]">{{ glyph('clipboard') }}</text>
                     <!-- #endif -->
                     <!-- #ifndef MP-WEIXIN -->
@@ -88,6 +96,7 @@ const featureItems = computed(() => [
     { title: t('features.statcalc.title'), desc: t('features.statcalc.desc'), meta: t('features.statcalc.meta'), url: '/pages/statcalc/statcalc', icon: 'sliders', iconClass: 'list-row__icon--gold' },
     { title: t('features.simulate.title'), desc: t('features.simulate.desc'), meta: t('features.simulate.meta'), url: '/pages/simulate/simulate', icon: 'grid', iconClass: 'list-row__icon--blue' },
     { title: t('features.teams.title'), desc: t('features.teams.desc'), meta: t('features.teams.meta'), url: '/pages/teams/teams', icon: 'team', iconClass: 'list-row__icon--blue' },
+    { title: t('features.templates.title'), desc: t('features.templates.desc'), meta: t('features.templates.meta'), url: '/pages/templates/templates', icon: 'bookmark', iconClass: 'list-row__icon--violet' },
     { title: t('features.stats.title'), desc: t('features.stats.desc'), meta: t('features.stats.meta'), url: '/pages/data/data', icon: 'chart', iconClass: 'list-row__icon--violet' },
 ]);
 

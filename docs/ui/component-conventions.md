@@ -31,6 +31,8 @@ src/components/
              SpreadSection（SP 加点分布）、TeammateSection（常见队友）
   teams/     自建队伍：MemberPicker（全屏物种/形态选择）、MemberCard（成员内联编辑，
              内挂 4 个 OptionSheet）、SpreadEditor（SP 六维）、SelectedMoveChip、TeamListRow
+  templates/ 个人模板：TemplateBuildEditor（规则版本分段 + 宝可梦/等级/性格 + 六维输入与
+             实时能力值的共享配置内核，计算器与模板编辑页共用）、TemplateListRow（模板列表行）
   devtools/  dev-only 排障工具：AssetProbeForm、AssetProbeCard（资源探测器）、
              TextBrowseForm、TextEntryRow（i18n 文本浏览；文案硬编码中文，刻意不接 i18n）
   (根目录)    NavBar、TabBar（跨页面顶栏 / 底栏，非 shared 子目录）
