@@ -132,8 +132,9 @@ export const useTemplatesStore = defineStore('templates', () => {
         saveLocalTemplates(records.value);
     }
 
-    /** requireLogin：用户关闭 → aborted；其余异常向上抛。 */
+    /** requireLogin：已登录直接通过（access 过期由 save 的 401 会话恢复处理）；未登录弹层，用户关闭 → aborted。 */
     async function gateOrAbort(): Promise<{ aborted: boolean }> {
+        if (isAuthenticated()) return { aborted: false };
         try {
             await authGate.requireLogin();
             return { aborted: false };

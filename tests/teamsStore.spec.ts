@@ -60,7 +60,7 @@ beforeEach(() => {
 });
 
 describe('save 新建', () => {
-    it('requireLogin → POST，currentId 采用响应 id（非本地造），摘要新增', async () => {
+    it('已登录直接 POST（不弹登录层），currentId 采用响应 id（非本地造），摘要新增', async () => {
         const store = useTeamsStore();
         store.beginCreate('新队');
         expect(store.currentId).toBeNull();
@@ -69,16 +69,17 @@ describe('save 新建', () => {
         ctrl.create = vi.fn().mockResolvedValue(created);
 
         const out = await store.save();
-        expect(ctrl.requireLogin).toHaveBeenCalledOnce();
+        expect(ctrl.requireLogin).not.toHaveBeenCalled();
         expect(ctrl.create).toHaveBeenCalledWith('新队', expect.anything());
         expect(out).toEqual({ status: 'saved', id: 'srv-id' });
         expect(store.currentId).toBe('srv-id');
         expect(store.summaries.map((s) => s.id)).toEqual(['srv-id']);
     });
 
-    it('登录被关闭 → aborted，不发请求、不抛错', async () => {
+    it('未登录弹登录层，登录被关闭 → aborted，不发请求、不抛错', async () => {
         const store = useTeamsStore();
         store.beginCreate('n');
+        ctrl.isAuth = false;
         ctrl.requireLogin = vi.fn().mockRejectedValue(new LoginDismissedError());
 
         const out = await store.save();

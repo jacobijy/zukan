@@ -10,6 +10,14 @@
                 <view class="field-loader"></view>
             </view>
 
+            <!-- 历史赛季数据未发布 → 降级空态 -->
+            <view v-else-if="unavailable" class="flex h-full items-center justify-center">
+                <view class="text-center px-8">
+                    <text class="block text-[15px] font-extrabold text-[#6f7682]">{{ t('meta.seasonUnavailableTitle') }}</text>
+                    <text class="mt-1 block text-[13px] font-semibold text-[#a6abb5]">{{ t('meta.seasonUnavailableDesc') }}</text>
+                </view>
+            </view>
+
             <view v-else class="mx-auto flex max-w-[720px] flex-col gap-3 pt-3">
                 <!-- 头部：立绘 + 名称 + 格式 / 赛季 -->
                 <view class="glass-panel flex items-center gap-4 px-5 py-5">
@@ -88,15 +96,20 @@ const i18nStore = useI18nStore();
 
 const slug = ref('');
 const format = ref<BattleFormat>('singles');
+/** 当前展示赛季；null = 当前赛季（根路径），历史赛季为赛季名（如 'M5'） */
+const season = ref<string | null>(null);
 const config = shallowRef<PokemonConfigVM | null>(null);
 const linkMap = shallowRef<Map<string, LinkEntry>>(new Map());
 const meta = shallowRef<BattleMetaJson | null>(null);
 const dicts = shallowRef<Partial<Record<BattleDictCategory, BattleDict>>>({});
 const loading = ref(true);
+/** 历史赛季数据未发布（404）时置 true，显示降级空态 */
+const unavailable = ref(false);
 
 onLoad(async (options) => {
     slug.value = decodeURIComponent(options?.slug ?? '');
     format.value = options?.format === 'doubles' ? 'doubles' : 'singles';
+    season.value = options?.season ? decodeURIComponent(options.season) : null;
     await loadAll();
 });
 
@@ -106,20 +119,23 @@ async function loadAll(): Promise<void> {
     loading.value = true;
     try {
         const [cfg, links, metaJson, ...dictList] = await Promise.all([
-            loadPokemonConfig(format.value, slug.value),
-            loadLinkMap(),
+            loadPokemonConfig(format.value, slug.value, season.value),
+            loadLinkMap(season.value),
             loadBattleMeta(),
-            ...cats.map(ensureDict),
+            ...cats.map((c) => ensureDict(c, season.value)),
         ]);
         config.value = cfg;
         linkMap.value = links;
         meta.value = metaJson;
         dicts.value = Object.fromEntries(cats.map((c, i) => [c, dictList[i]]));
+        unavailable.value = false;
         // 名称 lookup（招式分类名翻译依赖）；通常 boot 已就绪
         await i18nStore.ensureLoaded().catch((err) => console.warn('[meta] 名称组不可用', err));
         // 招式属性 / 分类反查表；失败不阻塞，招式行不显示徽章
         await ensureMoveRefs().catch((err) => console.warn('[meta] 招式反查表不可用', err));
     } catch (err) {
+        config.value = null;
+        unavailable.value = true;
         console.warn('[meta] 对战配置加载失败', err);
     } finally {
         loading.value = false;
@@ -136,7 +152,7 @@ const heroName = computed(() => {
 const formatLabel = computed(() =>
     format.value === 'doubles' ? t('meta.formatDoubles') : t('meta.formatSingles'),
 );
-const seasonLabel = computed(() => meta.value?.season ?? '');
+const seasonLabel = computed(() => season.value ?? meta.value?.season ?? '');
 
 /** 英文名行 → 翻译 + 相对 bar 的 VM */
 function translatedRate(

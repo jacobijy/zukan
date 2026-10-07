@@ -17,11 +17,22 @@ import type {
     PokemonConfigVM,
 } from './types';
 
+// ── 路径约定 ──
+
+/**
+ * 明文数据文件路径：历史赛季带 `${season}/` 段（如 `/assets/battle/M5/...`），
+ * 当前赛季（null / 空）沿用根路径 `/assets/battle/...`（后端当前只发布这一份）。
+ * meta.json 始终在根（声明 seasons 供切换）。
+ */
+function battlePath(season: string | null | undefined, suffix: string): string {
+    return season ? `assets/battle/${season}/${suffix}` : `assets/battle/${suffix}`;
+}
+
 // ── meta ──
 
 let metaPromise: Promise<BattleMetaJson> | null = null;
 
-/** 数据 meta（当前赛季 / dataVersion）；module 级缓存。 */
+/** 数据 meta（当前赛季 / seasons 列表 / dataVersion）；module 级缓存。 */
 export function loadBattleMeta(): Promise<BattleMetaJson> {
     if (metaPromise) return metaPromise;
     metaPromise = fetchAssetJson<BattleMetaJson>('assets/battle/meta.json');
@@ -33,49 +44,62 @@ export function loadBattleMeta(): Promise<BattleMetaJson> {
 
 // ── 排行榜 ──
 
-let leaderboardPromise: Promise<LeaderboardJson> | null = null;
+const leaderboardPromises = new Map<string, Promise<LeaderboardJson>>();
 
-function loadLeaderboardJson(): Promise<LeaderboardJson> {
-    if (leaderboardPromise) return leaderboardPromise;
-    leaderboardPromise = fetchAssetJson<LeaderboardJson>('assets/battle/leaderboard.json');
-    leaderboardPromise.catch(() => {
-        leaderboardPromise = null;
+function loadLeaderboardJson(season?: string | null): Promise<LeaderboardJson> {
+    const key = season ?? '';
+    const cached = leaderboardPromises.get(key);
+    if (cached) return cached;
+    const promise = fetchAssetJson<LeaderboardJson>(battlePath(season, 'leaderboard.json'));
+    promise.catch(() => {
+        leaderboardPromises.delete(key);
     });
-    return leaderboardPromise;
+    leaderboardPromises.set(key, promise);
+    return promise;
 }
 
-/** 某赛制的有序 slug 列表（排行榜两个列表同处 leaderboard.json）。 */
-export async function loadLeaderboardSlugs(format: BattleFormat): Promise<string[]> {
-    const json = await loadLeaderboardJson();
+/** 某赛制 × 赛季的有序 slug 列表（season 缺省 = 当前赛季）。 */
+export async function loadLeaderboardSlugs(
+    format: BattleFormat,
+    season?: string | null,
+): Promise<string[]> {
+    const json = await loadLeaderboardJson(season);
     return toSlugs(json[capFormat(format)]);
 }
 
 // ── link ──
 
-let linkPromise: Promise<Map<string, LinkEntry>> | null = null;
+const linkPromises = new Map<string, Promise<Map<string, LinkEntry>>>();
 
-/** slug → 图鉴物种 link 映射；module 级缓存。 */
-export function loadLinkMap(): Promise<Map<string, LinkEntry>> {
-    if (linkPromise) return linkPromise;
-    linkPromise = fetchAssetJson<Record<string, LinkEntry>>('assets/battle/link.json').then(
+/** slug → 图鉴物种 link 映射（season 缺省 = 当前赛季）；module 级缓存。 */
+export function loadLinkMap(season?: string | null): Promise<Map<string, LinkEntry>> {
+    const key = season ?? '';
+    const cached = linkPromises.get(key);
+    if (cached) return cached;
+    const promise = fetchAssetJson<Record<string, LinkEntry>>(battlePath(season, 'link.json')).then(
         (obj) => new Map(Object.entries(obj)),
     );
-    linkPromise.catch(() => {
-        linkPromise = null;
+    promise.catch(() => {
+        linkPromises.delete(key);
     });
-    return linkPromise;
+    linkPromises.set(key, promise);
+    return promise;
 }
 
 // ── 单只配置 ──
 
 const configCache = new Map<string, Promise<PokemonConfigVM>>();
 
-/** 某赛制 × slug 的完整对战配置（按需拉取）；按 `${format}:${slug}` 缓存。 */
-export function loadPokemonConfig(format: BattleFormat, slug: string): Promise<PokemonConfigVM> {
-    const key = `${format}:${slug}`;
+/** 某赛制 × 赛季 × slug 的完整对战配置（按需拉取）；按 `${season}:${format}:${slug}` 缓存。 */
+export function loadPokemonConfig(
+    format: BattleFormat,
+    slug: string,
+    season?: string | null,
+): Promise<PokemonConfigVM> {
+    const key = `${season ?? ''}:${format}:${slug}`;
     const cached = configCache.get(key);
     if (cached) return cached;
-    const path = `assets/battle/p/${capFormat(format)}/${slug}.json`;
+    const path = battlePath(season, `p/${capFormat(format)}/${slug}.json`);
     const promise = fetchAssetJson<PokemonConfigJson>(path).then(toPokemonConfig);
     promise.catch(() => {
         configCache.delete(key);

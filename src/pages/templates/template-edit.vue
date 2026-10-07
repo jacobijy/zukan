@@ -1,15 +1,11 @@
 <template>
     <view class="min-h-screen page-bg" :style="pageSafeArea">
         <DetailNavbar :title="isNew ? t('templates.create') : t('templates.editTitle')" fallback-url="/pages/templates/templates" @back="confirmExit">
-            <template #right>
-                <view class="save-trigger" :class="{ 'save-trigger--busy': store.saving }" @click="onSave">
-                    <text>{{ store.saving ? t('templates.saving') : t('templates.save') }}</text>
-                </view>
-            </template>
+            <template #right></template>
         </DetailNavbar>
 
         <scroll-view scroll-y class="edit-scroll mt-[var(--navbar-total-height)] h-[calc(100vh-var(--navbar-total-height))]">
-            <view class="mx-auto flex max-w-[720px] flex-col gap-4 px-4 pb-16 pt-3">
+            <view class="mx-auto flex max-w-[720px] flex-col gap-4 px-4 pb-32 pt-3">
                 <!-- 名称 -->
                 <view class="glass-panel edit-head">
                     <input
@@ -68,6 +64,18 @@
                 </view>
             </view>
         </scroll-view>
+
+        <!-- 底部固定保存条 -->
+        <view class="save-bar">
+            <button
+                class="save-bar__btn"
+                :class="{ 'save-bar__btn--busy': store.saving }"
+                :disabled="store.saving"
+                @click="onSave"
+            >
+                <text>{{ store.saving ? t('templates.saving') : t('templates.save') }}</text>
+            </button>
+        </view>
 
         <!-- 招式选择 -->
         <OptionSheet
@@ -301,22 +309,40 @@ function invalidText(reason: 'name-required' | 'name-too-long' | 'payload-too-la
     width: 100%;
 }
 
-.save-trigger {
-    padding: 6px 14px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #ff8a7e, #e04f47);
+.save-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 500;
+    padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    background: linear-gradient(to top, rgba(247, 248, 251, 0.98) 60%, rgba(247, 248, 251, 0));
+}
+
+.save-bar__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 50px;
+    border-radius: 16px;
     color: #ffffff;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 800;
-    box-shadow: 0 8px 18px rgba(224, 79, 71, 0.22);
+    background: linear-gradient(135deg, #ff8a7e, #e04f47);
+    box-shadow: 0 12px 24px rgba(224, 79, 71, 0.22);
+
+    &::after {
+        border: none !important;
+    }
 
     &:active {
         opacity: 0.85;
     }
-}
 
-.save-trigger--busy {
-    opacity: 0.6;
+    &:disabled {
+        opacity: 0.6;
+    }
 }
 
 .edit-head {

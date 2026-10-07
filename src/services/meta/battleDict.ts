@@ -12,17 +12,24 @@ export type BattleDictCategory = 'pokemon' | 'moves' | 'abilities' | 'items' | '
 
 export type BattleDict = Record<string, BattleI18nEntry>;
 
-const dictPromises: Partial<Record<BattleDictCategory, Promise<BattleDict>>> = {};
+/** 字典文件路径：历史赛季带 `${season}/` 段，当前赛季（null / 空）沿用根路径。 */
+function dictPath(season: string | null | undefined, category: BattleDictCategory): string {
+    const suffix = `i18n/${category}.json`;
+    return season ? `assets/battle/${season}/${suffix}` : `assets/battle/${suffix}`;
+}
 
-/** 加载（并缓存）某类字典；并发调用共享同一 promise。 */
-export function ensureDict(category: BattleDictCategory): Promise<BattleDict> {
-    const cached = dictPromises[category];
+const dictPromises = new Map<string, Promise<BattleDict>>();
+
+/** 加载（并缓存）某类字典；并发调用共享同一 promise。season 缺省 = 当前赛季。 */
+export function ensureDict(category: BattleDictCategory, season?: string | null): Promise<BattleDict> {
+    const key = `${season ?? ''}:${category}`;
+    const cached = dictPromises.get(key);
     if (cached) return cached;
-    const promise = fetchAssetJson<BattleDict>(`assets/battle/i18n/${category}.json`);
+    const promise = fetchAssetJson<BattleDict>(dictPath(season, category));
     promise.catch(() => {
-        delete dictPromises[category];
+        dictPromises.delete(key);
     });
-    dictPromises[category] = promise;
+    dictPromises.set(key, promise);
     return promise;
 }
 

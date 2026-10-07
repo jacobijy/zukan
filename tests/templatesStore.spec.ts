@@ -117,7 +117,7 @@ describe('本地草稿持久化', () => {
 });
 
 describe('保存上云', () => {
-    it('本地草稿 save → requireLogin → POST，用响应 id 替换本地 id、置 synced', async () => {
+    it('已登录保存 → 直接 POST（不弹登录层），用响应 id 替换本地 id、置 synced', async () => {
         const store = useTemplatesStore();
         store.records = [localRec()];
         store.currentId = 'local-x1';
@@ -128,7 +128,7 @@ describe('保存上云', () => {
         ctrl.create = vi.fn().mockResolvedValue(created);
 
         const out = await store.save();
-        expect(ctrl.requireLogin).toHaveBeenCalledOnce();
+        expect(ctrl.requireLogin).not.toHaveBeenCalled();
         expect(ctrl.create).toHaveBeenCalledWith('草稿', expect.anything());
         expect(out).toEqual({ status: 'saved', id: 'srv-new' });
         expect(store.currentId).toBe('srv-new');
@@ -139,6 +139,7 @@ describe('保存上云', () => {
     it('未登录 save → 登录关闭 → aborted，不发请求', async () => {
         const store = useTemplatesStore();
         store.beginCreate('n');
+        ctrl.isAuth = false;
         ctrl.requireLogin = vi.fn().mockRejectedValue(new LoginDismissedError());
 
         const out = await store.save();
@@ -146,13 +147,15 @@ describe('保存上云', () => {
         expect(ctrl.create).not.toHaveBeenCalled();
     });
 
-    it('未登录 save → 登录成功 → POST 上云', async () => {
+    it('未登录 save → 弹登录层，成功后 POST 上云', async () => {
         const store = useTemplatesStore();
         store.beginCreate('n');
         store.replacePayload(payload());
+        ctrl.isAuth = false;
         ctrl.create = vi.fn().mockResolvedValue({ id: 'srv', name: 'n', payload: payload(), created_at: 'c', updated_at: 'u' });
 
         const out = await store.save();
+        expect(ctrl.requireLogin).toHaveBeenCalledOnce();
         expect(out.status).toBe('saved');
         expect(ctrl.create).toHaveBeenCalledOnce();
     });
