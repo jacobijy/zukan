@@ -231,7 +231,7 @@ const teammateRows = computed<TeammateRowVM[]>(() => {
 
 const goTeammate = (candidate: string) => {
     uni.navigateTo({
-        url: `/pages/meta/pokemon-meta?slug=${encodeURIComponent(candidate)}&format=${format.value}`,
+        url: `/pages/meta/pokemon-meta?slug=${encodeURIComponent(candidate)}&format=${format.value}&season=${encodeURIComponent(season.value ?? '')}`,
     });
 };
 </script>
