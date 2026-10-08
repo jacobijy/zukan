@@ -21,6 +21,8 @@ dist
 *.sw?
 src/core/simulator/data-json
 .claude
+.agents
+.github
 
 # WASM build artifacts
 src/infra/wasm/pkg
