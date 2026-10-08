@@ -24,7 +24,7 @@
                 <!-- #endif -->
                 <!-- #ifndef MP-WEIXIN -->
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" data-ic="chevron-left" class="h-5 w-5">
-                    <path d="m9 6 6 6-6 6"></path>
+                    <path d="m15 18-6-6 6-6"></path>
                 </svg>
                 <!-- #endif -->
             </button>

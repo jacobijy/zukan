@@ -123,12 +123,12 @@
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
-                        stroke-width="3"
+                        stroke-width="2.8"
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         class="sheet-check"
                     >
-                        <path d="m9 18 6-6-6-6"></path>
+                        <path d="m5 12.5 4.5 4.5L19 7.5"></path>
                     </svg>
                     <!-- #endif -->
                 </view>

@@ -24,6 +24,34 @@
 // #endif
 ```
 
+## 图标字体：`data-ic` 收集与一致性门禁
+
+小程序 `<view>` 不支持 SVG，图标走**字体字形**：`build:icons`
+（`scripts/build-icons.mjs`，已被 `dev:mp-weixin` / `build:mp-weixin` 自动调用，单独执行
+用 `pnpm build:icons`）收集 `src/**/*.vue` 中带 `data-ic="<name>"` 标记的内联 `<svg>`，
+经 oslllo-svg-fixer 转填充 + fantasticon 生成 `src/static/fonts/zukan-icons.ttf`
+与 `src/components/icon/glyphs.ts`（name → unicode，`glyph(name)` 取字形）。H5/App 不受
+影响（内联 svg 照用）；同一个字体字形两端共用，**新增图标必须同时给两种形态**：
+`<svg data-ic="…" …>`（H5）与 `glyph('…')`（小程序）。
+
+**一致性门禁**：同名 `data-ic` 的 svg 图形必须等价，否则构建直接抛错
+`data-ic="X" 同名但图形不一致`。等价判定 `canonical()` **保留** viewBox / fill /
+stroke-width / path `d` 等几何属性，**忽略** stroke 颜色、opacity、linecap/linejoin、class。
+所以不只方向不同算冲突，**线宽不同（stroke-width）也算**。
+
+历史上因此踩过的复制错误（改图标时只改了名字、没同步几何）：
+
+- 复制 chevron-right 改 `data-ic="check"` 忘了改 path —— 选中勾显示成 `>` 箭头；
+- chevron-left 抄成右箭头；
+- 同名 bookmark 一处线宽 1.6、其余 2 —— 过不了门禁（大图细线、小图粗线的习惯
+  在字体里做不到，字形只能一个粗细）。
+
+排查注意：`collectFromVue` **一次只报第一个冲突，且只记录与首个遇到的不同文件**——
+修完一个，下一个同名校验才浮出来（历史上 OptionSheet 就是修完 GenerationDrawer 才暴露）。
+改 `data-ic` 图标后跑 `pnpm build:icons` 验证；全量列出真实冲突：把 `build-icons.mjs` 转
+CommonJS 加载、复用其内部 `cleanSvg`/`canonical`/`walkVue` 重写为「收集全部冲突后一次性
+输出」，别盲目迭代。
+
 ## 适配一：devtools 页仅 H5
 
 `src/pages/devtools/devtools.vue` 用 `<component :is="Impl">` 在两个动态 import 的

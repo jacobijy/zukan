@@ -15,6 +15,7 @@
 - mp-weixin 后台常驻 watch：`pnpm dev:mp:watch`（幂等；`--status` / `--stop`）；长期常驻推荐
   systemd 看门狗 `zukan-mp-watch.service`（watch 缺失自动拉起、「聋」时抓现场再重启）。
   详见 [docs/architecture/mp-weixin-remote-debug.md](docs/architecture/mp-weixin-remote-debug.md)
+- 小程序图标字体：`pnpm build:icons`（dev/build:mp-weixin 已自动调用；收集 `data-ic` svg 生成 ttf + glyphs.ts）
 - 启动/构建快应用：`pnpm dev:quickapp-webview` / `pnpm dev:quickapp-webview-huawei`（build 同理）
 
 门禁命令：`pnpm type-check`（必须 0 error）、`pnpm test`（vitest）、`pnpm lint`
@@ -53,6 +54,13 @@
 - **加密图片只在 404 时回落**，解密失败等真故障立即抛出；`hasSprite` prop 是三态，
   缺省必须保持 `undefined`（Vue 会把缺席的 Boolean prop 隐式置 false）。
 
+图标（小程序字体）：
+
+- **同名 `data-ic` 图标必须图形一致（含 stroke-width 线宽）**：build-icons 一致性门禁
+  拦同名不同形；复制图标改名时**必须同步 path**，别只改名字（历史上 check 被画成
+  chevron-right 的箭头、chevron-left 抄成右箭头都撞过）。规则与排查见
+  [docs/architecture/mp-weixin-build.md](docs/architecture/mp-weixin-build.md)「图标字体」。
+
 依赖方向与平台：
 
 - **断环靠依赖方向本身（注入 resolver / 纯函数 + 回调），不用动态 `import()`** ——
@@ -86,11 +94,13 @@
    `constants/cacheConfig.ts`、`infra/storage/binaryStorage.ts`、`composables/useEncryptedImage.ts`、
    `services/devtools/assetProbe.ts`）时尤其别跳过。
 3. `pnpm lint`、`pnpm format:check`。
-4. `pnpm dev:h5` 起服务后，用**移动端 UA** curl 改动的页面与组件，确认 200：
+4. 改过带 `data-ic` 标记的 `.vue` 时，跑 `pnpm build:icons` 必须通过（拦截同名不同形，
+   dev/build:mp-weixin 里自动会跑，但单独改图标要先验证）。
+5. `pnpm dev:h5` 起服务后，用**移动端 UA** curl 改动的页面与组件，确认 200：
    ```bash
    UA='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)'
    curl -s -o /dev/null -w '%{http_code}' -H "User-Agent: $UA" http://localhost:4000/src/pages/xxx/xxx.vue
    ```
-5. 涉及 CSS 变量绑定 / scoped 改写 / dev-only 代码时，额外拉编译产物核对
+6. 涉及 CSS 变量绑定 / scoped 改写 / dev-only 代码时，额外拉编译产物核对
    （样式请求 `?vue&type=style&index=0&scoped=true&lang.css`；dev-only 用
    `pnpm build:h5 && grep -rl "<实现体标识>" dist/build/h5` 应无命中）——这类问题 type-check 看不见。

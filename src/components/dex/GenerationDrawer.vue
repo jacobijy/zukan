@@ -45,8 +45,8 @@
                         <text v-if="selected === gen.value" class="ic text-[20px] text-[#83a84c]">{{ glyph('check') }}</text>
                         <!-- #endif -->
                         <!-- #ifndef MP-WEIXIN -->
-                        <svg v-if="selected === gen.value" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" data-ic="check" class="h-5 w-5 text-[#83a84c]">
-                            <path d="m9 18 6-6-6-6"></path>
+                        <svg v-if="selected === gen.value" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" data-ic="check" class="h-5 w-5 text-[#83a84c]">
+                            <path d="m5 12.5 4.5 4.5L19 7.5"></path>
                         </svg>
                         <!-- #endif -->
                     </view>
