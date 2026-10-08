@@ -62,6 +62,28 @@ GET /assets/battle/p/<Singles|Doubles>/<slug>.json
 - `season` 当前赛季；`dataVersion` 数据版本（= 构建时间戳），**用作缓存失效键**。
 - `generatedAt` 上游生成时间（上游约每日刷新）。
 
+## 历史赛季（`/assets/battle/<season>/`）
+
+**当前赛季**数据在根路径（上文各节）；**历史赛季**（M1–M5，`meta.seasons` 除 `season` 外的
+赛季）各自一个子树，内部结构与根完全相同，仅替换赛季段：
+
+```
+/assets/battle/M5/leaderboard.json
+/assets/battle/M5/p/<Singles|Doubles>/<slug>.json
+/assets/battle/M5/link.json
+/assets/battle/M5/i18n/{pokemon,moves,abilities,items,natures}.json
+```
+
+- `meta.json` 始终在根，`seasons` 数组声明全部可用赛季（当前 + 历史），供前端渲染赛季切换。
+- **路径约定与前端 `service.ts` 完全对应**：`battlePath(season, suffix)` —— 当前赛季传
+  `null` 走根路径，历史赛季传赛季名走 `<season>/` 子树。
+- **数据是最终快照（immutable）**：赛季结束后不再变化。后端只抓取一次存本地，检测到本地
+  不完整才重新抓取（见 [../features/metagame-usage.md](../features/metagame-usage.md)）。
+- 历史赛季的精灵阵容可能更小（如 M1 仅 213 只），`leaderboard` / `p` 数量因此不同；`link`
+  / `i18n` 复用当前季产物（物种关联、名表不随赛季变），多余键无妨、缺失键按通用降级处理。
+- **图标**：历史赛季页面继续用**当前赛季**图标（`battleImage.ts` 恒取 `meta.season`），
+  不为历史赛季另发图标。
+
 ## leaderboard.json
 
 紧凑排名，按 `rank` 升序：
@@ -254,6 +276,7 @@ rows item.name "Choice Scarf"
 | `meta.json` | 短缓存（如数分钟）或 `no-cache`，用它探新版本 |
 | `leaderboard.json` / `link.json` / `i18n/*` | 短缓存（数十分钟）；按 `meta.dataVersion` 主动失效 |
 | `p/<格式>/<slug>` | 可较长，但用 `dataVersion` 作版本键失效 |
+| 历史赛季 `/<season>/…` 整棵子树 | 数据 immutable，可长缓存（当前与根一致走短缓存 300s） |
 
 推荐做法：先拉 `meta.json` 比对 `dataVersion`，变化后再重新拉排行榜/配置，避免无谓下载。
 

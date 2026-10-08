@@ -4,15 +4,17 @@
 （不加密），字段契约见 [../data/battle-usage.md](../data/battle-usage.md)。
 
 要点：标识为 Showdown **slug**（非数字 id）；上游排行榜**只给名次、无使用率数值**；
-单只配置含 6 组；历史赛季不提供（仅当前 M6）。
+单只配置含 6 组；**历史赛季已发布**（`/assets/battle/<season>/` 子树，见
+[../data/battle-usage.md](../data/battle-usage.md)「历史赛季」）。
 
 ## 1. 使用率排行榜 `pages/meta/meta`
 
 赛制（单人/双人）下的宝可梦排名（各 262）。
 
 - 用 `components/archive/ArchiveListShell.vue`：DetailNavbar + `#list` 里的单列 68px 定高虚拟列表（VirtualList 由本页注入，见 archive.md「ArchiveListShell 不含 VirtualList」）。
-- `#tools`：`meta/FormatSwitch.vue`（单人/双人）+ **只读当前赛季标签**（`loadBattleMeta().season`）；
-  已移除赛季弹层（历史赛季 404）。
+- `#tools`：`meta/FormatSwitch.vue`（单人/双人）+ `meta/SeasonSwitch.vue`（赛季切换；
+  `seasons` 来自 `meta.json`，当前季标签 = `meta.season`）。历史季选中后 `service.ts` 走
+  `/assets/battle/<season>/` 子树（当前季仍走根路径）；历史季数据缺失（404）时优雅降级为空态。
 - 行组件 `meta/UsageRankingRow.vue`：排名（前三金色）+ 精灵图 + 名称（+形态小字）；
   **无百分比 / 进度条**（上游 leaderboard 无数值）。
 - 点行 → `pages/meta/pokemon-meta?slug=<slug>&format=<fmt>`。

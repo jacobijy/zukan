@@ -16,6 +16,8 @@
 | 道具图标 Blob URL | `itemImage.ts`（`imageCache` item 实例） | 内存 LRU（200 条） | — | 刷新即清空 |
 | 道具图标密文 | `itemImage.ts`（`imagePersist` item 实例，前缀 `item-img:`）via `binaryStorage` | IndexedDB（仅 IDB 后端，未开 fs） | 跨刷新 | `pruneItemIconVersions` |
 | 对战图标（道具已接） | `battleImage.ts`（字符串键、按赛季实例，root `battle-img:s<season>:`） | 内存 LRU 300 + IDB 密文（仅 IDB） | 跨刷新 | 换赛季路径/root 变，reconcile 清旧 |
+| 对战数据 JSON（当前季） | `services/meta/service.ts`（module promise 缓存） | 内存（module） | — | 建议按 `meta.dataVersion` 失效（待接） |
+| 对战数据 JSON（历史季） | `services/meta/service.ts` 按 `${season}:...` 缓存 | 内存（module） | — | 数据 immutable，无失效需求 |
 | 密钥 DEK | `session/key.ts` | 内存单例 | — | 登出 / 403 重签 |
 
 注意：

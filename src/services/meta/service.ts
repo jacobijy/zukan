@@ -21,8 +21,8 @@ import type {
 
 /**
  * 明文数据文件路径：历史赛季带 `${season}/` 段（如 `/assets/battle/M5/...`），
- * 当前赛季（null / 空）沿用根路径 `/assets/battle/...`（后端当前只发布这一份）。
- * meta.json 始终在根（声明 seasons 供切换）。
+ * 当前赛季（null / 空）沿用根路径 `/assets/battle/...`。
+ * meta.json 始终在根（声明 seasons 供切换，含历史赛季）。
  */
 function battlePath(season: string | null | undefined, suffix: string): string {
     return season ? `assets/battle/${season}/${suffix}` : `assets/battle/${suffix}`;
