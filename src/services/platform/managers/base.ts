@@ -2,8 +2,8 @@ import { weixinAppType, type AuthProvider, type Platform, type WeixinAppType } f
 import { authApi } from '@/services/api';
 import type { BindResult, LoginResult, PlatformManager } from './types';
 
-/** uni.login 的授权参数；nonce 运行时 Apple 需要但 @dcloudio 类型未声明。 */
-type LoginOptionsExt = UniNamespace.LoginOptions & { nonce?: string };
+/** uni.login 的授权参数；provider 补齐 uni 类型未声明的 google，nonce 运行时 Apple 需要但 @dcloudio 类型未声明。 */
+type LoginOptionsExt = Omit<UniNamespace.LoginOptions, 'provider'> & { provider?: string; nonce?: string };
 
 /** uni.login 的返回；Apple identityToken / univerify authResult 未在 @dcloudio 类型中。 */
 type LoginResExt = UniNamespace.LoginRes & { identityToken?: string; authResult?: string };
@@ -77,9 +77,25 @@ export abstract class BasePlatformManager implements PlatformManager {
         return { access_token: accessToken };
     }
 
+    /** Google 授权凭据；解析 authResult，缺 id_token 抛错。 */
+    protected async googlePayload(): Promise<{ id_token: string }> {
+        const res = await this.uniLogin({ provider: 'google' });
+        let idToken = '';
+        if (res.authResult) {
+            try {
+                idToken = (JSON.parse(res.authResult) as { id_token?: string }).id_token ?? '';
+            } catch {
+                idToken = '';
+            }
+        }
+        if (!idToken) throw new Error('Google 未返回 id_token');
+        return { id_token: idToken };
+    }
+
     async login(provider: AuthProvider): Promise<LoginResult> {
         if (provider === 'weixin') return authApi.loginWithWeixin(await this.weixinPayload());
         if (provider === 'apple') return authApi.loginWithApple(await this.applePayload());
+        if (provider === 'google') return authApi.loginWithGoogle(await this.googlePayload());
         if (provider === 'phone') return authApi.loginWithPhone(await this.phonePayload());
         throw new Error(`暂不支持该登录方式: ${provider}`);
     }
@@ -87,6 +103,7 @@ export abstract class BasePlatformManager implements PlatformManager {
     async bind(provider: AuthProvider): Promise<BindResult> {
         if (provider === 'weixin') return authApi.bindIdentity('weixin', await this.weixinPayload());
         if (provider === 'apple') return authApi.bindIdentity('apple', await this.applePayload());
+        if (provider === 'google') return authApi.bindIdentity('google', await this.googlePayload());
         if (provider === 'phone') return authApi.bindIdentity('phone', await this.phonePayload());
         throw new Error(`暂不支持绑定该登录方式: ${provider}`);
     }

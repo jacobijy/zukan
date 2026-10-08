@@ -2,6 +2,8 @@
 
 `src/services/session/` 管 DEK 的获取、401/403 恢复、登录弹层去重。
 加密格式本身见 [./encryption-pipeline.md](./encryption-pipeline.md)。
+登录入口的第三方方式及登录后的绑定管理走 platform 体系；分渠道构建的入口配置见
+[./channel-login-build.md](./channel-login-build.md)。
 
 ## `getKey()` 是唯一入口
 

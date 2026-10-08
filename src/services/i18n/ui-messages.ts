@@ -358,6 +358,7 @@ const zhHans = {
         socialDivider: '其他登录方式',
         weixinLogin: '微信登录',
         appleLogin: '通过 Apple 登录',
+        googleLogin: '通过 Google 登录',
         phoneLogin: '本机号一键登录',
     },
     account: {
@@ -853,6 +854,7 @@ const en: typeof zhHans = {
         socialDivider: 'Or sign in with',
         weixinLogin: 'WeChat',
         appleLogin: 'Sign in with Apple',
+        googleLogin: 'Sign in with Google',
         phoneLogin: 'Sign in with phone number',
     },
     account: {

@@ -21,6 +21,7 @@ import { UnknownManager } from '@/services/platform/managers/unknown';
 const authApiMocks = vi.hoisted(() => ({
     loginWithWeixin: vi.fn().mockResolvedValue({ new_user: false }),
     loginWithApple: vi.fn().mockResolvedValue({ new_user: false }),
+    loginWithGoogle: vi.fn().mockResolvedValue({ new_user: false }),
     loginWithPhone: vi.fn().mockResolvedValue({ new_user: false }),
     bindIdentity: vi.fn().mockResolvedValue({ identities: ['weixin'] }),
     unbindIdentity: vi.fn().mockResolvedValue(undefined),
@@ -114,6 +115,26 @@ describe('Apple 登录', () => {
     });
 });
 
+describe('Google 登录', () => {
+    it('app-android：解析 authResult 中的 id_token 提交', async () => {
+        succeeds({ authResult: JSON.stringify({ id_token: 'google-id-token' }) });
+        await getPlatformManager('app-android').login('google');
+        expect(authApiMocks.loginWithGoogle).toHaveBeenCalledWith({ id_token: 'google-id-token' });
+    });
+
+    it('authResult 缺失 / 缺 id_token 抛错，不调 api', async () => {
+        succeeds({});
+        await expect(getPlatformManager('app-android').login('google')).rejects.toThrow();
+        expect(authApiMocks.loginWithGoogle).not.toHaveBeenCalled();
+    });
+
+    it('authResult 非法 JSON 抛错', async () => {
+        succeeds({ authResult: 'not-json' });
+        await expect(getPlatformManager('app-android').login('google')).rejects.toThrow();
+        expect(authApiMocks.loginWithGoogle).not.toHaveBeenCalled();
+    });
+});
+
 describe('本机号一键登录', () => {
     it('解析 authResult 中的 access_token', async () => {
         succeeds({ authResult: JSON.stringify({ access_token: 'phone-tok' }) });
@@ -157,6 +178,12 @@ describe('绑定 / 解绑', () => {
         succeeds({ authResult: JSON.stringify({ access_token: 'pt' }) });
         await getPlatformManager('app-android').bind('phone');
         expect(authApiMocks.bindIdentity).toHaveBeenCalledWith('phone', { access_token: 'pt' });
+    });
+
+    it('bind google 解析 id_token', async () => {
+        succeeds({ authResult: JSON.stringify({ id_token: 'gid' }) });
+        await getPlatformManager('app-android').bind('google');
+        expect(authApiMocks.bindIdentity).toHaveBeenCalledWith('google', { id_token: 'gid' });
     });
 
     it('bind 不支持的 provider 抛错', async () => {

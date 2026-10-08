@@ -92,6 +92,36 @@ describe('第三方登录', () => {
             code: 'INVALID_CREDENTIALS',
         });
     });
+
+    it('google 成功后落盘两 token 并透传 new_user', async () => {
+        postMock.mockResolvedValue(SOCIAL);
+        const auth = await authClient();
+        const res = await auth.loginWithGoogle({ id_token: 'google-jwt' });
+
+        expect(postMock).toHaveBeenCalledWith('/auth/google', { id_token: 'google-jwt' });
+        expect(res.new_user).toBe(true);
+        expect(store['zukan_token']).toBe('access-xyz');
+        expect(store['zukan_refresh_token']).toBe('refresh-xyz');
+    });
+
+    it('google id_token 无效 → 401 INVALID_CREDENTIALS', async () => {
+        postMock.mockRejectedValue(
+            new MockRestError('fail', 401, { code: 'INVALID_CREDENTIALS' }),
+        );
+        const auth = await authClient();
+        await expect(auth.loginWithGoogle({ id_token: 'bad' })).rejects.toMatchObject({
+            statusCode: 401,
+            code: 'INVALID_CREDENTIALS',
+        });
+    });
+
+    it('google 503 缺 code 也兜底为上游不可用', async () => {
+        postMock.mockRejectedValue(new MockRestError('fail', 503, { error: '忙' }));
+        const auth = await authClient();
+        await expect(auth.loginWithGoogle({ id_token: 'tok' })).rejects.toMatchObject({
+            code: 'UPSTREAM_UNAVAILABLE',
+        });
+    });
 });
 
 describe('绑定 / 解绑', () => {

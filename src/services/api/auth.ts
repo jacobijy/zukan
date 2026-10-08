@@ -78,6 +78,11 @@ interface PhoneLoginRequest {
     access_token: string;
 }
 
+interface GoogleLoginRequest {
+    /** Google OAuth 返回的 ID token（JWT），后端以 Google 公钥校验其签名与 audience */
+    id_token: string;
+}
+
 /** 第三方登录响应：现有 TokenPair + 是否新建账号。 */
 interface SocialTokenPair {
     access_token: string;
@@ -155,9 +160,9 @@ function mapServerCode(code: string | undefined): AuthApiError['code'] | null {
  * - 登录类（密码 / 第三方换取 token）：401 是凭据无效 → INVALID_CREDENTIALS
  * - 其余（含需鉴权的 bind/unbind）：401 是会话失效 → UNAUTHORIZED
  */
-type MapKind = 'login' | 'register' | 'refresh' | 'change_password' | 'weixin' | 'apple' | 'phone' | 'bind' | 'unbind';
+type MapKind = 'login' | 'register' | 'refresh' | 'change_password' | 'weixin' | 'apple' | 'google' | 'phone' | 'bind' | 'unbind';
 
-const LOGIN_KINDS: ReadonlySet<MapKind> = new Set(['login', 'weixin', 'apple', 'phone']);
+const LOGIN_KINDS: ReadonlySet<MapKind> = new Set(['login', 'weixin', 'apple', 'google', 'phone']);
 
 function mapError(err: unknown, kind: MapKind): never {
     if (!(err instanceof RestRequestError)) {
@@ -337,6 +342,25 @@ export async function loginWithPhone(req: PhoneLoginRequest): Promise<SocialToke
         return pair;
     } catch (err) {
         mapError(err, 'phone');
+    }
+}
+
+/**
+ * Google 登录：用 Google ID token（JWT）换取本系统 token。成功后自动落盘。
+ * 仅海外 Play 渠道的 Android 包显示该入口（见 ./capabilities.ts 能力矩阵）。
+ * 契约与 `/auth/apple` 同构：后端校验 id_token 的签名 / audience / 有效期。
+ *
+ * @throws `INVALID_CREDENTIALS` (401) — id_token 无效 / 过期
+ * @throws `UPSTREAM_UNAVAILABLE` (503) / `PROVIDER_DISABLED` (503)
+ */
+export async function loginWithGoogle(req: GoogleLoginRequest): Promise<SocialTokenPair> {
+    try {
+        const pair = await rest.post<SocialTokenPair, GoogleLoginRequest>('/auth/google', req);
+        setToken(pair.access_token);
+        setRefreshToken(pair.refresh_token);
+        return pair;
+    } catch (err) {
+        mapError(err, 'google');
     }
 }
 

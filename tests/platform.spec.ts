@@ -38,9 +38,18 @@ describe('supportedProviders 能力矩阵', () => {
         expect(supportedProviders('app-ios')).toEqual(['weixin', 'apple']);
     });
 
-    it('app-android 仅微信、不含 Apple', () => {
-        expect(supportedProviders('app-android')).toEqual(['weixin']);
+    it('app-android 微信 + Google，不含 Apple（Google 仅海外 Play 渠道启用）', () => {
+        expect(supportedProviders('app-android')).toEqual(['weixin', 'google']);
         expect(supportedProviders('app-android')).not.toContain('apple');
+    });
+
+    it('app-ios 不含 google（海外 iOS 暂不开放 Google）', () => {
+        expect(supportedProviders('app-ios')).not.toContain('google');
+    });
+
+    it('google 在固定排序中位于 apple 之后（spec：微信、Apple、Google）', async () => {
+        const { PROVIDER_ORDER } = await import('@/infra/platform');
+        expect(PROVIDER_ORDER.indexOf('apple')).toBeLessThan(PROVIDER_ORDER.indexOf('google'));
     });
 
     it('h5 / unknown 静态矩阵为空（网页扫码另算）', () => {

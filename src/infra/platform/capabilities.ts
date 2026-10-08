@@ -7,10 +7,10 @@
 import type { Platform } from './resolve';
 
 /** 登录提供方。`platform` 为外部宿主/渠道下发 token（◐ 条件可用，不进静态矩阵）。 */
-export type AuthProvider = 'weixin' | 'apple' | 'phone' | 'platform';
+export type AuthProvider = 'weixin' | 'apple' | 'google' | 'phone' | 'platform';
 
 /** UI 中 provider 的固定展示顺序。 */
-export const PROVIDER_ORDER: AuthProvider[] = ['weixin', 'apple', 'phone', 'platform'];
+export const PROVIDER_ORDER: AuthProvider[] = ['weixin', 'apple', 'google', 'phone', 'platform'];
 
 /**
  * 该平台支持的第三方登录方式（按 `PROVIDER_ORDER` 排序）。
@@ -18,7 +18,7 @@ export const PROVIDER_ORDER: AuthProvider[] = ['weixin', 'apple', 'phone', 'plat
  * - h5：暂无（P2 的网页扫码另算）
  * - mp-weixin：仅微信
  * - app-ios：微信 + Apple（App Store 要求第三方登录必须同时提供 Sign in with Apple）
- * - app-android：仅微信
+ * - app-android：微信 + Google（仅海外 Play 渠道启用；国内无 GMS，由构建期闸门裁剪）
  */
 export function supportedProviders(platform: Platform): AuthProvider[] {
     const supported: AuthProvider[] =
@@ -27,7 +27,7 @@ export function supportedProviders(platform: Platform): AuthProvider[] {
             : platform === 'app-ios'
               ? ['weixin', 'apple']
               : platform === 'app-android'
-                ? ['weixin']
+                ? ['weixin', 'google']
                 : [];
     return PROVIDER_ORDER.filter((p) => supported.includes(p));
 }

@@ -23,6 +23,8 @@
     "dev:quickapp-webview-union": "uni -p quickapp-webview-union",
     "build:custom": "uni build -p",
     "build:app": "node scripts/copy-wasm.mjs && uni build -p app",
+    "build:app:china": "node scripts/copy-wasm.mjs && uni build -p app -m china",
+    "build:app:overseas": "node scripts/copy-wasm.mjs && uni build -p app -m overseas",
     "build:h5": "uni build",
     "build:h5:ssr": "uni build --ssr",
     "build:mp-alipay": "uni build -p mp-alipay",

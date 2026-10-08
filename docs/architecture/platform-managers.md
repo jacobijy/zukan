@@ -68,3 +68,8 @@ await manager.unbind('phone');
 `getPlatformManager('<platform>')` 取对象，覆盖各平台凭据（微信 app_type、Apple nonce、
 本机号 token）、绑定/解绑、不支持的 provider、凭据缺失与授权失败，以及 registry 的
 选型/继承/单例。因顶层静态 import 会立即触发 api mock，mocks 用 `vi.hoisted` 声明。
+
+## 分渠道启用
+
+平台能力矩阵只声明"理论支持"；具体发行包用哪些入口由 `providerConfig` + 构建 mode
+决定（国内 / 海外）—— 见 [../security/channel-login-build.md](../security/channel-login-build.md)。

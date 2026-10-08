@@ -42,6 +42,7 @@ const errorMsg = ref('');
 function labelFor(p: AuthProvider): string {
     if (p === 'weixin') return t('login.weixinLogin');
     if (p === 'apple') return t('login.appleLogin');
+    if (p === 'google') return t('login.googleLogin');
     return t('login.phoneLogin');
 }
 
@@ -83,7 +84,7 @@ async function onToggle(p: AuthProvider) {
 
 // 服务端 identities 是字符串列表；映射回已知 provider，未匹配项忽略。
 function providersFromResponse(current: AuthProvider, identities: string[]): AuthProvider[] {
-    const known: AuthProvider[] = ['weixin', 'apple', 'phone'];
+    const known: AuthProvider[] = ['weixin', 'apple', 'google', 'phone'];
     const set = new Set(identities.map((s) => s.toLowerCase()));
     const next = known.filter((k) => set.has(k));
     return next.includes(current) ? next : [...next, current];
