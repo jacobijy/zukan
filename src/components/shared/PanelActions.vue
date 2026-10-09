@@ -69,14 +69,4 @@ const emit = defineEmits<{
 .panel-actions button::after {
   border: none !important;
 }
-
-@media (min-width: 640px) {
-  .panel-actions__btn--ghost:hover {
-    background: #f2f2f7;
-  }
-
-  .panel-actions__btn--primary:hover {
-    opacity: 0.9;
-  }
-}
 </style>
