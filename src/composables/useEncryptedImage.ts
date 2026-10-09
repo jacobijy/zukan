@@ -52,9 +52,7 @@ export interface EncryptedImageState {
 // uni.createIntersectionObserver；两者都没有才退化为立即加载。
 const supportsIntersectionObserver = typeof IntersectionObserver !== 'undefined';
 const supportsWxIntersectionObserver =
-    !supportsIntersectionObserver &&
-    typeof uni !== 'undefined' &&
-    typeof uni.createIntersectionObserver === 'function';
+    !supportsIntersectionObserver && typeof uni !== 'undefined' && typeof uni.createIntersectionObserver === 'function';
 
 interface UseEncryptedImageOptions {
     kind: ImageKind;
@@ -152,12 +150,14 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
 
         // id 尚未就绪（详情页 onLoad 前 id 为 0）：不起请求，等 watch 带真实 id 再来
         if (!targetId || targetId <= 0) {
+            releaseHeld();
             blobUrl.value = null;
             return;
         }
 
         // 数据层已判定这个形态没有正面立绘 —— 直接落兜底，省一次必然 404 的往返
         if (getSkip?.()) {
+            releaseHeld();
             blobUrl.value = null;
             failed.value = true;
             loading.value = false;
@@ -168,6 +168,7 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
         // 与 `skip` 的区别：那个来自后端打包时的 hasSprite，这个来自前端运行时实测。
         const hint = kind === 'pokemon' ? getSpriteHint(targetId, targetVariant) : null;
         if (hint?.noSprite) {
+            releaseHeld();
             blobUrl.value = null;
             failed.value = true;
             loading.value = false;
@@ -226,6 +227,7 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
                     blobUrl.value = result.preview.url;
                 } else {
                     console.warn(`[${logTag}] 无资源:`, kind, targetId, targetVariant);
+                    releaseHeld();
                     blobUrl.value = null;
                     failed.value = true;
                 }
@@ -245,6 +247,7 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
             // 主动取消是正常路径（滑出视口）：保持骨架屏，等下次进视口重来
             if (isImageAbortError(err) || (err instanceof BinaryRequestError && err.aborted)) return;
             console.error(`[${logTag}] 解密失败:`, kind, targetId, targetVariant, err);
+            releaseHeld();
             blobUrl.value = null;
             failed.value = true;
         } finally {
@@ -286,19 +289,16 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
         // （initComponentInstance），调它等价于 `this.createIntersectionObserver(...)`，
         // 选择器作用域限定在本组件。ctx 是 Vue 内部字段，用 cast 断言。
         const ctx: {
-            createIntersectionObserver?: (options: {
-                thresholds: number[];
-            }) => any;
-        } | null = currentInstance
-            ? (currentInstance as unknown as { ctx: Record<string, unknown> }).ctx
-            : null;
+            createIntersectionObserver?: (options: { thresholds: number[] }) => any;
+        } | null = currentInstance ? (currentInstance as unknown as { ctx: Record<string, unknown> }).ctx : null;
 
-        const ob: any = typeof ctx?.createIntersectionObserver === 'function'
-            ? ctx.createIntersectionObserver({ thresholds: [0, 0.01] })
-            : (uni as any).createIntersectionObserver(null, {
-                  thresholds: [0, 0.01],
-                  enablePageScrollObserver: true,
-              });
+        const ob: any =
+            typeof ctx?.createIntersectionObserver === 'function'
+                ? ctx.createIntersectionObserver({ thresholds: [0, 0.01] })
+                : (uni as any).createIntersectionObserver(null, {
+                      thresholds: [0, 0.01],
+                      enablePageScrollObserver: true,
+                  });
 
         // 提前 200px 起跑，滚动时看不到骨架
         ob.relativeToViewport({ top: 200, bottom: 200 });
@@ -361,10 +361,13 @@ export function useEncryptedImage(options: UseEncryptedImageOptions): EncryptedI
         () => [getId(), curVariant()] as const,
         ([nextId, nextVariant], [prevId, prevVariant]) => {
             if (nextId === prevId && nextVariant === prevVariant) return;
+            // 关键：**不**立刻清空 blobUrl、**不** releaseHeld。
+            // mp-weixin 把 scoped-slot 内容编译成父侧 wx:for 且 wx:key 固定为位置索引 i0
+            // （与子组件 <slot> 上的 :key 无关），故虚拟列表滚动时同一 <image> 实例会
+            // 连续换 id。若这里置 null，<image> 被拆成骨架、下一帧再换新图 = 闪烁；
+            // 保留旧 url，原生 <image> 会一直显示旧内容直到新图就绪，load() 成功时才
+            // releaseHeld() 旧图并替换 url，全程没有空白帧。旧引用由 held 保留、不会被 revoke。
             abortInflight();
-            // 旧目标的图不会再显示了，两槽都归还
-            releaseHeld();
-            blobUrl.value = null;
             failed.value = false;
             // 已在观察中的话让新的一轮接管
             observer?.disconnect();

@@ -37,6 +37,7 @@
                             :pokemon-id="item.id"
                             variant="front"
                             :preview="false"
+                            eager
                             :has-sprite="item.hasSprite"
                             img-class="h-10 w-10"
                             skeleton-class="h-10 w-10"

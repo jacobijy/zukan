@@ -7,6 +7,7 @@
             :pokemon-id="speciesId"
             variant="front"
             :preview="false"
+            eager
             img-class="h-10 w-10"
             skeleton-class="h-10 w-10"
         />
