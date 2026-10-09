@@ -47,6 +47,11 @@
 - **新页面根节点绑 `usePageSafeArea()`**（用 TabPageShell / ArchiveListShell 的页面壳已内置）；
   顶部占位只用 `var(--navbar-total-height)`，不硬编码、不自己读系统信息。
   详见 [docs/ui/safe-area.md](docs/ui/safe-area.md)。
+- **小程序样式不写 `:hover`、不留空 `@media`/空规则块**：WXSS 会静默剔除不支持的规则，
+  只含 `:hover` 的媒体块被剔成空块后整个 wxss 报 `unexpected token '}'`；按压态用 `:active`。
+- **虚拟列表（VirtualGrid / VirtualList）数据集变更要受控 `:scroll-top` 回顶**，不能只重置
+  内部 scrollTop——否则物理视口停在原位、窗口渲染顶部行，视口空白且排名错位。
+  平台坑点速查见 [docs/architecture/mp-weixin-pitfalls.md](docs/architecture/mp-weixin-pitfalls.md)。
 
 缓存与加密图片：
 

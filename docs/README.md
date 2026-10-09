@@ -7,6 +7,7 @@
 | 架构 | [architecture/overview.md](architecture/overview.md) | 目录分层、数据流向、命名约定、循环依赖防护 |
 | 架构 | [architecture/testing.md](architecture/testing.md) | vitest 约定、测试数据盲区、门禁命令 |
 | 架构 | [architecture/mp-weixin-build.md](architecture/mp-weixin-build.md) | 微信小程序构建：条件编译、WASM 包内加载（copy-wasm）、产物 s/l 瘦身（slim）、2MB 主包与发布 checklist |
+| 架构 | [architecture/mp-weixin-pitfalls.md](architecture/mp-weixin-pitfalls.md) | 微信平台坑点速查与规避：WXSS 限制、动态 import / WASM、scroll-view 受控滚动、watch 原子写；报错速查与提交前自检 |
 | 架构 | [architecture/mp-weixin-remote-debug.md](architecture/mp-weixin-remote-debug.md) | 远程 Linux 编辑 + 另一台 Mac/Windows 跑开发者工具的调试流：watch 构建 + Mutagen/rsync 同步 dev 产物 + 工具设置与排障 |
 | 架构 | [architecture/app-remote-debug.md](architecture/app-remote-debug.md) | Android/iOS 调试流：Linux `build:app` 出本地打包资源（vite.config 内联动态 import）+ Mutagen/rsync 同步 + 对端 App 离线 SDK 工程（AS/Xcode）编译运行；版本/appid 对齐与 wasm 真机验证 |
 | 架构 | [architecture/platform-managers.md](architecture/platform-managers.md) | 按平台区分的管理对象：检测层/能力闸门/Manager 三层职责边界，Base→App→iOS/Android 类层次，如何加平台操作 |

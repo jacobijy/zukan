@@ -77,7 +77,8 @@ new URL('zukan_wasm_bg.wasm', import.meta.url)  // + fetch / instantiateStreamin
 
 1. `scripts/copy-wasm.mjs` 把 `infra/wasm/pkg/zukan_wasm_bg.wasm` 拷到
    `src/static/wasm/`（只有 src/static 下的文件才会进小程序包）。已嵌入
-   dev/build 命令开头；单独执行用 `pnpm copy:wasm`。
+   dev/build 命令开头；单独执行用 `pnpm copy:wasm`。拷贝为**原子写**（同目录
+   `.tmp` + `rename`），原因见下「watch 与 0 字节陷阱」。
 2. `src/infra/wasm/index.ts` 里 `#ifdef MP-WEIXIN` 分支把
    `/static/wasm/zukan_wasm_bg.wasm` 这个**路径**传给 `wasmModule.default(path)`
    （不是先读字节再传 `BufferSource`）；其他平台仍 `module.default()`。
@@ -107,6 +108,22 @@ externref（rustc 1.82+ 对 `wasm32-unknown-unknown` 默认开启 reference-type
 - 不要用 `RUSTFLAGS="-C target-feature=-reference-types"` 硬关：wasm-bindgen
   0.2.126 的库 cfg 与 CLI 对表的预期会不一致，wasm-bindgen 阶段报
   `failed to find __wbindgen_externref_table_dealloc`。
+
+### watch 常驻下的 0 字节 wasm 陷阱（copy 必须原子写）
+
+长期常驻 `dev:mp-weixin` watch 时，重建 Rust wasm 会触发 `copy:wasm`。`copyFileSync`
+直接覆盖目标是**非原子**的（先把文件截断成 0 字节、再写内容），uni 的文件监听器可能
+恰好在「已截断、未写完」的瞬间触发增量拷贝，把 **0 字节** wasm 写进
+`dist/dev/mp-weixin/static/wasm/`。运行时 `WXWebAssembly.instantiate(path)` 读到空文件，
+报标准 `WebAssembly.instantiate(): BufferSource argument is empty`。更糟的是 uni 的
+static 增量拷贝按「目标已存在 + mtime」判断，这个空文件 mtime 够新，**之后每次差量、
+甚至重启 watch 都不再覆盖它**，空文件一直留到手动删除。
+
+- 规避已落在 `copy-wasm.mjs`：先拷到同目录 `.tmp`，再 `renameSync` 覆盖（同文件系统内
+  rename 原子，监听器只能看到旧文件或完整文件）。
+- 一旦已中招（产物里是 0 字节）：删掉 dist 里的空文件、`touch` 源让 watcher 重拷；
+  三处 md5（pkg / src/static / dist）对齐即恢复。
+- 平台坑点汇总见 [mp-weixin-pitfalls.md](mp-weixin-pitfalls.md)。
 
 ### 动态 `import()` 在小程序端整体失效（比 wasm 更广）
 
@@ -192,6 +209,16 @@ label, navigator, icon, progress, ::before, ::after { box-sizing: border-box; }
 **不能写裸 `*`**：weapp-tailwindcss 会把 `*` 收窄成 `view,text,:before,:after`，
 漏掉 `scroll-view`（VirtualGrid 根），溢出依旧。H5 端这条与 preflight 重复、无害，
 让两端盒模型一致；box-border / box-content 工具类特异性更高，仍可覆盖。
+
+### WXSS 不支持 `:hover`：小心规则被剔成空块
+
+WXSS 是触摸端样式，**不支持 `:hover` 伪类**（也不支持只在桌面有意义的若干伪类）。
+编译器遇到不支持的规则会**静默整条剔除**——若某 `@media` 块里只剩 `:hover` 规则，
+剔除后变成空的 `@media (…){}`，WXSS 解析器对空块报 `unexpected token '}'`，整个 wxss
+编译失败。`PanelActions.vue` 就因此挂过：一个只含 `:hover` 的 640px 媒体块。
+
+- 规避：小程序样式不写 `:hover`，按压反馈用 `:active`（WXSS 支持）；不留空 `@media`
+  或空规则块。平台坑点汇总见 [mp-weixin-pitfalls.md](mp-weixin-pitfalls.md)。
 
 ## 适配四：构建产物瘦身（只动 dist，不碰 src）
 
