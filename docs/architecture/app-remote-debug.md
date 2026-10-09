@@ -132,8 +132,9 @@ while true; do pnpm build:app; sleep 5; done
 > python3 scripts/remote-debug/pull.py --target app --once
 > ```
 >
-> Python 脚本通过命令行调用系统 `rsync`。每个变更文件会输出同步时间、远端 mtime、
-> 大小、传输字节数、变更标记和路径。参数详情见 [`scripts/remote-debug/README.md`](../../scripts/remote-debug/README.md)。
+> Python 脚本通过命令行调用系统 `rsync`（`-az --no-perms --delete`）。只有发生真实
+> 文件变更（新增/更新/删除）时才打印可读的变更行与一行汇总；仅权限或时间戳差异不算
+> 变更、无变更时静默。参数详情见 [`scripts/remote-debug/README.md`](../../scripts/remote-debug/README.md)。
 > 取回脚本后再按下面的方案同步资源。
 
 ### 方案 A（推荐）：Mutagen，毫秒级实时
@@ -162,9 +163,11 @@ Windows 命令相同（路径写 `%USERPROFILE%\zukan-app`）。
 python3 scripts/remote-debug/pull.py --target app
 ```
 
-每秒调用 `rsync -az --delete` 把资源镜像到 `~/zukan-app`，只传输有变化的文件并删除过期
-项目。需要安装 Python 3、rsync 和 OpenSSH，并确保 `rsync`、`ssh` 在 PATH 中。配置优先级：
-`命令行参数 / 环境变量 > pull.conf.local > pull.conf`；SSH 密钥和端口可用
+每秒调用 `rsync -az --no-perms --delete` 把资源镜像到 `~/zukan-app`，只传输有变化的
+文件并删除过期项目。加 `--no-perms` 是因为目标常落在 NTFS/FAT（如 WSL 的 `/mnt/d`），
+保留不了 Linux 权限位，否则每轮会把全部文件当成“仅权限不同”重复列出。只有真实变更
+才打印、无变更静默。需要安装 Python 3、rsync 和 OpenSSH，并确保 `rsync`、`ssh` 在 PATH
+中。配置优先级：`命令行参数 / 环境变量 > pull.conf.local > pull.conf`；SSH 密钥和端口可用
 `SSH_KEY` / `SSH_PORT` 配置。
 
 > 同微信方案：不建议 sshfs/NFS 挂载后让原生工具直接读，FSE 文件事件不可靠。同步成
@@ -190,7 +193,8 @@ py -3 scripts\remote-debug\pull.py --target app
 ```
 
 - 默认每 1s 一轮；可用命令行参数、环境变量或 `pull.conf.local` 覆盖地址、目录、间隔和
-  密钥。每轮会输出 rsync 传输文件的时间戳、大小、传输字节、变更标记和路径，并附统计。
+  密钥。只有真实变更（新增/更新/删除）时才打印可读变更行与一行汇总、无变更静默；
+  脚本带 `--no-perms`，适配 WSL `/mnt/d` 等无法保留 Linux 权限位的 NTFS 目标。
 - 单次同步可用 `py -3 scripts\remote-debug\pull.py --target app --once`。
 
 ## 三、Mac/Windows 侧：离线 SDK 原生工程消费（一次性配置）

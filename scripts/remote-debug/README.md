@@ -33,7 +33,19 @@ python3 scripts/remote-debug/pull.py --target app --dry-run
 | `mp-weixin` | `~/Code/zukan/dist/dev/mp-weixin` | `$HOME/zukan-mp-weixin` |
 | `app` | `~/Code/zukan/dist/build/app` | `$HOME/zukan-app` |
 
-同步使用 `rsync -az --delete`：本机目录会成为远端目录的镜像，远端已删除的文件也会从本机目标目录删除。只有检测到文件变更时才输出同步方向、变更文件的时间/大小/传输字节/变更标记/路径及 rsync 统计；没有文件变更时不打印同步日志。
+同步使用 `rsync -az --no-perms --delete`：本机目录会成为远端目录的镜像，远端已删除的文件也会从本机目标目录删除。加 `--no-perms` 是因为本机目标常落在 NTFS/FAT/SMB（如 WSL 的 `/mnt/d`），这类文件系统保留不了 Linux 权限位；若仍比对权限，每轮都会把全部文件当成“仅权限不同”重复列出、却不传输任何数据。
+
+只有发生真实文件变更（新增/更新/删除）时才打印日志：开头一行同步方向与开始时间，随后每个变更一行（动作、大小、路径），末尾一行中文汇总（各类计数、合计大小、完成时间与本轮耗时）。仅权限或时间戳差异不算变更，没有文件变更时完全静默。示例：
+
+```text
+[2026-10-09 21:04:25] jacobi@192.168.100.100:~/Code/zukan/dist/dev/mp-weixin → /mnt/d/Code/zukan-wx
+  删除          -  pages/old/old.js
+  新增     2.0 KB  app.js
+  更新    70.3 KB  app.wxss
+  新增          -  components/dex/
+  更新   345.8 KB  common/vendor.js
+  共 5 项 · 新增 3（文件 2、目录 1） · 更新 2 · 删除 1 · 合计 418.0 KB · 完成 21:04:25（耗时 0.31s）
+```
 
 ## 命令行参数
 

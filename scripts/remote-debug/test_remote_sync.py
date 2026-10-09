@@ -9,7 +9,19 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-from remote_sync import build_rsync_command, get_target_config, parse_config, run_rsync
+from remote_sync import (
+    build_rsync_command,
+    classify_change,
+    get_target_config,
+    human_size,
+    parse_config,
+    run_rsync,
+)
+
+
+def machine_line(itemize: str, path: str, size: int = 0, transferred: int = 0) -> str:
+    """构造一行与 rsync --out-format 相同的机器可解析输出。"""
+    return f"@@FILE\t{itemize}\t{path}\t{size}\t{transferred}"
 
 
 class RsyncCommandTests(unittest.TestCase):
@@ -49,7 +61,7 @@ class RsyncCommandTests(unittest.TestCase):
                 r"C:\Users\Test User\zukan",
             )
 
-    def test_rsync_command_includes_verbose_file_metadata(self) -> None:
+    def test_rsync_command_emits_machine_format_without_perms(self) -> None:
         command = build_rsync_command(
             {
                 "remote": "user@host",
@@ -62,8 +74,10 @@ class RsyncCommandTests(unittest.TestCase):
         )
         self.assertIn("--delete", command)
         self.assertIn("--itemize-changes", command)
-        self.assertIn("--stats", command)
-        self.assertIn("--out-format=[%t] mtime=%M size=%l transferred=%b change=%i path=%n%L", command)
+        self.assertIn("--no-perms", command)
+        self.assertNotIn("--stats", command)
+        self.assertNotIn("--human-readable", command)
+        self.assertIn("--out-format=@@FILE\t%i\t%n\t%l\t%b", command)
         self.assertIn("ssh -p 2222", command)
         self.assertEqual(command[-2], "user@host:~/Code/zukan/dist/dev/mp-weixin/")
 
@@ -118,17 +132,66 @@ class RsyncCommandTests(unittest.TestCase):
 
     @patch("remote_sync.shutil.which", return_value="/usr/bin/rsync")
     @patch("remote_sync.subprocess.run")
-    def test_run_rsync_prints_output_when_files_change(self, run, _which) -> None:
-        changed_file = "[2026/10/02 12:00:00] mtime=2026/10/02 size=10 transferred=10 change=>f+++++++++ path=file.bin\n"
-        run.return_value = subprocess.CompletedProcess([], 0, stdout=changed_file)
+    def test_run_rsync_is_silent_when_only_attributes_differ(self, run, _which) -> None:
+        # 仅权限不同 / 目录时间戳变化：%i 首字符为 .，无真实传输。
+        stdout = (
+            machine_line(".f...p.....", "app.js", 2002, 0)
+            + "\n"
+            + machine_line(".d..t......", "./", 120, 0)
+            + "\n"
+        )
+        run.return_value = subprocess.CompletedProcess([], 0, stdout=stdout)
         output = StringIO()
         with redirect_stdout(output):
             run_rsync(
                 {"remote": "user@host", "remote_dir": "/build", "ssh_cmd": "ssh", "ssh_port": "22"},
                 Path("/tmp/zukan"),
             )
-        self.assertIn("从 user@host:/build", output.getvalue())
-        self.assertIn(changed_file, output.getvalue())
+        self.assertEqual(output.getvalue(), "")
+
+    @patch("remote_sync.shutil.which", return_value="/usr/bin/rsync")
+    @patch("remote_sync.subprocess.run")
+    def test_run_rsync_renders_changes_readably(self, run, _which) -> None:
+        stdout = "\n".join(
+            (
+                machine_line("*deleting", "gone.txt", 0, 0),
+                machine_line(">f+++++++++", "new.js", 12, 59),
+                machine_line(">f.st......", "upd.js", 11, 52),
+                machine_line("cd+++++++++", "newdir/", 60, 0),
+                machine_line(">f+++++++++", "newdir/in.js", 2048, 90),
+            )
+        )
+        run.return_value = subprocess.CompletedProcess([], 0, stdout=stdout + "\n")
+        output = StringIO()
+        with redirect_stdout(output):
+            run_rsync(
+                {"remote": "user@host", "remote_dir": "/build", "ssh_cmd": "ssh", "ssh_port": "22"},
+                Path("/tmp/zukan"),
+            )
+        text = output.getvalue()
+        self.assertIn("user@host:/build → /tmp/zukan", text)
+        self.assertIn("删除", text)
+        self.assertIn("新增", text)
+        self.assertIn("更新", text)
+        self.assertIn("new.js", text)
+        self.assertIn("newdir/", text)
+        self.assertIn("2.0 KB", text)  # 2048 字节由 Python 格式化
+        self.assertIn("共 5 项", text)
+        self.assertIn("完成", text)  # 结尾汇总带完成时间
+        self.assertIn("耗时", text)  # 及本轮耗时
+
+    def test_classify_change_maps_itemize_flags(self) -> None:
+        self.assertEqual(classify_change("*deleting "), "delete")
+        self.assertEqual(classify_change(">f+++++++++"), "create")
+        self.assertEqual(classify_change("cd+++++++++"), "create")
+        self.assertEqual(classify_change(">f.st......"), "update")
+        self.assertEqual(classify_change(".f...p....."), "update")  # 不会被打印，但归类安全
+
+    def test_human_size_uses_compact_units(self) -> None:
+        self.assertEqual(human_size(0), "0 B")
+        self.assertEqual(human_size(512), "512 B")
+        self.assertEqual(human_size(2048), "2.0 KB")
+        self.assertEqual(human_size(5 * 1024 * 1024), "5.0 MB")
 
 
 class PullCliTests(unittest.TestCase):
