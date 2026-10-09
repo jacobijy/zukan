@@ -10,8 +10,14 @@
  *
  * 每次重新构建 Rust WASM 后应跑一次；已挂到 `predev:mp-weixin` /
  * `prebuild:mp-weixin`，正常开发无需手动执行。
+ *
+ * 原子写：先拷到同目录临时文件再 rename 覆盖 DEST。copyFileSync 直接覆盖是非原子的
+ * （先截断成 0 字节再写），watch 运行期间 uni 的文件监听器可能在截断瞬间抓到 0 字节
+ * 中间态拷进 dist，且该空文件因 mtime 够新此后一直不被重新拷贝，运行时实例化报
+ * `BufferSource argument is empty`。rename 同文件系统内原子，监听器只能看到旧文件或
+ * 完整文件。
  */
-import { copyFileSync, mkdirSync, existsSync } from 'node:fs';
+import { copyFileSync, mkdirSync, existsSync, renameSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -25,5 +31,13 @@ if (!existsSync(SRC)) {
 }
 
 mkdirSync(dirname(DEST), { recursive: true });
-copyFileSync(SRC, DEST);
+// 临时文件必须与 DEST 同目录（同文件系统），rename 才是原子操作。
+const TMP = `${DEST}.${process.pid}.${Date.now()}.tmp`;
+try {
+    copyFileSync(SRC, TMP);
+    renameSync(TMP, DEST);
+} catch (err) {
+    rmSync(TMP, { force: true });
+    throw err;
+}
 console.log(`[copy-wasm] ${SRC.replace(root, '')} → ${DEST.replace(root, '')}`);
