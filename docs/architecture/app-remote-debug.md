@@ -94,7 +94,14 @@ pnpm build:app
 **不要**用 `uni build -p app --watch`：watch 会切到"运行模式"，产物落到非标准的
 `dist/dev/app`（service 散到 `.sourcemap`/`.nvue`），那是给 HBuilderX 真机流程内部
 用的、不能当本地资源共享。要让 `dist/build/app` 随保存更新，监听源码后**重新触发发行
-构建**即可（全量构建约数秒）：
+构建**即可（全量构建约数秒）。首选统一 watch 入口（零外部依赖，内置 fs.watch，
+串行构建、**不中断当前 build**，up 会等首次构建完成）：
+
+```bash
+pnpm dev:watch up app      # = node scripts/dev-watch.mjs up app
+```
+
+也可手动用外部工具（备选）：
 
 ```bash
 # 装了 watchexec：

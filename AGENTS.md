@@ -16,6 +16,8 @@
   systemd 看门狗 `zukan-mp-watch.service`（watch 缺失自动拉起、「聋」时抓现场再重启）。
   详见 [docs/architecture/mp-weixin-remote-debug.md](docs/architecture/mp-weixin-remote-debug.md)
 - 小程序图标字体：`pnpm build:icons`（dev/build:mp-weixin 已自动调用；收集 `data-ic` svg 生成 ttf + glyphs.ts）
+- 多平台（App / 微信等）同步 watch 统一入口：`pnpm dev:watch <up|stop|restart|status> [app|mp-weixin]`
+  （省略平台=全部；App 内置文件监听串行重跑 build:app、微信委托现有脚本，见 platform-watch skill）
 - 启动/构建快应用：`pnpm dev:quickapp-webview` / `pnpm dev:quickapp-webview-huawei`（build 同理）
 
 门禁命令：`pnpm type-check`（必须 0 error）、`pnpm test`（vitest）、`pnpm lint`

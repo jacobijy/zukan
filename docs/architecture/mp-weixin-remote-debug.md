@@ -52,6 +52,9 @@ pnpm dev:mp:watch --status   # 看状态
 pnpm dev:mp:watch --stop     # 只停 mp-weixin 的 watch
 ```
 
+统一多平台（App + 微信）的 watch 入口等价为 `pnpm dev:watch up mp-weixin`
+（见 `.claude/skills/platform-watch`）；本平台行为与上述完全一致。
+
 > **长期常驻推荐直接用下文「watch 反复聋」的看门狗 systemd 服务**：watch 缺失
 > （含重启机器后）自动拉起、聋了自动抓现场并重启。`pnpm dev:mp:watch` 适合临时手动起。
 
