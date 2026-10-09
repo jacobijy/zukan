@@ -5,6 +5,7 @@
         class="virtual-list__scroller"
         :class="scrollerClass"
         :style="scrollerStyle"
+        :scroll-top="scrollTopProp"
         @scroll="onScroll"
     >
         <!--
@@ -29,7 +30,7 @@
 </template>
 
 <script lang="ts" setup generic="T">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { computeVirtualWindow } from '@/utils/virtualWindow';
 
 interface Props {
@@ -107,6 +108,20 @@ function onScroll(e: { detail?: { scrollTop?: number } }): void {
     if (typeof top === 'number') scrollTop.value = top;
 }
 
+/**
+ * 受控 scroll-top：小程序不能直接写 DOM scrollTop，靠 `:scroll-top` 驱动。
+ * 该属性仅在值变化时才会滚动 —— 先放到非 0、nextTick 再归 0，保证连续回顶
+ * （以及上次已停在 0）都生效；1px 抖动用户不可见。与 VirtualGrid 同一套做法。
+ */
+const scrollTopProp = ref(0);
+function resetScrollPosition(): void {
+    scrollTop.value = 0;
+    scrollTopProp.value = scrollTopProp.value === 0 ? 1 : 0;
+    void nextTick(() => {
+        scrollTopProp.value = 0;
+    });
+}
+
 /** H5 下 uni 组件包装需取 $el；小程序端无 DOM，退回系统窗口高度 */
 function toEl(raw: unknown): HTMLElement | null {
     if (!raw) return null;
@@ -129,17 +144,25 @@ onMounted(() => {
     }
 });
 
-// 数据集变化（搜索/筛选）时回顶
+// 数据集变化（搜索/筛选/切换赛季赛制）时回顶：必须驱动物理 scroll-view，
+// 只置内部 scrollTop 会让物理视口停在原位、窗口渲染顶部行，视口内整片空白。
 watch(
     () => props.items,
     () => {
-        scrollTop.value = 0;
+        resetScrollPosition();
     },
 );
 
 onBeforeUnmount(() => {
     resizeObserver?.disconnect();
     resizeObserver = null;
+});
+
+defineExpose({
+    /** 供页面在需要时手动回顶 */
+    scrollToTop() {
+        resetScrollPosition();
+    },
 });
 </script>
 
