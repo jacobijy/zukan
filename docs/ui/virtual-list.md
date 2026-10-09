@@ -1,7 +1,8 @@
-# VirtualGrid 定高虚拟化
+# VirtualGrid / VirtualList 定高虚拟化
 
-`src/components/dex/VirtualGrid.vue` 是图鉴列表的虚拟化核心，**定高**渲染。
-DOM 只保留视口附近的行，长列表（~1025 张卡）也只挂载几十个节点。
+`src/components/dex/VirtualGrid.vue`（图鉴网格）与 `src/components/dex/VirtualList.vue`
+（单列列表）是列表虚拟化核心，**定高**渲染。
+DOM 只保留视口附近的行，长列表（~1025 张卡 / 数百行）也只挂载几十个节点。
 
 ## 工作方式
 
@@ -18,7 +19,10 @@ DOM 只保留视口附近的行，长列表（~1025 张卡）也只挂载几十�
 （`bindscroll` 为 scroll-view 专属），用它做滚动容器会让 scrollTop 恒为 0、
 滚动后窗口不更新（现象：首屏之后空白，「下拉不加载新卡片」）。
 
-- **滚动事件**：读跨端一致的 `e.detail.scrollTop`，rAF 节流（跟手、不用 debounce）。
+- **滚动事件**：读跨端一致的 `e.detail.scrollTop`，**rAF 节流**（跟手、不用 debounce）。
+  一帧内多个 scroll 事件只取最后一次 —— 不节流时，新行进边界处一帧内 scrollTop 的
+  中间/回弹值会让窗口首行索引短暂来回，**整屏行内容（含名称）先变成另一条、下一帧
+  纠正跳回**（错位回弹）。VirtualGrid / VirtualList 必须同一套节流。
 - **几何测量**：H5 用 DOM 实测（`clientHeight` / `getComputedStyle` /
   `getBoundingClientRect`）；小程序无 DOM，用
   `uni.createSelectorQuery().in(instance.proxy)` 实测 scroll-view 高度、grid 的
@@ -59,6 +63,37 @@ scroll-view **内部**滚动时，相对页面视口的判定不触发（节点�
 表现为「图已下载但不渲染」。`relativeTo('.scroll-view')` 虽可解，但图片组件在
 深层自定义组件内、选不到作为祖先的 scroll-view（组件级 observer 作用域受限），
 故虚拟化场景统一走 eager。非虚拟列表（详情页主图等）仍按需 eager / observer。
+
+### 同一 `<image>` 换 id：保留旧图，不要清空（url → url）
+
+mp-weixin 把 scoped-slot 的填充内容编译成**父侧** `wx:for`，且 `wx:key` 被固定成
+**位置索引 i0** —— 与子组件 `<slot>` 上写的 `:key` 无关（`:key` 只作为 slot prop
+下发、父侧不用）。因此虚拟列表滚动时，同一个原生 `<image>` 实例会被位置复用、
+连续换 `pokemon-id`。`useEncryptedImage` 的 id-watch 此时**不能**立刻
+`blobUrl = null`：那会把 `<image>` 拆成骨架、下一帧再换新图，即使新图已在缓存
+也硬闪一下。做法是：
+
+- id 变化只 abort 在途、**保留旧 blobUrl 与旧引用**（旧图不被 revoke）；
+- `load()` 成功拿到新图后，先 `releaseHeld()` 旧引用、再一次性替换 url（url → url）；
+- 无 id / `hasSprite=false` / noSprite / 真失败等**真该清空**的分支，由 `load()`
+  内部各自 `releaseHeld()`（旧版靠 watch 提前释放，保留旧图后释放职责移到 load）。
+
+原生 `<image>` 换 src 本就保留旧画面直到新图就绪，配合上面才有平滑滚动。
+
+## VirtualList：单列版，v-for 直接写在 `<slot>` 上
+
+`src/components/dex/VirtualList.vue` 是 VirtualGrid 的**单列定高版**（对战数据排行、
+招式 / 特性 / 道具列表用），两者同构：
+
+- 根 `<scroll-view scroll-y>` → wrap 撑 spacer → inner 绝对定位；
+- **`v-for` 与 `:key` 直接写在 `<slot>` 元素上**，不在 slot 外再包 `<view>`；
+- inner 是**单列 grid**（`display:grid; grid-template-columns:minmax(0,1fr);
+  grid-auto-rows:<行高>px`），填充组件是 grid item，默认 stretch 到固定行高。
+
+**不要**在 slot 外包一层 view 再把 v-for 放 view 上：数据 key 时框架移动 view、其内部
+按位置命名的插槽 `d-N` 在 setData 过渡帧重名（`More than one slot named "d-N"`）；
+若退回位置 key 又会让每个槽位每次滚动换数据、叠加旧的清空逻辑而闪烁。v-for 直接在
+slot + 单列 grid 同时避开两者。图片仍须 `eager` 且换 id 保留旧图（见上两节）。
 
 ## 改 PokemonCard 高度前先想清楚
 

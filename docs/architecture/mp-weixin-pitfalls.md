@@ -46,6 +46,8 @@
 | 受控回顶「第二次不生效」 | `:scroll-top` 仅在**值变化**时滚动，连续两次都是 0 则第二次不动 | 回顶时 `0 → 1 → nextTick 归 0` 翻转（1px 抖动不可见） |
 | scroll-view 不滚动 | 微信 scroll-view 必须有**明确高度** | 组件内 `h-full`，外层包 `flex-1 min-h-0` 给确定高 |
 | 图已下载解密但列表里一直停在骨架 | 节点在 scroll-view 内部滚动时，IntersectionObserver 相对页面视口不触发 | 虚拟列表内图片统一 `eager`（行级裁剪已等价于 observer） |
+| 滚动出现新条目时，**已存在的行（含名称）短暂变成另一条又跳回** | onScroll 对每个 scroll 事件立即赋值；边界处一帧内 scrollTop 的中间/回弹值让窗口首行索引短暂来回 | onScroll 用 **rAF 节流**，一帧只取最后一次 scrollTop（VirtualGrid / VirtualList 已对齐） |
+| 滚动换条目时图片先变骨架/空白再换新图（闪烁） | scoped-slot 内容被编成父侧 `wx:for` 且 `wx:key` 固定为**位置索引 i0**（子组件 `<slot>` 上的 :key 传不过去），同一 `<image>` 连续换 id；id-watch 若立刻清空 blobUrl 就闪 | id 变化时**保留旧 url 不清空**，新图就绪再替换（url→url），旧引用换图时才释放 |
 | 首屏卡顿 / 瞬时全量渲染上千卡 | 小程序无 DOM，首帧拿不到几何会降级全量渲染 | 挂载先用 `getSystemInfoSync()` 估算，再用 `createSelectorQuery()` 实测覆盖 |
 
 ## 四、构建 / watch / 包体
@@ -75,6 +77,7 @@
 - `<component is=""/> is not supported` → 二、动态组件
 - 切数据后列表空白 / 排名错 → 三、受控回顶
 - 滚动后不加载 → 三、scroll-view + 明确高度
+- 滚动时行错位回弹 / 图片闪烁 → 三、onScroll rAF 节流 + 换 id 保留旧图
 
 ## 提交前自检（改动涉及小程序时）
 
