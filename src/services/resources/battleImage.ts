@@ -8,7 +8,8 @@
  * 1. **字符串键**：精灵用 slug、属性用小写名、道具用英文显示名；扁平、无 variant。
  * 2. **按赛季版本化**：路径含 `meta.json` 的 `season`（M6），immutable；不用每日
  *    dataVersion。persist root 也带赛季，换赛季 → 新 root、key 同时变。
- * 3. **登录可见**：密文可拉，DEK 仅登录后下发；未登录取消失时调用方静默降级。
+ * 3. **公开可见**：密文无鉴权可拉，DEK 同样由公开接口 `/zukan/key` 下发，匿名即可
+ *    获取、未登录也正常出图；仅真故障（404 / 解密失败）时由调用方静默回落。
  */
 import { createImageCache, type ImageAcquireOptions } from '@/services/resources/imageCache';
 import { createImagePersist } from '@/services/resources/imagePersist';

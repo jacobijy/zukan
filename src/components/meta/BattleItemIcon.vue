@@ -4,7 +4,7 @@
         :class="url ? TRAY : AMBER_TILE"
     >
         <image v-if="url" :src="url" class="h-6 w-6" mode="aspectFit" @error="failed = true" />
-        <!-- 无图（404）/ 未登录：琥珀背包图标 -->
+        <!-- 无图（404 / 解密失败）：琥珀背包图标 -->
         <!-- #ifdef MP-WEIXIN -->
         <text
             v-else
@@ -36,8 +36,9 @@
  * `/assets/encrypted/battle/<season>/icons/items/<英文显示名>.bin`）。
  * 契约见 docs/data/battle-usage.md「图标」。
  *
- * 道具分区条目少，挂载即取（引擎内部限流 4），不接视口懒加载。取不到（404）或
- * 未登录取消时回落琥珀 bag glyph，槽位 32px 不变，不引起行高跳变。
+ * 道具分区条目少，挂载即取（引擎内部限流 4），不接视口懒加载。DEK 公开下发、匿名
+ * 也能正常出图；仅取不到（404 / 解密失败）时回落琥珀 bag glyph，槽位 32px 不变，
+ * 不引起行高跳变。
  */
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { glyph } from '@/components/icon/glyphs';
@@ -79,7 +80,7 @@ async function load(name: string): Promise<void> {
         failed.value = false;
     } catch (err) {
         if (disposed || name !== props.name) return;
-        // 404 / 未登录取消 / 解密失败：统一回落背包图标
+        // 404 / 解密失败 / 取图中止：统一回落背包图标
         console.warn('[BattleItemIcon] 道具图标不可用', name, err);
         url.value = null;
         failed.value = true;
