@@ -7,4 +7,6 @@ export { getToken, setToken, getRefreshToken, setRefreshToken, isAuthenticated, 
 
 export { getKey, clearKeyCache } from './key';
 
+export { confirmLogin } from './confirmLogin';
+
 export type { DekResponse, CdnToken } from './types';

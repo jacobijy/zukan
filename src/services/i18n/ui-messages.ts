@@ -330,6 +330,9 @@ const zhHans = {
         requestFailed: '请求失败',
         noRefreshToken: '本地无 refresh token',
         notLoggedIn: '未登录',
+        loginRequiredTitle: '需要登录',
+        loginRequiredContent: '该操作需要登录后才能进行，是否前往登录？',
+        goLogin: '去登录',
     },
     login: {
         welcomeTitle: '欢迎回来',
@@ -805,7 +808,11 @@ const en: typeof zhHans = {
         },
         simulate: { title: 'Battle simulator', desc: 'Replay Pokémon battles as research records.', meta: 'Sandbox' },
         teams: { title: 'My Teams', desc: 'Build and edit battle teams, synced across devices.', meta: 'Teams' },
-        templates: { title: 'My Templates', desc: 'Save Pokémon builds and sync them across devices.', meta: 'Templates' },
+        templates: {
+            title: 'My Templates',
+            desc: 'Save Pokémon builds and sync them across devices.',
+            meta: 'Templates',
+        },
         stats: { title: 'Statistics', desc: 'A summary of types, stats and collection progress.', meta: 'Data' },
     },
     simulate: {
@@ -826,6 +833,9 @@ const en: typeof zhHans = {
         requestFailed: 'Request failed',
         noRefreshToken: 'No local refresh token',
         notLoggedIn: 'Not signed in',
+        loginRequiredTitle: 'Sign in required',
+        loginRequiredContent: 'You need to sign in to do that. Go to sign in now?',
+        goLogin: 'Sign in',
     },
     login: {
         welcomeTitle: 'Welcome back',
@@ -889,7 +899,8 @@ const en: typeof zhHans = {
         formatDoubles: 'Doubles',
         seasonCurrent: 'Current season',
         seasonUnavailableTitle: 'Season data not published',
-        seasonUnavailableDesc: 'Data for this season has not been published yet. Switch to the current season for the latest data.',
+        seasonUnavailableDesc:
+            'Data for this season has not been published yet. Switch to the current season for the latest data.',
         emptyTitle: 'No ranking data',
         emptyDesc: 'No statistics for this format yet.',
         sectionAbilities: 'Ability usage',
