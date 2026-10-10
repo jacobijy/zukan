@@ -39,9 +39,14 @@ VirtualGrid 定高虚拟化                DOM 只留视口附近
 
 ## 收藏
 
-- 走 `uni.getStorageSync`（兼容小程序），并兼容早期裸 `localStorage` 写下的 JSON 字符串。
-- storage 语义的 stub 抄 `tests/favorites.spec.ts`。
-- 「仅收藏」是筛选条件之一，和属性/搜索/世代叠加。
+- **纯后端、需登录**：收藏 id 集合以 `GET /favorites`（`services/api/favorites.ts` 的
+  `listFavorites`）为唯一来源，**不再落本地存储**。启动已登录时由 `boot.ts` 预载，
+  登录成功由共享组件 `LoginModal` 统一刷新，登出清空内存（`resetFavorites`，防跨账号残留）。
+- 点收藏（卡片心形 / 详情页星形）走 `store/pokemon.ts` 的 `toggleFavorite`：先
+  `confirmLogin()`（未登录弹「是否去登录」确认框 → 登录框，任一步取消则静默、什么都不做），
+  再乐观更新内存 + `POST/DELETE /favorites`，请求失败回滚内存。
+- 「仅收藏」仍是筛选条件之一，和属性/搜索/世代叠加，读内存中的 favorites；未登录时为空。
+- 行为用例见 `tests/favorites.spec.ts`（已无本地存储 / 旧格式迁移用例）。
 
 ## 默认世代
 

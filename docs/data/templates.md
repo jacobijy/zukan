@@ -23,6 +23,19 @@ CRUD、配额，**模板内容（`payload`）对后端不透明** —— 结构�
 | `PUT /templates/:id` | **部分更新**（只改提供的 name / payload） | 200 |
 | `DELETE /templates/:id` | 删除模板 | 204 |
 
+## 云端模板与本地草稿（双数据源）
+
+store（`src/store/templates.ts`）维护两个来源，对外用 `records`（computed）合并，按 `updated_at` 降序：
+
+- **云端模板**：`GET /templates` 摘要仅存**内存**（不持久），打开时 `GET :id` 取 payload；
+  保存 POST/PUT、删除 DELETE，均需登录。以服务端为唯一来源。
+- **本地草稿（drafts）**：未上云的**新建**内容，持久在本地 storage `pokemonTemplates`，
+  列表带「草稿」徽章、重启可续编；保存上云成功后删除草稿、转为云端记录。仅草稿的新增 / 删除免登录。
+
+不再有 synced/dirty 的本地缓存、deleted 墓碑与登录并集合并。读取历史版本地数据时只迁移
+`sync='local'` 的草稿，旧的 synced/dirty/deleted 一律丢弃（云端为准）。未登录进列表只看到
+本地草稿 + 一张登录引导卡。
+
 ## 约束常量
 
 | 约束 | 值 |
@@ -184,5 +197,6 @@ type TemplatePayload = StandardTemplate | ChampionsTemplate;
   `src/services/api/index.ts` 导出；类型区分 `TemplateSummary`（列表）与 `Template`（详情）。
 - payload 的类型 / 约束常量 / 归一 / 校验放纯函数模块（参照 teams 的 `team-model.ts`）：
   IV/EV/SP 钳制、招式去重 ≤4、性格与道具合法性回落、**未知字段保留**（前向兼容）。
-- 模板是**用户主动保存**的数据，不启动预取；进入对应页面再拉。未登录时保留本地编辑，点
-  「保存」再引导登录，成功后提交（与收藏/队伍的登录闸门一致）。
+- 模板是**用户主动保存**的数据，不启动预取；进列表页才 `load()`（未登录只给本地草稿 + 登录引导）。
+- 保存云端 / 删除云端条目走 `confirmLogin()`（未登录先「是否去登录」确认、再弹登录框，登录成功续跑）；
+  新建可先「保存草稿」留在本地，登录后再上云。

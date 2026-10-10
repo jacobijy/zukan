@@ -113,8 +113,9 @@
 - 客户端放 `src/services/api/teams.ts`（参照同目录 `favorites.ts`），并从
   `src/services/api/index.ts` 导出；类型区分 `TeamSummary`（列表）与 `Team`（详情）。
 - 队伍是**用户主动保存**的数据，不要在启动时预取；进入队伍管理页再拉。
-- 未登录时队伍界面应保留本地编辑、在用户点「保存」时引导登录，登录成功后再提交
-  （与收藏的「登录后同步本地数据」思路一致）。
+- 未登录点保存 / 删除 / 改名先经 `confirmLogin()`：弹「是否去登录」确认框，确认后打开
+  登录框，登录成功在同一动作内续跑提交；确认框取消或登录层关闭则静默中止、不发请求。
+  未登录期间的编辑只在本次会话内存，不写本地存储。
 
 ## 前端实际落地（本仓）
 
@@ -161,7 +162,8 @@ interface TeamPayload { format: TeamFormat; members: TeamMember[] }  // members 
 | 编辑队伍（组队器） | `pages/teams/team-edit` | 队名 + 赛制、成员卡（特性/道具/性格/招式/SP）、添加成员、保存 |
 | 入口 | `pages/features/features.vue` | 功能页签列表（对战模拟器之后） |
 
-- 写操作前统一 `authGate.requireLogin()`（见 [../security/auth-session.md](../security/auth-session.md)）；
-  用户关闭登录层抛 `LoginDismissedError`，调用方静默中止。两个页面各自挂一份 `LoginModal`。
+- 写操作前统一 `confirmLogin()`（见 [../security/auth-session.md](../security/auth-session.md)）：
+  未登录先「是否去登录」确认、再开登录层；确认取消或登录层关闭（`LoginDismissedError`）静默中止。
+  两个页面各自挂一份 `LoginModal`。
 - 每个成员可「套用对战热门配置」：经 `link` 反查 meta slug → 取该赛制主流配置（rank1）反查 id。
   约 263 slug 之外的物种无此数据，按钮降级提示。数据流见 [battle-usage.md](battle-usage.md)。

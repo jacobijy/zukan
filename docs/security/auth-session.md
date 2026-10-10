@@ -36,6 +36,30 @@ CDN 403 重签时各再调一次。
 它**故意不是 Pinia store**：store 会依赖 session，反过来 session 又要触发 store 动作，
 形成 `store ⇄ session` 循环依赖。模块单例没有这个问题。
 
+## 写操作登录闸门：`confirmLogin()`
+
+`getKey()` 内部的 `requireLogin()` 是**一点就弹登录框**（用于资源解密等被动 401 恢复）。
+用户**主动触发的写操作**（收藏、保存 / 删除队伍、保存 / 删除云端模板）不应一点就被打断，
+统一走 `src/services/session/confirmLogin.ts` 的 `confirmLogin()`：
+
+```
+已登录                            → true（直接续跑原操作）
+未登录 → uni.showModal「是否去登录」
+          ├─ 取消               → false（调用方静默中止、不发请求）
+          └─ 去登录 → authGate.requireLogin() 打开全局 LoginModal
+                      ├─ 成功   → true（在同一动作内继续原写操作）
+                      └─ 关闭   → false（LoginDismissedError，静默中止）
+```
+
+- 返回 boolean，`await` 后为 `true` 才继续；非取消类的意外错误向上抛。
+- 确认框用原生 `uni.showModal`（H5 / 小程序 / App 一致），文案走 i18n
+  （`auth.loginRequiredTitle` / `loginRequiredContent` / `goLogin`）。
+- 弹的仍是同一个全局 `LoginModal`（`authGate.visible` 单例），因此**触发所在页面必须挂载
+  `LoginModal`**，并把 `@success` 接到 `authGate.notifySuccess()`（index、mine、detail、
+  teams 两页、templates 两页均已挂）。
+- 登录成功后的数据刷新：收藏由 `LoginModal` 统一 `loadFavorites(true)`（覆盖表单 / 注册 /
+  第三方登录及所有挂载页）；teams / templates 各自在页面 `@success` 里 `load(true)`。
+
 ## 循环依赖防护
 
 曾经的环：

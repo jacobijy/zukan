@@ -78,6 +78,17 @@
 - **登出清缓存在 `mine.vue` 路径调 `clearSpriteCache()`**，不放进 `clearSession()`
   （避免 `session ⇄ resources` 环）。
 
+登录态与用户数据：
+
+- **用户主动触发的写操作（收藏 / 保存队伍 / 保存或删除云端模板）统一走 `confirmLogin()`**
+  （`services/session/confirmLogin.ts`）：未登录先 `uni.showModal` 问「是否去登录」，确认后
+  才弹全局 `LoginModal`，登录成功在同一动作内续跑；不要直接 `authGate.requireLogin()`
+  （那是 `getKey()` 被动 401 恢复用的，一点就弹）。触发页必须挂 `LoginModal` 并把
+  `@success` 接到 `authGate.notifySuccess()`。
+- **收藏 / 队伍 / 云端模板以服务端为唯一来源，不写本地存储**；唯一例外是模板的「新建草稿」
+  （storage `pokemonTemplates`，只存 `local-*` 草稿，上云成功即删）。登出在 `mine.vue`
+  调 `resetFavorites()` 清空内存收藏。
+
 ## 架构入口
 
 - 技术栈：Vue 3 `<script setup>` + uni-app（编译 H5 / 各小程序 / 快应用 / App）+ Vite + Pinia + Tailwind；Rust → WASM 负责解密 ZKDX、解码 FlatBuffers、伤害计算。
