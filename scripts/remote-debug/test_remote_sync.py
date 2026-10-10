@@ -10,12 +10,15 @@ from pathlib import Path
 from unittest.mock import patch
 
 from remote_sync import (
+    ChangeEntry,
     build_rsync_command,
+    change_signature,
     classify_change,
     get_target_config,
     human_size,
     parse_config,
     run_rsync,
+    settle_sync,
 )
 
 
@@ -95,6 +98,87 @@ class RsyncCommandTests(unittest.TestCase):
             mirror=False,
         )
         self.assertNotIn("--delete", command)
+        self.assertNotIn("--dry-run", command)
+
+    def test_dry_run_command_only_scans(self) -> None:
+        command = build_rsync_command(
+            {
+                "remote": "user@host",
+                "remote_dir": "/build",
+                "ssh_cmd": "ssh",
+                "ssh_port": "22",
+                "ssh_key": "",
+            },
+            Path("/tmp/zukan"),
+            dry_run=True,
+        )
+        self.assertIn("--dry-run", command)
+
+    def test_change_signature_is_order_independent(self) -> None:
+        entries_a = [
+            ChangeEntry("update", "static/a.png", 100),
+            ChangeEntry("delete", "static/b.png", 0),
+        ]
+        entries_b = [
+            ChangeEntry("delete", "static/b.png", 0),
+            ChangeEntry("update", "static/a.png", 100),
+        ]
+        self.assertEqual(change_signature(entries_a), change_signature(entries_b))
+        self.assertNotEqual(
+            change_signature(entries_a),
+            change_signature([ChangeEntry("update", "static/a.png", 99)]),
+        )
+
+    @patch("remote_sync.shutil.which", return_value="/usr/bin/rsync")
+    @patch("remote_sync.subprocess.run")
+    def test_settle_sync_waits_then_applies_stable_plan(self, run, _which) -> None:
+        plan = machine_line(">f.st......", "static/a.png", 100, 40)
+
+        def runner(command, **_kwargs):
+            stdout = "" if "--dry-run" not in command else plan
+            return subprocess.CompletedProcess(command, 0, stdout=stdout)
+
+        run.side_effect = runner
+        cfg = {"remote": "u@h", "remote_dir": "/build", "ssh_cmd": "ssh", "ssh_port": "22"}
+
+        output = StringIO()
+        with redirect_stdout(output):
+            pending, applied = settle_sync(cfg, Path("/tmp/zukan"), None)
+        self.assertFalse(applied)
+        self.assertEqual(len(pending), 1)  # 首轮只记录候选，不落盘
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(output.getvalue(), "")
+
+        with redirect_stdout(output):
+            pending, applied = settle_sync(cfg, Path("/tmp/zukan"), pending)
+        self.assertTrue(applied)  # 连续两轮一致 → 真正同步并打印
+        self.assertIsNone(pending)
+        self.assertEqual(run.call_count, 3)  # 第二轮 dry-run + 一次真实 rsync
+        real_commands = [call.args[0] for call in run.call_args_list if "--dry-run" not in call.args[0]]
+        self.assertEqual(len(real_commands), 1)
+        self.assertIn("static/a.png", output.getvalue())
+
+    @patch("remote_sync.shutil.which", return_value="/usr/bin/rsync")
+    @patch("remote_sync.subprocess.run")
+    def test_settle_sync_ignores_transient_clear_and_regenerate(self, run, _which) -> None:
+        # 编译中间态：static 被清空（只剩删除项）。
+        deleting = machine_line("*deleting", "static/a.png", 0, 0)
+        plans = iter([deleting, ""])  # 下一轮已重建为相同内容 → 扫描为空
+        run.side_effect = lambda command, **_kw: subprocess.CompletedProcess(
+            command, 0, stdout=next(plans) if "--dry-run" in command else ""
+        )
+        cfg = {"remote": "u@h", "remote_dir": "/build", "ssh_cmd": "ssh", "ssh_port": "22"}
+
+        output = StringIO()
+        with redirect_stdout(output):
+            pending, applied = settle_sync(cfg, Path("/tmp/zukan"), None)
+            self.assertFalse(applied)
+            self.assertEqual(len(pending), 1)
+            pending, applied = settle_sync(cfg, Path("/tmp/zukan"), pending)
+        self.assertFalse(applied)  # 中间态自行收敛，从未落盘
+        self.assertIsNone(pending)
+        self.assertEqual(output.getvalue(), "")
+        self.assertTrue(all("--dry-run" in call.args[0]) for call in run.call_args_list)
 
     def test_rsync_command_excludes_python_and_os_caches(self) -> None:
         command = build_rsync_command(

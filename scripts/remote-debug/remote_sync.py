@@ -99,6 +99,7 @@ def build_rsync_command(
     *,
     mirror: bool = True,
     exclude_patterns: Sequence[str] = (),
+    dry_run: bool = False,
 ) -> list[str]:
     ssh_parts = shlex.split(target_cfg.get("ssh_cmd", "ssh"))
     if not ssh_parts:
@@ -124,6 +125,9 @@ def build_rsync_command(
         "--itemize-changes",
         f"--out-format={OUT_FORMAT}",
     ]
+    if dry_run:
+        # 只扫描出变更清单、不落盘；用于编译稳定检测。
+        command.append("--dry-run")
     if mirror:
         command.append("--delete")
     for pattern in exclude_patterns:
@@ -206,31 +210,10 @@ def render_changes(
     )
 
 
-def run_rsync(
-    target_cfg: dict[str, str],
-    local_dir: Path,
-    *,
-    mirror: bool = True,
-    exclude_patterns: Sequence[str] = (),
-) -> None:
-    if shutil.which("rsync") is None:
-        raise FileNotFoundError("找不到 rsync，请安装 rsync 并确保其位于 PATH 中")
-    command = build_rsync_command(
-        target_cfg,
-        local_dir,
-        mirror=mirror,
-        exclude_patterns=exclude_patterns,
-    )
-    started_at = datetime.now()
-    result = subprocess.run(command, check=False, stdout=subprocess.PIPE, text=True)
-    finished_at = datetime.now()
-    if result.returncode:
-        if result.stdout:
-            print(result.stdout, end="")
-        raise subprocess.CalledProcessError(result.returncode, command)
-
+def parse_itemize(stdout: str) -> list[ChangeEntry]:
+    """从 rsync 输出里解析真实变更（Y=. 的纯属性差异行丢弃）。"""
     entries: list[ChangeEntry] = []
-    for line in result.stdout.splitlines():
+    for line in stdout.splitlines():
         if not line.startswith(LINE_PREFIX):
             continue
         fields = line.split("\t")
@@ -240,6 +223,89 @@ def run_rsync(
             continue
         size = int(fields[3]) if len(fields) > 3 and fields[3].isdigit() else 0
         entries.append(ChangeEntry(classify_change(itemize), fields[2], size))
+    return entries
 
+
+def change_signature(entries: Sequence[ChangeEntry]) -> tuple[tuple[str, str, int], ...]:
+    """变更清单的内容指纹：动作 + 路径 + 大小，与行序无关。
+
+    连续两轮扫描指纹相同，才认为重编译已经落定、中间态结束。
+    """
+    return tuple(sorted((entry.kind, entry.path, entry.size) for entry in entries))
+
+
+def _execute_rsync(command: Sequence[str]) -> tuple[datetime, datetime, str]:
+    started_at = datetime.now()
+    result = subprocess.run(list(command), check=False, stdout=subprocess.PIPE, text=True)
+    finished_at = datetime.now()
+    if result.returncode:
+        if result.stdout:
+            print(result.stdout, end="")
+        raise subprocess.CalledProcessError(result.returncode, command)
+    return started_at, finished_at, result.stdout
+
+
+def run_rsync(
+    target_cfg: dict[str, str],
+    local_dir: Path,
+    *,
+    mirror: bool = True,
+    exclude_patterns: Sequence[str] = (),
+) -> None:
+    """执行一轮真实同步（--once 用）：变更非空才打印。"""
+    if shutil.which("rsync") is None:
+        raise FileNotFoundError("找不到 rsync，请安装 rsync 并确保其位于 PATH 中")
+    command = build_rsync_command(
+        target_cfg,
+        local_dir,
+        mirror=mirror,
+        exclude_patterns=exclude_patterns,
+    )
+    started_at, finished_at, stdout = _execute_rsync(command)
+    entries = parse_itemize(stdout)
     if entries:
         render_changes(entries, target_cfg, local_dir, started_at, finished_at)
+
+
+def settle_sync(
+    target_cfg: dict[str, str],
+    local_dir: Path,
+    pending: Sequence[ChangeEntry] | None,
+    *,
+    mirror: bool = True,
+    exclude_patterns: Sequence[str] = (),
+) -> tuple[list[ChangeEntry] | None, bool]:
+    """带编译稳定检测的一轮轮询。
+
+    watch 重编译会先清空 static 等目录再重新生成，单轮轮询可能抓到“删除/重建”
+    中间态。这里每轮只跑 --dry-run 扫描：扫描为空说明本机已是最新；与上一轮
+    指纹不一致说明编译仍在进行，只记下候选、不落盘；连续两轮指纹一致才执行
+    真正的 rsync。
+
+    返回 (新的 pending, 本轮是否执行了同步)。
+    """
+    if shutil.which("rsync") is None:
+        raise FileNotFoundError("找不到 rsync，请安装 rsync 并确保其位于 PATH 中")
+    plan_command = build_rsync_command(
+        target_cfg,
+        local_dir,
+        mirror=mirror,
+        exclude_patterns=exclude_patterns,
+        dry_run=True,
+    )
+    _, _, stdout = _execute_rsync(plan_command)
+    plan = parse_itemize(stdout)
+    if not plan:
+        # 中间态已自行收敛（清空后又生成了内容相同的文件），从未落盘，无需同步。
+        return None, False
+    if pending is not None and change_signature(pending) == change_signature(plan):
+        command = build_rsync_command(
+            target_cfg,
+            local_dir,
+            mirror=mirror,
+            exclude_patterns=exclude_patterns,
+        )
+        started_at, finished_at, _ = _execute_rsync(command)
+        render_changes(plan, target_cfg, local_dir, started_at, finished_at)
+        return None, True
+    return plan, False

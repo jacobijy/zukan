@@ -9,7 +9,15 @@ import sys
 import time
 from pathlib import Path
 
-from remote_sync import TARGET_DEFAULTS, get_target_config, load_config, resolve_local_path, run_rsync
+from remote_sync import (
+    TARGET_DEFAULTS,
+    ChangeEntry,
+    get_target_config,
+    load_config,
+    resolve_local_path,
+    run_rsync,
+    settle_sync,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -78,9 +86,13 @@ def main() -> int:
         interval = float(target_cfg["interval"])
         if interval <= 0:
             raise ValueError("INTERVAL 必须大于 0")
+        # 上一轮 dry-run 扫描到的候选变更；连续两轮一致才真正同步，
+        # 跳过 watch 重编译“清空 → 重建”的中间态。
+        pending: list[ChangeEntry] | None = None
         while True:
             try:
-                sync_once(target_cfg)
+                local_dir = resolve_local_path(target_cfg["local_dir"])
+                pending, _applied = settle_sync(target_cfg, local_dir, pending)
             except Exception as exc:
                 print(f"同步失败：{exc}；{interval:g}s 后重试", file=sys.stderr)
             time.sleep(interval)
