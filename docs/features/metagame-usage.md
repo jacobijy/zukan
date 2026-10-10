@@ -34,8 +34,8 @@
 而非统一 bag glyph。图标走 **ZKDX 加密通道**（`resources/battleImage.ts`：
 `/assets/encrypted/battle/<赛季>/icons/items/<英文显示名>.bin`，赛季取 `meta.json` 的
 `season`，immutable / 按赛季版本化）。文件名就是 rows 的 `item.name`（含空格
-`encodeURIComponent`，无需映射）；图标只覆盖对战中实际被持有的道具，404 / 未登录
-（DEK 仅登录下发）时回落琥珀 bag glyph。槽位 32px，与其它分区行高一致。
+`encodeURIComponent`，无需映射）；图标只覆盖对战中实际被持有的道具，404
+（DEK 公开、匿名可正常出图）时回落琥珀 bag glyph。槽位 32px，与其它分区行高一致。
 
 **招式行布局**：招式行**没有左侧统一 glyph**（特性 / 道具 / 性格才有 tile），名称、属性徽章
 （`pokemon/TypeBadge`，按招式属性配色）、分类名（物理 / 特殊 / 变化）排成**一横排、垂直
@@ -59,7 +59,7 @@ hero：精灵图（link 映射 speciesId）+ 名 + 格式 / 赛季胶囊。空�
 - 纯转换：`services/meta/adapter.ts`（按 rank、相对 barWidth、spread 取整钳制、缺组 []）。
 - 道具 / 精灵 / 属性图标：`services/resources/battleImage.ts` —— 字符串键 + 按赛季版本化
   的加密图片实例（engine 已泛化接受 `number | string` id）；`acquireBattleIcon(cat, key)`，
-  key `encodeURIComponent`，DEK 登录下发，404 / 未登录静默回落。
+  key `encodeURIComponent`，DEK 公开下发，404 静默回落。
 - 招式属性 / 分类反查：`services/meta/moveRefs.ts` —— 动态 import en 名称表 + `loadMoveList`，
   `buildMoveMetaIndex`（纯函数）建「英文招式名（规范化）→ typeId / damageClassId」索引，
   module 单例；页面 `loadAll` 末尾 `ensureMoveRefs`，失败不阻塞（招式行不显示徽章）。

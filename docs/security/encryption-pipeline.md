@@ -337,8 +337,8 @@ DEK / ZKDX / WASM，但**文件名键是字符串**（slug / 显示名），不�
 - **版本化 + immutable**：`<season>` 取对战 `meta.json` 的 `season`（如 `M6`）；图标只在赛季
   更新 / 新增精灵时变，故走 `/assets/encrypted` 的 `immutable`，换赛季即换路径、天然失效。
   **不**用每日变化的 `dataVersion`（否则缓存天天作废）。
-- **登录可见**：密文无鉴权可拉（加密即保护），但 DEK 仅登录后 `/zukan/key` 下发；未登录拿不到
-  DEK → 图标静默降级（数据 JSON / forms.json 仍明文可看）。
+- **公开可见**：密文无鉴权可拉（加密即保护），DEK 同样由公开接口 `/zukan/key` 下发；匿名即可
+  拿到 DEK 正常出图（数据 JSON / forms.json 亦明文公开）。
 - 与图鉴道具图标（§4.5，PokeAPI 数字 id）的区别：这套是**扁平、字符串键、版本化**；前端加密
   图片引擎需把资源标识从 `number` 泛化到 `string`。完整用法见
   [../data/battle-usage.md](../data/battle-usage.md)。

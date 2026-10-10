@@ -10,7 +10,7 @@
 ## 总览
 
 - 数据前缀：**`/assets/battle/`**（明文 JSON，公开、CDN 回源，短缓存）。
-- 图标前缀：**`/assets/encrypted/battle/${season}/icons/`**（ZKDX 密文、immutable，登录才给 DEK）。
+- 图标前缀：**`/assets/encrypted/battle/${season}/icons/`**（ZKDX 密文、immutable，DEK 公开、匿名可获取）。
 - 精灵标识：**Showdown 风格 slug**（`salamence`、`ninetales-alola`），不是数字 id。
 - 对战格式：`Singles`（单打）/ `Doubles`（双打）。
 - 多语言：9 种（`en, zh-Hans, zh-Hant, ja, de, fr, es, it, ko`）。
@@ -186,7 +186,7 @@ GET /assets/battle/p/<Singles|Doubles>/<slug>.json
 
 ## 图标（精灵 / 属性 / 道具）
 
-对战页的一套图标 **ZKDX 加密、按赛季版本化下发**，解密 DEK 必须登录后获取。赛季 `season`
+对战页的一套图标 **ZKDX 加密、按赛季版本化下发**，解密 DEK 由公开接口下发，匿名即可获取。赛季 `season`
 来自 `meta.json`（当前 `M6`），密文前缀：
 
 ```
@@ -206,15 +206,15 @@ GET /assets/battle/p/<Singles|Doubles>/<slug>.json
 与 [../caching/sprite-cache.md](../caching/sprite-cache.md)）：
 
 ```
-1. 取 DEK：getKey()  →  GET /api/v1/zukan/key（需登录，见 ../security/auth-session.md）
+1. 取 DEK：getKey()  →  GET /api/v1/zukan/key（公开，匿名可访问，见 ../security/auth-session.md）
 2. 拉密文：GET /assets/encrypted/battle/${season}/icons/<类别>/<键>.bin
 3. 解密：  decryptZukan(bytes, dek)   →  明文 PNG 字节
 4. 显示：  URL.createObjectURL(new Blob([bytes], { type: 'image/png' }))  →  <image :src>
 ```
 
-- 密文本身**无鉴权**、`immutable` 长缓存（加密即保护）；真正的门槛是登录才下发的 DEK。
-- **未登录**：`getKey()` 触发登录或静默降级（见 auth-session.md），此时图标降级为名字 / 占位，
-  数据 JSON 仍可正常浏览。
+- 密文本身**无鉴权**、`immutable` 长缓存（加密即保护）；DEK 亦由公开接口下发，无需登录。
+- **未登录也能正常出图**：`getKey()` 匿名即可拿到 DEK，不再有「降级为名字 / 占位」的前置门槛；
+  对战页对匿名完全开放。
 - IDB 持久化**密文**、缓存 key 带 `season`；赛季切换时路径与 key 同时变化，旧图天然失效。
 
 > **引擎接入要点**：现有加密图片引擎的资源标识是 `number`（精灵 / 道具的数字 id）。对战图标用
@@ -264,7 +264,7 @@ rows item.name "Choice Scarf"
   `pokemon/<形态slug>.bin`）；无键即单形态。
 
 **属性图**：18 类，文件名小写（`dragon`、`fairy`、`normal`…）。任一图标 404 都应优雅降级；
-登录用户可经 `link.json` 回退图鉴的加密精灵图（图鉴图同样需登录取 DEK）。
+可经 `link.json` 回退图鉴的加密精灵图（图鉴图 DEK 同样公开、匿名可取）。
 
 ## 缓存建议
 
@@ -286,5 +286,5 @@ rows item.name "Choice Scarf"
 - Champions 内部怪兽编号**不对齐全国图鉴**，关联一律以 `link.json` 为准，不要自行用内部序号。
 - 个别形态（Maushold 三只/四只、Vivillon 花纹）在源数据标注不规范：物种名与 `link` 始终准确，
   仅 `i18n/pokemon.form` 可能省略。
-- **数据 JSON 明文公开；图标 ZKDX 加密、登录后才下发 DEK**；鉴权与加密全链路见
+- **数据 JSON 明文公开；图标 ZKDX 加密、DEK 公开下发（匿名可获取）**；鉴权与加密全链路见
   [../security/encryption-pipeline.md](../security/encryption-pipeline.md)。

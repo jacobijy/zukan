@@ -67,7 +67,7 @@
    建实例**，persist root `battle-img:s<season>:`，换赛季路径与 root 同时变，旧图天然失效，
    无需 bump DEK 版本；共享索引经 reconcile 清旧赛季孤儿。
 
-- DEK 复用 `getKey()`；未登录拿不到 → 静默降级（数据 JSON / `forms.json` 仍明文可看）。
+- DEK 复用 `getKey()`；公开接口下发，匿名即可获取、正常出图（数据 JSON / `forms.json` 同样公开）。
 - 数据契约见 [../data/battle-usage.md](../data/battle-usage.md)，加密全链路见
   [../security/encryption-pipeline.md](../security/encryption-pipeline.md) §4.6。
 - 当前 UI 只把**道具**接到该实例（`meta/BattleItemIcon.vue`）；hero / 队友 / 排行榜的精灵
