@@ -1,9 +1,9 @@
 /**
  * teams store 用例（`src/store/teams.ts`）
  *
- * mock teamsApi（可控 fn）+ authGate（保留真实 LoginDismissedError，仅替换 requireLogin）。
- * 覆盖：登录闸门（关闭静默中止）、新建 POST 采用响应 id、已有 PUT、409/404 分支、
- * 客户端校验拦截、未登录 load 不抛错。
+ * mock teamsApi（可控 fn）+ confirmLogin（session 写操作闸门，mock 为可控 fn）。
+ * 覆盖：登录闸门（未登录确认/登录被取消 → 静默中止）、新建 POST 采用响应 id、已有 PUT、
+ * 409/404 分支、客户端校验拦截、未登录 load 不抛错。
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
@@ -13,18 +13,11 @@ const ctrl = vi.hoisted<Record<string, any>>(() => ({}));
 
 vi.mock('@/services/session', () => ({
     isAuthenticated: () => ctrl.isAuth,
+    confirmLogin: () => ctrl.confirmLogin(),
     clearSession: () => {
         ctrl.sessionCleared = true;
     },
 }));
-
-vi.mock('@/services/session/authGate', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('@/services/session/authGate')>();
-    return {
-        ...actual,
-        authGate: { ...actual.authGate, requireLogin: () => ctrl.requireLogin() },
-    };
-});
 
 vi.mock('@/services/api', () => ({
     authApi: {
@@ -40,7 +33,6 @@ vi.mock('@/services/api', () => ({
 }));
 
 import { RestRequestError } from '@/services/http';
-import { LoginDismissedError } from '@/services/session/authGate';
 import { normalizePayload } from '@/services/teams/team-model';
 import { useTeamsStore } from '@/store/teams';
 
@@ -50,7 +42,7 @@ beforeEach(() => {
     setActivePinia(createPinia());
     ctrl.isAuth = true;
     ctrl.sessionCleared = false;
-    ctrl.requireLogin = vi.fn().mockResolvedValue(undefined);
+    ctrl.confirmLogin = vi.fn().mockResolvedValue(true);
     ctrl.refresh = vi.fn().mockResolvedValue({ access_token: 'new-token' });
     ctrl.list = vi.fn().mockResolvedValue([]);
     ctrl.create = vi.fn().mockResolvedValue({});
@@ -69,18 +61,18 @@ describe('save 新建', () => {
         ctrl.create = vi.fn().mockResolvedValue(created);
 
         const out = await store.save();
-        expect(ctrl.requireLogin).not.toHaveBeenCalled();
+        expect(ctrl.confirmLogin).toHaveBeenCalledTimes(1);
         expect(ctrl.create).toHaveBeenCalledWith('新队', expect.anything());
         expect(out).toEqual({ status: 'saved', id: 'srv-id' });
         expect(store.currentId).toBe('srv-id');
         expect(store.summaries.map((s) => s.id)).toEqual(['srv-id']);
     });
 
-    it('未登录弹登录层，登录被关闭 → aborted，不发请求、不抛错', async () => {
+    it('未登录且在「是否去登录」确认或登录框处取消 → aborted，不发请求、不抛错', async () => {
         const store = useTeamsStore();
         store.beginCreate('n');
         ctrl.isAuth = false;
-        ctrl.requireLogin = vi.fn().mockRejectedValue(new LoginDismissedError());
+        ctrl.confirmLogin = vi.fn().mockResolvedValue(false);
 
         const out = await store.save();
         expect(out).toEqual({ status: 'aborted' });

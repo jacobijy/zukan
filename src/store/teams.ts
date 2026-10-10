@@ -3,8 +3,8 @@
  *
  * 分层（见 docs/data/teams.md）：
  * - 取数走 `teamsApi`（薄 HTTP 客户端）；payload 归一 / 校验走 services/teams/team-model。
- * - 写操作前统一 `authGate.requireLogin()`：未登录弹登录层，用户关闭（LoginDismissedError）
- *   则静默中止、不发请求。
+ * - 写操作前统一 `confirmLogin()`：未登录先弹「是否去登录」确认框，确认后再打开登录层；
+ *   确认框取消或登录层被关闭则静默中止、不发请求。
  * - 错误码按后端稳定 `code` / status 分支：404 摘除本地、409/400 交给页面展示。
  *
  * 返回可判别结果（SaveOutcome 等），**i18n 文案在页面映射**，store 不依赖 vue-i18n。
@@ -18,8 +18,7 @@ import { defineStore } from 'pinia';
 import { authApi, teamsApi } from '@/services/api';
 import type { TeamSummary } from '@/services/api/teams';
 import { RestRequestError } from '@/services/http';
-import { clearSession, isAuthenticated } from '@/services/session';
-import { authGate, LoginDismissedError } from '@/services/session/authGate';
+import { clearSession, confirmLogin, isAuthenticated } from '@/services/session';
 import { emptyPayload, normalizePayload, validateTeam, type TeamPayload } from '@/services/teams/team-model';
 
 // ── 结果类型 ───────────────────────────────────────────
@@ -39,6 +38,16 @@ function isRestError(e: unknown): e is RestRequestError {
 
 function errBody(e: RestRequestError): { code?: string; error?: string } {
     return typeof e.data === 'object' && e.data !== null ? (e.data as { code?: string; error?: string }) : {};
+}
+
+/**
+ * 写操作登录闸门：已登录直接通过（access 过期由写请求的 401 会话恢复处理）；
+ * 未登录先弹「是否去登录」确认框、确认后再打开登录层；任一步取消 → aborted。
+ * 不触碰任何 store state，故置于模块作用域。
+ */
+async function gateOrAbort(): Promise<{ aborted: boolean }> {
+    if (await confirmLogin()) return { aborted: false };
+    return { aborted: true };
 }
 
 export const useTeamsStore = defineStore('teams', () => {
@@ -72,18 +81,6 @@ export const useTeamsStore = defineStore('teams', () => {
         if (idx >= 0) summaries.value.splice(idx, 1, { ...team });
         else summaries.value.unshift({ ...team });
         summaries.value = [...summaries.value].toSorted((a, b) => b.updated_at.localeCompare(a.updated_at));
-    }
-
-    /** requireLogin：已登录直接通过（access 过期由 save 的 401 会话恢复处理）；未登录弹层，用户关闭 → aborted。 */
-    async function gateOrAbort(): Promise<{ aborted: boolean }> {
-        if (isAuthenticated()) return { aborted: false };
-        try {
-            await authGate.requireLogin();
-            return { aborted: false };
-        } catch (e) {
-            if (e instanceof LoginDismissedError) return { aborted: true };
-            throw e;
-        }
     }
 
     // ── 列表 ──
@@ -152,7 +149,7 @@ export const useTeamsStore = defineStore('teams', () => {
     // ── 保存 ──
     /**
      * 保存当前草稿：
-     * 1. requireLogin（关闭 → aborted，静默中止）
+     * 1. confirmLogin（确认框取消或登录层关闭 → aborted，静默中止）
      * 2. 归一 payload → validateTeam（名字 / 大小不合法 → invalid，不发请求）
      * 3. 新建（currentId=null）→ POST，**用响应 id 置 currentId**；已有 → PUT
      * 4. 404 → 摘除 + not-found；409/400 → error（保留草稿与 id）
@@ -228,7 +225,7 @@ export const useTeamsStore = defineStore('teams', () => {
     }
 
     // ── 删除 / 改名 ──
-    /** 删除：requireLogin（关闭 → aborted）；DELETE；404 也按已删除处理。 */
+    /** 删除：confirmLogin（确认/登录取消 → aborted）；DELETE；404 也按已删除处理。 */
     async function remove(id: string): Promise<{ removed: true } | { aborted: true }> {
         const gated = await gateOrAbort();
         if (gated.aborted) return { aborted: true };
