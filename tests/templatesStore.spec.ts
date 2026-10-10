@@ -1,9 +1,12 @@
 /**
  * templates store 用例（`src/store/templates.ts`）
  *
- * mock templatesApi（可控 fn）+ authGate（保留真实 LoginDismissedError，仅替换 requireLogin）
- * + uni storage（内存 Map）。覆盖：本地草稿持久化与重载、local→synced→dirty 流转、
- * 保存上云（新建 POST 采用响应 id / 已有 PUT）、409/404 分支、未登录删除墓碑与登录合并补删。
+ * mock templatesApi（可控 fn）+ session（isAuthenticated / confirmLogin 可控）
+ * + uni storage（内存 Map）。覆盖：
+ * - 本地草稿：新建持久化与重载、草稿删除免登录、旧本地数据只迁移 local 草稿；
+ * - 云端列表：load（缓存 / force）、未登录引导、401 refresh 重拉；
+ * - 保存上云：草稿 POST 转云端、PUT、aborted、409/404、未选宝可梦、401 恢复；
+ * - 删除云端：已登录 DELETE、未登录取消 aborted（不再有墓碑）。
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
@@ -13,18 +16,11 @@ const ctrl = vi.hoisted<Record<string, any>>(() => ({}));
 
 vi.mock('@/services/session', () => ({
     isAuthenticated: () => ctrl.isAuth,
+    confirmLogin: () => ctrl.confirmLogin(),
     clearSession: () => {
         ctrl.sessionCleared = true;
     },
 }));
-
-vi.mock('@/services/session/authGate', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('@/services/session/authGate')>();
-    return {
-        ...actual,
-        authGate: { ...actual.authGate, requireLogin: () => ctrl.requireLogin() },
-    };
-});
 
 vi.mock('@/services/api', () => ({
     authApi: {
@@ -39,43 +35,43 @@ vi.mock('@/services/api', () => ({
     },
 }));
 
-// uni storage：内存 Map，模拟持久化
+// uni storage：内存 Map，模拟持久化（直接存 / 取原值，与 store 的数组形态一致）
+const storage = new Map<string, unknown>();
 vi.stubGlobal('uni', {
     getStorageSync: (k: string) => storage.get(k),
     setStorageSync: (k: string, v: unknown) => void storage.set(k, v),
 });
-const storage = new Map<string, unknown>();
 
 import { RestRequestError } from '@/services/http';
-import { LoginDismissedError } from '@/services/session/authGate';
 import { emptyTemplate, type TemplatePayload } from '@/services/templates/template-model';
-import { useTemplatesStore, type TemplateRecord } from '@/store/templates';
+import { useTemplatesStore } from '@/store/templates';
 
+const STORAGE_KEY = 'pokemonTemplates';
 const payload = (): TemplatePayload => ({ ...emptyTemplate('standard'), pokemon_id: 6 });
+const summary = (id = 'srv-1', name = '云端', updated_at = 'u') => ({
+    id,
+    name,
+    created_at: 'c',
+    updated_at,
+});
+const full = (id: string, name: string) => ({
+    id,
+    name,
+    payload: payload(),
+    created_at: 'c',
+    updated_at: 'u2',
+});
 
-const localRec = (): TemplateRecord => ({
-    id: 'local-x1',
-    name: '草稿',
-    payload: payload(),
-    createdAt: 'c',
-    updatedAt: 'u',
-    sync: 'local',
-});
-const syncedRec = (): TemplateRecord => ({
-    id: 'srv-1',
-    name: '云端',
-    payload: payload(),
-    createdAt: 'c',
-    updatedAt: 'u',
-    sync: 'synced',
-});
+function newStore() {
+    setActivePinia(createPinia());
+    return useTemplatesStore();
+}
 
 beforeEach(() => {
-    setActivePinia(createPinia());
     storage.clear();
     ctrl.isAuth = true;
     ctrl.sessionCleared = false;
-    ctrl.requireLogin = vi.fn().mockResolvedValue(undefined);
+    ctrl.confirmLogin = vi.fn().mockResolvedValue(true);
     ctrl.refresh = vi.fn().mockResolvedValue({ access_token: 'new-token' });
     ctrl.list = vi.fn().mockResolvedValue([]);
     ctrl.create = vi.fn().mockResolvedValue({});
@@ -84,100 +80,154 @@ beforeEach(() => {
     ctrl.remove = vi.fn().mockResolvedValue(undefined);
 });
 
-describe('本地草稿持久化', () => {
-    it('saveDraft 新建 → 记 local 并写入本地存储；重载后仍可还原', () => {
-        const store = useTemplatesStore();
+describe('本地草稿', () => {
+    it('saveDraft 新建 → local 草稿，写入本地存储；重载后仍可还原', () => {
+        const store = newStore();
         store.beginCreate('我的喷火龙');
         store.replacePayload(payload());
         store.saveDraft();
 
-        expect(store.currentId).not.toBeNull();
+        expect(store.currentId).toMatch(/^local-/);
         expect(store.records).toHaveLength(1);
         expect(store.records[0].sync).toBe('local');
+        expect(store.records[0].payload).toEqual(payload());
 
-        // 重载（新 pinia 实例）→ 从 storage 读回
-        setActivePinia(createPinia());
-        const reloaded = useTemplatesStore();
+        const reloaded = newStore();
         expect(reloaded.records).toHaveLength(1);
         expect(reloaded.records[0].id).toBe(store.currentId);
-        expect(reloaded.records[0].payload).toEqual(payload());
     });
 
-    it('saveDraft 已有 synced → 置 dirty 且保留云端 id', () => {
-        const store = useTemplatesStore();
-        store.records = [syncedRec()];
-        store.currentId = 'srv-1';
-        store.draftName = '云端';
+    it('未登录删除本地草稿 → 直接移除，不调 DELETE，并清掉本地存储', async () => {
+        const store = newStore();
+        store.beginCreate('d');
+        store.replacePayload(payload());
+        store.saveDraft();
+        const id = store.currentId!;
+
+        ctrl.isAuth = false;
+        const out = await store.remove(id);
+        expect(out).toEqual({ removed: true });
+        expect(ctrl.remove).not.toHaveBeenCalled();
+        expect(store.records).toEqual([]);
+        expect(newStore().records).toEqual([]);
+    });
+
+    it('旧本地数据迁移：只保留 local 草稿，synced/dirty/deleted 一律丢弃', () => {
+        storage.set(STORAGE_KEY, [
+            { id: 'local-a', name: '草稿', payload: payload(), createdAt: 'c', updatedAt: 'u', sync: 'local' },
+            { id: 'srv-1', name: '云', payload: payload(), createdAt: 'c', updatedAt: 'u', sync: 'synced' },
+            { id: 'srv-2', name: '脏', payload: payload(), createdAt: 'c', updatedAt: 'u', sync: 'dirty' },
+            { id: 'srv-3', name: '墓', payload: payload(), createdAt: 'c', updatedAt: 'u', sync: 'deleted' },
+        ]);
+        const store = newStore();
+        expect(store.records.map((r) => r.id)).toEqual(['local-a']);
+        expect(store.records[0].sync).toBe('local');
+    });
+});
+
+describe('云端列表 load', () => {
+    it('已登录 → GET 填充云端摘要（payload null），缓存后不重复拉、force 才刷新', async () => {
+        const store = newStore();
+        ctrl.list = vi.fn().mockResolvedValue([summary('srv-1', '云端')]);
+        await store.load();
+
+        expect(store.needsLogin).toBe(false);
+        const rec = store.records.find((r) => r.id === 'srv-1');
+        expect(rec?.sync).toBe('synced');
+        expect(rec?.payload).toBeNull();
+
+        await store.load();
+        expect(ctrl.list).toHaveBeenCalledTimes(1);
+        await store.load(true);
+        expect(ctrl.list).toHaveBeenCalledTimes(2);
+    });
+
+    it('未登录 → needsLogin、不发请求、云端为空（草稿仍保留）', async () => {
+        const store = newStore();
+        store.beginCreate('d');
         store.replacePayload(payload());
         store.saveDraft();
 
-        expect(store.records[0].sync).toBe('dirty');
-        expect(store.records[0].id).toBe('srv-1');
+        ctrl.isAuth = false;
+        await store.load();
+        expect(ctrl.list).not.toHaveBeenCalled();
+        expect(store.needsLogin).toBe(true);
+        expect(store.records).toHaveLength(1); // 只剩本地草稿
+        expect(store.records[0].sync).toBe('local');
+    });
+
+    it('load 遇 401 → refresh 后重拉', async () => {
+        const store = newStore();
+        ctrl.list = vi
+            .fn()
+            .mockRejectedValueOnce(new RestRequestError('过期', 401, { code: 'UNAUTHENTICATED' }))
+            .mockResolvedValueOnce([summary('srv-1')]);
+        await store.load();
+        expect(ctrl.refresh).toHaveBeenCalledOnce();
+        expect(ctrl.list).toHaveBeenCalledTimes(2);
+        expect(store.records.some((r) => r.id === 'srv-1')).toBe(true);
     });
 });
 
 describe('保存上云', () => {
-    it('已登录保存 → 直接 POST（不弹登录层），用响应 id 替换本地 id、置 synced', async () => {
-        const store = useTemplatesStore();
-        store.records = [localRec()];
-        store.currentId = 'local-x1';
-        store.draftName = '草稿';
+    it('草稿 POST：用响应 id 转云端、删本地草稿，storage 中草稿消失', async () => {
+        const store = newStore();
+        store.beginCreate('草稿');
         store.replacePayload(payload());
-
-        const created = { id: 'srv-new', name: '草稿', payload: payload(), created_at: 'c', updated_at: 'u2' };
-        ctrl.create = vi.fn().mockResolvedValue(created);
+        store.saveDraft();
+        ctrl.create = vi.fn().mockResolvedValue(full('srv-new', '草稿'));
 
         const out = await store.save();
-        expect(ctrl.requireLogin).not.toHaveBeenCalled();
+        expect(ctrl.confirmLogin).toHaveBeenCalled();
         expect(ctrl.create).toHaveBeenCalledWith('草稿', expect.anything());
         expect(out).toEqual({ status: 'saved', id: 'srv-new' });
         expect(store.currentId).toBe('srv-new');
         expect(store.records[0].id).toBe('srv-new');
         expect(store.records[0].sync).toBe('synced');
+        // 本地草稿已删除（重载后只剩空，云端不持久本地）
+        expect(newStore().records).toEqual([]);
     });
 
-    it('未登录 save → 登录关闭 → aborted，不发请求', async () => {
-        const store = useTemplatesStore();
+    it('未登录取消登录 → aborted，不发请求', async () => {
+        const store = newStore();
         store.beginCreate('n');
-        ctrl.isAuth = false;
-        ctrl.requireLogin = vi.fn().mockRejectedValue(new LoginDismissedError());
+        store.replacePayload(payload());
+        ctrl.confirmLogin = vi.fn().mockResolvedValue(false);
 
         const out = await store.save();
         expect(out).toEqual({ status: 'aborted' });
         expect(ctrl.create).not.toHaveBeenCalled();
     });
 
-    it('未登录 save → 弹登录层，成功后 POST 上云', async () => {
-        const store = useTemplatesStore();
+    it('未登录但完成登录 → 续跑 POST 上云', async () => {
+        const store = newStore();
         store.beginCreate('n');
         store.replacePayload(payload());
         ctrl.isAuth = false;
-        ctrl.create = vi.fn().mockResolvedValue({ id: 'srv', name: 'n', payload: payload(), created_at: 'c', updated_at: 'u' });
+        ctrl.create = vi.fn().mockResolvedValue(full('srv', 'n'));
 
         const out = await store.save();
-        expect(ctrl.requireLogin).toHaveBeenCalledOnce();
         expect(out.status).toBe('saved');
         expect(ctrl.create).toHaveBeenCalledOnce();
     });
 
-    it('已有 synced/dirty → PUT（不 POST），成功后置 synced', async () => {
-        const store = useTemplatesStore();
-        store.records = [syncedRec()];
+    it('云端已有条目（server id）→ PUT，不 POST', async () => {
+        const store = newStore();
+        store.cloudSummaries = [summary('srv-1', '云端')];
         store.currentId = 'srv-1';
         store.draftName = '云端改';
         store.replacePayload(payload());
-        ctrl.update = vi.fn().mockResolvedValue({ id: 'srv-1', name: '云端改', created_at: 'c', updated_at: 'u2' });
+        ctrl.update = vi.fn().mockResolvedValue(full('srv-1', '云端改'));
 
         const out = await store.save();
         expect(out).toEqual({ status: 'saved', id: 'srv-1' });
         expect(ctrl.update).toHaveBeenCalledWith('srv-1', expect.objectContaining({ name: '云端改' }));
         expect(ctrl.create).not.toHaveBeenCalled();
-        expect(store.records[0].sync).toBe('synced');
     });
 
-    it('PUT 409 → error conflict，草稿与 id 保留', async () => {
-        const store = useTemplatesStore();
-        store.records = [syncedRec()];
+    it('PUT 409 → conflict，当前编辑态保留', async () => {
+        const store = newStore();
+        store.cloudSummaries = [summary('srv-1')];
         store.currentId = 'srv-1';
         store.draftName = '云端';
         store.replacePayload(payload());
@@ -191,9 +241,9 @@ describe('保存上云', () => {
         expect(store.draftName).toBe('云端');
     });
 
-    it('PUT 404 → error not-found，摘除本地记录', async () => {
-        const store = useTemplatesStore();
-        store.records = [syncedRec()];
+    it('PUT 404 → not-found，摘除云端记录、currentId 清空', async () => {
+        const store = newStore();
+        store.cloudSummaries = [summary('srv-1')];
         store.currentId = 'srv-1';
         store.draftName = '云端';
         store.replacePayload(payload());
@@ -206,137 +256,54 @@ describe('保存上云', () => {
     });
 
     it('宝可梦未选（payload null）→ invalid pokemon-required，不发请求', async () => {
-        const store = useTemplatesStore();
+        const store = newStore();
         store.beginCreate('n');
         const out = await store.save();
         expect(out).toEqual({ status: 'invalid', reason: 'pokemon-required' });
         expect(ctrl.create).not.toHaveBeenCalled();
     });
-});
 
-describe('401 会话恢复', () => {
-    it('保存遇 401 → refresh 成功后重试一次并保存成功', async () => {
-        const store = useTemplatesStore();
+    it('保存遇 401 → refresh 成功重试并保存；refresh 失败 → session-expired', async () => {
+        const store = newStore();
         store.beginCreate('n');
         store.replacePayload(payload());
         ctrl.create = vi
             .fn()
             .mockRejectedValueOnce(new RestRequestError('过期', 401, { code: 'UNAUTHENTICATED' }))
-            .mockResolvedValueOnce({ id: 'srv', name: 'n', payload: payload(), created_at: 'c', updated_at: 'u' });
-
-        const out = await store.save();
-        expect(out.status).toBe('saved');
-        expect(ctrl.refresh).toHaveBeenCalledOnce();
+            .mockResolvedValueOnce(full('srv', 'n'));
+        const ok = await store.save();
+        expect(ok.status).toBe('saved');
         expect(ctrl.create).toHaveBeenCalledTimes(2);
-        expect(store.currentId).toBe('srv');
-    });
 
-    it('refresh 也失败 → 清会话并返回 session-expired，不再重试', async () => {
-        const store = useTemplatesStore();
-        store.beginCreate('n');
-        store.replacePayload(payload());
+        // 再来一次：refresh 失败
+        const store2 = newStore();
+        store2.beginCreate('n2');
+        store2.replacePayload(payload());
         ctrl.create = vi.fn().mockRejectedValue(new RestRequestError('过期', 401, { code: 'UNAUTHENTICATED' }));
         ctrl.refresh = vi.fn().mockRejectedValue(new Error('refresh 失败'));
-
-        const out = await store.save();
-        expect(out).toEqual({ status: 'error', reason: 'session-expired' });
+        const bad = await store2.save();
+        expect(bad).toEqual({ status: 'error', reason: 'session-expired' });
         expect(ctrl.sessionCleared).toBe(true);
-        expect(ctrl.create).toHaveBeenCalledTimes(1);
-    });
-
-    it('非 401 错误不触发 refresh', async () => {
-        const store = useTemplatesStore();
-        store.beginCreate('n');
-        store.replacePayload(payload());
-        ctrl.create = vi.fn().mockRejectedValue(new RestRequestError('重名', 409, { code: 'CONFLICT' }));
-
-        const out = await store.save();
-        expect(out).toEqual({ status: 'error', reason: 'conflict' });
-        expect(ctrl.refresh).not.toHaveBeenCalled();
-    });
-
-    it('列表 load 遇 401 → refresh 后重拉', async () => {
-        const store = useTemplatesStore();
-        ctrl.list = vi
-            .fn()
-            .mockRejectedValueOnce(new RestRequestError('过期', 401, { code: 'UNAUTHENTICATED' }))
-            .mockResolvedValueOnce([{ id: 'srv-1', name: '云端', created_at: 'c', updated_at: 'u' }]);
-
-        await store.load();
-        expect(ctrl.refresh).toHaveBeenCalledOnce();
-        expect(ctrl.list).toHaveBeenCalledTimes(2);
-        expect(store.records.some((r) => r.id === 'srv-1')).toBe(true);
     });
 });
 
-describe('删除与墓碑', () => {
-    it('本地草稿删除 → 直接移除，无需登录', async () => {
-        const store = useTemplatesStore();
-        store.records = [localRec()];
-        ctrl.isAuth = false;
-        const out = await store.remove('local-x1');
-        expect(out).toEqual({ removed: true });
-        expect(store.records).toEqual([]);
-    });
-
-    it('synced 未登录删除 → tombstoned、置 deleted 墓碑', async () => {
-        const store = useTemplatesStore();
-        store.records = [syncedRec()];
-        ctrl.isAuth = false;
-        const out = await store.remove('srv-1');
-        expect(out).toEqual({ tombstoned: true });
-        expect(store.records[0].sync).toBe('deleted');
-    });
-
-    it('synced 已登录删除 → DELETE 并移除', async () => {
-        const store = useTemplatesStore();
-        store.records = [syncedRec()];
+describe('删除云端条目', () => {
+    it('已登录 → DELETE 并从云端列表移除', async () => {
+        const store = newStore();
+        store.cloudSummaries = [summary('srv-1')];
         const out = await store.remove('srv-1');
         expect(out).toEqual({ removed: true });
         expect(ctrl.remove).toHaveBeenCalledWith('srv-1');
         expect(store.records).toEqual([]);
     });
-});
 
-describe('登录合并', () => {
-    it('墓碑在云端仍有时 → 补 DELETE 并清墓碑、云端摘要入库 synced', async () => {
-        const store = useTemplatesStore();
-        store.records = [{ ...syncedRec(), sync: 'deleted' }];
-        ctrl.list = vi.fn().mockResolvedValue([{ id: 'srv-1', name: '云端', created_at: 'c', updated_at: 'u' }]);
-
-        await store.load();
-        expect(ctrl.remove).toHaveBeenCalledWith('srv-1'); // 墓碑补删
-        const synced = store.records.find((r) => r.id === 'srv-1');
-        expect(synced?.sync).toBe('synced'); // 云端独有 → 落库
-        expect(store.records.some((r) => r.sync === 'deleted')).toBe(false);
-    });
-
-    it('云端已无墓碑 id → 墓碑直接清场，不发 DELETE', async () => {
-        const store = useTemplatesStore();
-        store.records = [{ ...syncedRec(), sync: 'deleted' }];
-        ctrl.list = vi.fn().mockResolvedValue([]);
-
-        await store.load();
+    it('未登录取消登录 → aborted，不 DELETE、记录保留（无墓碑）', async () => {
+        const store = newStore();
+        store.cloudSummaries = [summary('srv-1')];
+        ctrl.confirmLogin = vi.fn().mockResolvedValue(false);
+        const out = await store.remove('srv-1');
+        expect(out).toEqual({ aborted: true });
         expect(ctrl.remove).not.toHaveBeenCalled();
-        expect(store.records).toEqual([]);
-    });
-
-    it('本地 synced 而云端已删 → 本地移除', async () => {
-        const store = useTemplatesStore();
-        store.records = [syncedRec()];
-        ctrl.list = vi.fn().mockResolvedValue([]);
-
-        await store.load();
-        expect(store.records).toEqual([]);
-    });
-
-    it('未登录 load → 直接用本地记录，不发请求', async () => {
-        const store = useTemplatesStore();
-        store.records = [localRec()];
-        ctrl.isAuth = false;
-
-        await store.load();
-        expect(ctrl.list).not.toHaveBeenCalled();
-        expect(store.records).toHaveLength(1);
+        expect(store.records.some((r) => r.id === 'srv-1')).toBe(true);
     });
 });

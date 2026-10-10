@@ -95,6 +95,9 @@
             :model-value="payload?.item ? String(payload.item) : '0'"
             @update:model-value="onPickItem"
         />
+
+        <!-- 未登录保存时 confirmLogin → authGate 打开全局登录层 -->
+        <LoginModal v-model:visible="showLogin" @success="onLoginSuccess" />
     </view>
 </template>
 
@@ -104,9 +107,11 @@ import { computed, ref, watch } from 'vue';
 import { onBackPress, onLoad } from '@dcloudio/uni-app';
 import { useI18n } from 'vue-i18n';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
+import LoginModal from '@/components/shared/LoginModal.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import SelectedMoveChip from '@/components/teams/SelectedMoveChip.vue';
 import TemplateBuildEditor from '@/components/templates/TemplateBuildEditor.vue';
+import { authGate } from '@/services/session/authGate';
 import { useI18nStore } from '@/store/i18n';
 import { loadMovePoolForForm } from '@/services/teams/member-options';
 import { useTemplatesStore, type TemplateSaveOutcome } from '@/store/templates';
@@ -164,30 +169,58 @@ function clonePayload(p: TemplatePayload | null): TemplatePayload | null {
     return p === null ? null : (JSON.parse(JSON.stringify(p)) as TemplatePayload);
 }
 
-/** 返回 / 导航退出时：有未保存改动 → 三选（保存草稿 / 放弃 / 取消）。 */
+/** 返回 / 导航退出时：有未保存改动 → 草稿三选（保存草稿/放弃/取消），云端两选（放弃/取消）。 */
+function discardAndBack(): void {
+    store.clearCurrent();
+    snapshot.value = null;
+    uni.navigateBack();
+}
+
 function confirmExit(): void {
     if (!isDirty.value) {
         uni.navigateBack();
         return;
     }
-    uni.showActionSheet({
-        itemList: [t('templates.saveDraft'), t('templates.discard')],
-        success: (res) => {
-            if (res.tapIndex === 0) {
-                store.saveDraft();
-                snapshot.value = { name: store.draftName, payload: clonePayload(store.draftPayload) };
-                uni.navigateBack();
-            } else if (res.tapIndex === 1) {
-                store.clearCurrent();
-                snapshot.value = null;
-                uni.navigateBack();
-            }
-            // 其它（取消）→ 留在页面
-        },
-        fail: () => {
-            // 用户取消弹层 → 留在页面
+    if (store.editingLocalDraft()) {
+        // 新建 / 本地草稿：可保存到本地草稿
+        uni.showActionSheet({
+            itemList: [t('templates.saveDraft'), t('templates.discard')],
+            success: (res) => {
+                if (res.tapIndex === 0) {
+                    store.saveDraft();
+                    snapshot.value = { name: store.draftName, payload: clonePayload(store.draftPayload) };
+                    uni.navigateBack();
+                } else if (res.tapIndex === 1) {
+                    discardAndBack();
+                }
+            },
+            fail: () => {
+                // 用户取消弹层 → 留在页面
+            },
+        });
+        return;
+    }
+    // 云端模板：不产生本地草稿，只确认放弃未保存更改
+    uni.showModal({
+        title: t('templates.exitConfirmTitle'),
+        content: t('templates.discardCloudDesc'),
+        confirmText: t('templates.discard'),
+        cancelText: t('common.cancel'),
+        success: (r) => {
+            if (r.confirm) discardAndBack();
         },
     });
+}
+
+/** 代理 authGate.visible 供 v-model 绑定（不能直接绑嵌套 ref）。 */
+const showLogin = computed({
+    get: () => authGate.visible.value,
+    set: (v: boolean) => {
+        authGate.visible.value = v;
+    },
+});
+function onLoginSuccess(): void {
+    authGate.notifySuccess();
 }
 
 // 小程序手势 / 顶栏返回

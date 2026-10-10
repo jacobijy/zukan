@@ -24,7 +24,7 @@
             <view class="template-list-row__text">
                 <view class="template-list-row__name-row">
                     <text class="template-list-row__name">{{ record.name }}</text>
-                    <text class="template-list-row__badge" :class="badgeClass">{{ badgeText }}</text>
+                    <text v-if="isLocalDraft" class="template-list-row__badge template-list-row__badge--local">{{ t('templates.stateLocal') }}</text>
                 </view>
                 <text class="template-list-row__time">{{ updatedText }}</text>
             </view>
@@ -73,20 +73,8 @@ const speciesModel = computed(() =>
     props.record.payload ? pokemonStore.getById(props.record.payload.pokemon_id) : undefined,
 );
 
-const BADGE: Record<TemplateRecord['sync'], { text: string; cls: string }> = {
-    local: { text: '', cls: 'template-list-row__badge--local' },
-    dirty: { text: '', cls: 'template-list-row__badge--dirty' },
-    synced: { text: '', cls: 'template-list-row__badge--synced' },
-    deleted: { text: '', cls: 'template-list-row__badge--local' },
-};
-
-const badgeText = computed(() => {
-    if (props.record.sync === 'local') return t('templates.stateLocal');
-    if (props.record.sync === 'dirty') return t('templates.stateDirty');
-    if (props.record.sync === 'synced') return t('templates.stateSynced');
-    return t('templates.stateDeleted');
-});
-const badgeClass = computed(() => BADGE[props.record.sync]?.cls ?? BADGE.local.cls);
+/** 仅本地草稿显示「草稿」徽章；云端记录不显示同步状态。 */
+const isLocalDraft = computed(() => props.record.sync === 'local');
 
 // RFC3339/UTC → 紧凑展示（YYYY-MM-DD HH:mm，UTC）
 const updatedText = computed(() => props.record.updatedAt.replace('T', ' ').slice(0, 16) + ' UTC');
@@ -156,16 +144,6 @@ const updatedText = computed(() => props.record.updatedAt.replace('T', ' ').slic
 .template-list-row__badge--local {
     background: #f0f1f4;
     color: #9aa0ab;
-}
-
-.template-list-row__badge--dirty {
-    background: #fdf3e0;
-    color: #d89a1e;
-}
-
-.template-list-row__badge--synced {
-    background: #e6f5eb;
-    color: #3ba55d;
 }
 
 .template-list-row__time {

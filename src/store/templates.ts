@@ -1,26 +1,30 @@
 /**
- * 个人宝可梦模板 store：本机记录（大本营）+ 当前草稿 + 登录闸门 + 错误码分支。
+ * 个人宝可梦模板 store：**云端模板（纯后端）+ 仅「新建草稿」保留本地**。
  *
- * 本地优先（见 docs/data/templates.md + 变更 add-pokemon-templates design）：
- * - 未登录即可建立 / 查看 / 编辑 / 存草稿 —— 数据落在 `pokemonTemplates` 本地存储，
- *   应用重启后仍可打开续编。
- * - 只有用户点「保存」才上云：已登录 POST/PUT，未登录先 `authGate.requireLogin()`。
- * - 登录时 `mergeFromServer` 按 id 与云端合并；本地墓碑（deleted）仅在云端确含该 id 时补 DELETE。
+ * 两个数据源：
+ * - **云端模板**：`GET /templates` 摘要（仅内存、不持久），打开时 GET 详情，保存 POST/PUT；
+ *   以服务端为唯一来源。
+ * - **本地草稿（drafts）**：未上云的**新建**内容，持久在 `pokemonTemplates` 本地存储，
+ *   列表可见、重启可续编；保存上云成功后删除草稿、转为云端记录。
+ *
+ * 已不再有 synced/dirty 的本地缓存、墓碑（deleted）与登录并集合并。读取旧本地数据时
+ * 只迁移 `sync==='local'` 的草稿，synced/dirty/deleted 一律丢弃（云端为唯一来源）。
+ *
+ * 写操作（保存 / 删除云端条目）经 `confirmLogin`：未登录先弹「是否去登录」确认框、
+ * 确认后再打开登录层，登录成功在同一动作内续跑；草稿的保存 / 删除不需要登录。
  *
  * 分层：取数走 `templatesApi`；payload 归一 / 校验走 services/templates/template-model。
  * 返回可判别结果（TemplateSaveOutcome 等），i18n 文案在页面映射，store 不依赖 vue-i18n。
- * 不静态 import pokemon store（物种数据由组件层取），避免环。
  *
  * 注意：所有 state 与操作它们的逻辑都在 `defineStore` setup 内部（Pinia 管理、可重置），
  * 不能放模块顶层 —— 否则会变成跨实例共享的游离单例。
  */
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { authApi, templatesApi } from '@/services/api';
-import type { TemplateSummary } from '@/services/api/templates';
+import type { Template, TemplateSummary } from '@/services/api/templates';
 import { RestRequestError } from '@/services/http';
-import { clearSession, isAuthenticated } from '@/services/session';
-import { authGate, LoginDismissedError } from '@/services/session/authGate';
+import { clearSession, confirmLogin, isAuthenticated } from '@/services/session';
 import {
     emptyTemplate,
     normalizePayload,
@@ -29,11 +33,7 @@ import {
 } from '@/services/templates/template-model';
 
 // ── 结果类型 ───────────────────────────────────────────
-export type TemplateInvalidReason =
-    | 'name-required'
-    | 'name-too-long'
-    | 'payload-too-large'
-    | 'pokemon-required';
+export type TemplateInvalidReason = 'name-required' | 'name-too-long' | 'payload-too-large' | 'pokemon-required';
 export type TemplateErrorReason = 'not-found' | 'conflict' | 'invalid-input' | 'session-expired';
 
 export type TemplateSaveOutcome =
@@ -42,56 +42,101 @@ export type TemplateSaveOutcome =
     | { status: 'invalid'; reason: TemplateInvalidReason }
     | { status: 'error'; reason: TemplateErrorReason; message?: string };
 
-export type TemplateRemoveOutcome =
-    | { removed: true } // 已删
-    | { tombstoned: true } // 未登录删云端条目 → 墓碑，待登录补删
-    | { aborted: true };
+export type TemplateRemoveOutcome = { removed: true } | { aborted: true };
 
 // ── 记录模型 ───────────────────────────────────────────
-export type SyncState = 'local' | 'synced' | 'dirty' | 'deleted';
+/** 列表 / 编辑共用的视图记录。云端摘要 payload 为 null（打开时再 GET）。 */
+export type TemplateSyncState = 'local' | 'synced';
 
-/** 一条模板记录：本地与云端同构，payload 为空表示「云端条目详情未载入」（打开时 GET）。 */
 export interface TemplateRecord {
     id: string;
     name: string;
     payload: TemplatePayload | null;
     createdAt: string;
     updatedAt: string;
-    sync: SyncState;
+    sync: TemplateSyncState;
 }
 
-// ── 本地存储（无 state 依赖，可留模块级） ──────────────
-const STORAGE_KEY = 'pokemonTemplates';
-const SYNC_STATES = new Set<SyncState>(['local', 'synced', 'dirty', 'deleted']);
+/** 本地草稿：未上云的新建内容（落盘的就是这个形状，无 sync 字段）。 */
+interface LocalDraft {
+    id: string;
+    name: string;
+    payload: TemplatePayload;
+    createdAt: string;
+    updatedAt: string;
+}
 
-function isRecord(x: unknown): x is TemplateRecord {
+// ── 本地草稿存储（无 state 依赖，留模块级） ──────────────
+const STORAGE_KEY = 'pokemonTemplates';
+const LOCAL_PREFIX = 'local-';
+
+function isLocalId(id: string | null): id is string {
+    return !!id && id.startsWith(LOCAL_PREFIX);
+}
+
+function nowIso(): string {
+    return new Date().toISOString();
+}
+
+/** 新格式（无 sync 的 LocalDraft）判别。 */
+function isDraftShape(x: unknown): x is LocalDraft {
     if (typeof x !== 'object' || x === null) return false;
     const o = x as Record<string, unknown>;
-    if (typeof o.id !== 'string' || typeof o.name !== 'string') return false;
-    if (typeof o.createdAt !== 'string' || typeof o.updatedAt !== 'string') return false;
-    if (typeof o.sync !== 'string' || !SYNC_STATES.has(o.sync as SyncState)) return false;
-    // payload 允许 null（云端摘要未载入）或对象
-    if (o.payload !== null && (typeof o.payload !== 'object' || o.payload === undefined)) return false;
-    return true;
+    return (
+        typeof o.id === 'string' &&
+        o.id.startsWith(LOCAL_PREFIX) &&
+        typeof o.name === 'string' &&
+        typeof o.createdAt === 'string' &&
+        typeof o.updatedAt === 'string' &&
+        typeof o.payload === 'object' &&
+        o.payload !== null
+    );
 }
 
-function loadLocalTemplates(): TemplateRecord[] {
+/**
+ * 读本地草稿。兼容两种历史形态：
+ * - 新格式：元素本身是 LocalDraft（无 sync）；
+ * - 旧格式：元素是带 sync 的 TemplateRecord —— 仅迁移 `sync==='local'` 的草稿，
+ *   synced/dirty/deleted 一律丢弃（这些数据以云端为准，不再本地缓存 / 留墓碑）。
+ */
+function loadLocalDrafts(): LocalDraft[] {
+    let raw: unknown;
     try {
-        const raw = uni.getStorageSync(STORAGE_KEY) as unknown;
-        const parsed = typeof raw === 'string' ? (raw ? JSON.parse(raw) : []) : raw;
-        if (!Array.isArray(parsed)) return [];
-        return parsed.filter(isRecord).map((r) => ({ ...r, payload: normalizePayload(r.payload) }));
+        raw = uni.getStorageSync(STORAGE_KEY) as unknown;
     } catch {
         return [];
     }
+    let parsed: unknown;
+    try {
+        parsed = typeof raw === 'string' ? (raw ? JSON.parse(raw) : []) : raw;
+    } catch {
+        return [];
+    }
+    if (!Array.isArray(parsed)) return [];
+
+    const drafts: LocalDraft[] = [];
+    for (const item of parsed) {
+        if (isDraftShape(item)) {
+            const p = normalizePayload(item.payload) ?? emptyTemplate('standard');
+            drafts.push({ ...item, payload: p });
+            continue;
+        }
+        const o = (item ?? {}) as Record<string, unknown>;
+        if (o.sync !== 'local' || typeof o.id !== 'string' || !o.id.startsWith(LOCAL_PREFIX)) continue;
+        const p = normalizePayload(o.payload);
+        if (p && typeof o.name === 'string' && typeof o.createdAt === 'string' && typeof o.updatedAt === 'string') {
+            drafts.push({ id: o.id, name: o.name, payload: p, createdAt: o.createdAt, updatedAt: o.updatedAt });
+        }
+    }
+    return drafts;
 }
 
-function saveLocalTemplates(records: TemplateRecord[]): void {
+function saveLocalDrafts(drafts: LocalDraft[]): void {
     try {
-        uni.setStorageSync(STORAGE_KEY, records);
+        uni.setStorageSync(STORAGE_KEY, drafts);
     } catch (err) {
         // quota / 沙箱错误：内存 state 保持，仅丢失持久化
-        console.warn('[templates] 写入本地存储失败', err);
+        console.warn('[templates] 写入本地草稿失败', err);
     }
 }
 
@@ -104,116 +149,96 @@ function errBody(e: RestRequestError): { code?: string; error?: string } {
     return typeof e.data === 'object' && e.data !== null ? (e.data as { code?: string; error?: string }) : {};
 }
 
-function nowIso(): string {
-    return new Date().toISOString();
-}
-
 function clonePayload(p: TemplatePayload | null): TemplatePayload | null {
     return p === null ? null : (JSON.parse(JSON.stringify(p)) as TemplatePayload);
 }
 
+type CloudMeta = Pick<TemplateSummary, 'id' | 'name' | 'created_at' | 'updated_at'>;
+
 export const useTemplatesStore = defineStore('templates', () => {
     // ── state ──
-    const records = ref<TemplateRecord[]>(loadLocalTemplates());
-    const listLoading = ref(false);
+    /** 未上云的新建草稿（本地持久）。 */
+    const drafts = ref<LocalDraft[]>(loadLocalDrafts());
+    /** 云端模板摘要（仅内存，load 时 GET）。 */
+    const cloudSummaries = ref<TemplateSummary[]>([]);
+    /** 云端列表是否已在本次会话加载过。 */
+    let listLoaded = false;
+    /** 未登录（无法看云端）时，列表页显示登录引导。 */
+    const needsLogin = ref(false);
 
     const currentId = ref<string | null>(null);
     const draftName = ref('');
     const draftPayload = ref<TemplatePayload | null>(null);
     const saving = ref(false);
 
-    // ── helpers（操作本 store 的 state） ──
-    function find(id: string): TemplateRecord | undefined {
-        return records.value.find((r) => r.id === id);
+    // ── 对外视图：草稿(local) + 云端(synced, payload 待打开时载入)，updatedAt 降序 ──
+    const records = computed<TemplateRecord[]>(() => {
+        const local: TemplateRecord[] = drafts.value.map((d) => ({ ...d, sync: 'local' }));
+        const cloud: TemplateRecord[] = cloudSummaries.value.map((s) => ({
+            id: s.id,
+            name: s.name,
+            payload: null,
+            createdAt: s.created_at,
+            updatedAt: s.updated_at,
+            sync: 'synced',
+        }));
+        return [...local, ...cloud].toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    });
+
+    // ── helpers ──
+    function persistDrafts(): void {
+        saveLocalDrafts(drafts.value);
     }
 
-    function sortAndPersist(): void {
-        records.value = [...records.value].toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-        saveLocalTemplates(records.value);
+    function findDraft(id: string | null): LocalDraft | undefined {
+        return id ? drafts.value.find((d) => d.id === id) : undefined;
     }
 
-    /** requireLogin：已登录直接通过（access 过期由 save 的 401 会话恢复处理）；未登录弹层，用户关闭 → aborted。 */
-    async function gateOrAbort(): Promise<{ aborted: boolean }> {
-        if (isAuthenticated()) return { aborted: false };
-        try {
-            await authGate.requireLogin();
-            return { aborted: false };
-        } catch (e) {
-            if (e instanceof LoginDismissedError) return { aborted: true };
-            throw e;
-        }
+    /** 插入 / 更新一条云端摘要并按 updated_at 降序。 */
+    function upsertCloud(t: CloudMeta): void {
+        const next = cloudSummaries.value.filter((s) => s.id !== t.id);
+        next.unshift({ id: t.id, name: t.name, created_at: t.created_at, updated_at: t.updated_at });
+        cloudSummaries.value = next.toSorted((a, b) => b.updated_at.localeCompare(a.updated_at));
     }
 
-    // ── 列表 / 合并 ──
-    /** 未登录直接展示本机记录；已登录先把云端摘要并入本地（401 先 refresh 重试一次）。 */
+    function removeCloud(id: string): void {
+        cloudSummaries.value = cloudSummaries.value.filter((s) => s.id !== id);
+    }
+
+    // ── 列表 ──
+    /**
+     * 加载云端摘要。未登录 → needsLogin=true、清空云端（草稿仍在），不发请求、不弹层。
+     * 已登录且未加载 → GET；401 先 refresh 重试一次，再失败清会话。
+     */
     async function load(force = false): Promise<void> {
-        if (!isAuthenticated()) return;
+        if (!isAuthenticated()) {
+            needsLogin.value = true;
+            cloudSummaries.value = [];
+            listLoaded = false;
+            return;
+        }
+        needsLogin.value = false;
+        if (listLoaded && !force) return;
+
         try {
-            const summaries = await templatesApi.listTemplates();
-            mergeFromServer(summaries);
+            cloudSummaries.value = await templatesApi.listTemplates();
+            listLoaded = true;
         } catch (e) {
             if (isRestError(e) && e.statusCode === 401) {
                 try {
                     await authApi.refresh();
-                    const summaries = await templatesApi.listTemplates();
-                    mergeFromServer(summaries);
+                    cloudSummaries.value = await templatesApi.listTemplates();
+                    listLoaded = true;
                 } catch {
                     clearSession();
+                    needsLogin.value = true;
+                    cloudSummaries.value = [];
+                    listLoaded = false;
                 }
             } else {
                 throw e;
             }
         }
-        void force;
-    }
-
-    /**
-     * 登录合并：云端摘要按 id 与本地并集。
-     * - 本地墓碑：云端有该 id → 补 DELETE；云端无 → 移除墓碑。
-     * - 本地 synced / dirty 而云端已无该 id → 本地移除。
-     * - 云端独有 → 落库（synced，payload 待打开时 GET）。
-     * - 本地 dirty / local 保留本地名（保存时全量提交，重名由 409 提示）。
-     */
-    function mergeFromServer(summaries: TemplateSummary[]): void {
-        const cloud = new Map(summaries.map((s) => [s.id, s]));
-        const next: TemplateRecord[] = [];
-
-        for (const rec of records.value) {
-            if (rec.sync === 'deleted') {
-                const c = cloud.get(rec.id);
-                if (c) {
-                    templatesApi
-                        .deleteTemplate(rec.id)
-                        .catch((err) => console.warn('[templates] 墓碑补删失败', err));
-                }
-                continue; // 墓碑清场
-            }
-            if ((rec.sync === 'synced' || rec.sync === 'dirty') && !cloud.has(rec.id)) {
-                continue; // 云端已删
-            }
-            next.push(rec);
-        }
-
-        for (const s of summaries) {
-            const local = next.find((r) => r.id === s.id);
-            if (!local) {
-                next.push({
-                    id: s.id,
-                    name: s.name,
-                    payload: null,
-                    createdAt: s.created_at,
-                    updatedAt: s.updated_at,
-                    sync: 'synced',
-                });
-            } else {
-                // synced 采用服务端名（可能被其它设备改名）；dirty/local 保留本地名
-                if (local.sync === 'synced') local.name = s.name;
-                local.updatedAt = s.updated_at;
-            }
-        }
-
-        records.value = next;
-        sortAndPersist();
     }
 
     // ── 草稿 ──
@@ -224,30 +249,32 @@ export const useTemplatesStore = defineStore('templates', () => {
         draftPayload.value = payload ?? emptyTemplate('standard');
     }
 
-    /** 打开已有记录：本地草稿直接用；云端条目详情未载入时 GET 并归一。404 → 摘除并向上抛。 */
+    /**
+     * 打开一条记录进入编辑：
+     * - 本地草稿：直接用草稿内容（克隆，避免编辑直接改到草稿对象）；
+     * - 云端条目：GET 详情填当前草稿（不持久）；404 → 移出云端列表并向上抛。
+     */
     async function open(id: string): Promise<void> {
-        const rec = find(id);
-        if (!rec) throw new RestRequestError('模板不存在', 404);
-
-        if (rec.payload === null) {
-            try {
-                const t = await templatesApi.getTemplate(id);
-                rec.payload = normalizePayload(t.payload);
-                rec.name = t.name;
-                rec.updatedAt = t.updated_at;
-                sortAndPersist();
-            } catch (e) {
-                if (isRestError(e) && e.statusCode === 404) {
-                    records.value = records.value.filter((r) => r.id !== id);
-                    sortAndPersist();
-                }
-                throw e;
-            }
+        const draft = findDraft(id);
+        if (draft) {
+            currentId.value = id;
+            draftName.value = draft.name;
+            draftPayload.value = clonePayload(draft.payload);
+            return;
         }
 
-        currentId.value = id;
-        draftName.value = rec.name;
-        draftPayload.value = clonePayload(rec.payload);
+        try {
+            const t = await templatesApi.getTemplate(id);
+            currentId.value = id;
+            draftName.value = t.name;
+            draftPayload.value = normalizePayload(t.payload);
+        } catch (e) {
+            if (isRestError(e) && e.statusCode === 404) {
+                removeCloud(id);
+                currentId.value = null;
+            }
+            throw e;
+        }
     }
 
     function setName(name: string): void {
@@ -258,45 +285,47 @@ export const useTemplatesStore = defineStore('templates', () => {
         draftPayload.value = payload;
     }
 
-    /** 保存草稿：仅落本地，不上云。新建记 local；已上云改动置 dirty。 */
+    /** 当前编辑对象是否为本地新建草稿（或尚未存草稿的新建）。 */
+    function editingLocalDraft(): boolean {
+        return currentId.value === null || isLocalId(currentId.value);
+    }
+
+    /**
+     * 保存草稿（仅本地，不上云，无需登录）：新建（currentId=null）生成 local id；
+     * 已是本地草稿则原地更新。云端条目不产生本地草稿（无 dirty）。
+     */
     function saveDraft(): void {
-        if (currentId.value === null) {
-            const rec: TemplateRecord = {
-                id: `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+        const payload = draftPayload.value ?? emptyTemplate('standard');
+        const existing = findDraft(currentId.value);
+        if (existing) {
+            existing.name = draftName.value;
+            existing.payload = payload;
+            existing.updatedAt = nowIso();
+        } else {
+            const draft: LocalDraft = {
+                id: `${LOCAL_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
                 name: draftName.value,
-                payload: draftPayload.value,
+                payload,
                 createdAt: nowIso(),
                 updatedAt: nowIso(),
-                sync: 'local',
             };
-            records.value.unshift(rec);
-            currentId.value = rec.id;
-            sortAndPersist();
-            return;
+            drafts.value.unshift(draft);
+            currentId.value = draft.id;
         }
-        const rec = find(currentId.value);
-        if (rec) {
-            if (rec.sync === 'synced') rec.sync = 'dirty';
-            rec.name = draftName.value;
-            rec.payload = draftPayload.value;
-            rec.updatedAt = nowIso();
-            sortAndPersist();
-        }
+        persistDrafts();
     }
 
     // ── 保存（上云） ──
     /**
      * 保存当前草稿到账号：
-     * 1. requireLogin（关闭 → aborted，静默中止）
-     * 2. 校验（宝可梦未选 / 名字 / 大小不合法 → invalid，不发请求）
-     * 3. 新建（无记录或 sync=local）→ POST，**用响应 id 替换本地 id**；已有 → PUT 全量
-     * 4. 成功后置 synced；409/400 → error（保留草稿与 id）；404 → 摘除 + not-found
+     * 1. confirmLogin（确认框取消 / 登录层关闭 → aborted，静默中止）
+     * 2. 归一 + 校验（宝可梦未选 / 名字 / 大小不合法 → invalid，不发请求）
+     * 3. 新建（无 id 或本地草稿）→ POST，成功后删草稿、摘要入云端；已有云端 id → PUT
+     * 4. 404 → 摘除 + not-found；409/400 → error（保留当前编辑态）
      */
     async function save(): Promise<TemplateSaveOutcome> {
-        const gated = await gateOrAbort();
-        if (gated.aborted) return { status: 'aborted' };
+        if (!(await confirmLogin())) return { status: 'aborted' };
 
-        // 先归一：宝可梦未选（pokemon_id 非法）→ 归一为 null → pokemon-required
         const payload = normalizePayload(draftPayload.value);
         if (payload === null) return { status: 'invalid', reason: 'pokemon-required' };
 
@@ -312,17 +341,13 @@ export const useTemplatesStore = defineStore('templates', () => {
             return await runWithRetry(() => saveOnce(v.trimmedName, payload));
         } catch (e) {
             if (isRestError(e) && e.statusCode === 401) {
-                // refresh 也失败 → 会话已清；提示重新登录
                 return { status: 'error', reason: 'session-expired' };
             }
             if (isRestError(e)) {
                 const body = errBody(e);
                 if (e.statusCode === 404) {
-                    if (currentId.value) {
-                        records.value = records.value.filter((r) => r.id !== currentId.value);
-                        currentId.value = null;
-                        sortAndPersist();
-                    }
+                    if (currentId.value) removeCloud(currentId.value);
+                    currentId.value = null;
                     return { status: 'error', reason: 'not-found', message: body.error };
                 }
                 if (e.statusCode === 409) {
@@ -338,49 +363,22 @@ export const useTemplatesStore = defineStore('templates', () => {
         }
     }
 
-    /** 发一次保存请求并落本地；不处理 401（由 save 外层做会话恢复重试）。 */
+    /** 发一次保存请求并更新数据源；不处理 401（由 save 外层做会话恢复重试）。 */
     async function saveOnce(trimmedName: string, payload: TemplatePayload): Promise<TemplateSaveOutcome> {
-        const rec = currentId.value ? find(currentId.value) : null;
-        const isNew = rec == null || rec.sync === 'local';
-
-        if (isNew) {
+        const draft = findDraft(currentId.value);
+        if (currentId.value === null || draft) {
             const created = await templatesApi.createTemplate(trimmedName, payload);
+            if (draft) drafts.value = drafts.value.filter((d) => d.id !== draft.id);
+            persistDrafts();
+            upsertCloud(created);
             currentId.value = created.id;
-            if (rec) {
-                rec.id = created.id;
-                rec.name = created.name;
-                rec.payload = payload;
-                rec.sync = 'synced';
-                rec.updatedAt = created.updated_at;
-            } else {
-                records.value.unshift({
-                    id: created.id,
-                    name: created.name,
-                    payload,
-                    createdAt: created.created_at,
-                    updatedAt: created.updated_at,
-                    sync: 'synced',
-                });
-            }
-            sortAndPersist();
             return { status: 'saved', id: created.id };
         }
 
-        // 新建分支已返回；此处 currentId 必为云端 id
         const id = currentId.value;
-        if (id === null) return { status: 'error', reason: 'invalid-input' };
-        const updated = await templatesApi.updateTemplate(id, {
-            name: trimmedName,
-            payload,
-        });
-        const existing = find(id);
-        if (existing) {
-            existing.name = updated.name;
-            existing.payload = payload;
-            existing.sync = 'synced';
-            existing.updatedAt = updated.updated_at;
-            sortAndPersist();
-        }
+        if (!id) return { status: 'error', reason: 'invalid-input' };
+        const updated: Template = await templatesApi.updateTemplate(id, { name: trimmedName, payload });
+        upsertCloud(updated);
         return { status: 'saved', id: updated.id };
     }
 
@@ -400,47 +398,29 @@ export const useTemplatesStore = defineStore('templates', () => {
         }
     }
 
-    // ── 删除 / 改名 ──
+    // ── 删除 ──
     /**
-     * 删除：本地草稿直接删；已上云条目已登录 DELETE、未登录标墓碑（deleted）待登录补删。
+     * 删除：本地草稿直接删（无需登录、不发请求）；云端条目经 confirmLogin 后 DELETE，
+     * 404 也按已删除处理。确认框取消 / 登录层关闭 → aborted。
      */
     async function remove(id: string): Promise<TemplateRemoveOutcome> {
-        const rec = find(id);
-        if (!rec) return { removed: true };
-
-        if (rec.sync === 'local') {
-            records.value = records.value.filter((r) => r.id !== id);
+        const draft = findDraft(id);
+        if (draft) {
+            drafts.value = drafts.value.filter((d) => d.id !== id);
             if (currentId.value === id) clearCurrent();
-            sortAndPersist();
+            persistDrafts();
             return { removed: true };
         }
 
-        if (!isAuthenticated()) {
-            rec.sync = 'deleted';
-            rec.updatedAt = nowIso();
-            sortAndPersist();
-            return { tombstoned: true };
-        }
-
+        if (!(await confirmLogin())) return { aborted: true };
         try {
             await templatesApi.deleteTemplate(id);
         } catch (e) {
             if (!(isRestError(e) && e.statusCode === 404)) throw e;
         }
-        records.value = records.value.filter((r) => r.id !== id);
+        removeCloud(id);
         if (currentId.value === id) clearCurrent();
-        sortAndPersist();
         return { removed: true };
-    }
-
-    /** 改名：一律落本地；已上云条目置 dirty，由用户保存上云。 */
-    function rename(id: string, name: string): void {
-        const rec = find(id);
-        if (!rec) return;
-        rec.name = name;
-        if (rec.sync === 'synced') rec.sync = 'dirty';
-        rec.updatedAt = nowIso();
-        sortAndPersist();
     }
 
     /** 退出编辑页时清空草稿。 */
@@ -452,8 +432,10 @@ export const useTemplatesStore = defineStore('templates', () => {
 
     return {
         // state
+        drafts,
+        cloudSummaries,
+        needsLogin,
         records,
-        listLoading,
         currentId,
         draftName,
         draftPayload,
@@ -465,9 +447,9 @@ export const useTemplatesStore = defineStore('templates', () => {
         setName,
         replacePayload,
         saveDraft,
+        editingLocalDraft,
         save,
         remove,
-        rename,
         clearCurrent,
     };
 });
