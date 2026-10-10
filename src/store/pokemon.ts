@@ -1,6 +1,6 @@
 import { fetchPokemonList, type NameResolvers } from '@/services/pokemon';
 import { favoritesApi } from '@/services/api';
-import { isAuthenticated } from '@/services/session';
+import { confirmLogin, isAuthenticated } from '@/services/session';
 import { useI18nStore } from '@/store/i18n';
 import { padId } from '@/utils/helpers';
 import { filterAndSortPokemons, type DexFilterCriteria } from '@/utils/dexFilter';
@@ -10,45 +10,10 @@ import { computed, ref, watch, type Ref } from 'vue';
 /** 首屏默认代次；与 `boot.ts` LATEST_GEN_ID 保持一致以复用预取缓存 */
 const DEFAULT_GEN_ID = 9;
 
-const FAV_STORAGE_KEY = 'pokemonFavorites';
-
-/**
- * 读本地收藏。
- *
- * 走 `uni.getStorageSync` 以兼容小程序端（与 `session/token.ts`、
- * `resources/dataVersion.ts` 同一套写法）。
- *
- * 需要同时认两种形态：
- * - **数组** —— `setStorageSync(key, ids)` 写入的当前格式（H5 上实际落盘为
- *   `{"type":"object","data":[...]}`，读取时被 uni 还原成数组）
- * - **字符串** —— 历史上直接 `localStorage.setItem(key, JSON.stringify(ids))`
- *   写的裸 JSON。uni 的 `parseValue` 认不出这种没有 `type` 字段的值，会把原始
- *   字符串原样返回；不在这里解析的话老用户的收藏会被静默清空。
- *
- * 任一形态都过一遍数字校验，脏数据降级为空列表而不是把 `NaN` 灌进 UI。
- */
-function loadLocalFavorites(): number[] {
-    try {
-        const raw = uni.getStorageSync(FAV_STORAGE_KEY) as unknown;
-        const parsed = typeof raw === 'string' ? (raw ? JSON.parse(raw) : []) : raw;
-        if (!Array.isArray(parsed)) return [];
-        return parsed.filter((id): id is number => typeof id === 'number' && Number.isFinite(id));
-    } catch {
-        return [];
-    }
-}
-
-function saveLocalFavorites(ids: number[]) {
-    try {
-        uni.setStorageSync(FAV_STORAGE_KEY, ids);
-    } catch (err) {
-        // quota / 沙箱错误：内存 state 保持，仅丢失持久化
-        console.warn('[favorites] 写入本地存储失败', err);
-    }
-}
-
 export const usePokemonStore = defineStore('pokemon', () => {
-    const favorites: Ref<number[]> = ref(loadLocalFavorites());
+    const favorites: Ref<number[]> = ref([]);
+    /** 收藏是否已在本次会话从后端拉取过（未登录不发请求）。 */
+    const favoritesLoaded = ref(false);
     const currentGenId = ref<number>(DEFAULT_GEN_ID);
 
     const allPokemons = ref<IPokemonBaseModel[]>([]);
@@ -151,21 +116,24 @@ export const usePokemonStore = defineStore('pokemon', () => {
     );
 
     /**
-     * 切换收藏。策略：
-     * 1. 立即更新本地 state + 本地存储（UI 反馈零延迟）
-     * 2. 已登录时后台 fire-and-forget 同步到后端（幂等，失败静默 log）
-     * 3. 后端失败不影响本地 —— 下次登录 `syncFavoritesOnLogin` 时并集合并会补齐
+     * 切换收藏（纯后端，需登录）：
+     * 1. confirmLogin：未登录先「是否去登录」确认、再弹登录框；取消则什么都不做。
+     * 2. 乐观更新内存（UI 即时反馈；不落本地存储）。
+     * 3. POST/DELETE 同步后端，失败回滚内存，避免与服务端长期不一致。
      */
-    const toggleFavorite = (id: number) => {
-        const index = favorites.value.indexOf(id);
-        const willAdd = index < 0;
+    const toggleFavorite = async (id: number): Promise<void> => {
+        if (!(await confirmLogin())) return;
+        const willAdd = !favorites.value.includes(id);
         if (willAdd) favorites.value.push(id);
-        else favorites.value.splice(index, 1);
-        saveLocalFavorites(favorites.value);
-
-        if (isAuthenticated()) {
-            const p = willAdd ? favoritesApi.addFavorite(id) : favoritesApi.removeFavorite(id);
-            p.catch((err) => console.warn('[favorites] sync failed', { id, willAdd }, err));
+        else favorites.value = favorites.value.filter((x) => x !== id);
+        try {
+            if (willAdd) await favoritesApi.addFavorite(id);
+            else await favoritesApi.removeFavorite(id);
+        } catch (err) {
+            // 回滚乐观更新
+            if (willAdd) favorites.value = favorites.value.filter((x) => x !== id);
+            else if (!favorites.value.includes(id)) favorites.value.push(id);
+            console.warn('[favorites] sync failed', { id, willAdd }, err);
         }
     };
 
@@ -175,18 +143,32 @@ export const usePokemonStore = defineStore('pokemon', () => {
     };
 
     /**
-     * 登录成功后同步收藏：把本地并集提交给后端，返回合并后完整列表覆盖本地。
-     * 失败静默降级 —— 保留本地状态，下次登录 / 操作再试。
+     * 从后端拉取登录用户的收藏（服务端为唯一来源）。
+     * 未登录 → 清空、不发请求、不弹窗；已登录且已加载则复用（force 强制刷新）。
+     * 失败静默置空，不打断图鉴浏览。
      */
-    const syncFavoritesOnLogin = async (): Promise<void> => {
-        try {
-            const local = favorites.value.slice();
-            const merged = await favoritesApi.mergeFavorites(local);
-            favorites.value = merged;
-            saveLocalFavorites(merged);
-        } catch (err) {
-            console.warn('[favorites] initial sync failed', err);
+    const loadFavorites = async (force = false): Promise<void> => {
+        if (!isAuthenticated()) {
+            favorites.value = [];
+            favoritesLoaded.value = false;
+            return;
         }
+        if (favoritesLoaded.value && !force) return;
+        try {
+            const ids = await favoritesApi.listFavorites();
+            // 再守一道不变量：favorites 必须是有限数字数组，脏数据不灌进筛选 / UI。
+            favorites.value = ids.filter((id) => typeof id === 'number' && Number.isFinite(id));
+            favoritesLoaded.value = true;
+        } catch (err) {
+            console.warn('[favorites] 加载失败', err);
+            favorites.value = [];
+        }
+    };
+
+    /** 登出时清空内存收藏，避免下一账号看到上一账号的收藏（本就无本地持久化）。 */
+    const resetFavorites = (): void => {
+        favorites.value = [];
+        favoritesLoaded.value = false;
     };
 
     return {
@@ -204,7 +186,8 @@ export const usePokemonStore = defineStore('pokemon', () => {
         // 收藏
         toggleFavorite,
         isFavorite,
-        syncFavoritesOnLogin,
+        loadFavorites,
+        resetFavorites,
         // 形态查询
         getFormsBySpecies,
         getById,

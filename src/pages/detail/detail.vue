@@ -113,6 +113,9 @@
                 <view class="h-4"></view>
             </view>
         </scroll-view>
+
+        <!-- 未登录点收藏：confirmLogin → authGate 打开全局登录层 -->
+        <LoginModal v-model:visible="loginVisible" @success="onLoginSuccess" />
     </view>
 </template>
 
@@ -128,6 +131,8 @@ import PokedexEntry from '@/components/pokemon/PokedexEntry.vue'
 import InfoGrid from '@/components/pokemon/InfoGrid.vue'
 import InfoCard from '@/components/pokemon/InfoCard.vue'
 import { usePokemonStore } from '@/store/pokemon'
+import LoginModal from '@/components/shared/LoginModal.vue'
+import { authGate } from '@/services/session/authGate'
 import { useI18nStore } from '@/store/i18n'
 import { useI18n } from 'vue-i18n'
 import { interp } from '@/services/i18n/ui-i18n'
@@ -241,8 +246,17 @@ async function loadEvolution(speciesId: number | undefined) {
 
 const toggleFavorite = () => {
     if (pokemon.value.id) {
-        storeToggleFavorite(pokemon.value.id)
+        void storeToggleFavorite(pokemon.value.id)
     }
+}
+
+/** 代理 authGate.visible 供 v-model 绑定（不能直接绑嵌套 ref，理由见 index.vue）。 */
+const loginVisible = computed({
+    get: () => authGate.visible.value,
+    set: (v: boolean) => { authGate.visible.value = v }
+})
+const onLoginSuccess = () => {
+    authGate.notifySuccess()
 }
 
 const goBack = () => {

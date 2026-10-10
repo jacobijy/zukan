@@ -156,6 +156,8 @@ function onTrainerCardClick() {
                     // 会形成 session ⇄ resources 循环依赖。
                     clearSpriteCache();
                     clearItemIconCache();
+                    // 收藏已纯后端化：登出清空内存，避免下一账号看到上一账号的收藏。
+                    pokemonStore.resetFavorites();
                     loggedIn.value = false;
                     uni.showToast({ title: t('mine.toastLoggedOut'), icon: 'none' });
                 }
@@ -167,12 +169,11 @@ function onTrainerCardClick() {
     }
 }
 
-async function onLoginSuccess() {
+function onLoginSuccess() {
     authGate.notifySuccess();
     loggedIn.value = true;
     uni.showToast({ title: t('mine.toastLoginSuccess'), icon: 'success' });
-    // 把本地收藏并集合并到服务端，然后覆盖本地；失败静默降级
-    await pokemonStore.syncFavoritesOnLogin();
+    // 收藏已在 LoginModal 登录成功时统一从后端刷新（loadFavorites），这里不再本地合并。
 }
 
 const menuItems = computed(() => [

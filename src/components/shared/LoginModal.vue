@@ -176,6 +176,7 @@ import PokeballLogo from '@/components/shared/PokeballLogo.vue';
 import SocialLoginButtons from '@/components/shared/SocialLoginButtons.vue';
 import { detectPlatform } from '@/infra/platform';
 import { selectVisibleProviders } from '@/services/platform/providerConfig';
+import { usePokemonStore } from '@/store/pokemon';
 
 const { t } = useI18n();
 
@@ -230,10 +231,19 @@ const canSubmit = computed(() => {
 // 平台在弹层生命周期内不变；探测一次即可。默认（未配置 VITE_AUTH_PROVIDERS）为 []。
 const visibleProviders = selectVisibleProviders(detectPlatform());
 
+/**
+ * 登录 / 注册 / 第三方登录成功的统一出口：先从后端刷新账号收藏（纯后端唯一来源，
+ * 集中在此以覆盖所有登录入口与所有挂载页），再通知父组件并关闭弹层。
+ */
+function reportSuccess(payload: { mode: Mode; identifier: string }) {
+    void usePokemonStore().loadFavorites(true);
+    emit('success', payload);
+    emit('update:visible', false);
+}
+
 // 第三方登录成功：token 已在 client 内落盘，复用与表单一致的成功/关闭流程。
 function onSocialSuccess() {
-    emit('success', { mode: mode.value, identifier: '' });
-    emit('update:visible', false);
+    reportSuccess({ mode: mode.value, identifier: '' });
 }
 
 function switchMode(next: Mode) {
@@ -283,8 +293,7 @@ async function onSubmit() {
             });
         }
 
-        emit('success', { mode: mode.value, identifier: form.identifier });
-        emit('update:visible', false);
+        reportSuccess({ mode: mode.value, identifier: form.identifier });
     } catch (err) {
         if (err instanceof AuthApiError) {
             errorMsg.value = err.message;

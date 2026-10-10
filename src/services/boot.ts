@@ -9,18 +9,29 @@
  * 网络失败静默降级：首页 `store.fetchPokemon` 独立触发，走同一份 inflight 去重。
  */
 import { getKey } from '@/services/session/key';
+import { isAuthenticated } from '@/services/session';
 import { getStoredDataVersion, setStoredDataVersion } from '@/services/resources/dataVersion';
 import { resourceManager } from '@/services/resources/resourceManager';
 import { resolveContentLang } from '@/services/i18n/languages';
 import { useI18nStore } from '@/store/i18n';
+import { usePokemonStore } from '@/store/pokemon';
 
 /** 当前最新一代；后续加代次时同步 bump 或改成从后端下发 */
 const LATEST_GEN_ID = 9;
 
 export async function bootPrefetch(): Promise<void> {
+    // 收藏已改为纯后端：清掉「本地优先」时代遗留的本地收藏 key（幂等，离线也执行）。
+    uni.removeStorageSync('pokemonFavorites');
     try {
         const key = await getKey();
         const serverVersion = key.version;
+
+        // 已登录则从后端拉取账号收藏（未登录不发请求；点星触发登录后由 LoginModal 刷新）。
+        if (isAuthenticated()) {
+            usePokemonStore()
+                .loadFavorites()
+                .catch((err) => console.warn('[boot] favorites load failed', err));
+        }
 
         // 老后端不下发 version：跳过版本对比与主动 prune，
         // 直接按当前 cacheKeyPrefix 走预取（`fetchDecrypted` 仍然 cache-first）

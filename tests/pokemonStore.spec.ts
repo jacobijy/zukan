@@ -48,12 +48,16 @@ const fetchPokemonList = vi.fn();
 vi.mock('@/services/pokemon', () => ({ fetchPokemonList: (...args: unknown[]) => fetchPokemonList(...args) }));
 vi.mock('@/services/api', () => ({
     favoritesApi: {
+        listFavorites: vi.fn().mockResolvedValue([]),
         addFavorite: vi.fn().mockResolvedValue(undefined),
         removeFavorite: vi.fn().mockResolvedValue(undefined),
-        mergeFavorites: vi.fn().mockResolvedValue([]),
     },
 }));
-vi.mock('@/services/session', () => ({ isAuthenticated: () => false }));
+vi.mock('@/services/session', () => ({
+    isAuthenticated: () => false,
+    // 收藏筛选用例：闸门一律放行（等价于已确认登录），聚焦 store 自身行为
+    confirmLogin: () => Promise.resolve(true),
+}));
 
 /** 起一个已载入全量数据的 store */
 async function loadedStore() {
@@ -105,7 +109,7 @@ describe('store 筛选', () => {
 
     it('仅收藏能看到列表靠后的条目', async () => {
         const store = await loadedStore();
-        store.toggleFavorite(900);
+        await store.toggleFavorite(900);
         store.setCriteria({ favoritesOnly: true });
 
         expect(store.matchedCount).toBe(1);
@@ -152,10 +156,10 @@ describe('store 筛选', () => {
         store.setCriteria({ favoritesOnly: true });
         expect(store.matchedCount).toBe(0);
 
-        store.toggleFavorite(500);
+        await store.toggleFavorite(500);
         expect(store.matchedCount).toBe(1);
 
-        store.toggleFavorite(500);
+        await store.toggleFavorite(500);
         expect(store.matchedCount).toBe(0);
     });
 });

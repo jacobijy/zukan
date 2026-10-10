@@ -1,14 +1,13 @@
 /**
- * 收藏 API 客户端
+ * 收藏 API 客户端（收藏纯后端：登录后以服务端为唯一来源，不再落本地）
  *
- * 后端 4 个端点（全部要求 `Authorization: Bearer <access>`）：
- * - `GET /api/v1/favorites`             拿当前用户所有收藏 pokemon_id
- * - `POST /api/v1/favorites`            幂等添加一条
- * - `DELETE /api/v1/favorites/:id`      幂等删除一条
- * - `POST /api/v1/favorites/bulk`       并集合并，返回合并后完整列表（登录时同步用）
+ * 后端 3 个端点（全部要求 `Authorization: Bearer <access>`）：
+ * - `GET /api/v1/favorites`        拿当前用户所有收藏 pokemon_id
+ * - `POST /api/v1/favorites`       幂等添加一条
+ * - `DELETE /api/v1/favorites/:id` 幂等删除一条
  *
  * 与 `authApi.changePassword` 风格一致：手动读 `getToken()` 拼 Bearer；
- * 无 token 时抛错，`store` 层判断 `isAuthenticated()` 再调。
+ * 无 token 时抛错。store 层先经 `confirmLogin()` 确保已登录再调用写接口。
  */
 
 import { rest, RestRequestError } from '@/services/http';
@@ -24,6 +23,16 @@ function authHeader(): Record<string, string> {
 
 interface FavoritesListResponse {
     pokemon_ids: number[];
+}
+
+/** 拉取当前用户的全部收藏 pokemon_id；脏数据过滤，异常形状降级为空列表。 */
+export async function listFavorites(): Promise<number[]> {
+    const res = await rest.get<FavoritesListResponse>('/favorites', {
+        header: authHeader(),
+    });
+    const ids = res?.pokemon_ids;
+    if (!Array.isArray(ids)) return [];
+    return ids.filter((id): id is number => typeof id === 'number' && Number.isFinite(id));
 }
 
 /** 添加一条收藏（幂等） */
@@ -45,17 +54,4 @@ export async function removeFavorite(pokemonId: number): Promise<void> {
         header: authHeader(),
         dataType: 'text',
     });
-}
-
-/**
- * 并集合并：把本地 `ids` 合入服务端集合，返回合并后完整列表。
- * 登录成功时调用；空数组也合法（等价于纯 fetch server side）。
- */
-export async function mergeFavorites(ids: number[]): Promise<number[]> {
-    const res = await rest.post<FavoritesListResponse, { pokemon_ids: number[] }>(
-        '/favorites/bulk',
-        { pokemon_ids: ids },
-        { header: authHeader() },
-    );
-    return res?.pokemon_ids ?? [];
 }
