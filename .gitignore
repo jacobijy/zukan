@@ -32,3 +32,7 @@ src/infra/wasm/target
 src/static/wasm
 # build-icons.mjs 生成的小程序图标字体（构建时自动生成，字形源头是各 .vue 里的 data-ic）
 src/static/fonts
+
+# Python（scripts/remote-debug 等）
+__pycache__/
+*.py[cod]
