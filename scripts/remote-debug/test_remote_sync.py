@@ -75,6 +75,7 @@ class RsyncCommandTests(unittest.TestCase):
         self.assertIn("--delete", command)
         self.assertIn("--itemize-changes", command)
         self.assertIn("--no-perms", command)
+        self.assertIn("--checksum", command)
         self.assertNotIn("--stats", command)
         self.assertNotIn("--human-readable", command)
         self.assertIn("--out-format=@@FILE\t%i\t%n\t%l\t%b", command)

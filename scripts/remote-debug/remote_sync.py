@@ -118,6 +118,9 @@ def build_rsync_command(
         # 目标常是 NTFS/FAT/SMB（如 WSL 的 /mnt/d），保留不了 Linux 权限位；
         # 不比对/设置权限，避免每轮把全部文件当成“仅权限不同”重复列出。
         "--no-perms",
+        # mp-weixin watch 每轮全量重写产物、刷新所有文件 mtime（内容没变也刷），
+        # 按 mtime 判定会把整轮文件当成更新；改用内容校验和，只同步真正变化的文件。
+        "--checksum",
         "--itemize-changes",
         f"--out-format={OUT_FORMAT}",
     ]

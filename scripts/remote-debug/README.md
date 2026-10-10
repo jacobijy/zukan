@@ -33,9 +33,12 @@ python3 scripts/remote-debug/pull.py --target app --dry-run
 | `mp-weixin` | `~/Code/zukan/dist/dev/mp-weixin` | `$HOME/zukan-mp-weixin` |
 | `app` | `~/Code/zukan/dist/build/app` | `$HOME/zukan-app` |
 
-同步使用 `rsync -az --no-perms --delete`：本机目录会成为远端目录的镜像，远端已删除的文件也会从本机目标目录删除。加 `--no-perms` 是因为本机目标常落在 NTFS/FAT/SMB（如 WSL 的 `/mnt/d`），这类文件系统保留不了 Linux 权限位；若仍比对权限，每轮都会把全部文件当成“仅权限不同”重复列出、却不传输任何数据。
+同步使用 `rsync -azc --no-perms --delete`：本机目录会成为远端目录的镜像，远端已删除的文件也会从本机目标目录删除。
 
-只有发生真实文件变更（新增/更新/删除）时才打印日志：开头一行同步方向与开始时间，随后每个变更一行（动作、大小、路径），末尾一行中文汇总（各类计数、合计大小、完成时间与本轮耗时）。仅权限或时间戳差异不算变更，没有文件变更时完全静默。示例：
+- `--no-perms`：本机目标常落在 NTFS/FAT/SMB（如 WSL 的 `/mnt/d`），这类文件系统保留不了 Linux 权限位；若仍比对权限，每轮都会把全部文件当成“仅权限不同”重复列出、却不传输任何数据。
+- `--checksum`（`-c`）：mp-weixin 的 watch 每次重建都会**全量重写所有产物并刷新 mtime**，即使文件内容没变；rsync 默认按 `mtime+size` 判定，会把整轮几百个文件都当成“更新”。改用内容校验和后，只有内容真正变化的文件才被同步（产物仅约 2.7MB，每轮全量 checksum 的开销可忽略）。
+
+只有发生真实文件变更（新增/更新/删除）时才打印日志：开头一行同步方向与开始时间，随后每个变更一行（动作、大小、路径），末尾一行中文汇总（各类计数、合计大小、完成时间与本轮耗时）。仅权限、时间戳或内容未变（mtime 被刷新）的文件不算变更，没有文件变更时完全静默。示例：
 
 ```text
 [2026-10-09 21:04:25] jacobi@192.168.100.100:~/Code/zukan/dist/dev/mp-weixin → /mnt/d/Code/zukan-wx

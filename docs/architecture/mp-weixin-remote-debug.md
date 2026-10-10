@@ -152,9 +152,9 @@ stat -c '%y %n' src/components/TabBar.vue dist/dev/mp-weixin/components/TabBar.w
 > python3 scripts/remote-debug/pull.py --target mp-weixin --once
 > ```
 >
-> Python 脚本通过命令行调用系统 `rsync`（`-az --no-perms --delete`）。只有发生真实
-> 文件变更（新增/更新/删除）时才打印可读的变更行与一行汇总；仅权限或时间戳差异不算
-> 变更、无变更时静默。参数详情见 [`scripts/remote-debug/README.md`](../../scripts/remote-debug/README.md)。
+> Python 脚本通过命令行调用系统 `rsync`（`-azc --no-perms --delete`）。只有发生真实
+> 文件变更（新增/更新/删除）时才打印可读的变更行与一行汇总；仅权限/时间戳差异、或
+> mtime 被重建刷新但内容未变都不算变更，无变更时静默。参数详情见 [`scripts/remote-debug/README.md`](../../scripts/remote-debug/README.md)。
 > 取回脚本后再按下面的方案同步产物。
 
 ### 方案 A（推荐）：Mutagen，毫秒级实时
@@ -185,12 +185,14 @@ mutagen sync create \
 python3 scripts/remote-debug/pull.py --target mp-weixin
 ```
 
-每秒调用 `rsync -az --no-perms --delete` 把产物镜像到 `~/zukan-mp-weixin`，只传输有
+每秒调用 `rsync -azc --no-perms --delete` 把产物镜像到 `~/zukan-mp-weixin`，只传输有
 变化的文件并清理过期项目，延迟约 1s。加 `--no-perms` 是因为目标常落在 NTFS/FAT（如
 WSL 的 `/mnt/d`），保留不了 Linux 权限位，否则每轮会把全部文件当成“仅权限不同”重复
-列出。只有真实变更才打印、无变更静默。需要安装 Python 3、rsync 和 OpenSSH，并确保
-`rsync`、`ssh` 在 PATH 中。配置优先级：`命令行参数 / 环境变量 > pull.conf.local > pull.conf`；
-SSH 密钥和端口可用 `SSH_KEY` / `SSH_PORT` 配置。
+列出。加 `--checksum`（`-c`）是因为 mp watch 每轮全量重写产物、刷新所有文件 mtime
+（内容没变也刷），默认按 mtime 判定会把几百个文件当更新，改用内容校验和后只同步真正
+变化的文件（产物仅约 2.7MB，每轮 checksum 开销可忽略）。只有真实变更才打印、无变更
+静默。需要安装 Python 3、rsync 和 OpenSSH，并确保 `rsync`、`ssh` 在 PATH 中。配置优先级：
+`命令行参数 / 环境变量 > pull.conf.local > pull.conf`；SSH 密钥和端口可用 `SSH_KEY` / `SSH_PORT` 配置。
 
 > 不建议用 sshfs / NFS 直接挂载再让开发者工具读：FUSE 上的文件事件不可靠，
 > 开发者工具经常不自动刷新、扫描也慢。同步成本地真实目录最稳（这也是本方案
@@ -216,8 +218,9 @@ py -3 scripts\remote-debug\pull.py --target mp-weixin
 ```
 
 - 默认每 1s 一轮；可用命令行参数、环境变量或 `pull.conf.local` 覆盖地址、目录、间隔和
-  密钥。只有真实变更（新增/更新/删除）时才打印可读变更行与一行汇总、无变更静默；
-  脚本带 `--no-perms`，适配 WSL `/mnt/d` 等无法保留 Linux 权限位的 NTFS 目标。
+  密钥。只有真实变更（新增/更新/删除）时才打印可读变更行与一行汇总、无变更静默。
+  脚本带 `--no-perms` 与 `--checksum`：前者适配 WSL `/mnt/d` 等保留不了 Linux 权限位的
+  NTFS 目标，后者解决 watch 每轮全量刷新 mtime 导致的伪更新，只同步内容真正变化的文件。
 - 单次同步可用 `py -3 scripts\remote-debug\pull.py --target mp-weixin --once`。
 
 ## 三、微信开发者工具（Mac/Windows 上做一次）
