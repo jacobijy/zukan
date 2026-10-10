@@ -172,6 +172,10 @@ python3 scripts/remote-debug/pull.py --target app
 PATH 中。配置优先级：`命令行参数 / 环境变量 > pull.conf.local > pull.conf`；SSH 密钥和
 端口可用 `SSH_KEY` / `SSH_PORT` 配置。
 
+> build:app 监听重跑也是先清空产物目录再重新生成。常驻模式每轮先跑 `rsync --dry-run`
+> 只扫描，**连续两轮扫描结果一致**才真正同步，避免把“先删后建”的中间态多同步两次；
+> `--once` 不做稳定检测、立即同步一轮。
+
 > 同微信方案：不建议 sshfs/NFS 挂载后让原生工具直接读，FSE 文件事件不可靠。同步成
 > 本地真实目录最稳。
 
