@@ -1,5 +1,10 @@
 <template>
-    <view class="specimen-card w-full cursor-pointer" @click="onClick">
+    <!--
+      小程序 VirtualGrid 作用域插槽在数据集整体换新（如登录后 fetchPokemon）的
+      渲染中间帧可能传入 undefined item：逻辑层 windowEntries 已跳过 undefined，
+      但小程序渲染层复用卡片实例时 slot item 有一拍为空。根节点防御，该帧渲染空。
+    -->
+    <view v-if="props.pokemon" class="specimen-card w-full cursor-pointer" @click="onClick">
         <view class="specimen-card__inner relative overflow-hidden rounded-[22px] border border-[#e5e7ee] bg-white p-2.5 shadow-[0_14px_34px_rgba(48,55,72,0.08)] transition-all duration-300 active:scale-[0.985] sm:p-3">
             <text class="absolute -right-1 bottom-0 font-mono text-[58px] font-black leading-none tracking-[-0.08em] text-[#eef0f5]">{{ String(props.pokemon.id).padStart(3, '0') }}</text>
 
