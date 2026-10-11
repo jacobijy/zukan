@@ -363,6 +363,9 @@ const zhHans = {
         appleLogin: '通过 Apple 登录',
         googleLogin: '通过 Google 登录',
         phoneLogin: '本机号一键登录',
+        wechatPrimary: '微信一键登录',
+        wechatHint: '授权微信即可登录，新用户自动注册账号',
+        accountLogin: '用户名 / 邮箱登录',
     },
     account: {
         title: '账号绑定',
@@ -864,6 +867,9 @@ const en: typeof zhHans = {
         appleLogin: 'Sign in with Apple',
         googleLogin: 'Sign in with Google',
         phoneLogin: 'Sign in with phone number',
+        wechatPrimary: 'Continue with WeChat',
+        wechatHint: 'Authorize WeChat to sign in. New users are registered automatically.',
+        accountLogin: 'Username or email sign-in',
     },
     account: {
         title: 'Linked accounts',

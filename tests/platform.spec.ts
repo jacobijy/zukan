@@ -83,11 +83,12 @@ describe('parseEnabledProviders', () => {
 });
 
 describe('selectVisibleProviders（capability ∩ enabled）', () => {
-    it('默认未配置时任何平台都不渲染', async () => {
+    it('默认未配置时：App/H5 不渲染，mp-weixin 内建微信入口', async () => {
         vi.resetModules();
         const mod = await import('@/services/platform/providerConfig');
         expect(mod.selectVisibleProviders('app-ios')).toEqual([]);
-        expect(mod.selectVisibleProviders('mp-weixin')).toEqual([]);
+        expect(mod.selectVisibleProviders('h5')).toEqual([]);
+        expect(mod.selectVisibleProviders('mp-weixin')).toEqual(['weixin']);
     });
 
     it('启用后与平台能力取交：android 启用 apple 也不渲染', async () => {
@@ -96,6 +97,14 @@ describe('selectVisibleProviders（capability ∩ enabled）', () => {
         const mod = await import('@/services/platform/providerConfig');
         expect(mod.selectVisibleProviders('app-ios')).toEqual(['weixin', 'apple']);
         expect(mod.selectVisibleProviders('app-android')).toEqual(['weixin']);
+        expect(mod.selectVisibleProviders('mp-weixin')).toEqual(['weixin']);
+        vi.unstubAllEnvs();
+    });
+
+    it('mp-weixin 的微信内建入口不受 env 影响：显式只配 apple 仍渲染 weixin', async () => {
+        vi.stubEnv('VITE_AUTH_PROVIDERS', 'apple');
+        vi.resetModules();
+        const mod = await import('@/services/platform/providerConfig');
         expect(mod.selectVisibleProviders('mp-weixin')).toEqual(['weixin']);
         vi.unstubAllEnvs();
     });

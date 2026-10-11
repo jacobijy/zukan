@@ -5,7 +5,19 @@
 依据 `VITE_AUTH_PROVIDERS`，见 [../architecture/platform-managers.md](../architecture/platform-managers.md)）。
 本文记录后者在"国内 / 海外分渠道发行"下如何配置与验证。
 
-## 渠道与启用集合
+## 微信小程序：微信入口为平台内建，无需配置
+
+`mp-weixin` 本身就是微信渠道：`providerConfig` 的 `BUILTIN_PROVIDERS` 令
+`selectVisibleProviders('mp-weixin')` 恒返回 `['weixin']`，**不读
+`VITE_AUTH_PROVIDERS`**，dev / build 均生效，env 无法将其关闭（后端临时下线时由
+`/auth/weixin` 返回 503，按钮走「第三方服务暂时不可用」提示）。
+
+交互上小程序的 `LoginModal` 是**微信优先**：打开默认是「微信一键登录」大按钮
+（`uni.login` 静默取 code，新用户由后端自动建号），底部「用户名 / 邮箱登录」切到
+账号密码表单；表单视图下仍保留绿色「微信登录」按钮可回切。App / H5 不受影响，
+维持表单优先。
+
+## 渠道与启用集合（App）
 
 | 构建 mode | `VITE_AUTH_PROVIDERS` | App Android 可见入口 | 备注 |
 |-----------|----------------------|----------------------|------|

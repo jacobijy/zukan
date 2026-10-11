@@ -38,6 +38,35 @@
                 </text>
             </view>
 
+            <!-- 微信优先视图（仅微信小程序）：一键微信登录/注册，账号方式手动切换 -->
+            <view v-if="view === 'wechat'" class="login-modal__wechat">
+                <button
+                    class="login-modal__wechat-btn"
+                    :disabled="wechatBusy"
+                    @click="onWechatLogin"
+                >
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[20px]">{{ glyph('brand-weixin') }}</text>
+                    <!-- #endif -->
+                    <text>{{ wechatBusy ? t('common.processing') : t('login.wechatPrimary') }}</text>
+                </button>
+                <text class="login-modal__wechat-hint">{{ t('login.wechatHint') }}</text>
+
+                <!-- 错误提示（微信视图仅小程序可达，图标只用小程序字体 glyph） -->
+                <view v-if="wechatError" class="login-modal__error">
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic shrink-0 text-[16px]">{{ glyph('info') }}</text>
+                    <!-- #endif -->
+                    <text>{{ wechatError }}</text>
+                </view>
+
+                <view class="login-modal__foot login-modal__foot--wechat">
+                    <text class="login-modal__link" @click="switchToForm">{{ t('login.accountLogin') }}</text>
+                </view>
+            </view>
+
+            <!-- 账号表单视图（其他平台默认；小程序下由「用户名 / 邮箱登录」切入） -->
+            <template v-else>
             <!-- Tab 切换 -->
             <view class="login-modal__tabs">
                 <view
@@ -163,6 +192,7 @@
                     </text>
                 </view>
             </view>
+            </template>
         </view>
     </view>
 </template>
@@ -176,6 +206,7 @@ import PokeballLogo from '@/components/shared/PokeballLogo.vue';
 import SocialLoginButtons from '@/components/shared/SocialLoginButtons.vue';
 import { detectPlatform } from '@/infra/platform';
 import { selectVisibleProviders } from '@/services/platform/providerConfig';
+import { getPlatformManager } from '@/services/platform/managers';
 import { usePokemonStore } from '@/store/pokemon';
 
 const { t } = useI18n();
@@ -218,6 +249,9 @@ watch(
             errorMsg.value = '';
             loading.value = false;
             showPassword.value = false;
+            view.value = preferWechat ? 'wechat' : 'form';
+            wechatError.value = '';
+            wechatBusy.value = false;
         }
     }
 );
@@ -228,8 +262,16 @@ const canSubmit = computed(() => {
     return true;
 });
 
-// 平台在弹层生命周期内不变；探测一次即可。默认（未配置 VITE_AUTH_PROVIDERS）为 []。
-const visibleProviders = selectVisibleProviders(detectPlatform());
+// 平台在弹层生命周期内不变；探测一次即可。
+// mp-weixin 的 weixin 为平台内建入口（见 providerConfig），该平台弹层默认微信优先。
+const platform = detectPlatform();
+const visibleProviders = selectVisibleProviders(platform);
+const preferWechat = platform === 'mp-weixin' && visibleProviders.includes('weixin');
+
+// wechat：微信一键优先视图（仅小程序）；form：账号密码表单（其余平台默认）。
+const view = ref<'wechat' | 'form'>(preferWechat ? 'wechat' : 'form');
+const wechatBusy = ref(false);
+const wechatError = ref('');
 
 /**
  * 登录 / 注册 / 第三方登录成功的统一出口：先从后端刷新账号收藏（纯后端唯一来源，
@@ -246,6 +288,30 @@ function onSocialSuccess() {
     reportSuccess({ mode: mode.value, identifier: '' });
 }
 
+// 微信一键登录（小程序微信优先视图）：manager 拿 code → /auth/weixin，成功出口与表单一致。
+async function onWechatLogin() {
+    if (wechatBusy.value) return;
+    wechatError.value = '';
+    wechatBusy.value = true;
+    try {
+        await getPlatformManager().login('weixin');
+        reportSuccess({ mode: mode.value, identifier: '' });
+    } catch (err) {
+        wechatError.value =
+            err instanceof AuthApiError && err.code === 'UPSTREAM_UNAVAILABLE'
+                ? t('account.upstreamError')
+                : ((err as Error)?.message ?? t('login.fallbackError'));
+    } finally {
+        wechatBusy.value = false;
+    }
+}
+
+function switchToForm() {
+    if (wechatBusy.value) return;
+    view.value = 'form';
+    wechatError.value = '';
+}
+
 function switchMode(next: Mode) {
     if (loading.value || mode.value === next) return;
     mode.value = next;
@@ -253,7 +319,7 @@ function switchMode(next: Mode) {
 }
 
 function close() {
-    if (loading.value) return;
+    if (loading.value || wechatBusy.value) return;
     emit('update:visible', false);
 }
 
@@ -379,6 +445,56 @@ async function onSubmit() {
     font-size: 12px;
     font-weight: 600;
     color: #8a8f99;
+}
+
+.login-modal__wechat {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.login-modal__wechat-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
+    height: 46px;
+    margin-top: 2px;
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    background: #07c160;
+    box-shadow: 0 12px 24px rgba(7, 193, 96, 0.26),
+                inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    transition: transform 0.14s ease, opacity 0.18s ease;
+}
+
+.login-modal__wechat-btn::after {
+    display: none;
+}
+
+.login-modal__wechat-btn:active:not(:disabled) {
+    transform: scale(0.985);
+    opacity: 0.92;
+}
+
+.login-modal__wechat-btn:disabled {
+    opacity: 0.82;
+}
+
+.login-modal__wechat-hint {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8a8f99;
+    text-align: center;
+}
+
+.login-modal__foot--wechat {
+    margin-top: 4px;
 }
 
 .login-modal__tabs {

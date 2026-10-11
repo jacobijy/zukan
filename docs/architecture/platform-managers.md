@@ -11,7 +11,7 @@
 | 层 | 位置 | 职责 | 性质 |
 |----|------|------|------|
 | 平台检测 | `src/infra/platform/` | 当前是哪个平台、各平台**理论**支持哪些登录（静态矩阵） | 纯函数/纯数据，可 node 测试 |
-| 能力闸门 | `src/services/platform/providerConfig.ts` | 平台支持 ∩ 后端是否已启用 → **UI 是否渲染某入口的唯一依据** | 纯函数 |
+| 能力闸门 | `src/services/platform/providerConfig.ts` | 平台支持 ∩（env 启用 ∪ 平台内建）→ **UI 是否渲染某入口的唯一依据** | 纯函数 |
 | 平台管理对象 | `src/services/platform/managers/` | **执行**与平台交互的操作（login/bind/unbind，以后支付/推送…） | 有副作用（uni / api） |
 
 Manager **不复制能力矩阵**：平台差异（如微信 `app_type`）继续调 infra 的纯函数
