@@ -56,6 +56,7 @@ const goDetail = () => {
 
 <style lang="scss" scoped>
 .mini-row {
+    position: relative;
     display: flex;
     align-items: center;
     min-height: 64px;
@@ -68,6 +69,21 @@ const goDetail = () => {
 .mini-row:active {
     background: rgba(241, 243, 248, 0.82);
     transform: scale(0.992);
+}
+
+/* 分隔线画在整行上：编号不再悬在线外，线界定的是整行而非 icon 槽 */
+.mini-row::after {
+    position: absolute;
+    right: 12px;
+    bottom: 0;
+    left: 14px;
+    height: 1px;
+    content: '';
+    background: rgba(222, 225, 232, 0.86);
+}
+
+.mini-row--last::after {
+    display: none;
 }
 
 .mini-row__id {
@@ -88,11 +104,6 @@ const goDetail = () => {
     min-height: 64px;
     margin-left: 10px;
     padding-right: 12px;
-    border-bottom: 1px solid rgba(222, 225, 232, 0.86);
-}
-
-.mini-row--last .mini-row__main {
-    border-bottom: 0;
 }
 
 .mini-row__name {
