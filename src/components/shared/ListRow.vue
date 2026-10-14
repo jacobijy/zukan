@@ -6,20 +6,20 @@
 
         <view class="list-row__body">
             <view class="min-w-0 flex-1 py-3.5">
-                <text class="block text-[16px] font-semibold leading-5 tracking-[-0.01em] text-[#24262b]">{{ title }}</text>
-                <text v-if="desc" class="mt-1 block text-[12px] font-medium leading-4 text-[#8d929c]">{{ desc }}</text>
+                <text class="list-row__title block text-[16px] font-semibold leading-5 tracking-[-0.01em]">{{ title }}</text>
+                <text v-if="desc" class="list-row__desc mt-1 block text-[12px] font-medium leading-4">{{ desc }}</text>
                 <slot name="body"></slot>
             </view>
 
             <view class="list-row__meta" v-if="$slots.meta || meta">
                 <slot name="meta">
-                    <text class="text-[11px] font-semibold text-[#b4b8c0]">{{ meta }}</text>
+                    <text class="list-row__meta-text text-[11px] font-semibold">{{ meta }}</text>
                 </slot>
                 <!-- #ifdef MP-WEIXIN -->
-                <text v-if="showChevron" class="ic text-[16px] text-[#c4c7cf]">{{ glyph('chevron-right') }}</text>
+                <text v-if="showChevron" class="ic list-row__chevron text-[16px]">{{ glyph('chevron-right') }}</text>
                 <!-- #endif -->
                 <!-- #ifndef MP-WEIXIN -->
-                <svg v-if="showChevron" data-ic="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-[#c4c7cf]">
+                <svg v-if="showChevron" data-ic="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="list-row__chevron h-4 w-4">
                     <path d="m9 18 6-6-6-6"></path>
                 </svg>
                 <!-- #endif -->
@@ -73,6 +73,22 @@ defineEmits<{ click: [] }>();
 
 .list-row--last .list-row__body {
     border-bottom: 0;
+}
+
+.list-row__title {
+    color: var(--text-primary);
+}
+
+.list-row__desc {
+    color: var(--text-secondary);
+}
+
+.list-row__meta-text {
+    color: var(--text-secondary);
+}
+
+.list-row__chevron {
+    color: var(--icon-tertiary);
 }
 
 .list-row__meta {

@@ -93,7 +93,7 @@ const goDetail = () => {
         ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 12px;
     font-weight: 800;
-    color: #9da2ad;
+    color: var(--text-secondary);
 }
 
 .mini-row__main {
@@ -116,13 +116,13 @@ const goDetail = () => {
     font-size: 16px;
     font-weight: 600;
     letter-spacing: -0.01em;
-    color: #24262b;
+    color: var(--text-primary);
 }
 
 .mini-row__chevron {
     flex-shrink: 0;
     margin-left: 10px;
-    color: #c4c7cf;
+    color: var(--icon-tertiary);
     font-size: 16px;
 }
 </style>

@@ -30,8 +30,26 @@ progress,
     box-sizing: border-box;
 }
 
+/* ─── 语义文本色 token ────────────────────────────────
+ * 白底（含 0.92 白玻璃面板）实测对比度：
+ * --text-primary   15:1   主文本
+ * --text-secondary  4.6:1  次要文本（描述/编号/meta，12px 小字也过 WCAG AA 4.5:1）
+ * --icon-tertiary   3.2:1  装饰性图形（列表 chevron 等，过图形控件 3:1）
+ * 存量散点硬编码灰（#8d929c / #9da2ad / #b4b8c0 / #c4c7cf …）逐步迁移到本变量，勿再新增。
+ */
+/* :root 与 page 分两块写：微信 WXSS 不认 :root，分组选择器可能被整条剔除
+ * （同 App.vue 安全区变量的写法）。 */
+:root {
+    --text-primary: #24262b;
+    --text-secondary: #6f7680;
+    --icon-tertiary: #8a909c;
+}
+
 page {
     min-height: 100vh;
+    --text-primary: #24262b;
+    --text-secondary: #6f7680;
+    --icon-tertiary: #8a909c;
 }
 
 button {
@@ -77,7 +95,7 @@ input {
 /* 分组小标题 */
 .section-label {
     padding: 0 14px 8px;
-    color: #9da2ad;
+    color: var(--text-secondary);
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.12em;

@@ -1,18 +1,18 @@
 <template>
     <view class="glass-panel px-5 py-4">
-        <view v-if="loading" class="flex items-center gap-3 py-2 text-[#8d929c]">
+        <view v-if="loading" class="flex items-center gap-3 py-2" style="color: var(--text-secondary)">
             <view class="field-loader" style="width: 22px; height: 22px; border-width: 2px"></view>
             <text class="text-xs font-black tracking-[0.14em]">{{ t('archive.loadingText') }}</text>
         </view>
 
         <template v-else>
             <text v-if="flavorText" class="block text-[14px] font-medium leading-6 text-[#4a4f5a]">{{ flavorText }}</text>
-            <text v-else-if="!effectText" class="block text-[13px] font-medium text-[#9da2ad]">{{ t('archive.noDescription') }}</text>
+            <text v-else-if="!effectText" class="block text-[13px] font-medium" style="color: var(--text-secondary)">{{ t('archive.noDescription') }}</text>
 
             <!-- 效果简述：ProseEffect 上游仅英文 bundle 有数据，非英文语言隐藏整段 -->
             <view v-if="effectText" class="mt-3 border-t border-[#eef0f5] pt-3">
                 <text class="section-label block !px-0 !pb-1">{{ t('archive.effect') }}</text>
-                <text class="block text-[13px] font-medium leading-6 text-[#6f7480]">{{ effectText }}</text>
+                <text class="block text-[13px] font-medium leading-6" style="color: var(--text-secondary)">{{ effectText }}</text>
             </view>
         </template>
     </view>

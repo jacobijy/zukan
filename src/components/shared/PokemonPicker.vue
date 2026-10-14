@@ -287,7 +287,7 @@ function close(): void {
     overflow: hidden;
     font-size: 15px;
     font-weight: 700;
-    color: #24262b;
+    color: var(--text-primary);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -296,7 +296,7 @@ function close(): void {
     overflow: hidden;
     font-size: 11px;
     font-weight: 700;
-    color: #9aa0ab;
+    color: var(--text-secondary);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -306,6 +306,6 @@ function close(): void {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 11px;
     font-weight: 800;
-    color: #b6bac3;
+    color: var(--text-secondary);
 }
 </style>

@@ -19,7 +19,7 @@
                     </view>
                     <view class="min-w-0">
                         <text class="block truncate text-xl font-black tracking-[-0.02em] text-[#24262b]">{{ name }}</text>
-                        <text class="mt-1 block text-[12px] font-bold text-[#8d929c]">{{ interp('archive.pokemonCount', { n: pokemon.length }) }}</text>
+                        <text class="mt-1 block text-[12px] font-bold" style="color: var(--text-secondary)">{{ interp('archive.pokemonCount', { n: pokemon.length }) }}</text>
                     </view>
                 </view>
 
