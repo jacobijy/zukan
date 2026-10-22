@@ -14,67 +14,7 @@
                 @click="goToPage(item.url)"
             >
                 <template #icon>
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-if="item.icon === 'target'" class="ic text-[24px]">{{ glyph('focus') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-if="item.icon === 'target'" data-ic="focus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle>
-                        <path d="M12 4v3M12 17v3M4 12h3M17 12h3"></path>
-                    </svg>
-                    <!-- #endif -->
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-else-if="item.icon === 'grid'" class="ic text-[24px]">{{ glyph('layout') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-else-if="item.icon === 'grid'" data-ic="layout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <rect x="3.5" y="3.5" width="17" height="17" rx="4"></rect><path d="M3.5 9.5h17M9.5 20.5v-11"></path>
-                    </svg>
-                    <!-- #endif -->
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-else-if="item.icon === 'chart'" class="ic text-[24px]">{{ glyph('bar-chart') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-else-if="item.icon === 'chart'" data-ic="bar-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <path d="M4 19V5"></path><path d="M8.5 19v-6"></path><path d="M13 19V8"></path><path d="M17.5 19v-9"></path><path d="M3.5 19h17"></path>
-                    </svg>
-                    <!-- #endif -->
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-else-if="item.icon === 'sliders'" class="ic text-[24px]">{{ glyph('sliders') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-else-if="item.icon === 'sliders'" data-ic="sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"></path>
-                        <path d="M1 14h6M9 8h6M17 16h6"></path>
-                    </svg>
-                    <!-- #endif -->
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-else-if="item.icon === 'team'" class="ic text-[24px]">{{ glyph('users') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-else-if="item.icon === 'team'" data-ic="users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                    <!-- #endif -->
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-else-if="item.icon === 'bookmark'" class="ic text-[24px]">{{ glyph('bookmark') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-else-if="item.icon === 'bookmark'" data-ic="bookmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    <!-- #endif -->
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-else class="ic text-[24px]">{{ glyph('clipboard') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-else data-ic="clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <rect x="3.5" y="5" width="17" height="14" rx="3"></rect><path d="m4.5 7.5 7.5 5.25 7.5-5.25"></path>
-                    </svg>
-                    <!-- #endif -->
+                    <HubIcon :name="item.icon" />
                 </template>
             </ListRow>
         </view>
@@ -84,20 +24,29 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { glyph } from '@/components/icon/glyphs';
 import TabPageShell from "@/components/shared/TabPageShell.vue";
 import { navigateToAuto } from "@/utils/navigation";
 import ListRow from "@/components/shared/ListRow.vue";
+import HubIcon, { type HubIconName } from '@/components/shared/HubIcon.vue';
 
 const { t } = useI18n();
 
-const featureItems = computed(() => [
-    { title: t('features.calc.title'), desc: t('features.calc.desc'), meta: t('features.calc.meta'), url: '/pages/calc/calc', icon: 'target', iconClass: 'list-row__icon--green' },
-    { title: t('features.statcalc.title'), desc: t('features.statcalc.desc'), meta: t('features.statcalc.meta'), url: '/pages/statcalc/statcalc', icon: 'sliders', iconClass: 'list-row__icon--gold' },
-    { title: t('features.simulate.title'), desc: t('features.simulate.desc'), meta: t('features.simulate.meta'), url: '/pages/simulate/simulate', icon: 'grid', iconClass: 'list-row__icon--blue' },
-    { title: t('features.teams.title'), desc: t('features.teams.desc'), meta: t('features.teams.meta'), url: '/pages/teams/teams', icon: 'team', iconClass: 'list-row__icon--blue' },
-    { title: t('features.templates.title'), desc: t('features.templates.desc'), meta: t('features.templates.meta'), url: '/pages/templates/templates', icon: 'bookmark', iconClass: 'list-row__icon--violet' },
-    { title: t('features.stats.title'), desc: t('features.stats.desc'), meta: t('features.stats.meta'), url: '/pages/data/data', icon: 'chart', iconClass: 'list-row__icon--violet' },
+interface FeatureEntry {
+    title: string;
+    desc: string;
+    meta: string;
+    url: string;
+    icon: HubIconName;
+    iconClass: string;
+}
+
+const featureItems = computed<FeatureEntry[]>(() => [
+    { title: t('features.calc.title'), desc: t('features.calc.desc'), meta: t('features.calc.meta'), url: '/pages/calc/calc', icon: 'hub-damage', iconClass: 'list-row__icon--green' },
+    { title: t('features.statcalc.title'), desc: t('features.statcalc.desc'), meta: t('features.statcalc.meta'), url: '/pages/statcalc/statcalc', icon: 'hub-stat', iconClass: 'list-row__icon--gold' },
+    { title: t('features.simulate.title'), desc: t('features.simulate.desc'), meta: t('features.simulate.meta'), url: '/pages/simulate/simulate', icon: 'hub-battle', iconClass: 'list-row__icon--blue' },
+    { title: t('features.teams.title'), desc: t('features.teams.desc'), meta: t('features.teams.meta'), url: '/pages/teams/teams', icon: 'hub-team', iconClass: 'list-row__icon--blue' },
+    { title: t('features.templates.title'), desc: t('features.templates.desc'), meta: t('features.templates.meta'), url: '/pages/templates/templates', icon: 'hub-template', iconClass: 'list-row__icon--violet' },
+    { title: t('features.stats.title'), desc: t('features.stats.desc'), meta: t('features.stats.meta'), url: '/pages/data/data', icon: 'hub-stats', iconClass: 'list-row__icon--violet' },
 ]);
 
 const goToPage = (url: string) => {

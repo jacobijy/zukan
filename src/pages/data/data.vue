@@ -14,30 +14,7 @@
                 @click="goOverview(item)"
             >
                 <template #icon>
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-if="item.icon === 'book'" class="ic text-[24px]">{{ glyph('book-lines') }}</text>
-                    <text v-else-if="item.icon === 'spark'" class="ic text-[24px]">{{ glyph('sparkle') }}</text>
-                    <text v-else-if="item.icon === 'bolt'" class="ic text-[24px]">{{ glyph('zap-2') }}</text>
-                    <text v-else-if="item.icon === 'bag'" class="ic text-[24px]">{{ glyph('bag') }}</text>
-                    <text v-else class="ic text-[24px]">{{ glyph('gem') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-if="item.icon === 'book'" data-ic="book-lines" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z"></path><path d="M9 8h6"></path>
-                    </svg>
-                    <svg v-else-if="item.icon === 'spark'" data-ic="sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <path d="m12 2 2.6 6.5L21 11l-6.4 2.5L12 20l-2.6-6.5L3 11l6.4-2.5L12 2z"></path>
-                    </svg>
-                    <svg v-else-if="item.icon === 'bolt'" data-ic="zap-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <polygon points="13 2.5 4 14 12 14 11 21.5 20 10 12 10 13 2.5"></polygon>
-                    </svg>
-                    <svg v-else-if="item.icon === 'bag'" data-ic="bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <path d="M6 7h12l1 13H5L6 7z"></path><path d="M9 7a3 3 0 0 1 6 0"></path>
-                    </svg>
-                    <svg v-else data-ic="gem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <path d="M12 3.5 19.5 8v8L12 20.5 4.5 16V8L12 3.5z"></path><path d="M12 12 19.5 8M12 12v8.5M12 12 4.5 8"></path>
-                    </svg>
-                    <!-- #endif -->
+                    <HubIcon :name="item.icon" />
                 </template>
             </ListRow>
         </view>
@@ -53,21 +30,7 @@
                 @click="goBattleData"
             >
                 <template #icon>
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text class="ic text-[24px]">{{ glyph('external') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg data-ic="external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline>
-                        <line x1="13" x2="19" y1="19" y2="13"></line>
-                        <line x1="16" x2="20" y1="16" y2="20"></line>
-                        <line x1="19" x2="21" y1="21" y2="19"></line>
-                        <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"></polyline>
-                        <line x1="5" x2="9" y1="14" y2="18"></line>
-                        <line x1="7" x2="4" y1="17" y2="20"></line>
-                        <line x1="3" x2="5" y1="19" y2="21"></line>
-                    </svg>
-                    <!-- #endif -->
+                    <HubIcon name="data-meta" />
                 </template>
             </ListRow>
         </view>
@@ -96,9 +59,9 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { glyph } from '@/components/icon/glyphs';
 import TabPageShell from "@/components/shared/TabPageShell.vue";
 import ListRow from "@/components/shared/ListRow.vue";
+import HubIcon, { type HubIconName } from '@/components/shared/HubIcon.vue';
 import { useI18nStore } from '@/store/i18n';
 import { getTypeName } from '@/constants/pokemonTypes';
 import { navigateToAuto } from '@/utils/navigation';
@@ -114,7 +77,7 @@ interface OverviewEntry {
     value: string;
     label: string;
     desc: string;
-    icon: 'book' | 'spark' | 'bolt' | 'cube' | 'bag';
+    icon: HubIconName;
     iconClass: string;
     /** tab 页用 reLaunch，子页用 navigateTo */
     url: string;
@@ -126,11 +89,11 @@ const countOr = (n: number | undefined, fallback: string) =>
     n && n > 0 ? String(n) : fallback;
 
 const overviewItems = computed<OverviewEntry[]>(() => [
-    { key: 'pokemon', value: '1025', label: t('data.overview.total'), desc: t('data.overview.totalDesc'), icon: 'book', iconClass: 'list-row__icon--green', url: '/pages/index/index', tab: true },
-    { key: 'types', value: '18', label: t('data.overview.types'), desc: t('data.overview.typesDesc'), icon: 'spark', iconClass: 'list-row__icon--gold', url: '/pages/archive/types' },
-    { key: 'moves', value: countOr(i18nStore.lookup?.moves.size, '400+'), label: t('data.overview.moves'), desc: t('data.overview.movesDesc'), icon: 'bolt', iconClass: 'list-row__icon--blue', url: '/pages/archive/moves' },
-    { key: 'abilities', value: countOr(i18nStore.lookup?.abilities.size, '300+'), label: t('data.overview.abilities'), desc: t('data.overview.abilitiesDesc'), icon: 'cube', iconClass: 'list-row__icon--violet', url: '/pages/archive/abilities' },
-    { key: 'items', value: countOr(i18nStore.lookup?.items.size, '—'), label: t('data.overview.items'), desc: t('data.overview.itemsDesc'), icon: 'bag', iconClass: 'list-row__icon--gray', url: '/pages/archive/items' },
+    { key: 'pokemon', value: '1025', label: t('data.overview.total'), desc: t('data.overview.totalDesc'), icon: 'data-dex', iconClass: 'list-row__icon--green', url: '/pages/index/index', tab: true },
+    { key: 'types', value: '18', label: t('data.overview.types'), desc: t('data.overview.typesDesc'), icon: 'data-type', iconClass: 'list-row__icon--gold', url: '/pages/archive/types' },
+    { key: 'moves', value: countOr(i18nStore.lookup?.moves.size, '400+'), label: t('data.overview.moves'), desc: t('data.overview.movesDesc'), icon: 'data-move', iconClass: 'list-row__icon--blue', url: '/pages/archive/moves' },
+    { key: 'abilities', value: countOr(i18nStore.lookup?.abilities.size, '300+'), label: t('data.overview.abilities'), desc: t('data.overview.abilitiesDesc'), icon: 'data-ability', iconClass: 'list-row__icon--violet', url: '/pages/archive/abilities' },
+    { key: 'items', value: countOr(i18nStore.lookup?.items.size, '—'), label: t('data.overview.items'), desc: t('data.overview.itemsDesc'), icon: 'data-item', iconClass: 'list-row__icon--gray', url: '/pages/archive/items' },
 ]);
 
 // 物种名按 species id 查内容名称表；属性走 typeName（随内容语言），未就绪回落常量中文名。
