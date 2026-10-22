@@ -60,6 +60,7 @@ const zhHans = {
                 defense: '防御',
                 spAttack: '特攻',
                 spDefense: '特防',
+                speed: '速度',
             },
         },
         drawer: {
@@ -553,6 +554,7 @@ const en: typeof zhHans = {
                 defense: 'Defense',
                 spAttack: 'Sp. Atk',
                 spDefense: 'Sp. Def',
+                speed: 'Speed',
             },
         },
         drawer: {

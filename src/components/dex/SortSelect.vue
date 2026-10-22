@@ -82,6 +82,7 @@ const options = computed<Option[]>(() => [
   { value: 'defense', label: t('dex.filter.sort.defense') },
   { value: 'spAttack', label: t('dex.filter.sort.spAttack') },
   { value: 'spDefense', label: t('dex.filter.sort.spDefense') },
+  { value: 'speed', label: t('dex.filter.sort.speed') },
 ]);
 
 const currentLabel = computed(

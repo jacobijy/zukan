@@ -15,7 +15,7 @@
 import { isInGeneration } from '@/constants/generations';
 
 /** 排序键。`id` 为默认（按全国编号升序）。 */
-export type DexSortKey = 'id' | 'hp' | 'attack' | 'defense' | 'spAttack' | 'spDefense';
+export type DexSortKey = 'id' | 'hp' | 'attack' | 'defense' | 'spAttack' | 'spDefense' | 'speed';
 
 /** 排序键 → `stats[].name` 里的中文种族值名 */
 const STAT_NAME_BY_SORT: Record<DexSortKey, string | null> = {
@@ -25,6 +25,7 @@ const STAT_NAME_BY_SORT: Record<DexSortKey, string | null> = {
     defense: '防御',
     spAttack: '特攻',
     spDefense: '特防',
+    speed: '速度',
 };
 
 export interface DexFilterCriteria {

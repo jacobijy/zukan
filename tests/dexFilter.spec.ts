@@ -43,6 +43,7 @@ function makeRoster(count = 1025): IPokemonBaseModel[] {
                 { name: '防御', value: (id * 29) % 150 + 15 },
                 { name: '特攻', value: (id * 31) % 170 + 25 },
                 { name: '特防', value: (id * 37) % 165 + 20 },
+                { name: '速度', value: (id * 41) % 175 + 12 },
             ],
         } satisfies IPokemonBaseModel;
     });
@@ -93,6 +94,7 @@ describe('排序', () => {
         ['defense', '防御'],
         ['spAttack', '特攻'],
         ['spDefense', '特防'],
+        ['speed', '速度'],
     ] as const)('按 %s 降序，首条是全表最高', (sort, statName) => {
         const matched = filterAndSortPokemons(roster, { sort: sort as DexSortKey });
         const globalMax = Math.max(...roster.map((p) => statOf(p, statName)));

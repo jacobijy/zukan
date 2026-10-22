@@ -24,7 +24,8 @@ VirtualGrid 定高虚拟化                DOM 只留视口附近
 ## 筛选条件（`DexFilterCriteria`）
 
 页面组合搜索、属性筛选、仅收藏、世代筛选、排序，通过 `setCriteria()` **全量替换**推给 store
-（不是 merge）。支持的排序键：`id` / `name` / `hp` / `attack` / `defense`。
+（不是 merge）。支持的排序键：`id` / `hp` / `attack` / `defense` / `spAttack` /
+`spDefense` / `speed`（种族值一律降序，`id` 为默认升序）。
 
 要点：
 - **对 `defaultPokemons`（去重后默认形态）筛选排序**，不是对全部 1351 条形态。
