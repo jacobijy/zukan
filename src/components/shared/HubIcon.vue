@@ -28,9 +28,9 @@
       viewBox="0 0 24 24" fill="none" stroke="currentColor"
       stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
     >
-      <!-- 属性：双环沿斜向交叠（水平双环会被读成眼镜），表示单/双属性叠加 -->
-      <circle cx="9.8" cy="9.8" r="5" />
-      <circle cx="14.2" cy="14.2" r="5" />
+      <!-- 属性：属性相克轮盘，外环 + 六向辐条（无赤道线/中心钮，与 hub-damage 区分） -->
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 7.5V4.4M15.9 9.75 18.58 8.2M15.9 14.25l2.68 1.55M12 16.5v3.1M8.1 14.25l-2.68 1.55M8.1 9.75 5.42 8.2" />
     </svg>
 
     <svg
