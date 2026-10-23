@@ -132,16 +132,12 @@
       viewBox="0 0 24 24" fill="none" stroke="currentColor"
       stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
     >
-      <!-- 我的队伍：三颗精灵球正三角编队（独立个体聚类，避免二上一下成脸） -->
-      <circle cx="12" cy="7.5" r="3" />
-      <path d="M9 7.5h6" />
-      <circle cx="12" cy="7.5" r="0.9" fill="currentColor" stroke="none" />
-      <circle cx="7.5" cy="15" r="3" />
-      <path d="M4.5 15h6" />
-      <circle cx="7.5" cy="15" r="0.9" fill="currentColor" stroke="none" />
-      <circle cx="16.5" cy="15" r="3" />
-      <path d="M13.5 15h6" />
-      <circle cx="16.5" cy="15" r="0.9" fill="currentColor" stroke="none" />
+      <!-- 我的队伍：战队旗——左旗杆 + 矩形旗面 + 一颗精灵球队徽 -->
+      <path d="M5.5 3.5v17" />
+      <path d="M5.5 4.5H18v8H5.5z" />
+      <circle cx="12" cy="8.5" r="2.3" />
+      <path d="M9.7 8.5h4.6" />
+      <circle cx="12" cy="8.5" r="0.7" fill="currentColor" stroke="none" />
     </svg>
 
     <svg
