@@ -150,9 +150,11 @@
       viewBox="0 0 24 24" fill="none" stroke="currentColor"
       stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
     >
-      <!-- 云端模板：云轮廓内两行文档线（云同步的配信卡片） -->
-      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
-      <path d="M10.8 13.6h4.2M10.8 16h2.8" />
+      <!-- 我的模板：PC 盒子里一颗精灵球 = 一盒预置的宝可梦配置（跨设备同步由文案表达） -->
+      <rect x="4" y="4" width="16" height="16" rx="2.6" />
+      <circle cx="12" cy="12" r="3.9" />
+      <path d="M8.1 12h7.8" />
+      <circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none" />
     </svg>
 
     <svg
