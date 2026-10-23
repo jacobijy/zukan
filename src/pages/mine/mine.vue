@@ -36,14 +36,7 @@
                         <circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.08-1l2.08-1.6-2-3.46-2.45.98a7.6 7.6 0 0 0-1.72-1L14.5 3h-5l-.33 2.92a7.6 7.6 0 0 0-1.72 1L5 5.94l-2 3.46L5.08 11a7 7 0 0 0 0 2L3 14.6l2 3.46 2.45-.98a7.6 7.6 0 0 0 1.72 1L9.5 21h5l.33-2.92a7.6 7.6 0 0 0 1.72-1l2.45.98 2-3.46L18.92 13c.05-.33.08-.66.08-1z"></path>
                     </svg>
                     <!-- #endif -->
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-else-if="item.icon === 'star'" class="ic text-[24px]">{{ glyph('star-fill') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-else-if="item.icon === 'star'" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <polygon points="12 2.8 14.9 8.7 21.4 9.65 16.7 14.25 17.8 20.75 12 17.68 6.2 20.75 7.3 14.25 2.6 9.65 9.1 8.7 12 2.8"></polygon>
-                    </svg>
-                    <!-- #endif -->
+                    <HubIcon v-else-if="item.icon === 'star'" name="mine-fav" />
                     <!-- #ifdef MP-WEIXIN -->
                     <text v-else-if="item.icon === 'wrench'" class="ic text-[24px]">{{ glyph('edit') }}</text>
                     <!-- #endif -->
@@ -95,6 +88,7 @@ import ListRow from "@/components/shared/ListRow.vue";
 import LoginModal from "@/components/shared/LoginModal.vue";
 import AccountBindings from "@/components/shared/AccountBindings.vue";
 import PokeballLogo from "@/components/shared/PokeballLogo.vue";
+import HubIcon from '@/components/shared/HubIcon.vue';
 import { isAuthenticated, clearSession } from '@/services/session';
 import { clearSpriteCache, clearItemIconCache } from '@/services/resources';
 import { devtoolsEnabled } from '@/services/devtools/enabled';

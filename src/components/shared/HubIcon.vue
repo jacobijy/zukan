@@ -154,6 +154,18 @@
     </svg>
 
     <svg
+      v-else-if="name === 'mine-fav'"
+      data-ic="mine-fav"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
+    >
+      <!-- 我的收藏：Love Ball 爱心球，心形轮廓 + 赤道 + 钮 -->
+      <path d="M12 20.1C4.21 13.7 3.8 10.5 7.49 8.9c2.87-.15 4.51 4.4 4.51 6.4 0-2 1.64-6.55 4.51-6.4C20.2 10.5 19.79 13.7 12 20.1Z" />
+      <path d="M4.7 12.2h14.6" />
+      <circle cx="12" cy="12.2" r="1.05" fill="currentColor" stroke="none" />
+    </svg>
+
+    <svg
       v-else
       data-ic="hub-stats"
       viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -183,7 +195,8 @@ export type HubIconName =
     | 'hub-battle'
     | 'hub-team'
     | 'hub-template'
-    | 'hub-stats';
+    | 'hub-stats'
+    | 'mine-fav';
 </script>
 
 <script lang="ts" setup>
