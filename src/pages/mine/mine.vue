@@ -28,31 +28,7 @@
                 @click="onMenuTap(item)"
             >
                 <template #icon>
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-if="item.icon === 'settings'" class="ic text-[24px]">{{ glyph('settings') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-if="item.icon === 'settings'" data-ic="settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.08-1l2.08-1.6-2-3.46-2.45.98a7.6 7.6 0 0 0-1.72-1L14.5 3h-5l-.33 2.92a7.6 7.6 0 0 0-1.72 1L5 5.94l-2 3.46L5.08 11a7 7 0 0 0 0 2L3 14.6l2 3.46 2.45-.98a7.6 7.6 0 0 0 1.72 1L9.5 21h5l.33-2.92a7.6 7.6 0 0 0 1.72-1l2.45.98 2-3.46L18.92 13c.05-.33.08-.66.08-1z"></path>
-                    </svg>
-                    <!-- #endif -->
-                    <HubIcon v-else-if="item.icon === 'star'" name="mine-fav" />
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-else-if="item.icon === 'wrench'" class="ic text-[24px]">{{ glyph('edit') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-else-if="item.icon === 'wrench'" data-ic="edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <path d="M14.7 6.3a4 4 0 0 0 5 5l-9.4 9.4a2.8 2.8 0 0 1-4-4L15.7 7.3"></path><path d="M14.7 6.3 17.5 3.5"></path>
-                    </svg>
-                    <!-- #endif -->
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text v-else class="ic text-[24px]">{{ glyph('clock') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg v-else data-ic="clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                        <circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.2 2"></path>
-                    </svg>
-                    <!-- #endif -->
+                    <HubIcon :name="item.icon" />
                 </template>
                 <template #meta>
                     <text v-if="item.count !== undefined" class="mine-row__count">{{ item.count }}</text>
@@ -88,7 +64,7 @@ import ListRow from "@/components/shared/ListRow.vue";
 import LoginModal from "@/components/shared/LoginModal.vue";
 import AccountBindings from "@/components/shared/AccountBindings.vue";
 import PokeballLogo from "@/components/shared/PokeballLogo.vue";
-import HubIcon from '@/components/shared/HubIcon.vue';
+import HubIcon, { type HubIconName } from '@/components/shared/HubIcon.vue';
 import { isAuthenticated, clearSession } from '@/services/session';
 import { clearSpriteCache, clearItemIconCache } from '@/services/resources';
 import { devtoolsEnabled } from '@/services/devtools/enabled';
@@ -103,7 +79,15 @@ import { LANGUAGES, UI_LANGUAGES, resolveContentLang, resolveUiLocale } from '@/
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
-import { glyph } from '@/components/icon/glyphs';
+
+interface MenuItem {
+    title: string;
+    desc: string;
+    meta?: string;
+    count?: number;
+    icon: HubIconName;
+    iconClass: string;
+}
 
 const pokemonStore = usePokemonStore();
 const { favorites } = storeToRefs(pokemonStore);
@@ -170,21 +154,21 @@ function onLoginSuccess() {
     // 收藏已在 LoginModal 登录成功时统一从后端刷新（loadFavorites），这里不再本地合并。
 }
 
-const menuItems = computed(() => [
-    { title: t('mine.menu.settings'), desc: t('mine.menu.settingsDesc'), meta: currentLangLabel.value, icon: 'settings', iconClass: 'list-row__icon--gray' },
-    { title: t('mine.menu.favorites'), desc: t('mine.menu.favoritesDesc'), icon: 'star', iconClass: 'list-row__icon--gold', count: favoritesCount.value },
-    { title: t('mine.menu.history'), desc: t('mine.menu.historyDesc'), meta: t('mine.menu.historyMeta'), icon: 'clock', iconClass: 'list-row__icon--blue' },
+const menuItems = computed<MenuItem[]>(() => [
+    { title: t('mine.menu.settings'), desc: t('mine.menu.settingsDesc'), meta: currentLangLabel.value, icon: 'mine-settings', iconClass: 'list-row__icon--gray' },
+    { title: t('mine.menu.favorites'), desc: t('mine.menu.favoritesDesc'), icon: 'mine-fav', iconClass: 'list-row__icon--gold', count: favoritesCount.value },
+    { title: t('mine.menu.history'), desc: t('mine.menu.historyDesc'), meta: t('mine.menu.historyMeta'), icon: 'mine-history', iconClass: 'list-row__icon--blue' },
     // dev-only：门禁为假时整行不渲染，生产用户看不到。文案硬编码中文，不进 i18n
     // （往 ui-messages 的 zh/en 两份里塞只有开发者看得到的键是噪音）
     ...(devtoolsEnabled
-        ? [{ title: '开发者工具', desc: '加密资源探测、i18n 文本浏览。', meta: 'dev', icon: 'wrench', iconClass: 'list-row__icon--violet' }]
+        ? [{ title: '开发者工具', desc: '加密资源探测、i18n 文本浏览。', meta: 'dev', icon: 'mine-devtools', iconClass: 'list-row__icon--violet' } as MenuItem]
         : []),
 ]);
 
-function onMenuTap(item: { icon: string }) {
-    if (item.icon === 'settings') {
+function onMenuTap(item: MenuItem) {
+    if (item.icon === 'mine-settings') {
         uni.navigateTo({ url: '/pages/settings/settings' });
-    } else if (item.icon === 'wrench') {
+    } else if (item.icon === 'mine-devtools') {
         uni.navigateTo({ url: '/pages/devtools/devtools' });
     }
 }

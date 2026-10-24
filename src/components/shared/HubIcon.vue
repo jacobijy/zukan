@@ -1,189 +1,75 @@
 <template>
+    <!--
+      游戏内容（RASTER_ICONS）：两端统一走位图 <image>——白屏彩素像素画，
+      源 144×144 PNG（@6，@2x/@3x 整数分频）放 src/static/img/hub-icons/。
+      彩色像素无法走单色 ttf 字体，故不经 data-ic/glyph 体系。
+    -->
+    <image v-if="rasterSrc" :src="rasterSrc" mode="aspectFit" class="h-6 w-6" />
     <!-- #ifdef MP-WEIXIN -->
-    <text class="ic text-[24px]">{{ glyph(name) }}</text>
+    <text v-else class="ic text-[24px]">{{ glyph(name) }}</text>
     <!-- #endif -->
     <!-- #ifndef MP-WEIXIN -->
-    <!--
-      资料/功能两个入口页的主题图标：宝可梦世界物件（24 栅格、2.2 线宽、圆角端点）。
-      唯一数据源就在这里——H5 渲染内联 svg，build-icons 静态扫描 data-ic 生成字体，
-      MP 端走 glyph()。改名/换图形只改本文件，子页面共用的通用字形不受影响。
-    -->
+    <!-- 元功能（4 枚）：平滑白色实心单色图标，H5 内联 svg；build-icons 扫 data-ic 生成字体供 MP 用。 -->
     <svg
-      v-if="name === 'data-dex'"
-      data-ic="data-dex"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
+      v-else-if="name === 'mine-settings'"
+      data-ic="mine-settings"
+      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-6 w-6"
     >
-      <!-- 图鉴设备：横版翻盖掌机，上半屏幕 + 下半十字键与圆钮 -->
-      <rect x="3" y="6" width="18" height="12" rx="2.6" />
-      <path d="M4.2 11h15.6" />
-      <path d="M6.6 8.3h6.5M6.6 9.7h3.8" />
-      <path d="M6.2 14.3h2.6M7.5 13v2.6" />
-      <circle cx="17" cy="14.2" r="1.3" />
+      <!-- 设置：EQ 三滑块（三根竖轨 + 错位圆钮），避开齿轮 16px 死结 -->
+      <rect x="7.4" y="4" width="1.7" height="16" rx="0.85" />
+      <rect x="11.15" y="4" width="1.7" height="16" rx="0.85" />
+      <rect x="14.9" y="4" width="1.7" height="16" rx="0.85" />
+      <circle cx="8.25" cy="8.6" r="2.2" />
+      <circle cx="12" cy="15.4" r="2.2" />
+      <circle cx="15.75" cy="11.2" r="2.2" />
     </svg>
 
     <svg
-      v-else-if="name === 'data-type'"
-      data-ic="data-type"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
+      v-else-if="name === 'mine-history'"
+      data-ic="mine-history"
+      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-6 w-6"
     >
-      <!-- 属性：属性相克轮盘，外环 + 六向辐条（无赤道线/中心钮，与 hub-damage 区分） -->
-      <circle cx="12" cy="12" r="8" />
-      <path d="M12 7.5V4.4M15.9 9.75 18.58 8.2M15.9 14.25l2.68 1.55M12 16.5v3.1M8.1 14.25l-2.68 1.55M8.1 9.75 5.42 8.2" />
+      <!-- 浏览历史：一串渐小的脚印=训练家走过的痕迹 -->
+      <circle cx="9.8" cy="14.7" r="3.4" />
+      <circle cx="6.5" cy="9.8" r="1.25" />
+      <circle cx="9.8" cy="8.5" r="1.4" />
+      <circle cx="13.1" cy="9.8" r="1.25" />
+      <circle cx="17.3" cy="17.5" r="1.5" />
+      <circle cx="20.1" cy="20.3" r="0.85" />
     </svg>
 
     <svg
-      v-else-if="name === 'data-move'"
-      data-ic="data-move"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
+      v-else-if="name === 'mine-devtools'"
+      data-ic="mine-devtools"
+      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-6 w-6"
     >
-      <!-- 招式：八角冲击星爆（漫画 POW），区别于四角 sparkle 闪光 -->
-      <path d="M12 4 14.95 10.78 20 12l-5.05 1.22L12 20l-2.95-6.78L4 12l5.05-1.22z" />
-    </svg>
-
-    <svg
-      v-else-if="name === 'data-ability'"
-      data-ic="data-ability"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
-    >
-      <!-- 特性：双螺旋（与生俱来的资质），两档横档 -->
-      <path d="M8 4c7 3 7 6 4 8s-3 6 4 8" />
-      <path d="M16 4c-7 3-7 6-4 8s3 6-4 8" />
-      <path d="M10 7.9h4M10 16.1h4" />
-    </svg>
-
-    <svg
-      v-else-if="name === 'data-item'"
-      data-ic="data-item"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
-    >
-      <!-- 道具：伤药喷雾罐，喷嘴 + 罐体 + 标签线 -->
-      <rect x="9.5" y="3" width="5" height="2.3" rx="0.7" />
-      <rect x="10.6" y="5.3" width="2.8" height="1.8" rx="0.5" />
-      <rect x="6" y="7.1" width="12" height="13.9" rx="2.6" />
-      <path d="M9.5 12.5h5M9.5 15.3h5" />
-    </svg>
-
-    <svg
-      v-else-if="name === 'data-meta'"
-      data-ic="data-meta"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
-    >
-      <!-- 对战资料：冠军奖杯，杯耳 + 高柄 + 单梯形基座 -->
-      <path d="M8 4h8v4.6a4 4 0 0 1-8 0z" />
-      <path d="M8 6.2H5.7a2.3 2.3 0 0 0 2.3 3.4" />
-      <path d="M16 6.2h2.3a2.3 2.3 0 0 1-2.3 3.4" />
-      <path d="M12 12.6v2.6" />
-      <path d="M10.2 15.2h3.6l1 3.8H9.2z" />
-    </svg>
-
-    <svg
-      v-else-if="name === 'hub-damage'"
-      data-ic="hub-damage"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
-    >
-      <!-- 伤害计算：精灵球即靶心，环 + 赤道线 + 实心钮，四向刻度 -->
-      <circle cx="12" cy="12" r="7.4" />
-      <path d="M5 12h14" />
-      <circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none" />
-      <path d="M12 2.8v2.3M12 18.9v2.3M2.8 12h2.3M18.9 12h2.3" />
-    </svg>
-
-    <svg
-      v-else-if="name === 'hub-stat'"
-      data-ic="hub-stat"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
-    >
-      <!-- 能力值：六维雷达，外/内两层六边形 + 数据中心点 -->
-      <path d="M12 3.6 19.2 7.8v8.4L12 20.4l-7.2-4.2V7.8z" />
-      <path d="M12 7.9l3.6 2.05v4.1L12 16.1l-3.6-2.05v-4.1z" />
-      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
-    </svg>
-
-    <svg
-      v-else-if="name === 'hub-battle'"
-      data-ic="hub-battle"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
-    >
-      <!-- 对战模拟：双球斜对角对峙，对角线中央一颗碰撞火花 -->
-      <circle cx="7.5" cy="15" r="3.2" />
-      <path d="M4.3 15h6.4" />
-      <circle cx="7.5" cy="15" r="0.85" fill="currentColor" stroke="none" />
-      <circle cx="16.5" cy="9" r="3.2" />
-      <path d="M13.3 9h6.4" />
-      <circle cx="16.5" cy="9" r="0.85" fill="currentColor" stroke="none" />
+      <!-- 开发者工具：实心终端卡 + 负形 </> -->
       <path
-        d="M12 10 12.8 11.2 14 12l-1.2.8L12 14l-.8-1.2L10 12l1.2-.8z"
-        fill="currentColor" stroke="none"
+        fill-rule="evenodd"
+        d="M6.6 3.8h10.8a2.8 2.8 0 0 1 2.8 2.8v10.8a2.8 2.8 0 0 1-2.8 2.8H6.6a2.8 2.8 0 0 1-2.8-2.8V6.6a2.8 2.8 0 0 1 2.8-2.8z
+          M9.5 8.7 6.9 12l2.6 3.3 0.01-1.85L8.2 12l1.31-1.45z
+          M14.5 8.7 17.1 12l-2.6 3.3-0.01-1.85L15.8 12l-1.31-1.45z
+          M13.4 7.6 10.6 16.4h1.5l2.8-8.8z"
       />
-    </svg>
-
-    <svg
-      v-else-if="name === 'hub-team'"
-      data-ic="hub-team"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
-    >
-      <!-- 我的队伍：战队旗——左旗杆 + 矩形旗面 + 一颗精灵球队徽 -->
-      <path d="M5.5 3.5v17" />
-      <path d="M5.5 4.5H18v8H5.5z" />
-      <circle cx="12" cy="8.5" r="2.3" />
-      <path d="M9.7 8.5h4.6" />
-      <circle cx="12" cy="8.5" r="0.7" fill="currentColor" stroke="none" />
-    </svg>
-
-    <svg
-      v-else-if="name === 'hub-template'"
-      data-ic="hub-template"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
-    >
-      <!-- 我的模板：PC 盒子里一颗精灵球 = 一盒预置的宝可梦配置（跨设备同步由文案表达） -->
-      <rect x="4" y="4" width="16" height="16" rx="2.6" />
-      <circle cx="12" cy="12" r="3.9" />
-      <path d="M8.1 12h7.8" />
-      <circle cx="12" cy="12" r="1.05" fill="currentColor" stroke="none" />
-    </svg>
-
-    <svg
-      v-else-if="name === 'mine-fav'"
-      data-ic="mine-fav"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
-    >
-      <!-- 我的收藏：Love Ball 爱心球，心形轮廓 + 赤道 + 钮 -->
-      <path d="M12 20.1C4.21 13.7 3.8 10.5 7.49 8.9c2.87-.15 4.51 4.4 4.51 6.4 0-2 1.64-6.55 4.51-6.4C20.2 10.5 19.79 13.7 12 20.1Z" />
-      <path d="M4.7 12.2h14.6" />
-      <circle cx="12" cy="12.2" r="1.05" fill="currentColor" stroke="none" />
     </svg>
 
     <svg
       v-else
       data-ic="hub-stats"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"
+      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-6 w-6"
     >
-      <!-- 数据统计：三根递增柱，最高柱顶一颗精灵球 -->
-      <path d="M5 20v-6M11 20v-10M17 20V7" />
-      <path d="M3.6 20h17" />
-      <circle cx="17" cy="3.6" r="2.6" />
-      <path d="M14.4 3.6h5.2" />
-      <circle cx="17" cy="3.6" r="0.7" fill="currentColor" stroke="none" />
+      <!-- 数据统计：平滑趋势折线 + 基线 + 末端点（与能力值的像素竖条刻意分属两种语言） -->
+      <path d="M3.6 18.6 9 13.2l3.6 2.7 7-7.6-1.6-1.5-5.4 5.9L9 10 2.4 16.6z" />
+      <rect x="3.4" y="19.6" width="17.2" height="1.8" rx="0.9" />
+      <circle cx="19.6" cy="6.4" r="1.7" />
     </svg>
     <!-- #endif -->
 </template>
 
 <script lang="ts">
-/** 资料/功能入口页主题图标名（一组宝可梦世界物件） */
+/** 资料/功能入口页主题图标名 */
 export type HubIconName =
+    // 游戏内容：白屏彩素位图（RASTER_ICONS）
     | 'data-dex'
     | 'data-type'
     | 'data-move'
@@ -195,14 +81,37 @@ export type HubIconName =
     | 'hub-battle'
     | 'hub-team'
     | 'hub-template'
+    | 'mine-fav'
+    // 元功能：平滑单色（内联 svg / 字体）
     | 'hub-stats'
-    | 'mine-fav';
+    | 'mine-settings'
+    | 'mine-history'
+    | 'mine-devtools';
+
+/** 游戏内容条目的彩素位图（/static 在 H5 与小程序均按绝对路径访问）。 */
+const RASTER_ICONS: Partial<Record<HubIconName, string>> = {
+    'data-dex': '/static/img/hub-icons/dex.png',
+    'data-type': '/static/img/hub-icons/type.png',
+    'data-move': '/static/img/hub-icons/move.png',
+    'data-ability': '/static/img/hub-icons/ability.png',
+    'data-item': '/static/img/hub-icons/item.png',
+    'data-meta': '/static/img/hub-icons/meta.png',
+    'hub-damage': '/static/img/hub-icons/damage.png',
+    'hub-stat': '/static/img/hub-icons/stat.png',
+    'hub-battle': '/static/img/hub-icons/battle.png',
+    'hub-team': '/static/img/hub-icons/team.png',
+    'hub-template': '/static/img/hub-icons/template.png',
+    'mine-fav': '/static/img/hub-icons/fav.png',
+};
 </script>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { glyph } from '@/components/icon/glyphs';
 
-defineProps<{
+const props = defineProps<{
     name: HubIconName;
 }>();
+
+const rasterSrc = computed(() => RASTER_ICONS[props.name] ?? '');
 </script>
