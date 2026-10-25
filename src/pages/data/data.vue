@@ -24,7 +24,7 @@
             <ListRow
                 :title="t('meta.entryTitle')"
                 :desc="t('meta.entryDesc')"
-                iconClass="list-row__icon--red"
+                iconClass="list-row__icon--violet"
                 last
                 showChevron
                 @click="goBattleData"
@@ -89,11 +89,11 @@ const countOr = (n: number | undefined, fallback: string) =>
     n && n > 0 ? String(n) : fallback;
 
 const overviewItems = computed<OverviewEntry[]>(() => [
-    { key: 'pokemon', value: '1025', label: t('data.overview.total'), desc: t('data.overview.totalDesc'), icon: 'data-dex', iconClass: 'list-row__icon--green', url: '/pages/index/index', tab: true },
+    { key: 'pokemon', value: '1025', label: t('data.overview.total'), desc: t('data.overview.totalDesc'), icon: 'data-dex', iconClass: 'list-row__icon--gray', url: '/pages/index/index', tab: true },
     { key: 'types', value: '18', label: t('data.overview.types'), desc: t('data.overview.typesDesc'), icon: 'data-type', iconClass: 'list-row__icon--gold', url: '/pages/archive/types' },
     { key: 'moves', value: countOr(i18nStore.lookup?.moves.size, '400+'), label: t('data.overview.moves'), desc: t('data.overview.movesDesc'), icon: 'data-move', iconClass: 'list-row__icon--blue', url: '/pages/archive/moves' },
-    { key: 'abilities', value: countOr(i18nStore.lookup?.abilities.size, '300+'), label: t('data.overview.abilities'), desc: t('data.overview.abilitiesDesc'), icon: 'data-ability', iconClass: 'list-row__icon--violet', url: '/pages/archive/abilities' },
-    { key: 'items', value: countOr(i18nStore.lookup?.items.size, '—'), label: t('data.overview.items'), desc: t('data.overview.itemsDesc'), icon: 'data-item', iconClass: 'list-row__icon--gray', url: '/pages/archive/items' },
+    { key: 'abilities', value: countOr(i18nStore.lookup?.abilities.size, '300+'), label: t('data.overview.abilities'), desc: t('data.overview.abilitiesDesc'), icon: 'data-ability', iconClass: 'list-row__icon--red', url: '/pages/archive/abilities' },
+    { key: 'items', value: countOr(i18nStore.lookup?.items.size, '—'), label: t('data.overview.items'), desc: t('data.overview.itemsDesc'), icon: 'data-item', iconClass: 'list-row__icon--green', url: '/pages/archive/items' },
 ]);
 
 // 物种名按 species id 查内容名称表；属性走 typeName（随内容语言），未就绪回落常量中文名。

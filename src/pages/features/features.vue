@@ -42,9 +42,9 @@ interface FeatureEntry {
 
 const featureItems = computed<FeatureEntry[]>(() => [
     { title: t('features.calc.title'), desc: t('features.calc.desc'), meta: t('features.calc.meta'), url: '/pages/calc/calc', icon: 'hub-damage', iconClass: 'list-row__icon--green' },
-    { title: t('features.statcalc.title'), desc: t('features.statcalc.desc'), meta: t('features.statcalc.meta'), url: '/pages/statcalc/statcalc', icon: 'hub-stat', iconClass: 'list-row__icon--gold' },
-    { title: t('features.simulate.title'), desc: t('features.simulate.desc'), meta: t('features.simulate.meta'), url: '/pages/simulate/simulate', icon: 'hub-battle', iconClass: 'list-row__icon--blue' },
-    { title: t('features.teams.title'), desc: t('features.teams.desc'), meta: t('features.teams.meta'), url: '/pages/teams/teams', icon: 'hub-team', iconClass: 'list-row__icon--blue' },
+    { title: t('features.statcalc.title'), desc: t('features.statcalc.desc'), meta: t('features.statcalc.meta'), url: '/pages/statcalc/statcalc', icon: 'hub-stat', iconClass: 'list-row__icon--blue' },
+    { title: t('features.simulate.title'), desc: t('features.simulate.desc'), meta: t('features.simulate.meta'), url: '/pages/simulate/simulate', icon: 'hub-battle', iconClass: 'list-row__icon--gray' },
+    { title: t('features.teams.title'), desc: t('features.teams.desc'), meta: t('features.teams.meta'), url: '/pages/teams/teams', icon: 'hub-team', iconClass: 'list-row__icon--gold' },
     { title: t('features.templates.title'), desc: t('features.templates.desc'), meta: t('features.templates.meta'), url: '/pages/templates/templates', icon: 'hub-template', iconClass: 'list-row__icon--violet' },
     { title: t('features.stats.title'), desc: t('features.stats.desc'), meta: t('features.stats.meta'), url: '/pages/data/data', icon: 'hub-stats', iconClass: 'list-row__icon--violet' },
 ]);
