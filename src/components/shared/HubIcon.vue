@@ -1,19 +1,20 @@
 <template>
     <!--
       游戏内容（RASTER_ICONS）：两端统一走位图 <image>——白屏彩素像素画，
-      源 144×144 PNG（@6，@2x/@3x 整数分频）放 src/static/img/hub-icons/。
+      源 144×144 PNG（36 CSSpx 的 @4 母版；@4x 1:1、@2x 2:1 分频，
+      @3x 由 144 缩小到 108）放 src/static/img/hub-icons/。
       彩色像素无法走单色 ttf 字体，故不经 data-ic/glyph 体系。
     -->
-    <image v-if="rasterSrc" :src="rasterSrc" mode="aspectFit" class="h-6 w-6" />
+    <image v-if="rasterSrc" :src="rasterSrc" mode="aspectFit" class="h-9 w-9" />
     <!-- #ifdef MP-WEIXIN -->
-    <text v-else class="ic text-[24px]">{{ glyph(name) }}</text>
+    <text v-else class="ic text-[36px]">{{ glyph(name) }}</text>
     <!-- #endif -->
     <!-- #ifndef MP-WEIXIN -->
     <!-- 元功能（4 枚）：平滑白色实心单色图标，H5 内联 svg；build-icons 扫 data-ic 生成字体供 MP 用。 -->
     <svg
       v-else-if="name === 'mine-settings'"
       data-ic="mine-settings"
-      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-6 w-6"
+      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-9 w-9"
     >
       <!-- 设置：EQ 三滑块（三根竖轨 + 错位圆钮），避开齿轮 16px 死结 -->
       <rect x="7.4" y="4" width="1.7" height="16" rx="0.85" />
@@ -27,7 +28,7 @@
     <svg
       v-else-if="name === 'mine-history'"
       data-ic="mine-history"
-      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-6 w-6"
+      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-9 w-9"
     >
       <!-- 浏览历史：一串渐小的脚印=训练家走过的痕迹 -->
       <circle cx="9.8" cy="14.7" r="3.4" />
@@ -41,7 +42,7 @@
     <svg
       v-else-if="name === 'mine-devtools'"
       data-ic="mine-devtools"
-      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-6 w-6"
+      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-9 w-9"
     >
       <!-- 开发者工具：实心终端卡 + 负形 </> -->
       <path
@@ -56,7 +57,7 @@
     <svg
       v-else
       data-ic="hub-stats"
-      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-6 w-6"
+      viewBox="0 0 24 24" fill="currentColor" stroke="none" class="h-9 w-9"
     >
       <!-- 数据统计：平滑趋势折线 + 基线 + 末端点（与能力值的像素竖条刻意分属两种语言） -->
       <path d="M3.6 18.6 9 13.2l3.6 2.7 7-7.6-1.6-1.5-5.4 5.9L9 10 2.4 16.6z" />
