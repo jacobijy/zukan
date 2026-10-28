@@ -105,6 +105,11 @@ input {
  * 基础规则与配色变体都放全局：变体由各页面通过 iconClass prop 传入，
  * 若基础规则留在 ListRow 的 scoped 里，其 (0,2,0) 特异性会盖掉
  * 变体 (0,1,0) 的 color，导致 gold/gray 的深色字变白。
+ *
+ * 磁贴为浅彩底（2026-10 随 3D 炫彩图标套改）：16 枚栏目图标 13 枚主色是
+ * 藏青/蓝，饱和彩底会同色相叠压；浅底翻转明度关系，靠图标自身的深色描边
+ * 分离。每个变体同时给出深墨 color——设置页的单色 currentColor 字形
+ * （globe/book）在浅底上必须走深墨，不能再用白字。
  */
 .list-row__icon {
     display: flex;
@@ -116,33 +121,39 @@ input {
     border-radius: 14px;
     color: #fff;
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.38),
-        0 10px 20px rgba(63, 70, 86, 0.12);
+        inset 0 0 0 1px rgba(30, 41, 59, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        0 10px 20px rgba(63, 70, 86, 0.1);
 }
 
 .list-row__icon--green {
-    background: linear-gradient(135deg, #7ad66f 0%, #34b85a 58%, #178f42 100%);
+    color: #1c7a43;
+    background: linear-gradient(135deg, #e4f9ea 0%, #c6f1d4 58%, #a3e6be 100%);
 }
 
 .list-row__icon--blue {
-    background: linear-gradient(135deg, #73b7ff 0%, #357df4 58%, #275bd8 100%);
+    color: #1e5fc2;
+    background: linear-gradient(135deg, #e6f2ff 0%, #c9e2ff 58%, #a7cfff 100%);
 }
 
 .list-row__icon--violet {
-    background: linear-gradient(135deg, #9a86f4 0%, #7350d4 58%, #4b32a6 100%);
+    color: #5a3ec0;
+    background: linear-gradient(135deg, #f0eaff 0%, #ddd1fe 58%, #c5b4fa 100%);
 }
 
 .list-row__icon--gold {
-    color: #4c3506;
-    background: linear-gradient(135deg, #ffe7a8 0%, #f4c849 54%, #e99a24 100%);
+    color: #6e4f0a;
+    background: linear-gradient(135deg, #fff7db 0%, #fdecb6 54%, #f9da82 100%);
 }
 
 .list-row__icon--gray {
-    background: linear-gradient(135deg, #b8bcc5 0%, #8e949f 56%, #6e7480 100%);
+    color: #49505e;
+    background: linear-gradient(135deg, #f3f5f9 0%, #e5e9f1 56%, #d3d9e5 100%);
 }
 
 .list-row__icon--red {
-    background: linear-gradient(135deg, #ff8a8a 0%, #f0534b 56%, #d12e2e 100%);
+    color: #c0413a;
+    background: linear-gradient(135deg, #ffeae7 0%, #ffd5d1 56%, #ffb7b2 100%);
 }
 
 /* 资料页"热门样本"的编号标记配色，同样经 iconClass 传入 */
