@@ -23,6 +23,7 @@ src/core/simulator/data-json
 .claude
 .agents
 .github
+tmp/
 
 # WASM build artifacts
 src/infra/wasm/pkg
