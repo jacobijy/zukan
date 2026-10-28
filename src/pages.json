@@ -122,6 +122,20 @@
       }
     },
     {
+      "path": "pages/archive/egg-groups",
+      "style": {
+        "navigationBarTitleText": "蛋组图鉴",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/archive/egg-group-detail",
+      "style": {
+        "navigationBarTitleText": "蛋组详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/devtools/devtools",
       "style": {
         "navigationBarTitleText": "开发者工具",

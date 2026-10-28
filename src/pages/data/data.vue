@@ -94,6 +94,7 @@ const overviewItems = computed<OverviewEntry[]>(() => [
     { key: 'moves', value: countOr(i18nStore.lookup?.moves.size, '400+'), label: t('data.overview.moves'), desc: t('data.overview.movesDesc'), icon: 'data-move', iconClass: 'list-row__icon--blue', url: '/pages/archive/moves' },
     { key: 'abilities', value: countOr(i18nStore.lookup?.abilities.size, '300+'), label: t('data.overview.abilities'), desc: t('data.overview.abilitiesDesc'), icon: 'data-ability', iconClass: 'list-row__icon--red', url: '/pages/archive/abilities' },
     { key: 'items', value: countOr(i18nStore.lookup?.items.size, '—'), label: t('data.overview.items'), desc: t('data.overview.itemsDesc'), icon: 'data-item', iconClass: 'list-row__icon--green', url: '/pages/archive/items' },
+    { key: 'eggGroups', value: countOr(i18nStore.lookup?.eggGroups.size, '15'), label: t('data.overview.eggGroups'), desc: t('data.overview.eggGroupsDesc'), icon: 'data-egg', iconClass: 'list-row__icon--violet', url: '/pages/archive/egg-groups' },
 ]);
 
 // 物种名按 species id 查内容名称表；属性走 typeName（随内容语言），未就绪回落常量中文名。

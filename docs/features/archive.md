@@ -1,7 +1,7 @@
-# 资料中心图鉴栏目（属性 / 招式 / 特性 / 道具）
+# 资料中心图鉴栏目（属性 / 招式 / 特性 / 道具 / 蛋组）
 
-资料中心（`pages/data/data.vue`）的「图鉴概览」5 行各自跳一个图鉴栏目，
-每个栏目是**列表页 + 详情页**一对，共 8 个页面，注册在 `src/pages.json`
+资料中心（`pages/data/data.vue`）的「图鉴概览」6 行各自跳一个图鉴栏目，
+每个栏目是**列表页 + 详情页**一对，共 10 个页面，注册在 `src/pages.json`
 的 `pages/archive/*`：
 
 | 栏目 | 列表页 | 详情页 | 行组件 |
@@ -10,17 +10,25 @@
 | 招式 | `archive/moves` | `archive/move-detail?id=` | `archive/MoveRow` |
 | 特性 | `archive/abilities` | `archive/ability-detail?id=` | `archive/AbilityRow` |
 | 道具 | `archive/items` | `archive/item-detail?id=` | `archive/ItemRow` |
+| 蛋组 | `archive/egg-groups` | `archive/egg-group-detail?id=` | `archive/EggGroupRow` |
 | 宝可梦总数 | —（`uni.reLaunch` 回 `/pages/index/index`） | — | — |
 
-组件都在 `src/components/archive/`：行组件 ×4、`ItemIcon`（道具图标/占位）、
+组件都在 `src/components/archive/`：行组件 ×5、`ItemIcon`（道具图标/占位）、
 `FlavorTextCard`（特性/道具描述卡，按需 `ensureFlavor()`）、
 `MoveFlavorCard`（招式描述卡，单条最新说明 + 效果段）、`TypeMatchupCard`（相克表）、
 `PokemonMiniList`/`PokemonMiniRow`（详情页的宝可梦反查列表）、
 `ArchiveListShell`（列表页骨架：DetailNavbar + `#tools` 插槽 + `#list` 插槽，
 加载/空态/列表三态与确定高度的 flex 容器都在壳内；**不含 VirtualList**）。
 
+蛋组栏目只有 15 行（PokeAPI egg_groups id 1..15，元数据在
+`constants/eggGroups.ts`，中文兜底名即该处），不虚拟化。蛋组无配色/相克数据，
+`EggGroupRow` 与蛋组详情头部用统一中性紫胶囊；蛋组 → 宝可梦反查的默认形态
+去重口径同属性/特性。
+
 详情页的招式卡（`components/pokemon/MoveCard.vue`）可点：`uni.navigateTo` 跳到
-`archive/move-detail?id=`。
+`archive/move-detail?id=`。宝可梦详情页（`pages/detail/detail.vue`）的蛋组信息卡
+同样可点：model 的 `eggGroupIds`（与 `eggGroups` 名字数组严格同序）驱动 chip
+列表，点击跳 `archive/egg-group-detail?id=`。
 
 ## 数据来源
 
@@ -29,6 +37,7 @@
 | 招式列表/数值 | MDAT `moves_data/common.bin` 的 `moves` 表 | `services/pokemon/archive.ts::loadMoveList()`（module 级 promise 缓存） |
 | 特性 → 宝可梦 | gen-9 bundle `abilityEntries` join `baseEntries` | `loadAbilityPokemonIndex()`（仅默认形态、三特性槽位 OR） |
 | 属性 → 宝可梦 | gen-9 bundle `typeEntries`（双属性 OR） | `loadTypePokemonIndex()` |
+| 蛋组 → 宝可梦 | gen-9 bundle `eggGroupEntries`（双蛋组 OR，g1 恒有值，g2=0 跳过） | `loadEggGroupPokemonIndex()`；蛋组元数据（id/兜底名）在 `constants/eggGroups.ts` |
 | 属性相克 | `core/data/typechart.ts` | `services/pokemon/typeMatchup.ts`（attack/defenseMatchups 纯函数） |
 | 招式/特性/道具名 | PKNM 名称组 lookup（moves/abilities/items 表） | `i18nStore.moveName/abilityName/itemName` |
 | 招式/特性/道具描述 | PKFL 描述组 moves/abilities/items 表 | 取最新一条 `i18nStore.moveFlavorText/abilityFlavorText/itemFlavorText`（version=vg_id）；实测各版本组招式说明基本相同，不做版本切换 |
@@ -36,7 +45,8 @@
 | 招式分类/目标名 | PKNM `moveDamageClasses`/`moveTargets` 表 | `i18nStore.moveDamageClassName/moveTargetName`（lookup 已收这两张表） |
 | 道具图标 | 加密资源 `encrypted-assets/items/<id>.bin`（ZKDX 密文，明文 30×30 PNG） | `resources/itemImage.ts`（与 sprite 同一套 `imageCache`/`imagePersist` 引擎的 item 实例）；404 无资源 → 中性占位盒 |
 
-聚合纯函数（`buildMoveList`/`buildAbilityIndex`/`buildTypePokemonIndex`）
+聚合纯函数（`buildMoveList`/`buildAbilityIndex`/`buildTypePokemonIndex`/
+`buildEggGroupIndex`）
 不碰网络，测试在 `tests/archiveIndex.spec.ts`；相克在 `tests/typeMatchup.spec.ts`；
 flavor 多表构建在 `tests/flavor.spec.ts`。
 

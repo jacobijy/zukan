@@ -89,8 +89,10 @@ interface IPokemonBaseModel {
     types: string[];
     abilities: string[];
     hiddenAbility: string;
-    /** 蛋组本地化名称（1~2 个；未发现蛋组为单个「未发现」） */
+    /** 蛋组本地化名称（1~2 个；未发现蛋组为单个「未发现」）；与 eggGroupIds 严格同序 */
     eggGroups: string[];
+    /** 蛋组 PokeAPI id（1~2 个，与 eggGroups 同序）；蛋组栏目跳转用 */
+    eggGroupIds?: number[];
     image: string;
     stats: { name: string; value: number }[];
     description: string;

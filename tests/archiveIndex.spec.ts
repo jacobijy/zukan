@@ -9,7 +9,12 @@
  * - 特性三个槽位（普特 1/2 + 隐藏）都计入。
  */
 import { describe, expect, it } from 'vitest';
-import { buildAbilityIndex, buildMoveList, buildTypePokemonIndex } from '@/services/pokemon/archive';
+import {
+    buildAbilityIndex,
+    buildEggGroupIndex,
+    buildMoveList,
+    buildTypePokemonIndex,
+} from '@/services/pokemon/archive';
 import type { Move } from '@/infra/wasm';
 
 describe('buildTypePokemonIndex', () => {
@@ -65,6 +70,34 @@ describe('buildAbilityIndex', () => {
         const idx = buildAbilityIndex({ base, abilities });
         // speciesId 6 的 Mega 形态被忽略：特性 66 只关联物种 2
         expect(idx.get(66)).toEqual([2]);
+    });
+});
+
+describe('buildEggGroupIndex', () => {
+    const base = [
+        { id: 1, speciesId: 1, isDefault: true }, // 妙蛙种子：怪兽(1) + 植物(7)（双蛋组）
+        { id: 2, speciesId: 2, isDefault: true }, // 妙蛙草：单蛋组（g2=0）
+        { id: 7, speciesId: 7, isDefault: true }, // 杰尼龟：怪兽(1)
+        { id: 10006, speciesId: 6, isDefault: false }, // 喷火龙 Mega X：非默认形态，忽略
+    ];
+    const eggGroups = [
+        { id: 1, eggGroup1Id: 1, eggGroup2Id: 7 }, // 双蛋组进两个桶
+        { id: 2, eggGroup1Id: 1, eggGroup2Id: 0 }, // g2=0 只进 g1
+        { id: 7, eggGroup1Id: 1, eggGroup2Id: 15 }, // 未发现(15)作第二蛋组
+        { id: 10006, eggGroup1Id: 1, eggGroup2Id: 0 }, // 非默认，忽略
+    ];
+
+    it('双蛋组宝可梦同时进两个蛋组索引（OR 聚合）；未发现组也收', () => {
+        const idx = buildEggGroupIndex({ base, eggGroups });
+        expect(idx.get(1)?.toSorted((a, b) => a - b)).toEqual([1, 2, 7]);
+        expect(idx.get(7)).toEqual([1]);
+        expect(idx.get(15)).toEqual([7]);
+    });
+
+    it('非默认形态不参与聚合（按 speciesId 去重）', () => {
+        const idx = buildEggGroupIndex({ base, eggGroups });
+        // Mega 喷 X 的蛋组不应带入任何物种；物种 6 未被加入
+        expect(idx.get(1)).toEqual([1, 2, 7]);
     });
 });
 

@@ -86,6 +86,11 @@ interface TypeLike {
     type1Id: number;
     type2Id: number;
 }
+interface EggGroupLike {
+    id: number;
+    eggGroup1Id: number;
+    eggGroup2Id: number;
+}
 
 /** abilityId → 拥有该特性的 speciesId 列表（升序去重）。纯函数。 */
 export function buildAbilityIndex(parts: { base: BaseLike[]; abilities: AbilityLike[] }): Map<number, number[]> {
@@ -128,6 +133,27 @@ export function buildTypePokemonIndex(parts: { base: BaseLike[]; types: TypeLike
     return toSortedIndex(index);
 }
 
+// ── 蛋组 → 宝可梦反查 ──
+
+/** 蛋组 id → 属于该蛋组（含双蛋组，OR）的 speciesId 列表（升序去重）。纯函数。 */
+export function buildEggGroupIndex(parts: { base: BaseLike[]; eggGroups: EggGroupLike[] }): Map<number, number[]> {
+    const eggGroupById = new Map(parts.eggGroups.map((e) => [e.id, e]));
+    const index = new Map<number, Set<number>>();
+    for (const b of parts.base) {
+        if (!b.isDefault) continue;
+        const e = eggGroupById.get(b.id);
+        if (!e) continue;
+        // 双蛋组宝可梦同时进两个蛋组索引；g1 恒有值（未发现组=15），g2=0 表示无第二蛋组
+        for (const eggGroupId of [e.eggGroup1Id, e.eggGroup2Id]) {
+            if (!eggGroupId) continue;
+            const set = index.get(eggGroupId);
+            if (set) set.add(b.speciesId);
+            else index.set(eggGroupId, new Set([b.speciesId]));
+        }
+    }
+    return toSortedIndex(index);
+}
+
 function toSortedIndex<V>(index: Map<V, Set<number>>): Map<V, number[]> {
     const out = new Map<V, number[]>();
     for (const [key, set] of index) {
@@ -141,6 +167,7 @@ function toSortedIndex<V>(index: Map<V, Set<number>>): Map<V, number[]> {
 
 let abilityIndexPromise: Promise<Map<number, number[]>> | null = null;
 let typeIndexPromise: Promise<Map<string, number[]>> | null = null;
+let eggGroupIndexPromise: Promise<Map<number, number[]>> | null = null;
 
 /** abilityId → speciesId[]（gen9 默认形态）；module 级 promise 缓存。 */
 export function loadAbilityPokemonIndex(): Promise<Map<number, number[]>> {
@@ -164,6 +191,18 @@ export function loadTypePokemonIndex(): Promise<Map<string, number[]>> {
         typeIndexPromise = null;
     });
     return typeIndexPromise;
+}
+
+/** 蛋组 id → speciesId[]（gen9 默认形态）；module 级 promise 缓存。 */
+export function loadEggGroupPokemonIndex(): Promise<Map<number, number[]>> {
+    if (eggGroupIndexPromise) return eggGroupIndexPromise;
+    eggGroupIndexPromise = loadGenBundle().then((bundle) =>
+        buildEggGroupIndex({ base: bundle.baseEntries, eggGroups: bundle.eggGroupEntries }),
+    );
+    eggGroupIndexPromise.catch(() => {
+        eggGroupIndexPromise = null;
+    });
+    return eggGroupIndexPromise;
 }
 
 function loadGenBundle(): Promise<PokemonGenBundle> {

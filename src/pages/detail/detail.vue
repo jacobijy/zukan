@@ -40,6 +40,19 @@
                             </svg>
                             <!-- #endif -->
                         </template>
+                        <template #value>
+                            <view v-if="eggGroupChips.length" class="egg-chips">
+                                <view
+                                    v-for="group in eggGroupChips"
+                                    :key="group.id"
+                                    class="egg-chip"
+                                    @click="goEggGroup(group.id)"
+                                >
+                                    <text>{{ group.name }}</text>
+                                </view>
+                            </view>
+                            <text v-else class="mt-1 block truncate text-base font-black text-[#24262b]">-</text>
+                        </template>
                     </InfoCard>
                     <InfoCard :label="t('detail.info.category')" :value="pokemon.category || t('detail.info.categoryFallback')" icon-class="func-tile--blue">
                         <template #icon>
@@ -127,6 +140,7 @@ const pokemon = ref<IPokemonBaseModel>({
     abilities: [],
     hiddenAbility: '',
     eggGroups: [],
+    eggGroupIds: [],
     image: '',
     stats: [],
     description: '',
@@ -139,10 +153,24 @@ const isFavorite = computed(() => {
 })
 
 // 1~2 个蛋组用「 / 」连接；i18n 未就绪时数组里是数字占位，过滤掉。
+// 该值仅作 InfoCard 的 value prop 兜底，实际渲染走 #value 插槽的可点 chip。
 const eggGroupText = computed(() => {
     const groups = (pokemon.value.eggGroups ?? []).filter(s => s && !/^\d+$/.test(s))
     return groups.length ? groups.join(' / ') : '-'
 })
+
+// 蛋组跳转 chip：id 与名字在数据层严格同序（mergeBundleToModel），过滤数字占位名。
+const eggGroupChips = computed(() => {
+    const ids = pokemon.value.eggGroupIds ?? []
+    const names = pokemon.value.eggGroups ?? []
+    return ids
+        .map((id, i) => ({ id, name: names[i] ?? '' }))
+        .filter(g => g.name && !/^\d+$/.test(g.name))
+})
+
+const goEggGroup = (id: number) => {
+    uni.navigateTo({ url: `/pages/archive/egg-group-detail?id=${id}` })
+}
 
 // 特性可能有 1~2 个普通特性 + 0/1 个隐藏特性，详情页需全部展示。
 // 过滤掉 i18n 未就绪时的数字占位 / 空串，避免渲染无意义值。
@@ -292,5 +320,28 @@ async function loadMoves(pokemonId: number) {
 </script>
 
 <style scoped>
-/* 所有样式已移至组件内 */
+/* 蛋组可点 chip：浅紫底圆角小药丸；:active 按压态（小程序无 :hover） */
+.egg-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.egg-chip {
+    display: flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #efeaff;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.3;
+    color: #4a32a0;
+    transition: transform 0.12s ease;
+}
+
+.egg-chip:active {
+    transform: scale(0.95);
+}
 </style>

@@ -65,12 +65,20 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
         const hiddenAbility = a?.abilityHiddenId ? resolveAbility(a.abilityHiddenId) : '';
 
         // 蛋组：egg_group_1 恒有值（未发现组=15），egg_group_2 为 0 表示无第二蛋组。
+        // eggGroupIds 与名字严格同序同长（名字解析失败同步跳过），供 UI zip 渲染跳转 chip。
         const eggGroups: string[] = [];
+        const eggGroupIds: number[] = [];
         if (e) {
             const g1 = e.eggGroup1Id ? (names?.eggGroup(e.eggGroup1Id) ?? null) : null;
-            if (g1) eggGroups.push(g1);
+            if (g1) {
+                eggGroups.push(g1);
+                eggGroupIds.push(e.eggGroup1Id);
+            }
             const g2 = e.eggGroup2Id ? (names?.eggGroup(e.eggGroup2Id) ?? null) : null;
-            if (g2) eggGroups.push(g2);
+            if (g2) {
+                eggGroups.push(g2);
+                eggGroupIds.push(e.eggGroup2Id);
+            }
         }
 
         const stats: { name: string; value: number }[] = s
@@ -108,6 +116,7 @@ function mergeBundleToModel(bundle: PokemonGenBundle, names: NameResolvers | nul
             abilities,
             hiddenAbility,
             eggGroups,
+            eggGroupIds,
             image: '/static/default.png',
             stats,
             description: '',

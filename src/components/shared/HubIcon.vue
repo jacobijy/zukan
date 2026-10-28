@@ -18,6 +18,7 @@ export type HubIconName =
     | 'data-move'
     | 'data-ability'
     | 'data-item'
+    | 'data-egg'
     | 'data-meta'
     // 功能
     | 'hub-damage'
@@ -39,6 +40,8 @@ const RASTER_ICONS: Record<HubIconName, string> = {
     'data-move': '/static/img/hub-icons/move.png',
     'data-ability': '/static/img/hub-icons/ability.png',
     'data-item': '/static/img/hub-icons/item.png',
+    // TODO(egg-icon): 临时复用收藏心形，待 zukan-icon-work 3D v2 流程出蛋组正式图后只换此处
+    'data-egg': '/static/img/hub-icons/fav.png',
     'data-meta': '/static/img/hub-icons/meta.png',
     'hub-damage': '/static/img/hub-icons/damage.png',
     'hub-stat': '/static/img/hub-icons/stat.png',
