@@ -88,7 +88,11 @@ interface IPokemonBaseModel {
     nameReady?: boolean;
     types: string[];
     abilities: string[];
+    /** 普特 PokeAPI id（1~2 个，与 abilities 名字严格同序）；特性详情跳转用 */
+    abilityIds?: number[];
     hiddenAbility: string;
+    /** 隐藏特性 PokeAPI id；0 = 无隐藏特性 */
+    hiddenAbilityId?: number;
     /** 蛋组本地化名称（1~2 个；未发现蛋组为单个「未发现」）；与 eggGroupIds 严格同序 */
     eggGroups: string[];
     /** 蛋组 PokeAPI id（1~2 个，与 eggGroups 同序）；蛋组栏目跳转用 */

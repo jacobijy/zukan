@@ -99,9 +99,11 @@ i18n 加载完成后 store 重映射一次。merge 同时写入 `nameReady`（re
 `EncryptedSprite` 独立通道，不是 model 字段。
 
 蛋组额外带一份 id：`eggGroupIds`（PokeAPI egg_group id，1~2 个，与 `eggGroups`
-名字数组**严格同序同长**，名字解析失败的 id 同步跳过）。用途：蛋组栏目反查
-（`services/pokemon/archive.ts::loadEggGroupPokemonIndex`）与宝可梦详情页蛋组
-chip 跳转（`pages/detail/detail.vue` 按 index zip 取 id+名字，见
+名字数组**严格同序同长**，名字解析失败的 id 同步跳过）。特性同理：`abilityIds`
+（普特 1~2 个，与 `abilities` 同序；特性名恒有值，失败回落数字串）+
+`hiddenAbilityId`（0 = 无隐藏特性）。用途：栏目反查
+（`services/pokemon/archive.ts::loadEggGroupPokemonIndex` / `loadAbilityPokemonIndex`）
+与宝可梦详情页蛋组/特性 chip 跳转（`pages/detail/detail.vue` 按 index zip 取 id+名字，见
 [../features/archive.md](../features/archive.md)）。
 
 ## 三套 id 空间（排查「图不对 / 名不对 / 404」的关键）

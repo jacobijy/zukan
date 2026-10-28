@@ -30,9 +30,10 @@
 蛋组 → 宝可梦反查的默认形态去重口径同属性/特性。
 
 详情页的招式卡（`components/pokemon/MoveCard.vue`）可点：`uni.navigateTo` 跳到
-`archive/move-detail?id=`。宝可梦详情页（`pages/detail/detail.vue`）的蛋组信息卡
-同样可点：model 的 `eggGroupIds`（与 `eggGroups` 名字数组严格同序）驱动 chip
-列表，点击跳 `archive/egg-group-detail?id=`。
+`archive/move-detail?id=`。宝可梦详情页（`pages/detail/detail.vue`）的蛋组/特性
+信息卡同样可点：model 的 `eggGroupIds`（与 `eggGroups` 名字数组严格同序）与
+`abilityIds` + `hiddenAbilityId`（与 `abilities` / `hiddenAbility` 同序）驱动 chip
+列表，分别跳 `archive/egg-group-detail?id=` 与 `archive/ability-detail?id=`。
 
 ## 数据来源
 

@@ -74,8 +74,9 @@
                                 <view
                                     v-for="(ab, i) in abilityEntries"
                                     :key="i"
-                                    class="flex items-center gap-1 rounded-full px-2.5 py-1"
+                                    class="ability-chip flex items-center gap-1 rounded-full px-2.5 py-1"
                                     :class="ab.hidden ? 'bg-[#f3e8ff]' : 'bg-[#f1f3f8]'"
+                                    @click="goAbility(ab.id)"
                                 >
                                     <text class="text-xs font-bold leading-tight" :class="ab.hidden ? 'text-[#9333ea]' : 'text-[#24262b]'">{{ ab.name }}</text>
                                 </view>
@@ -138,7 +139,9 @@ const pokemon = ref<IPokemonBaseModel>({
     name: '',
     types: [],
     abilities: [],
+    abilityIds: [],
     hiddenAbility: '',
+    hiddenAbilityId: 0,
     eggGroups: [],
     eggGroupIds: [],
     image: '',
@@ -173,15 +176,24 @@ const goEggGroup = (id: number) => {
 }
 
 // 特性可能有 1~2 个普通特性 + 0/1 个隐藏特性，详情页需全部展示。
-// 过滤掉 i18n 未就绪时的数字占位 / 空串，避免渲染无意义值。
-const abilityEntries = computed<{ name: string; hidden: boolean }[]>(() => {
+// 过滤掉 i18n 未就绪时的数字占位 / 空串，避免渲染无意义值；
+// id 与名字在数据层严格同序（mergeBundleToModel），供 chip 跳特性详情。
+const abilityEntries = computed<{ id: number; name: string; hidden: boolean }[]>(() => {
     const isPlaceholder = (s: string) => !s || /^\d+$/.test(s)
-    const normal = (pokemon.value.abilities ?? []).filter(s => !isPlaceholder(s))
-    const entries = normal.map(name => ({ name, hidden: false }))
+    const ids = pokemon.value.abilityIds ?? []
+    const entries = (pokemon.value.abilities ?? [])
+        .map((name, i) => ({ id: ids[i] ?? 0, name }))
+        .filter(e => e.id > 0 && !isPlaceholder(e.name))
+        .map(e => ({ ...e, hidden: false }))
     const hidden = pokemon.value.hiddenAbility
-    if (hidden && !isPlaceholder(hidden)) entries.push({ name: hidden, hidden: true })
+    const hiddenId = pokemon.value.hiddenAbilityId ?? 0
+    if (hiddenId > 0 && hidden && !isPlaceholder(hidden)) entries.push({ id: hiddenId, name: hidden, hidden: true })
     return entries
 })
+
+const goAbility = (id: number) => {
+    uni.navigateTo({ url: `/pages/archive/ability-detail?id=${id}` })
+}
 
 // ── 形态切换 ──────────────────────────────────────────────
 // 同 species 的所有形态；单形态时数组只有一条，切换器不渲染。
@@ -342,6 +354,15 @@ async function loadMoves(pokemonId: number) {
 }
 
 .egg-chip:active {
+    transform: scale(0.95);
+}
+
+/* 特性跳转 chip（普特灰底 / 隐特紫底，配色走 tailwind 条件类）；:active 按压态 */
+.ability-chip {
+    transition: transform 0.12s ease;
+}
+
+.ability-chip:active {
     transform: scale(0.95);
 }
 </style>
