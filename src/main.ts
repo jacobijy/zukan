@@ -1,4 +1,5 @@
 import '@/static/styles/global.css';
+import '@/static/styles/func-tiles.css';
 // #ifdef MP-WEIXIN
 import '@/static/styles/icons.css';
 // #endif

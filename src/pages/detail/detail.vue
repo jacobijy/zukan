@@ -19,37 +19,17 @@
                 <PokedexEntry :species-id="pokemon.speciesId ?? pokemon.id" />
 
                 <InfoGrid>
-                    <InfoCard :label="t('detail.info.height')" :value="`${pokemon.height || 0}m`" icon-class="info-card__icon--green">
+                    <InfoCard :label="t('detail.info.height')" :value="`${pokemon.height || 0}m`" icon-class="func-tile--blue">
                         <template #icon>
-                            <!-- #ifdef MP-WEIXIN -->
-                            <text class="ic text-[20px]">{{ glyph('move') }}</text>
-                            <!-- #endif -->
-                            <!-- #ifndef MP-WEIXIN -->
-                            <svg data-ic="move" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                                <path d="M6 21V3"></path>
-                                <path d="M3 6l3-3 3 3"></path>
-                                <path d="M3 18l3 3 3-3"></path>
-                                <path d="M13 6h8"></path>
-                                <path d="M13 12h5"></path>
-                                <path d="M13 18h8"></path>
-                            </svg>
-                            <!-- #endif -->
+                            <FuncIcon name="height" />
                         </template>
                     </InfoCard>
-                    <InfoCard :label="t('detail.info.weight')" :value="`${pokemon.weight || 0}kg`" icon-class="info-card__icon--gold">
+                    <InfoCard :label="t('detail.info.weight')" :value="`${pokemon.weight || 0}kg`" icon-class="func-tile--violet">
                         <template #icon>
-                            <!-- #ifdef MP-WEIXIN -->
-                            <text class="ic text-[20px]">{{ glyph('shopping-bag') }}</text>
-                            <!-- #endif -->
-                            <!-- #ifndef MP-WEIXIN -->
-                            <svg data-ic="shopping-bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                                <path d="M7 8a5 5 0 0 1 10 0"></path>
-                                <path d="M5 8h14l-1.5 13h-11L5 8z"></path>
-                            </svg>
-                            <!-- #endif -->
+                            <FuncIcon name="weight" />
                         </template>
                     </InfoCard>
-                    <InfoCard :label="t('detail.info.eggGroup')" :value="eggGroupText" icon-class="info-card__icon--paper">
+                    <InfoCard :label="t('detail.info.eggGroup')" :value="eggGroupText" icon-class="func-tile--blue">
                         <template #icon>
                             <!-- #ifdef MP-WEIXIN -->
                             <text class="ic text-[20px]">{{ glyph('shield') }}</text>
@@ -61,17 +41,9 @@
                             <!-- #endif -->
                         </template>
                     </InfoCard>
-                    <InfoCard :label="t('detail.info.category')" :value="pokemon.category || t('detail.info.categoryFallback')" icon-class="info-card__icon--paper">
+                    <InfoCard :label="t('detail.info.category')" :value="pokemon.category || t('detail.info.categoryFallback')" icon-class="func-tile--blue">
                         <template #icon>
-                            <!-- #ifdef MP-WEIXIN -->
-                            <text class="ic text-[20px]">{{ glyph('book-open') }}</text>
-                            <!-- #endif -->
-                            <!-- #ifndef MP-WEIXIN -->
-                            <svg data-ic="book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                            </svg>
-                            <!-- #endif -->
+                            <FuncIcon name="details" />
                         </template>
                     </InfoCard>
 
@@ -79,17 +51,10 @@
                         wide
                         :label="t('detail.info.ability')"
                         value=""
-                        icon-class="info-card__icon--red"
+                        icon-class="func-tile--gold"
                     >
                         <template #icon>
-                            <!-- #ifdef MP-WEIXIN -->
-                            <text class="ic text-[20px]">{{ glyph('star') }}</text>
-                            <!-- #endif -->
-                            <!-- #ifndef MP-WEIXIN -->
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                                <polygon points="12 2.8 14.9 8.7 21.4 9.65 16.7 14.25 17.8 20.75 12 17.68 6.2 20.75 7.3 14.25 2.6 9.65 9.1 8.7 12 2.8"></polygon>
-                            </svg>
-                            <!-- #endif -->
+                            <FuncIcon name="ability" />
                         </template>
                         <template #value>
                             <view v-if="abilityEntries.length" class="mt-1.5 flex flex-wrap gap-1.5">
@@ -130,6 +95,7 @@ import SpecimenHero from '@/components/pokemon/SpecimenHero.vue'
 import PokedexEntry from '@/components/pokemon/PokedexEntry.vue'
 import InfoGrid from '@/components/pokemon/InfoGrid.vue'
 import InfoCard from '@/components/pokemon/InfoCard.vue'
+import FuncIcon from '@/components/icon/FuncIcon.vue'
 import { usePokemonStore } from '@/store/pokemon'
 import LoginModal from '@/components/shared/LoginModal.vue'
 import { authGate } from '@/services/session/authGate'

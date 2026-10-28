@@ -25,27 +25,17 @@
 
                     <!-- 数值网格 -->
                     <InfoGrid>
-                        <InfoCard :label="t('archive.power')" :value="powerText" icon-class="info-card__icon--red">
+                        <InfoCard :label="t('archive.power')" :value="powerText" icon-class="func-tile--gold">
                             <template #icon>
-                                <!-- #ifdef MP-WEIXIN -->
-                                <text class="ic text-[20px]">{{ glyph('zap') }}</text>
-                                <!-- #endif -->
-                                <!-- #ifndef MP-WEIXIN -->
-                                <svg data-ic="zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><polygon points="13 2.5 4 14 12 14 11 21.5 20 10 12 10 13 2.5"></polygon></svg>
-                                <!-- #endif -->
+                                <FuncIcon name="power" />
                             </template>
                         </InfoCard>
-                        <InfoCard :label="t('archive.accuracy')" :value="accuracyText" icon-class="info-card__icon--paper">
+                        <InfoCard :label="t('archive.accuracy')" :value="accuracyText" icon-class="func-tile--green">
                             <template #icon>
-                                <!-- #ifdef MP-WEIXIN -->
-                                <text class="ic text-[20px]">{{ glyph('concentric') }}</text>
-                                <!-- #endif -->
-                                <!-- #ifndef MP-WEIXIN -->
-                                <svg data-ic="concentric" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1.5" fill="currentColor"></circle></svg>
-                                <!-- #endif -->
+                                <FuncIcon name="accuracy" />
                             </template>
                         </InfoCard>
-                        <InfoCard :label="t('archive.pp')" :value="String(move.pp)" icon-class="info-card__icon--green">
+                        <InfoCard :label="t('archive.pp')" :value="String(move.pp)" icon-class="func-tile--violet">
                             <template #icon>
                                 <!-- #ifdef MP-WEIXIN -->
                                 <text class="ic text-[20px]">{{ glyph('book') }}</text>
@@ -55,17 +45,12 @@
                                 <!-- #endif -->
                             </template>
                         </InfoCard>
-                        <InfoCard :label="t('archive.priority')" :value="priorityText" icon-class="info-card__icon--gold">
+                        <InfoCard :label="t('archive.priority')" :value="priorityText" icon-class="func-tile--red">
                             <template #icon>
-                                <!-- #ifdef MP-WEIXIN -->
-                                <text class="ic text-[20px]">{{ glyph('arrow-up') }}</text>
-                                <!-- #endif -->
-                                <!-- #ifndef MP-WEIXIN -->
-                                <svg data-ic="arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg>
-                                <!-- #endif -->
+                                <FuncIcon name="up" />
                             </template>
                         </InfoCard>
-                        <InfoCard :label="t('archive.target')" :value="targetName" icon-class="info-card__icon--paper" wide>
+                        <InfoCard :label="t('archive.target')" :value="targetName" icon-class="func-tile--green" wide>
                             <template #icon>
                                 <!-- #ifdef MP-WEIXIN -->
                                 <text class="ic text-[20px]">{{ glyph('target') }}</text>
@@ -95,6 +80,7 @@ import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import InfoGrid from '@/components/pokemon/InfoGrid.vue';
 import InfoCard from '@/components/pokemon/InfoCard.vue';
+import FuncIcon from '@/components/icon/FuncIcon.vue';
 import MoveFlavorCard from '@/components/archive/MoveFlavorCard.vue';
 import { loadMoveList, type MoveListRow } from '@/services/pokemon/archive';
 import { typeStrs } from '@/utils/helpers';

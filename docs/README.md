@@ -16,6 +16,8 @@
 | UI | [ui/safe-area.md](ui/safe-area.md) | 顶部状态栏 / 刘海适配：env 基线 + JS 兜底两层注入、为何微信需逐页、验证方法 |
 | UI | [ui/software-icons.md](ui/software-icons.md) | HOME 作品版本徽章（世代切换用）：22 枚 128px 透明 PNG 静态资源、文件→游戏→世代映射、引用方式，不走加密 |
 | UI | [ui/type-icons.md](ui/type-icons.md) | HOME 属性贴纸：type_NN 编号=标准 type id（01–18；19–36 为未用变体）、`typeIconPath`、白底圆形 TypeBadgeIcon vs 文字 TypeBadge，不走加密 |
+| UI | [ui/icon-font-catalog.md](ui/icon-font-catalog.md) | 单色图标字体机制（data-ic 收集、双端双写、同名同形门禁）、16 枚栏目 3D 位图（HubIcon）与 ListRow 磁贴规格、全量 glyph 索引 |
+| UI | [ui/icon-sizes.md](ui/icon-sizes.md) | 次要图标现状基线：三条资源通道、6 种带底托磁贴规格（26–112px）、纯字形 12–48px 档位、按功能角色划分；供视觉重设计参考，非实现规范 |
 | 数据 | [data/bundle-decode.md](data/bundle-decode.md) | FlatBuffers bundle 清单、五表 join、`hasSprite` 资源标记、EVO1 进化树、三套 id 空间与 form 重映射 |
 | 数据 | [data/battle-usage.md](data/battle-usage.md) | Champions 对战使用率：明文 JSON 排行榜/单只配置/i18n/link（短缓存）；配套图标 ZKDX 加密、按赛季版本化（DEK 公开、匿名可获取） |
 | 数据 | [data/teams.md](data/teams.md) | 自建队伍后端保存：登录用户多支命名队伍 CRUD、内容不透明（JSON object ≤32KiB）、限额与错误码 |

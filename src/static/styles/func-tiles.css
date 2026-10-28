@@ -1,0 +1,24 @@
+/* 本文件由 scripts/render-func-icons.mjs 自动生成，请勿手改。
+   同色相浅底磁贴：.func-tile--* 给容器背景与 currentColor ink（深墨），
+   供 InfoCard / CalcCard 槽位与保留的单色字形共用。 */
+
+.func-tile--blue {
+    background: linear-gradient(135deg, #ebf2f9 0%, #cddff3 100%);
+    color: #224877;
+}
+.func-tile--green {
+    background: linear-gradient(135deg, #ebf9f2 0%, #cdf3e0 100%);
+    color: #22774d;
+}
+.func-tile--gold {
+    background: linear-gradient(135deg, #f9f4eb 0%, #f3e6cd 100%);
+    color: #775922;
+}
+.func-tile--red {
+    background: linear-gradient(135deg, #f9ebec 0%, #f3cdd1 100%);
+    color: #772229;
+}
+.func-tile--violet {
+    background: linear-gradient(135deg, #f0ebf9 0%, #dbcdf3 100%);
+    color: #412277;
+}

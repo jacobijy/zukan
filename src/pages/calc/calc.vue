@@ -13,7 +13,7 @@
                 <!-- 攻击方 -->
                 <CalcSideCard
                     :title="t('calc.attacker')"
-                    iconClass="calc-head__icon--green"
+                    iconClass="func-tile--blue"
                     :placeholderText="t('calc.selectAttacker')"
                     :pokemon="attackerPokemon"
                     :level="attackerLevel"
@@ -31,12 +31,16 @@
                     @inc-stage2="incStage('spa')"
                     :item="attackerItemLabel"
                     @select-item="showItemPicker('attacker')"
-                />
+                >
+                    <template #icon>
+                        <FuncIcon name="battle" size="sm" />
+                    </template>
+                </CalcSideCard>
 
                 <!-- 防御方 -->
                 <CalcSideCard
                     :title="t('calc.defender')"
-                    iconClass="calc-head__icon--blue"
+                    iconClass="func-tile--green"
                     :placeholderText="t('calc.selectDefender')"
                     :pokemon="defenderPokemon"
                     :level="defenderLevel"
@@ -54,28 +58,16 @@
                     @inc-stage2="incStage('spd')"
                     :item="defenderItemLabel"
                     @select-item="showItemPicker('defender')"
-                />
+                >
+                    <template #icon>
+                        <FuncIcon name="defense" size="sm" />
+                    </template>
+                </CalcSideCard>
 
                 <!-- 招式 -->
-                <CalcCard :title="t('calc.move')" iconClass="calc-head__icon--violet">
+                <CalcCard :title="t('calc.move')" iconClass="func-tile--green">
                     <template #icon>
-                        <!-- #ifdef MP-WEIXIN -->
-                        <text class="ic text-[16px]">{{ glyph('zap-bolt') }}</text>
-                        <!-- #endif -->
-                        <!-- #ifndef MP-WEIXIN -->
-                        <svg
-                            data-ic="zap-bolt"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2.2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="h-4 w-4"
-                        >
-                            <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"></path>
-                        </svg>
-                        <!-- #endif -->
+                        <FuncIcon name="move" size="sm" />
                     </template>
                     <view class="calc-row p-3" @click="showMovePicker">
                         <view v-if="!selectedMove" class="calc-row__main items-center">
@@ -121,7 +113,7 @@
                 </CalcCard>
 
                 <!-- 战场条件 -->
-                <CalcCard :title="t('calc.field')" iconClass="calc-head__icon--gold">
+                <CalcCard :title="t('calc.field')" iconClass="func-tile--gold">
                     <template #icon>
                         <!-- #ifdef MP-WEIXIN -->
                         <text class="ic text-[16px]">{{ glyph('cloud') }}</text>
@@ -213,6 +205,7 @@ import { useI18nStore } from '@/store/i18n';
 import { loadMovesForPokemon } from '@/services/pokemon';
 import CalcSideCard from '@/components/calc/CalcSideCard.vue';
 import CalcCard from '@/components/calc/CalcCard.vue';
+import FuncIcon from '@/components/icon/FuncIcon.vue';
 import ChipRow from '@/components/calc/ChipRow.vue';
 import DamageResultCard from '@/components/calc/DamageResultCard.vue';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';

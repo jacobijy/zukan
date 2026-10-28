@@ -45,6 +45,9 @@ defineProps<{
     border-radius: 15px;
 }
 
+/* 底色与 ink 统一走全局 .func-tile--*（scripts/render-func-icons.mjs 按图标
+   主色自动生成的同色相浅底），由 iconClass 传入；本组件不再自带配色变体。 */
+
 .info-card--wide {
     grid-column: 1 / -1;
     align-items: flex-start;
@@ -52,25 +55,5 @@ defineProps<{
 
 .info-card--wide .info-card__icon {
     margin-top: 1px;
-}
-
-.info-card__icon--green {
-    color: #ffffff;
-    background: linear-gradient(135deg, #68cc67, #34b85a);
-}
-
-.info-card__icon--gold {
-    color: #3b2c0d;
-    background: linear-gradient(135deg, #f4d06f, #d89a1e);
-}
-
-.info-card__icon--red {
-    color: #ffffff;
-    background: linear-gradient(135deg, #ff7b6e, #e04f47);
-}
-
-.info-card__icon--paper {
-    color: #ffffff;
-    background: linear-gradient(135deg, #73b7ff, #357df4);
 }
 </style>

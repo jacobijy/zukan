@@ -15,17 +15,9 @@
         </view>
 
         <!-- 宝可梦 / 等级 / 性格 -->
-        <CalcCard :title="t('statcalc.pokemon')" iconClass="calc-head__icon--green">
+        <CalcCard :title="t('statcalc.pokemon')" iconClass="func-tile--blue">
             <template #icon>
-                <!-- #ifdef MP-WEIXIN -->
-                <text class="ic text-[16px]">{{ glyph('user') }}</text>
-                <!-- #endif -->
-                <!-- #ifndef MP-WEIXIN -->
-                <svg data-ic="user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
-                    <circle cx="12" cy="8" r="4"></circle>
-                    <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"></path>
-                </svg>
-                <!-- #endif -->
+                <FuncIcon name="pokemon" size="sm" />
             </template>
 
             <view class="sc-row" @click="openPokemonPicker(false)">
@@ -79,16 +71,9 @@
         </CalcCard>
 
         <!-- 六维输入 + 结果 -->
-        <CalcCard :title="t('statcalc.statsCard')" iconClass="calc-head__icon--violet">
+        <CalcCard :title="t('statcalc.statsCard')" iconClass="func-tile--blue">
             <template #icon>
-                <!-- #ifdef MP-WEIXIN -->
-                <text class="ic text-[16px]">{{ glyph('bar-chart') }}</text>
-                <!-- #endif -->
-                <!-- #ifndef MP-WEIXIN -->
-                <svg data-ic="bar-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
-                    <path d="M4 19V5"></path><path d="M8.5 19v-6"></path><path d="M13 19V8"></path><path d="M17.5 19v-9"></path><path d="M3.5 19h17"></path>
-                </svg>
-                <!-- #endif -->
+                <FuncIcon name="stats" size="sm" />
             </template>
 
             <view v-if="!selected" class="sc-empty">
@@ -164,6 +149,7 @@ import { glyph } from '@/components/icon/glyphs';
 import { usePokemonStore } from '@/store/pokemon';
 import { useI18nStore } from '@/store/i18n';
 import CalcCard from '@/components/calc/CalcCard.vue';
+import FuncIcon from '@/components/icon/FuncIcon.vue';
 import LevelStepper from '@/components/calc/LevelStepper.vue';
 import StatInputRow from '@/components/calc/StatInputRow.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';

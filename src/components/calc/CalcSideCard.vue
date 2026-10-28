@@ -2,18 +2,8 @@
     <view class="calc-card">
         <!-- 标题行：角色标签 + 等级步进器 + 宝可梦选择（整行点击开选择器） -->
         <view class="calc-head" @click="$emit('select-pokemon')">
-            <view class="calc-head__icon" :class="iconClass">
-                <slot name="icon">
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text class="ic text-[16px]">{{ glyph('focus') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg data-ic="focus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
-                        <circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle>
-                        <path d="M12 4v3M12 17v3M4 12h3M17 12h3"></path>
-                    </svg>
-                    <!-- #endif -->
-                </slot>
+            <view v-if="$slots.icon" class="calc-head__icon" :class="iconClass">
+                <slot name="icon" />
             </view>
             <text class="calc-head__title">{{ title }}</text>
 
@@ -185,17 +175,11 @@ const statsList = computed(() => {
     width: 26px;
     height: 26px;
     border-radius: 8px;
-    color: #ffffff;
     flex-shrink: 0;
 }
 
-.calc-head__icon--green {
-    background: linear-gradient(135deg, #68cc67, #34b85a);
-}
-
-.calc-head__icon--blue {
-    background: linear-gradient(135deg, #73b7ff, #357df4);
-}
+/* 底色与 ink 统一走全局 .func-tile--*（按图标主色自动生成的同色相浅底），
+   由 iconClass 传入；这里不设 color/background，避免 scoped 高特异性盖过全局类。 */
 
 .calc-head__title {
     font-size: 13px;
