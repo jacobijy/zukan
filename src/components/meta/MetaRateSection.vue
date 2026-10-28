@@ -9,24 +9,14 @@
             <view v-for="(row, i) in rows" :key="i" class="flex items-center gap-2.5">
                 <!-- 道具行：对战自带明文图标（内部 404 回落 bag glyph） -->
                 <BattleItemIcon v-if="kind === 'item' && row.iconName" :name="row.iconName" />
-                <view v-else-if="kind !== 'move'" class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]" :class="glyph.tile">
-                    <!-- 特性：spark -->
+                <!-- 道具无明文图标时回落 bag 磁贴；特性/性格无专属图标，不展示重复磁贴 -->
+                <view v-else-if="kind === 'item'" class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]" :class="glyph.tile">
                     <!-- #ifdef MP-WEIXIN -->
-                    <text v-if="kind === 'ability'" class="ic text-[16px] text-white">{{ iconGlyph('sparkle') }}</text>
-                    <text v-else-if="kind === 'item'" class="ic text-[16px] text-white">{{ iconGlyph('bag') }}</text>
-                    <text v-else-if="kind === 'nature'" class="ic text-[16px] text-white">{{ iconGlyph('flask') }}</text>
+                    <text class="ic text-[16px] text-white">{{ iconGlyph('bag') }}</text>
                     <!-- #endif -->
                     <!-- #ifndef MP-WEIXIN -->
-                    <svg v-if="kind === 'ability'" data-ic="sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
-                        <path d="m12 2 2.6 6.5L21 11l-6.4 2.5L12 20l-2.6-6.5L3 11l6.4-2.5L12 2z"></path>
-                    </svg>
-                    <!-- 道具：bag -->
-                    <svg v-else-if="kind === 'item'" data-ic="bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
+                    <svg data-ic="bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
                         <path d="M6 7h12l1 13H5L6 7z"></path><path d="M9 7a3 3 0 0 1 6 0"></path>
-                    </svg>
-                    <!-- 性格：leaf -->
-                    <svg v-else-if="kind === 'nature'" data-ic="flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-white">
-                        <path d="M11 20A7 7 0 0 1 4 13c0-5 5-9 16-9 0 8-4 16-9 16Z"></path><path d="M4 20c4-5 8-7 11-8"></path>
                     </svg>
                     <!-- #endif -->
                 </view>
@@ -38,8 +28,8 @@
                     <text v-if="row.category" class="flex-shrink-0 text-[10px] font-bold leading-8 text-[#9aa0ab]">{{ row.category }}</text>
                 </view>
 
-                <!-- 其它分区：名称在上，detail 在下 -->
-                <view v-else class="min-w-0 flex-1">
+                <!-- 其它分区：名称在上，detail 在下；min-h-8 保持道具磁贴行的行高 -->
+                <view v-else class="flex min-h-8 min-w-0 flex-1 flex-col justify-center">
                     <text class="block truncate text-[13px] font-bold text-[#24262b]">{{ row.name }}</text>
                     <text v-if="row.detail" class="mt-0.5 block text-[11px] font-bold text-[#9aa0ab]">{{ row.detail }}</text>
                 </view>
