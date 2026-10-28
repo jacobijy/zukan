@@ -29,7 +29,7 @@
                         <text class="sc-name">{{ selected.name }}</text>
                         <TypeBadge v-for="ty in selected.types" :key="ty" :type="ty" size="xs" variant="chip" />
                     </view>
-                    <text class="sc-sub">NO.{{ String(selected.id).padStart(3, '0') }}{{ selectedFormLabel ? ' · ' + selectedFormLabel : '' }}</text>
+                    <text class="sc-sub">NO.{{ padId(dexNumber(selected)) }}{{ selectedFormLabel ? ' · ' + selectedFormLabel : '' }}</text>
                 </view>
                 <view v-if="canSwitchForm" class="sc-form-switch" @click.stop="openPokemonPicker(true)">
                     <text class="sc-form-switch__text">{{ t('templates.formSwitch') }}</text>
@@ -148,6 +148,7 @@ import { interp } from '@/services/i18n/ui-i18n';
 import { glyph } from '@/components/icon/glyphs';
 import { usePokemonStore } from '@/store/pokemon';
 import { useI18nStore } from '@/store/i18n';
+import { dexNumber, padId } from '@/utils/helpers';
 import CalcCard from '@/components/calc/CalcCard.vue';
 import FuncIcon from '@/components/icon/FuncIcon.vue';
 import LevelStepper from '@/components/calc/LevelStepper.vue';
@@ -217,6 +218,8 @@ const level = computed({
 
 interface SelectedMon {
     id: number;
+    /** 本体物种编号（展示编号随物种，不随形态） */
+    speciesId?: number;
     name: string;
     types: string[];
     stats: { name: string; value: number }[];
@@ -228,7 +231,14 @@ const selected = computed<SelectedMon | null>(() => {
     if (!id) return null;
     const pkm = pokemonStore.getById(id);
     if (!pkm) return null;
-    return { id: pkm.id, name: pkm.name, types: pkm.types, stats: pkm.stats, formLabel: pkm.formLabel };
+    return {
+        id: pkm.id,
+        speciesId: pkm.speciesId,
+        name: pkm.name,
+        types: pkm.types,
+        stats: pkm.stats,
+        formLabel: pkm.formLabel,
+    };
 });
 
 const selectedFormLabel = computed(() => selected.value?.formLabel ?? '');

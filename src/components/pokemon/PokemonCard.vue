@@ -6,7 +6,7 @@
     -->
     <view v-if="props.pokemon" class="specimen-card w-full cursor-pointer" @click="onClick">
         <view class="specimen-card__inner relative overflow-hidden rounded-[22px] border border-[#e5e7ee] bg-white p-2.5 shadow-[0_14px_34px_rgba(48,55,72,0.08)] transition-all duration-300 active:scale-[0.985] sm:p-3">
-            <text class="absolute -right-1 bottom-0 font-mono text-[58px] font-black leading-none tracking-[-0.08em] text-[#eef0f5]">{{ String(props.pokemon.id).padStart(3, '0') }}</text>
+            <text class="absolute -right-1 bottom-0 font-mono text-[58px] font-black leading-none tracking-[-0.08em] text-[#eef0f5]">{{ padId(dexNumber(props.pokemon)) }}</text>
 
             <view class="relative z-10 flex items-center gap-3">
                 <view class="specimen-card__portrait relative flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-[20px] border border-[#e5e7ee] bg-[#f5f6fa] shadow-[inset_0_1px_0_#ffffff,0_12px_22px_rgba(48,55,72,0.08)] sm:h-20 sm:w-20">
@@ -30,7 +30,7 @@
                 <view class="flex min-w-0 flex-1 items-center gap-2">
                     <view class="min-w-0 flex-1">
                         <view class="flex items-center gap-1">
-                            <text class="font-mono text-[12px] font-black leading-tight tracking-[0.12em] text-[#9da2ad]">NO.{{ String(props.pokemon.id).padStart(3, '0') }}</text>
+                            <text class="font-mono text-[12px] font-black leading-tight tracking-[0.12em] text-[#9da2ad]">NO.{{ padId(dexNumber(props.pokemon)) }}</text>
                             <button
                                 class="favorite-btn favorite-btn--heart flex h-4 w-4 items-center justify-center text-[#b96a52] transition-all duration-200 active:scale-90"
                                 @click.stop="toggleFavorite"
@@ -73,6 +73,7 @@ import { glyph } from '@/components/icon/glyphs';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 import { usePokemonStore } from '@/store/pokemon';
+import { dexNumber, padId } from '@/utils/helpers';
 import { computed } from 'vue';
 
 interface Props {

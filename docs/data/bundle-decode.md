@@ -123,6 +123,16 @@ PokeAPI 有三个容易混淆的 id：
 
 **默认形态 form_id == pokemon_id，从来没坏过；坏的是非默认形态。** 改这张表时务必保留重映射。
 
+### 展示编号用 speciesId（重要）
+
+UI 上的「NO.xxx / 三位编号」**一律展示 speciesId（全国图鉴编号），不展示形态自身的
+pokemon id**。非默认形态的 pokemon id 在 10001+ 号段（如 deoxys-speed=10003），
+直接显示会露出 10003 这种内部编号；它在任何形态下都应显示本体编号（NO.386）。
+统一走 `src/utils/helpers.ts::dexNumber(p)`（`speciesId ?? id`），不要在组件里直接
+`padStart(p.id)`；图片请求、路由参数、收藏 id 等仍继续用 pokemon id，不受此规则影响。
+当前消费方：PokemonCard、SpecimenHero（详情页形态切换）、PokemonPicker 形态步、
+calc 选择面板、TemplateBuildEditor。
+
 ## 图片 id 与缺失
 
 - 图片请求**永远用 pokemon id**：`/assets/encrypted/pokemon/{b.id}/home.bin`。

@@ -38,6 +38,9 @@
   目录划分与现成件清单见 [docs/ui/component-conventions.md](docs/ui/component-conventions.md)。
 - **配色 / 世代等数据表单一定义**：属性走 `src/constants/pokemonTypes.ts`，世代走
   `src/constants/generations.ts`，不要在页面里复制 map；不要加没人读的 prop。
+- **展示编号（NO.xxx）走 `dexNumber(p)`（`src/utils/helpers.ts`，= `speciesId ?? id`）**：
+  其他形态显示本体全国编号，不能直接 `padStart(p.id)` 露出 10001+ 的形态内部 id；
+  图片请求 / 路由 / 收藏 id 仍用 pokemon id。详见 [docs/data/bundle-decode.md](docs/data/bundle-decode.md)。
 - **跨实例共享的状态（缓存 / 连接池 / 引用计数）放独立 `.ts` 模块**，不要写在
   `<script setup>` 顶层（编译后落在 `setup()` 内，每实例一份）。
 - **scoped CSS 的基础规则与配色变体必须同处一个作用域**；slot 内容带父组件 scope id，

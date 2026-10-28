@@ -48,7 +48,7 @@
                                 <text v-if="step === 'form' && item.formLabel" class="picker-row__form">{{ item.formLabel }}</text>
                             </view>
                         </view>
-                        <text class="picker-row__id">NO.{{ padId(item.id) }}</text>
+                        <text class="picker-row__id">NO.{{ padId(dexNumber(item)) }}</text>
                     </view>
                 </template>
             </VirtualList>
@@ -62,7 +62,7 @@ import SearchBar from '@/components/shared/SearchBar.vue';
 import VirtualList from '@/components/dex/VirtualList.vue';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 import { usePokemonStore } from '@/store/pokemon';
-import { padId } from '@/utils/helpers';
+import { dexNumber, padId } from '@/utils/helpers';
 import { glyph } from '@/components/icon/glyphs';
 
 const ROW_HEIGHT = 68;

@@ -2,7 +2,7 @@ import { fetchPokemonList, type NameResolvers } from '@/services/pokemon';
 import { favoritesApi } from '@/services/api';
 import { confirmLogin, isAuthenticated } from '@/services/session';
 import { useI18nStore } from '@/store/i18n';
-import { padId } from '@/utils/helpers';
+import { dexNumber, padId } from '@/utils/helpers';
 import { filterAndSortPokemons, type DexFilterCriteria } from '@/utils/dexFilter';
 import { defineStore } from 'pinia';
 import { computed, ref, watch, type Ref } from 'vue';
@@ -81,7 +81,7 @@ export const usePokemonStore = defineStore('pokemon', () => {
         const data = await fetchPokemonList(genId, resolveNames());
         allPokemons.value = data.map((p) => ({
             ...p,
-            formattedId: padId(p.id),
+            formattedId: padId(dexNumber(p)),
         }));
     };
 

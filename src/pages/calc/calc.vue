@@ -212,6 +212,7 @@ import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import TypeBadge from '@/components/pokemon/TypeBadge.vue';
 import { getTypeShort } from '@/constants/pokemonTypes';
+import { dexNumber, padId } from '@/utils/helpers';
 import {
     WEATHER_OPTIONS,
     TERRAIN_OPTIONS,
@@ -255,7 +256,7 @@ const pokemonOptions = computed<SheetOption[]>(() =>
     pokemonStore.allPokemons.map((p) => ({
         id: String(p.id),
         label: p.name,
-        trailing: `NO.${String(p.id).padStart(3, '0')}`,
+        trailing: `NO.${padId(dexNumber(p))}`,
     })),
 );
 /** 面板打开时当前侧已选的 pokemon id（驱动右侧对勾） */

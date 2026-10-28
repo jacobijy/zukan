@@ -1,6 +1,6 @@
 <template>
     <view class="specimen-hero mb-3">
-        <text class="specimen-hero__number">{{ String(pokemon.id || 0).padStart(3, '0') }}</text>
+        <text class="specimen-hero__number">{{ padId(dexNumber(pokemon)) }}</text>
 
         <view class="specimen-hero__image-wrap">
             <view class="specimen-hero__image-frame">
@@ -52,7 +52,7 @@
         <view class="relative z-10 px-5 pb-5 text-center">
             <view class="mb-2 flex items-center justify-center gap-2">
                 <text class="text-[34px] font-black leading-none tracking-[-0.06em] text-[#24262b]">{{ pokemon.name }}</text>
-                <text class="rounded-full border border-[#e1e4eb] bg-[#f5f6fa] px-3 py-1 font-mono text-xs font-black text-[#8d929c]">NO.{{ String(pokemon.id || 0).padStart(3, '0') }}</text>
+                <text class="rounded-full border border-[#e1e4eb] bg-[#f5f6fa] px-3 py-1 font-mono text-xs font-black text-[#8d929c]">NO.{{ padId(dexNumber(pokemon)) }}</text>
             </view>
             <view class="flex justify-center gap-2">
                 <TypeBadge
@@ -74,6 +74,7 @@ import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 import ShinyToggle from '@/components/pokemon/ShinyToggle.vue';
 import GenderSlider from '@/components/pokemon/GenderSlider.vue';
 import { heroVariant, SPRITE_FALLBACKS, SPRITE_SHINY_FALLBACKS } from '@/constants/spriteVariants';
+import { dexNumber, padId } from '@/utils/helpers';
 import { useI18n } from 'vue-i18n';
 import { computed, ref } from 'vue';
 
@@ -82,6 +83,8 @@ const { t } = useI18n();
 defineProps<{
     pokemon: {
         id: number;
+        /** 本体物种编号；缺席视为等于 id（展示编号随物种，不随形态） */
+        speciesId?: number;
         name: string;
         types: string[];
         description?: string;
