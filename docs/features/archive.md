@@ -14,6 +14,7 @@
 | 宝可梦总数 | —（`uni.reLaunch` 回 `/pages/index/index`） | — | — |
 
 组件都在 `src/components/archive/`：行组件 ×5、`ItemIcon`（道具图标/占位）、
+`EggGroupIcon`（蛋组图标，当前共用占位图）、
 `FlavorTextCard`（特性/道具描述卡，按需 `ensureFlavor()`）、
 `MoveFlavorCard`（招式描述卡，单条最新说明 + 效果段）、`TypeMatchupCard`（相克表）、
 `PokemonMiniList`/`PokemonMiniRow`（详情页的宝可梦反查列表）、
@@ -21,9 +22,12 @@
 加载/空态/列表三态与确定高度的 flex 容器都在壳内；**不含 VirtualList**）。
 
 蛋组栏目只有 15 行（PokeAPI egg_groups id 1..15，元数据在
-`constants/eggGroups.ts`，中文兜底名即该处），不虚拟化。蛋组无配色/相克数据，
-`EggGroupRow` 与蛋组详情头部用统一中性紫胶囊；蛋组 → 宝可梦反查的默认形态
-去重口径同属性/特性。
+`constants/eggGroups.ts`，中文兜底名即该处），不虚拟化。行/详情头部用
+`EggGroupIcon`（40px 浅紫磁贴槽 + 32px 位图），**当前 15 个蛋组共用同一枚
+3D 蛋栏目占位图**（`static/img/egg-group-icons/placeholder.png`，与
+`hub-icons/egg.png` 同源，资料中心入口 `data-egg` 也用它）；后续补各蛋组
+正式彩图时往该目录加 `<slug>.png` 并在组件内 `ICON_PATHS` 加映射即可。
+蛋组 → 宝可梦反查的默认形态去重口径同属性/特性。
 
 详情页的招式卡（`components/pokemon/MoveCard.vue`）可点：`uni.navigateTo` 跳到
 `archive/move-detail?id=`。宝可梦详情页（`pages/detail/detail.vue`）的蛋组信息卡

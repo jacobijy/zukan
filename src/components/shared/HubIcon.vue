@@ -10,7 +10,7 @@
 </template>
 
 <script lang="ts">
-/** 资料/功能入口页主题图标名（16 枚全部为彩素位图） */
+/** 资料/功能入口页主题图标名（17 枚全部为彩素位图） */
 export type HubIconName =
     // 资料
     | 'data-dex'
@@ -40,8 +40,7 @@ const RASTER_ICONS: Record<HubIconName, string> = {
     'data-move': '/static/img/hub-icons/move.png',
     'data-ability': '/static/img/hub-icons/ability.png',
     'data-item': '/static/img/hub-icons/item.png',
-    // TODO(egg-icon): 临时复用收藏心形，待 zukan-icon-work 3D v2 流程出蛋组正式图后只换此处
-    'data-egg': '/static/img/hub-icons/fav.png',
+    'data-egg': '/static/img/hub-icons/egg.png',
     'data-meta': '/static/img/hub-icons/meta.png',
     'hub-damage': '/static/img/hub-icons/damage.png',
     'hub-stat': '/static/img/hub-icons/stat.png',
