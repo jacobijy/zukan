@@ -160,7 +160,7 @@ interface TeamPayload { format: TeamFormat; members: TeamMember[] }  // members 
 | 页面 | 路径 | 职责 |
 |---|---|---|
 | 我的队伍（列表） | `pages/teams/teams` | 未登录引导、新建 / 导入分享码、摘要列表、导航栏「编辑」多选批量删除 |
-| 编辑队伍（组队器） | `pages/teams/team-edit` | 队名 + 赛制、成员卡（特性/道具/性格/招式/SP）、添加成员、保存、导航栏分享导出 |
+| 编辑队伍（组队器） | `pages/teams/team-edit` | 双模式：观察（只读 `MemberReadonlyCard`）默认、编辑（快照 + 取消/保存）；队名 + 赛制、成员卡、添加成员、导航栏分享导出 |
 | 入口 | `pages/features/features.vue` | 功能页签列表（对战模拟器之后） |
 
 - 写操作前统一 `confirmLogin()`（见 [../security/auth-session.md](../security/auth-session.md)）：

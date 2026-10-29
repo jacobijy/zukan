@@ -1,16 +1,20 @@
 <template>
     <view class="det-navbar fixed left-0 right-0 top-0 z-[1000] flex items-center justify-between px-4" :style="{ paddingTop: 'var(--status-bar-height)', height: 'var(--navbar-total-height)' }">
-        <button class="det-navbar__btn" @click="handleBack">
-            <!-- #ifdef MP-WEIXIN -->
-            <text class="ic text-[20px]">{{ glyph('arrow-left') }}</text>
-            <!-- #endif -->
-            <!-- #ifndef MP-WEIXIN -->
-            <svg data-ic="arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
-                <path d="M19 12H5"></path>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            <!-- #endif -->
-        </button>
+    <view class="det-navbar__left">
+        <slot name="back">
+            <button class="det-navbar__btn" @click="handleBack">
+                <!-- #ifdef MP-WEIXIN -->
+                <text class="ic text-[20px]">{{ glyph('arrow-left') }}</text>
+                <!-- #endif -->
+                <!-- #ifndef MP-WEIXIN -->
+                <svg data-ic="arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                    <path d="M19 12H5"></path>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <!-- #endif -->
+            </button>
+        </slot>
+    </view>
 
         <view class="flex min-w-0 flex-1 items-center justify-center px-3">
             <text class="block truncate text-lg font-black tracking-[-0.04em] text-[#24262b]">{{ title }}</text>
@@ -67,6 +71,12 @@ const handleBack = () => {
     background: #ffffff;
     border-bottom: 1px solid #e5e7ee;
     box-shadow: 0 4px 18px rgba(48, 55, 72, 0.06);
+}
+
+.det-navbar__left {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
 }
 
 .det-navbar__btn {

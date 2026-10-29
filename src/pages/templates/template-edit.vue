@@ -1,6 +1,14 @@
 <template>
     <view class="min-h-screen page-bg" :style="pageSafeArea">
-        <DetailNavbar :title="isNew ? t('templates.create') : t('templates.editTitle')" fallback-url="/pages/templates/templates" @back="confirmExit">
+        <DetailNavbar
+            :title="isNew ? t('templates.create') : mode === 'edit' ? t('templates.editTitle') : viewTitle"
+            fallback-url="/pages/templates/templates"
+            @back="confirmExit"
+        >
+            <!-- 编辑已有条目：左槽变「取消」（新建态仍是返回箭头，走 confirmExit 脏检查） -->
+            <template v-if="!isNew && mode === 'edit'" #back>
+                <button class="nav-cancel" @click="onCancelEdit">{{ t('common.cancel') }}</button>
+            </template>
             <template #right>
                 <view
                     class="nav-share"
@@ -18,11 +26,20 @@
                     </svg>
                     <!-- #endif -->
                 </view>
+                <view v-if="!isNew && mode === 'view'" class="nav-edit" @click="enterEdit">
+                    <text>{{ t('common.edit') }}</text>
+                </view>
             </template>
         </DetailNavbar>
 
         <scroll-view scroll-y class="edit-scroll mt-[var(--navbar-total-height)] h-[calc(100vh-var(--navbar-total-height))]">
-            <view class="mx-auto flex max-w-[720px] flex-col gap-4 px-4 pb-32 pt-3">
+            <!-- 观察模式（仅已有条目）：模板名在导航栏，直接展示只读详情 -->
+            <view v-if="!isNew && mode === 'view' && payload" class="mx-auto flex max-w-[720px] flex-col gap-4 px-4 pb-16 pt-3">
+                <TemplateReadonlyView :payload="payload" />
+            </view>
+
+            <!-- 编辑模式（新建直接进入） -->
+            <view v-else class="mx-auto flex max-w-[720px] flex-col gap-4 px-4 pb-32 pt-3">
                 <!-- 名称 -->
                 <view class="glass-panel edit-head">
                     <input
@@ -82,8 +99,8 @@
             </view>
         </scroll-view>
 
-        <!-- 底部固定保存条 -->
-        <view class="save-bar">
+        <!-- 底部固定保存条（仅编辑模式） -->
+        <view v-if="isNew || mode === 'edit'" class="save-bar">
             <button
                 class="save-bar__btn"
                 :class="{ 'save-bar__btn--busy': store.saving }"
@@ -94,8 +111,9 @@
             </button>
         </view>
 
-        <!-- 招式选择 -->
+        <!-- 招式选择（编辑模式） -->
         <OptionSheet
+            v-if="isNew || mode === 'edit'"
             v-model:visible="moveSheetOpen"
             multi
             :max="4"
@@ -104,8 +122,9 @@
             :model-value="(payload?.moves ?? []).map(String)"
             @update:model-value="onPickMoves"
         />
-        <!-- 道具选择 -->
+        <!-- 道具选择（编辑模式） -->
         <OptionSheet
+            v-if="isNew || mode === 'edit'"
             v-model:visible="itemSheetOpen"
             :title="t('templates.fieldItem')"
             :options="itemOptions"
@@ -140,6 +159,7 @@ import LoginModal from '@/components/shared/LoginModal.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import SelectedMoveChip from '@/components/teams/SelectedMoveChip.vue';
 import TemplateBuildEditor from '@/components/templates/TemplateBuildEditor.vue';
+import TemplateReadonlyView from '@/components/templates/TemplateReadonlyView.vue';
 import ShareExportDialog from '@/components/share/ShareExportDialog.vue';
 import TemplateSharePreview from '@/components/share/TemplateSharePreview.vue';
 import { authGate } from '@/services/session/authGate';
@@ -159,6 +179,10 @@ const i18nStore = useI18nStore();
 const isNew = computed(() => store.currentId === null);
 const payload = computed<TemplatePayload | null>(() => store.draftPayload);
 const level = ref(50); // 预览等级（不入库）
+
+// ── 观察 / 编辑双模式：打开已有条目默认观察，新建（含分享码导入）直接编辑 ──
+const mode = ref<'view' | 'edit'>('view');
+const viewTitle = computed(() => store.draftName || t('templates.defaultName'));
 
 // ── 分享码导出（编码当前草稿，不要求先保存；未选宝可梦禁用） ──
 const exportVisible = ref(false);
@@ -197,12 +221,30 @@ onLoad(async (options) => {
             uni.navigateBack();
             return;
         }
+        mode.value = 'view';
     } else if (store.currentId === null && store.draftPayload === null) {
         // 无预填（直接进入）→ 兜底新建
         store.beginCreate(t('templates.defaultName'));
+        mode.value = 'edit';
+    } else {
+        // 带预填的新建（分享码导入走 beginCreate 后跳转）
+        mode.value = 'edit';
     }
     snapshot.value = { name: store.draftName, payload: clonePayload(store.draftPayload) };
 });
+
+/** 观察 → 编辑：以当前内容为快照基准（取消时还原到此）。 */
+function enterEdit(): void {
+    snapshot.value = { name: store.draftName, payload: clonePayload(store.draftPayload) };
+    mode.value = 'edit';
+}
+
+/** 编辑态左槽「取消」：已有条目 dirty 先确认，放弃后回观察模式（不离开页面）。 */
+function onCancelEdit(): void {
+    if (!isNew.value) {
+        cancelExistingEdit();
+    }
+}
 
 // ── 脏检查 ──
 interface Snapshot {
@@ -230,7 +272,39 @@ function discardAndBack(): void {
     uni.navigateBack();
 }
 
+function restoreSnapshot(): void {
+    if (!snapshot.value) return;
+    store.setName(snapshot.value.name);
+    store.replacePayload(snapshot.value.payload);
+}
+
+/** 编辑已有条目时点「取消」：dirty 先确认，放弃后还原快照并回观察模式（不离开页面）。 */
+function cancelExistingEdit(): void {
+    const backToView = () => {
+        restoreSnapshot();
+        mode.value = 'view';
+    };
+    if (!isDirty.value) {
+        backToView();
+        return;
+    }
+    uni.showModal({
+        title: t('templates.exitConfirmTitle'),
+        content: t('templates.discardCloudDesc'),
+        confirmText: t('templates.discard'),
+        cancelText: t('common.cancel'),
+        success: (r) => {
+            if (r.confirm) backToView();
+        },
+    });
+}
+
+/** 顶栏返回：编辑已有条目 → 回观察；新建 → 脏检查后离开页面（草稿可存本地）。 */
 function confirmExit(): void {
+    if (!isNew.value && mode.value === 'edit') {
+        cancelExistingEdit();
+        return;
+    }
     if (!isDirty.value) {
         uni.navigateBack();
         return;
@@ -277,8 +351,12 @@ function onLoginSuccess(): void {
     authGate.notifySuccess();
 }
 
-// 小程序手势 / 顶栏返回
+// 小程序手势 / 顶栏返回：编辑已有条目回观察模式；新建脏检查后离开
 onBackPress(() => {
+    if (!isNew.value && mode.value === 'edit') {
+        cancelExistingEdit();
+        return true;
+    }
     if (!isDirty.value) return false;
     confirmExit();
     return true;
@@ -359,6 +437,7 @@ const itemText = computed(() =>
 
 // ── 保存 ──
 async function onSave(): Promise<void> {
+    const wasNew = isNew.value;
     let out: TemplateSaveOutcome;
     try {
         out = await store.save();
@@ -370,7 +449,11 @@ async function onSave(): Promise<void> {
     if (out.status === 'saved') {
         snapshot.value = { name: store.draftName, payload: clonePayload(store.draftPayload) };
         uni.showToast({ title: t('templates.saved'), icon: 'none' });
-        setTimeout(() => uni.navigateBack(), 400);
+        if (wasNew) {
+            setTimeout(() => uni.navigateBack(), 400);
+        } else {
+            mode.value = 'view';
+        }
     } else if (out.status === 'aborted') {
         // 静默：用户主动关闭了登录层
     } else if (out.status === 'invalid') {
@@ -412,6 +495,40 @@ function invalidText(reason: 'name-required' | 'name-too-long' | 'payload-too-la
 
 .nav-share--disabled {
     color: #d3d6dd;
+}
+
+.nav-cancel {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    margin: 0;
+    padding: 0 4px;
+    color: #5d6470;
+    font-size: 14px;
+    font-weight: 700;
+    background: transparent;
+
+    &::after {
+        border: none !important;
+    }
+
+    &:active {
+        color: #24262b;
+    }
+}
+
+.nav-edit {
+    padding: 6px 14px;
+    border-radius: 999px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffb45e, #e07b2f);
+    box-shadow: 0 8px 18px rgba(224, 123, 47, 0.22);
+
+    &:active {
+        opacity: 0.85;
+    }
 }
 
 .save-bar {
