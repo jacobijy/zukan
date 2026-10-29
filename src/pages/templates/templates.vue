@@ -1,10 +1,16 @@
 <template>
     <view class="min-h-screen page-bg" :style="pageSafeArea">
-        <DetailNavbar :title="t('templates.title')" fallback-url="/pages/features/features" />
+        <DetailNavbar :title="t('templates.title')" fallback-url="/pages/features/features">
+            <template v-if="canManage" #right>
+                <view class="nav-edit" :class="{ 'nav-edit--active': managing }" @click="toggleManage">
+                    {{ managing ? t('common.done') : t('common.manage') }}
+                </view>
+            </template>
+        </DetailNavbar>
 
         <scroll-view scroll-y class="tpl-scroll mt-[var(--navbar-total-height)] h-[calc(100vh-var(--navbar-total-height))]">
-            <view class="mx-auto flex max-w-[720px] flex-col gap-4 px-4 pb-12 pt-3">
-                <view class="action-row">
+            <view class="mx-auto flex max-w-[720px] flex-col gap-4 px-4 pt-3" :class="managing ? 'pb-28' : 'pb-12'">
+                <view v-if="!managing" class="action-row">
                     <button class="action-btn action-btn--primary" @click="onCreate">
                         <!-- #ifdef MP-WEIXIN -->
                         <text class="ic text-[16px]">{{ glyph('plus') }}</text>
@@ -19,7 +25,7 @@
                 </view>
 
                 <!-- 未登录：引导登录查看云端模板（本地草稿仍在下方列出） -->
-                <view v-if="store.needsLogin" class="glass-panel flex flex-col items-center gap-2 px-6 py-8 text-center">
+                <view v-if="store.needsLogin && !managing" class="glass-panel flex flex-col items-center gap-2 px-6 py-8 text-center">
                     <view class="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-[#fde7e5] text-[#e04f47]">
                         <!-- #ifdef MP-WEIXIN -->
                         <text class="ic text-[24px]">{{ glyph('log-in') }}</text>
@@ -42,8 +48,10 @@
                         v-for="rec in visibleRecords"
                         :key="rec.id"
                         :record="rec"
+                        :selecting="managing"
+                        :selected="selectedIds.includes(rec.id)"
                         @select="onOpen(rec)"
-                        @menu="onMenu(rec)"
+                        @toggle-select="toggleSelect(rec.id)"
                     />
                 </view>
                 <view v-else-if="!store.needsLogin" class="empty-state">
@@ -53,27 +61,19 @@
             </view>
         </scroll-view>
 
-        <!-- 行内「⋯」操作菜单 -->
-        <OptionSheet
-            :visible="menuVisible"
-            :title="menuRecord?.name ?? ''"
-            :options="menuOptions"
-            :search-threshold="99"
-            @update:visible="(v) => (menuVisible = v)"
-            @update:model-value="onMenuAction"
+        <!-- 管理态底部操作条 -->
+        <ManageActionBar
+            v-if="managing"
+            :count="selectedIds.length"
+            :all-selected="allSelected"
+            :select-all-label="t('common.selectAll')"
+            :deselect-all-label="t('common.deselectAll')"
+            :delete-label="interp('common.deleteCount', { count: selectedIds.length })"
+            @toggle-all="toggleAll"
+            @delete="onDeleteSelected"
         />
 
-        <!-- 分享码导出 / 导入 -->
-        <ShareExportDialog
-            v-model:visible="exportVisible"
-            :title="t('templates.exportTitle')"
-            :hint="t('templates.exportHint')"
-            :code="exportCode"
-            :copy-label="t('templates.copyCode')"
-            @copy="onCopyCode"
-        >
-            <TemplateSharePreview :name="exportName" :payload="exportPayload" />
-        </ShareExportDialog>
+        <!-- 分享码导入 -->
         <ShareImportDialog
             :visible="importVisible"
             :title="t('templates.importTitle')"
@@ -99,15 +99,13 @@ import { useI18n } from 'vue-i18n';
 import { interp } from '@/services/i18n/ui-i18n';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import LoginModal from '@/components/shared/LoginModal.vue';
-import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
+import ManageActionBar from '@/components/shared/ManageActionBar.vue';
 import TemplateListRow from '@/components/templates/TemplateListRow.vue';
-import ShareExportDialog from '@/components/share/ShareExportDialog.vue';
 import ShareImportDialog from '@/components/share/ShareImportDialog.vue';
-import TemplateSharePreview from '@/components/share/TemplateSharePreview.vue';
 import { authGate } from '@/services/session/authGate';
 import { useTemplatesStore, type TemplateRecord } from '@/store/templates';
-import { decodeShareCode, encodeShareCode, ShareCodeError } from '@/services/share/share-code';
-import { emptyTemplate, normalizePayload, type TemplatePayload } from '@/services/templates/template-model';
+import { decodeShareCode, ShareCodeError } from '@/services/share/share-code';
+import { normalizePayload } from '@/services/templates/template-model';
 import { glyph } from '@/components/icon/glyphs';
 
 const pageSafeArea = usePageSafeArea();
@@ -152,56 +150,68 @@ function onOpen(rec: TemplateRecord): void {
     uni.navigateTo({ url: `/pages/templates/template-edit?id=${rec.id}` });
 }
 
-// ── 行内菜单 ──
-const menuRecord = ref<TemplateRecord | null>(null);
-const menuVisible = ref(false);
-const menuOptions = computed<SheetOption[]>(() => [
-    { id: 'share', label: t('templates.share') },
-    { id: 'rename', label: t('templates.rename') },
-    { id: 'delete', label: t('templates.delete') },
-]);
+// ── 批量管理（导航栏「编辑」进入；草稿也能选；管理态点行仍进编辑页，勾选圈只负责选中） ──
+const managing = ref(false);
+const selectedIds = ref<string[]>([]);
+const deleting = ref(false);
 
-function onMenu(rec: TemplateRecord): void {
-    menuRecord.value = rec;
-    menuVisible.value = true;
+const canManage = computed(() => visibleRecords.value.length > 0);
+const allSelected = computed(
+    () => visibleRecords.value.length > 0 && selectedIds.value.length === visibleRecords.value.length,
+);
+
+function toggleManage(): void {
+    managing.value = !managing.value;
+    selectedIds.value = [];
 }
 
-async function onMenuAction(id: string | string[]): Promise<void> {
-    const rec = menuRecord.value;
-    if (!rec || typeof id !== 'string') return;
-    if (id === 'share') await onShare(rec);
-    else if (id === 'rename') onOpen(rec);
-    else if (id === 'delete') await confirmDelete(rec);
+function toggleSelect(id: string): void {
+    const ids = selectedIds.value;
+    selectedIds.value = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
 }
 
-// ── 分享码：导出 ──
-const exportVisible = ref(false);
-const exportCode = ref('');
-const exportName = ref('');
-const exportPayload = ref<TemplatePayload>(emptyTemplate());
+function toggleAll(): void {
+    selectedIds.value = allSelected.value ? [] : visibleRecords.value.map((r) => r.id);
+}
 
-async function onShare(rec: TemplateRecord): Promise<void> {
-    uni.showLoading({ title: t('templates.sharing'), mask: true });
+async function onDeleteSelected(): Promise<void> {
+    const ids = selectedIds.value.slice();
+    if (!ids.length || deleting.value) return;
+    const confirmed = await new Promise<boolean>((resolve) => {
+        uni.showModal({
+            title: t('templates.delete'),
+            content: interp('templates.confirmDeleteMany', { count: ids.length }),
+            confirmText: t('templates.delete'),
+            cancelText: t('common.cancel'),
+            success: (r) => resolve(!!r.confirm),
+            fail: () => resolve(false),
+        });
+    });
+    if (!confirmed) return;
+
+    deleting.value = true;
+    uni.showLoading({ title: t('common.processing'), mask: true });
+    let removed = 0;
     try {
-        const data = await store.fetchShareData(rec.id);
-        if (!data) return; // 404：store 已摘除；草稿被删同理
-        exportName.value = data.name;
-        exportPayload.value = data.payload;
-        exportCode.value = encodeShareCode('template', data.name, data.payload);
-        exportVisible.value = true;
+        // 顺序删除：草稿本地直接删，云端条目首个过 confirmLogin，并发会重复弹登录层
+        for (const id of ids) {
+            // eslint-disable-next-line no-await-in-loop -- 串行是本意，见上
+            const out = await store.remove(id);
+            if (!('removed' in out)) break; // aborted：用户关掉登录层
+            removed++;
+        }
     } catch (err) {
-        console.warn('[templates] 生成分享码失败', err);
+        console.warn('[templates] 批量删除失败', err);
         uni.showToast({ title: t('templates.errorGeneric'), icon: 'none' });
     } finally {
         uni.hideLoading();
+        deleting.value = false;
     }
-}
-
-function onCopyCode(): void {
-    uni.setClipboardData({
-        data: exportCode.value,
-        success: () => uni.showToast({ title: t('templates.codeCopied'), icon: 'none' }),
-    });
+    if (removed > 0) {
+        uni.showToast({ title: interp('common.deletedCount', { count: removed }), icon: 'none' });
+        managing.value = false;
+        selectedIds.value = [];
+    }
 }
 
 // ── 分享码：导入（解析后走「新建」流程进编辑页；未登录可先存草稿，上云闸门复用） ──
@@ -243,31 +253,27 @@ function onImportConfirm(text: string): void {
     importVisible.value = false;
     uni.navigateTo({ url: '/pages/templates/template-edit' });
 }
-
-async function confirmDelete(rec: TemplateRecord): Promise<void> {
-    const confirmed = await new Promise<boolean>((resolve) => {
-        uni.showModal({
-            title: t('templates.delete'),
-            content: interp('templates.confirmDelete', { name: rec.name }),
-            confirmText: t('templates.delete'),
-            cancelText: t('common.cancel'),
-            success: (r) => resolve(!!r.confirm),
-            fail: () => resolve(false),
-        });
-    });
-    if (!confirmed) return;
-
-    const out = await store.remove(rec.id);
-    // removed：草稿本地删 / 云端 DELETE 成功；aborted：取消登录，静默
-    if ('removed' in out) {
-        uni.showToast({ title: t('templates.toastDeleted'), icon: 'none' });
-    }
-}
 </script>
 
 <style lang="scss" scoped>
 .tpl-scroll {
     width: 100%;
+}
+
+.nav-edit {
+    padding: 6px 12px;
+    border-radius: 999px;
+    color: #5d6470;
+    font-size: 13px;
+    font-weight: 800;
+
+    &:active {
+        background: #f1f3f8;
+    }
+}
+
+.nav-edit--active {
+    color: #e04f47;
 }
 
 .action-row {

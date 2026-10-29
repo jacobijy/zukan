@@ -10,14 +10,15 @@
 
 - 未登录 → 登录引导卡（`authGate.open()`，不主动弹层）。
 - 已登录 → 摘要列表（`store.load(true)`，按 updated_at 降序）；空态 + 「新建队伍」。
-- 行：`teams/TeamListRow.vue`（队名 + 更新时间 UTC + ⋯）。
-- 行内「⋯」→ `OptionSheet`：分享（生成分享码）/ 重命名（进编辑页）/ 删除（`uni.showModal` 二次确认 → `store.remove`）。
+- 行：`teams/TeamListRow.vue`（队名 + 更新时间 UTC + chevron；管理态行前出勾选圈、chevron 隐藏）。
+- 列表导航栏「编辑」进多选管理态：勾选圈批量删除（`uni.showModal` 二次确认 → 顺序 `store.remove`，
+  云端首个过 `confirmLogin`）；管理态点行仍进编辑页。改名在编辑页名称输入框随保存提交，无独立重命名入口。
 - 「新建队伍」下有次级按钮「导入分享码」（见 §3）。
 - 新建 → `store.beginCreate(defaultName)` → `team-edit`（无 id）；点行 → `team-edit?id=<id>`。
 
 ## 2. 编辑队伍 `pages/teams/team-edit`
 
-DetailNavbar 右槽「保存」；顶部队名输入 + `FormatSwitch`（赛制）；成员卡列表 + 添加位。
+DetailNavbar 右槽「分享图标 + 保存」（分享见 §3，空队伍禁用）；顶部队名输入 + `FormatSwitch`（赛制）；成员卡列表 + 添加位。
 
 成员卡 `teams/MemberCard.vue`（折叠头 → 展开内联编辑，状态自持）：
 
@@ -36,9 +37,9 @@ DetailNavbar 右槽「保存」；顶部队名输入 + `FormatSwitch`（赛制�
 离线字符串分享，不经过后端；格式权威见 [../data/share-codes.md](../data/share-codes.md)。
 外观是一串无可读明文的 base64url（magic / 版本 / kind 都在内部二进制头，肉眼分不出种类）。
 
-- **导出**：行内「⋯ → 分享」→ `store.fetchShareData(id)`（云端 GET 详情 / 模板草稿读本地，
-  **不动编辑草稿**，404 摘列表）→ `encodeShareCode` → `ShareExportDialog`（居中弹窗，
-  队名 / 成员立绘 / 格式缩略卡 + 码），「复制分享码」走 `uni.setClipboardData` + toast。
+- **导出**：编辑页导航栏分享图标 → 直接 `encodeShareCode` 当前编辑草稿（**不要求先保存**，
+  空队伍 / 未选宝可梦时禁用）→ `ShareExportDialog`（居中弹窗，队名 / 成员立绘 / 格式缩略卡 + 码），
+  「复制分享码」走 `uni.setClipboardData` + toast。
 - **导入**：`ShareImportDialog`（屏幕居中弹窗）单行输入 +「粘贴」一键读剪贴板（不用 textarea，规避小程序
   原生 textarea 弹层层级问题）→ `decodeShareCode`：
   - 损坏 / 版本过新 → 错误文案留在弹层（`errBadCode` / `errNewerVersion`）；

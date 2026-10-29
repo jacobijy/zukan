@@ -77,8 +77,8 @@ base64 是大小写敏感的定长编码；长度 `%4===1` 或尾部位非 0 的
   409 重名、名字与大小校验全部复用；模板未登录可先存本地草稿。
 - 跨 kind（队伍页粘了模板码）不自动跳转（码太长放不进页面参数、也不做跨页暂存）：
   toast 指引用户到另一栏目导入。
-- **导出只在列表页行内菜单**：云端条目 `GET :id` 取内容（经 `store.fetchShareData`，
-  不触碰编辑草稿），模板本地草稿直接读；复制走 `uni.setClipboardData`。
+- **导出只在编辑页导航栏**：直接编码当前编辑草稿（`store.draftName/draftPayload`，不必先保存）；
+  空队伍 / 未选宝可梦时分享按钮禁用；复制走 `uni.setClipboardData`。
 - 不做微信「转发卡片」/ 二维码 / 后端短链 / 多对象打包：版本 1 是一码一对象、剪贴板传输。
 
 ## 前端落地
@@ -88,8 +88,7 @@ base64 是大小写敏感的定长编码；长度 `%4===1` 或尾部位非 0 的
 | 编解码纯函数（零平台依赖） | `src/services/share/share-code.ts` |
 | 导出 / 导入居中弹窗 | `src/components/share/ShareExportDialog.vue`（默认插槽放缩略卡）、`ShareImportDialog.vue` |
 | 导出缩略卡（立绘 + 摘要，零额外请求） | `src/components/share/TeamSharePreview.vue`、`TemplateSharePreview.vue` |
-| 取分享数据（GET 详情 / 草稿，不动 draft） | `store/teams.ts`、`store/templates.ts` 的 `fetchShareData(id)` |
-| 菜单 / 按钮 / 导入编排 | `pages/teams/teams.vue`、`pages/templates/templates.vue` |
+| 导出 / 导入编排 | 导出在编辑页 `pages/teams/team-edit.vue`、`pages/templates/template-edit.vue`（编码当前 draft）；导入在两个列表页 |
 | 文案（中英，两命名空间各一份） | `src/services/i18n/ui-messages.ts` 的 `teams.*` / `templates.*`（`share`、`importCode`、`errBadCode`、`errNewerVersion`、`errOtherKind` 等） |
 | 用例 | `tests/shareCode.spec.ts` |
 

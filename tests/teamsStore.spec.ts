@@ -181,19 +181,6 @@ describe('load', () => {
     });
 });
 
-describe('rename', () => {
-    it('PUT 仅 name，更新摘要', async () => {
-        const store = useTeamsStore();
-        store.summaries = [{ ...gone }];
-        ctrl.update = vi.fn().mockResolvedValue({ ...gone, name: '新名' });
-
-        const out = await store.rename('gone', '新名');
-        expect(out).toEqual({ updated: true });
-        expect(ctrl.update).toHaveBeenCalledWith('gone', { name: '新名' });
-        expect(store.summaries[0].name).toBe('新名');
-    });
-});
-
 describe('401 会话恢复', () => {
     it('保存遇 401 → refresh 成功后重试一次并保存成功', async () => {
         const store = useTeamsStore();

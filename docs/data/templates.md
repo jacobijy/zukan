@@ -203,9 +203,9 @@ type TemplatePayload = StandardTemplate | ChampionsTemplate;
 
 ## 分享码（导入 / 导出）
 
-模板支持与队伍同构的字符串分享：列表行内「⋯ → 分享」生成分享码复制到剪贴板，
-列表页「导入分享码」粘贴他人分享码，经 `normalizePayload` 落地（缺 `pokemon_id` 判无效码），
-再以**新建草稿**形式进编辑页（未登录可先存本地草稿，上云仍走既有闸门）。格式与产品语义
-（版本 / 错误 / 跨 kind 指引）见 [share-codes.md](share-codes.md)；编解码在
-`src/services/share/share-code.ts`，取数走 `store/templates.ts` 的 `fetchShareData`
-（本地草稿直接读、云端 GET 详情，均不触碰编辑草稿）。
+模板支持与队伍同构的字符串分享：编辑页导航栏分享图标直接编码当前草稿（未选宝可梦禁用，
+不必先保存）生成分享码复制到剪贴板；列表页「导入分享码」粘贴他人分享码，经 `normalizePayload`
+落地（缺 `pokemon_id` 判无效码），再以**新建草稿**形式进编辑页（未登录可先存本地草稿，上云仍走
+既有闸门）。格式与产品语义（版本 / 错误 / 跨 kind 指引）见 [share-codes.md](share-codes.md)；
+编解码在 `src/services/share/share-code.ts`，导出直接读 `store.draftName/draftPayload`。
+列表批量删除在导航栏「编辑」管理态（草稿本地直接删、云端顺序 DELETE 且首个过 `confirmLogin`）。

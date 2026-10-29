@@ -2,6 +2,22 @@
     <view class="min-h-screen page-bg" :style="pageSafeArea">
         <DetailNavbar :title="isNew ? t('teams.create') : t('teams.editTitle')" fallback-url="/pages/teams/teams">
             <template #right>
+                <view
+                    class="nav-share"
+                    :class="{ 'nav-share--disabled': !canShare }"
+                    @click="onShare"
+                >
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[20px]">{{ glyph('share') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg data-ic="share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                        <path d="M12 3v12"></path>
+                        <path d="m8 7 4-4 4 4"></path>
+                        <path d="M4 11v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8"></path>
+                    </svg>
+                    <!-- #endif -->
+                </view>
                 <view class="save-trigger" :class="{ 'save-trigger--busy': store.saving }" @click="onSave">
                     <text>{{ store.saving ? t('teams.saving') : t('teams.save') }}</text>
                 </view>
@@ -55,6 +71,19 @@
             :search-placeholder="t('teams.pickerSearch')"
             @pick="onPick"
         />
+
+        <!-- 分享码导出：直接编码当前编辑草稿（无需先保存） -->
+        <ShareExportDialog
+            v-model:visible="exportVisible"
+            :title="t('teams.exportTitle')"
+            :hint="t('teams.exportHint')"
+            :code="exportCode"
+            :copy-label="t('teams.copyCode')"
+            @copy="onCopyCode"
+        >
+            <TeamSharePreview :name="shareName" :payload="store.draftPayload" />
+        </ShareExportDialog>
+
         <LoginModal v-model:visible="showLogin" @success="onLoginSuccess" />
     </view>
 </template>
@@ -70,8 +99,11 @@ import LoginModal from '@/components/shared/LoginModal.vue';
 import FormatSwitch from '@/components/meta/FormatSwitch.vue';
 import PokemonPicker from '@/components/shared/PokemonPicker.vue';
 import MemberCard from '@/components/teams/MemberCard.vue';
+import ShareExportDialog from '@/components/share/ShareExportDialog.vue';
+import TeamSharePreview from '@/components/share/TeamSharePreview.vue';
 import { useTeamsStore, type SaveOutcome } from '@/store/teams';
 import { authGate } from '@/services/session/authGate';
+import { encodeShareCode } from '@/services/share/share-code';
 import { glyph } from '@/components/icon/glyphs';
 import {
     LIMITS,
@@ -92,6 +124,25 @@ const isNew = computed(() => store.currentId === null);
 const payload = computed<TeamPayload>(() => store.draftPayload);
 
 const pickerVisible = ref(false);
+
+// ── 分享码导出（编码当前草稿，不要求先保存；空队伍禁用） ──
+const exportVisible = ref(false);
+const exportCode = ref('');
+const canShare = computed(() => store.draftPayload.members.length > 0);
+const shareName = computed(() => store.draftName.trim() || t('teams.defaultName'));
+
+function onShare(): void {
+    if (!canShare.value) return;
+    exportCode.value = encodeShareCode('team', shareName.value, store.draftPayload);
+    exportVisible.value = true;
+}
+
+function onCopyCode(): void {
+    uni.setClipboardData({
+        data: exportCode.value,
+        success: () => uni.showToast({ title: t('teams.codeCopied'), icon: 'none' }),
+    });
+}
 
 onLoad(async (options) => {
     if (options?.id) {
@@ -194,6 +245,25 @@ function onLoginSuccess(): void {
     &:active {
         opacity: 0.85;
     }
+}
+
+.nav-share {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin-right: 6px;
+    border-radius: 999px;
+    color: #5d6470;
+
+    &:active {
+        background: #f1f3f8;
+    }
+}
+
+.nav-share--disabled {
+    color: #d3d6dd;
 }
 
 .save-trigger--busy {

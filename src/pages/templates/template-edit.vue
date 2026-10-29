@@ -1,7 +1,24 @@
 <template>
     <view class="min-h-screen page-bg" :style="pageSafeArea">
         <DetailNavbar :title="isNew ? t('templates.create') : t('templates.editTitle')" fallback-url="/pages/templates/templates" @back="confirmExit">
-            <template #right></template>
+            <template #right>
+                <view
+                    class="nav-share"
+                    :class="{ 'nav-share--disabled': !canShare }"
+                    @click="onShare"
+                >
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[20px]">{{ glyph('share') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg data-ic="share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                        <path d="M12 3v12"></path>
+                        <path d="m8 7 4-4 4 4"></path>
+                        <path d="M4 11v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8"></path>
+                    </svg>
+                    <!-- #endif -->
+                </view>
+            </template>
         </DetailNavbar>
 
         <scroll-view scroll-y class="edit-scroll mt-[var(--navbar-total-height)] h-[calc(100vh-var(--navbar-total-height))]">
@@ -96,6 +113,18 @@
             @update:model-value="onPickItem"
         />
 
+        <!-- 分享码导出：直接编码当前编辑草稿（无需先保存） -->
+        <ShareExportDialog
+            v-model:visible="exportVisible"
+            :title="t('templates.exportTitle')"
+            :hint="t('templates.exportHint')"
+            :code="exportCode"
+            :copy-label="t('templates.copyCode')"
+            @copy="onCopyCode"
+        >
+            <TemplateSharePreview v-if="sharePayload" :name="shareName" :payload="sharePayload" />
+        </ShareExportDialog>
+
         <!-- 未登录保存时 confirmLogin → authGate 打开全局登录层 -->
         <LoginModal v-model:visible="showLogin" @success="onLoginSuccess" />
     </view>
@@ -111,9 +140,12 @@ import LoginModal from '@/components/shared/LoginModal.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import SelectedMoveChip from '@/components/teams/SelectedMoveChip.vue';
 import TemplateBuildEditor from '@/components/templates/TemplateBuildEditor.vue';
+import ShareExportDialog from '@/components/share/ShareExportDialog.vue';
+import TemplateSharePreview from '@/components/share/TemplateSharePreview.vue';
 import { authGate } from '@/services/session/authGate';
 import { useI18nStore } from '@/store/i18n';
 import { loadMovePoolForForm } from '@/services/teams/member-options';
+import { encodeShareCode } from '@/services/share/share-code';
 import { useTemplatesStore, type TemplateSaveOutcome } from '@/store/templates';
 import { glyph } from '@/components/icon/glyphs';
 import type { TemplatePayload } from '@/services/templates/template-model';
@@ -127,6 +159,28 @@ const i18nStore = useI18nStore();
 const isNew = computed(() => store.currentId === null);
 const payload = computed<TemplatePayload | null>(() => store.draftPayload);
 const level = ref(50); // 预览等级（不入库）
+
+// ── 分享码导出（编码当前草稿，不要求先保存；未选宝可梦禁用） ──
+const exportVisible = ref(false);
+const exportCode = ref('');
+const sharePayload = ref<TemplatePayload | null>(null);
+const canShare = computed(() => (store.draftPayload?.pokemon_id ?? 0) > 0);
+const shareName = computed(() => store.draftName.trim() || t('templates.defaultName'));
+
+function onShare(): void {
+    const p = store.draftPayload;
+    if (!p || p.pokemon_id <= 0) return;
+    sharePayload.value = p;
+    exportCode.value = encodeShareCode('template', shareName.value, p);
+    exportVisible.value = true;
+}
+
+function onCopyCode(): void {
+    uni.setClipboardData({
+        data: exportCode.value,
+        success: () => uni.showToast({ title: t('templates.codeCopied'), icon: 'none' }),
+    });
+}
 
 // 共享内核 v-model：读 store 草稿、写 store 草稿
 const build = computed({
@@ -340,6 +394,24 @@ function invalidText(reason: 'name-required' | 'name-too-long' | 'payload-too-la
 <style lang="scss" scoped>
 .edit-scroll {
     width: 100%;
+}
+
+.nav-share {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    color: #5d6470;
+
+    &:active {
+        background: #f1f3f8;
+    }
+}
+
+.nav-share--disabled {
+    color: #d3d6dd;
 }
 
 .save-bar {

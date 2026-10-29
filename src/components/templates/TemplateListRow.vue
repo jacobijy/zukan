@@ -1,5 +1,20 @@
 <template>
     <view class="template-list-row">
+        <view
+            v-if="selecting"
+            class="template-list-row__check"
+            :class="{ 'template-list-row__check--on': selected }"
+            @click.stop="emit('toggleSelect')"
+        >
+            <!-- #ifdef MP-WEIXIN -->
+            <text v-if="selected" class="ic text-[14px]">{{ glyph('check') }}</text>
+            <!-- #endif -->
+            <!-- #ifndef MP-WEIXIN -->
+            <svg v-if="selected" data-ic="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5">
+                <path d="m5 12.5 4.5 4.5L19 7.5"></path>
+            </svg>
+            <!-- #endif -->
+        </view>
         <view class="template-list-row__main" @click="emit('select')">
             <!-- 精灵图：本地草稿直接渲染；云端未载入时用占位图标 -->
             <EncryptedSprite
@@ -29,23 +44,11 @@
                 <text class="template-list-row__time">{{ updatedText }}</text>
             </view>
             <!-- #ifdef MP-WEIXIN -->
-            <text class="ic template-list-row__chevron text-[16px]">{{ glyph('chevron-right') }}</text>
+            <text v-if="!selecting" class="ic template-list-row__chevron text-[16px]">{{ glyph('chevron-right') }}</text>
             <!-- #endif -->
             <!-- #ifndef MP-WEIXIN -->
-            <svg data-ic="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="template-list-row__chevron h-4 w-4">
+            <svg v-if="!selecting" data-ic="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="template-list-row__chevron h-4 w-4">
                 <path d="m9 18 6-6-6-6"></path>
-            </svg>
-            <!-- #endif -->
-        </view>
-        <view class="template-list-row__menu" @click.stop="emit('menu')">
-            <!-- #ifdef MP-WEIXIN -->
-            <text class="ic text-[20px]">{{ glyph('more-vertical') }}</text>
-            <!-- #endif -->
-            <!-- #ifndef MP-WEIXIN -->
-            <svg data-ic="more-vertical" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
-                <circle cx="12" cy="5" r="1.8"></circle>
-                <circle cx="12" cy="12" r="1.8"></circle>
-                <circle cx="12" cy="19" r="1.8"></circle>
             </svg>
             <!-- #endif -->
         </view>
@@ -60,10 +63,18 @@ import { usePokemonStore } from '@/store/pokemon';
 import { glyph } from '@/components/icon/glyphs';
 import type { TemplateRecord } from '@/store/templates';
 
-const props = defineProps<{ record: TemplateRecord }>();
+const props = withDefaults(
+    defineProps<{
+        record: TemplateRecord;
+        /** 管理态：行前显示勾选圈 */
+        selecting?: boolean;
+        selected?: boolean;
+    }>(),
+    { selecting: false, selected: false },
+);
 const emit = defineEmits<{
     select: [];
-    menu: [];
+    toggleSelect: [];
 }>();
 
 const { t } = useI18n();
@@ -158,15 +169,27 @@ const updatedText = computed(() => props.record.updatedAt.replace('T', ' ').slic
     color: #c4c7cf;
 }
 
-.template-list-row__menu {
+.template-list-row__check {
     display: flex;
+    flex-shrink: 0;
+    align-self: center;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    color: #b0b5bf;
+    width: 22px;
+    height: 22px;
+    margin-right: 10px;
+    border-radius: 999px;
+    border: 1.8px solid #c9ced8;
+    color: #ffffff;
+    background: #ffffff;
 
     &:active {
-        color: #6f7682;
+        transform: scale(0.88);
     }
+}
+
+.template-list-row__check--on {
+    border-color: transparent;
+    background: linear-gradient(135deg, #ff8a7e, #e04f47);
 }
 </style>
