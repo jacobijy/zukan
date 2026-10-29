@@ -86,7 +86,8 @@ base64 是大小写敏感的定长编码；长度 `%4===1` 或尾部位非 0 的
 | 关注点 | 位置 |
 |---|---|
 | 编解码纯函数（零平台依赖） | `src/services/share/share-code.ts` |
-| 导出 / 导入底部弹层 | `src/components/share/ShareExportSheet.vue`、`ShareImportSheet.vue` |
+| 导出 / 导入居中弹窗 | `src/components/share/ShareExportDialog.vue`（默认插槽放缩略卡）、`ShareImportDialog.vue` |
+| 导出缩略卡（立绘 + 摘要，零额外请求） | `src/components/share/TeamSharePreview.vue`、`TemplateSharePreview.vue` |
 | 取分享数据（GET 详情 / 草稿，不动 draft） | `store/teams.ts`、`store/templates.ts` 的 `fetchShareData(id)` |
 | 菜单 / 按钮 / 导入编排 | `pages/teams/teams.vue`、`pages/templates/templates.vue` |
 | 文案（中英，两命名空间各一份） | `src/services/i18n/ui-messages.ts` 的 `teams.*` / `templates.*`（`share`、`importCode`、`errBadCode`、`errNewerVersion`、`errOtherKind` 等） |

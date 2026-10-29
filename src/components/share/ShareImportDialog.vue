@@ -1,18 +1,16 @@
 <template>
     <!--
-        分享码导入底部弹层：单行输入（不用 textarea，规避小程序原生 textarea 弹层层级问题）
+        分享码导入弹窗（屏幕居中）：单行输入（不用 textarea，规避小程序原生 textarea 弹层层级问题）
         + 一键读剪贴板 + 确认。解析在父页面执行，错误文案经 error prop 回填。
         v-if visible 关闭即卸载（输入态随之重置），只做入场动画。
     -->
-    <view v-if="visible" class="share-sheet-root">
-        <view class="share-sheet-mask" @click="close" @touchmove.stop.prevent></view>
+    <view v-if="visible" class="import-dialog-root">
+        <view class="import-dialog-mask" @click="close" @touchmove.stop.prevent></view>
 
-        <view class="share-sheet-panel" @touchmove.stop>
-            <view class="share-sheet-grip"></view>
-
-            <view class="share-sheet-header">
-                <text class="share-sheet-title">{{ title }}</text>
-                <view class="share-sheet-close" @click="close">
+        <view class="import-dialog-panel" @touchmove.stop>
+            <view class="import-dialog-header">
+                <text class="import-dialog-title">{{ title }}</text>
+                <view class="import-dialog-close" @click="close">
                     <!-- #ifdef MP-WEIXIN -->
                     <text class="ic text-[15px]">{{ glyph('x') }}</text>
                     <!-- #endif -->
@@ -25,7 +23,7 @@
                 </view>
             </view>
 
-            <text class="share-sheet-hint">{{ hint }}</text>
+            <text class="import-dialog-hint">{{ hint }}</text>
 
             <view class="import-input-row" :class="{ 'import-input-row--error': !!error }">
                 <input
@@ -54,7 +52,7 @@
 
             <text v-if="error" class="import-error">{{ error }}</text>
 
-            <button class="share-primary-btn" @click="emit('confirm', code.trim())">{{ confirmLabel }}</button>
+            <button class="import-primary-btn" @click="emit('confirm', code.trim())">{{ confirmLabel }}</button>
         </view>
     </view>
 </template>
@@ -101,61 +99,55 @@ function close(): void {
 </script>
 
 <style lang="scss" scoped>
-.share-sheet-root {
+.import-dialog-root {
     position: fixed;
     inset: 0;
     z-index: 1500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 20px;
     pointer-events: none;
 }
 
-.share-sheet-mask {
+.import-dialog-mask {
     position: absolute;
     inset: 0;
     pointer-events: auto;
     background: rgba(36, 38, 43, 0.42);
     backdrop-filter: blur(6px);
-    animation: share-fade 0.28s ease-out;
+    animation: import-dialog-fade 0.25s ease-out;
 }
 
-.share-sheet-panel {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+.import-dialog-panel {
+    position: relative;
     display: flex;
     flex-direction: column;
-    max-height: 84vh;
-    padding: 8px 16px calc(env(safe-area-inset-bottom, 0) + 14px);
+    width: 100%;
+    max-width: 360px;
+    padding: 20px 18px 18px;
     pointer-events: auto;
     background: #ffffff;
-    border-radius: 26px 26px 0 0;
-    box-shadow: 0 -24px 60px rgba(48, 55, 72, 0.22);
-    animation: share-slide-up 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+    border-radius: 24px;
+    box-shadow: 0 24px 60px rgba(48, 55, 72, 0.28);
+    animation: import-dialog-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes share-fade {
+@keyframes import-dialog-fade {
     from {
         background: rgba(36, 38, 43, 0);
         backdrop-filter: blur(0);
     }
 }
 
-@keyframes share-slide-up {
+@keyframes import-dialog-pop {
     from {
-        transform: translateY(100%);
+        opacity: 0;
+        transform: translateY(14px) scale(0.95);
     }
 }
 
-.share-sheet-grip {
-    align-self: center;
-    width: 38px;
-    height: 4px;
-    margin: 6px 0 10px;
-    border-radius: 2px;
-    background: #e3e5ea;
-}
-
-.share-sheet-header {
+.import-dialog-header {
     position: relative;
     display: flex;
     align-items: center;
@@ -163,13 +155,13 @@ function close(): void {
     min-height: 32px;
 }
 
-.share-sheet-title {
+.import-dialog-title {
     font-size: 16px;
     font-weight: 900;
     color: #24262b;
 }
 
-.share-sheet-close {
+.import-dialog-close {
     position: absolute;
     right: 0;
     top: 50%;
@@ -188,8 +180,8 @@ function close(): void {
     }
 }
 
-.share-sheet-hint {
-    margin: 10px 2px 12px;
+.import-dialog-hint {
+    margin: 12px 2px 12px;
     font-size: 13px;
     font-weight: 600;
     line-height: 1.55;
@@ -276,7 +268,7 @@ function close(): void {
     color: #e04f47;
 }
 
-.share-primary-btn {
+.import-primary-btn {
     display: flex;
     flex-shrink: 0;
     align-items: center;

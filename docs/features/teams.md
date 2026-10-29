@@ -37,9 +37,9 @@ DetailNavbar 右槽「保存」；顶部队名输入 + `FormatSwitch`（赛制�
 外观是一串无可读明文的 base64url（magic / 版本 / kind 都在内部二进制头，肉眼分不出种类）。
 
 - **导出**：行内「⋯ → 分享」→ `store.fetchShareData(id)`（云端 GET 详情 / 模板草稿读本地，
-  **不动编辑草稿**，404 摘列表）→ `encodeShareCode` → `ShareExportSheet` 展示码，
-  「复制分享码」走 `uni.setClipboardData` + toast。
-- **导入**：`ShareImportSheet` 单行输入 +「粘贴」一键读剪贴板（不用 textarea，规避小程序
+  **不动编辑草稿**，404 摘列表）→ `encodeShareCode` → `ShareExportDialog`（居中弹窗，
+  队名 / 成员立绘 / 格式缩略卡 + 码），「复制分享码」走 `uni.setClipboardData` + toast。
+- **导入**：`ShareImportDialog`（屏幕居中弹窗）单行输入 +「粘贴」一键读剪贴板（不用 textarea，规避小程序
   原生 textarea 弹层层级问题）→ `decodeShareCode`：
   - 损坏 / 版本过新 → 错误文案留在弹层（`errBadCode` / `errNewerVersion`）；
   - 跨 kind（队伍页粘了模板码）→ toast 指引去另一栏目，不跨页传码；

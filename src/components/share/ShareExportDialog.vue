@@ -1,18 +1,16 @@
 <template>
     <!--
-        分享码导出底部弹层：展示可长按选择的码 + 复制按钮。
+        分享码导出居中弹窗：内容摘要（默认插槽）+ 可长按选择的码 + 复制按钮。
         复制动作（uni.setClipboardData）由父页面执行，组件只 emit，方便统一 toast。
-        v-if visible 关闭即卸载，只做入场动画（与 OptionSheet / LoginModal 一致）。
+        v-if visible 关闭即卸载，只做入场动画（与 ShareImportDialog / LoginModal 一致）。
     -->
-    <view v-if="visible" class="share-sheet-root">
-        <view class="share-sheet-mask" @click="close" @touchmove.stop.prevent></view>
+    <view v-if="visible" class="export-dialog-root">
+        <view class="export-dialog-mask" @click="close" @touchmove.stop.prevent></view>
 
-        <view class="share-sheet-panel" @touchmove.stop>
-            <view class="share-sheet-grip"></view>
-
-            <view class="share-sheet-header">
-                <text class="share-sheet-title">{{ title }}</text>
-                <view class="share-sheet-close" @click="close">
+        <view class="export-dialog-panel" @touchmove.stop>
+            <view class="export-dialog-header">
+                <text class="export-dialog-title">{{ title }}</text>
+                <view class="export-dialog-close" @click="close">
                     <!-- #ifdef MP-WEIXIN -->
                     <text class="ic text-[15px]">{{ glyph('x') }}</text>
                     <!-- #endif -->
@@ -25,14 +23,16 @@
                 </view>
             </view>
 
-            <text class="share-sheet-hint">{{ hint }}</text>
+            <slot />
 
-            <scroll-view scroll-y class="share-code-box">
+            <text class="export-dialog-hint">{{ hint }}</text>
+
+            <scroll-view scroll-y class="export-code-box">
                 <!-- selectable：小程序 / H5 长按均可选中复制；主路径仍是下方按钮一键复制 -->
-                <text selectable class="share-code-box__text">{{ code }}</text>
+                <text selectable class="export-code-box__text">{{ code }}</text>
             </scroll-view>
 
-            <button class="share-primary-btn" @click="emit('copy')">{{ copyLabel }}</button>
+            <button class="export-primary-btn" @click="emit('copy')">{{ copyLabel }}</button>
         </view>
     </view>
 </template>
@@ -59,61 +59,56 @@ function close(): void {
 </script>
 
 <style lang="scss" scoped>
-.share-sheet-root {
+.export-dialog-root {
     position: fixed;
     inset: 0;
     z-index: 1500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 20px;
     pointer-events: none;
 }
 
-.share-sheet-mask {
+.export-dialog-mask {
     position: absolute;
     inset: 0;
     pointer-events: auto;
     background: rgba(36, 38, 43, 0.42);
     backdrop-filter: blur(6px);
-    animation: share-fade 0.28s ease-out;
+    animation: export-fade 0.25s ease-out;
 }
 
-.share-sheet-panel {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+.export-dialog-panel {
+    position: relative;
     display: flex;
     flex-direction: column;
-    max-height: 84vh;
-    padding: 8px 16px calc(env(safe-area-inset-bottom, 0) + 14px);
+    width: 100%;
+    max-width: 360px;
+    max-height: 82vh;
+    padding: 20px 18px 18px;
     pointer-events: auto;
     background: #ffffff;
-    border-radius: 26px 26px 0 0;
-    box-shadow: 0 -24px 60px rgba(48, 55, 72, 0.22);
-    animation: share-slide-up 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+    border-radius: 24px;
+    box-shadow: 0 24px 60px rgba(48, 55, 72, 0.28);
+    animation: export-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes share-fade {
+@keyframes export-fade {
     from {
         background: rgba(36, 38, 43, 0);
         backdrop-filter: blur(0);
     }
 }
 
-@keyframes share-slide-up {
+@keyframes export-pop {
     from {
-        transform: translateY(100%);
+        opacity: 0;
+        transform: translateY(14px) scale(0.95);
     }
 }
 
-.share-sheet-grip {
-    align-self: center;
-    width: 38px;
-    height: 4px;
-    margin: 6px 0 10px;
-    border-radius: 2px;
-    background: #e3e5ea;
-}
-
-.share-sheet-header {
+.export-dialog-header {
     position: relative;
     display: flex;
     align-items: center;
@@ -121,13 +116,13 @@ function close(): void {
     min-height: 32px;
 }
 
-.share-sheet-title {
+.export-dialog-title {
     font-size: 16px;
     font-weight: 900;
     color: #24262b;
 }
 
-.share-sheet-close {
+.export-dialog-close {
     position: absolute;
     right: 0;
     top: 50%;
@@ -146,24 +141,26 @@ function close(): void {
     }
 }
 
-.share-sheet-hint {
-    margin: 10px 2px 12px;
-    font-size: 13px;
+.export-dialog-hint {
+    flex-shrink: 0;
+    margin: 12px 2px 10px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 1.55;
-    color: #8d929c;
+    color: #9aa0ab;
 }
 
-.share-code-box {
+.export-code-box {
     flex-shrink: 1;
-    max-height: 200px;
+    min-height: 54px;
+    max-height: 96px;
     margin-bottom: 14px;
-    padding: 12px 14px;
+    padding: 10px 12px;
     border-radius: 14px;
     background: #f6f7fa;
 }
 
-.share-code-box__text {
+.export-code-box__text {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 12px;
     line-height: 1.6;
@@ -171,7 +168,7 @@ function close(): void {
     word-break: break-all;
 }
 
-.share-primary-btn {
+.export-primary-btn {
     display: flex;
     flex-shrink: 0;
     align-items: center;

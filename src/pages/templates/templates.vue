@@ -64,15 +64,17 @@
         />
 
         <!-- 分享码导出 / 导入 -->
-        <ShareExportSheet
+        <ShareExportDialog
             v-model:visible="exportVisible"
             :title="t('templates.exportTitle')"
             :hint="t('templates.exportHint')"
             :code="exportCode"
             :copy-label="t('templates.copyCode')"
             @copy="onCopyCode"
-        />
-        <ShareImportSheet
+        >
+            <TemplateSharePreview :name="exportName" :payload="exportPayload" />
+        </ShareExportDialog>
+        <ShareImportDialog
             :visible="importVisible"
             :title="t('templates.importTitle')"
             :hint="t('templates.importHint')"
@@ -99,12 +101,13 @@ import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import LoginModal from '@/components/shared/LoginModal.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import TemplateListRow from '@/components/templates/TemplateListRow.vue';
-import ShareExportSheet from '@/components/share/ShareExportSheet.vue';
-import ShareImportSheet from '@/components/share/ShareImportSheet.vue';
+import ShareExportDialog from '@/components/share/ShareExportDialog.vue';
+import ShareImportDialog from '@/components/share/ShareImportDialog.vue';
+import TemplateSharePreview from '@/components/share/TemplateSharePreview.vue';
 import { authGate } from '@/services/session/authGate';
 import { useTemplatesStore, type TemplateRecord } from '@/store/templates';
 import { decodeShareCode, encodeShareCode, ShareCodeError } from '@/services/share/share-code';
-import { normalizePayload } from '@/services/templates/template-model';
+import { emptyTemplate, normalizePayload, type TemplatePayload } from '@/services/templates/template-model';
 import { glyph } from '@/components/icon/glyphs';
 
 const pageSafeArea = usePageSafeArea();
@@ -174,12 +177,16 @@ async function onMenuAction(id: string | string[]): Promise<void> {
 // ── 分享码：导出 ──
 const exportVisible = ref(false);
 const exportCode = ref('');
+const exportName = ref('');
+const exportPayload = ref<TemplatePayload>(emptyTemplate());
 
 async function onShare(rec: TemplateRecord): Promise<void> {
     uni.showLoading({ title: t('templates.sharing'), mask: true });
     try {
         const data = await store.fetchShareData(rec.id);
         if (!data) return; // 404：store 已摘除；草稿被删同理
+        exportName.value = data.name;
+        exportPayload.value = data.payload;
         exportCode.value = encodeShareCode('template', data.name, data.payload);
         exportVisible.value = true;
     } catch (err) {

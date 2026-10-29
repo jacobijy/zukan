@@ -66,15 +66,17 @@
         />
 
         <!-- 分享码导出 / 导入 -->
-        <ShareExportSheet
+        <ShareExportDialog
             v-model:visible="exportVisible"
             :title="t('teams.exportTitle')"
             :hint="t('teams.exportHint')"
             :code="exportCode"
             :copy-label="t('teams.copyCode')"
             @copy="onCopyCode"
-        />
-        <ShareImportSheet
+        >
+            <TeamSharePreview :name="exportName" :payload="exportPayload" />
+        </ShareExportDialog>
+        <ShareImportDialog
             :visible="importVisible"
             :title="t('teams.importTitle')"
             :hint="t('teams.importHint')"
@@ -100,12 +102,13 @@ import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import LoginModal from '@/components/shared/LoginModal.vue';
 import TeamListRow from '@/components/teams/TeamListRow.vue';
-import ShareExportSheet from '@/components/share/ShareExportSheet.vue';
-import ShareImportSheet from '@/components/share/ShareImportSheet.vue';
+import ShareExportDialog from '@/components/share/ShareExportDialog.vue';
+import ShareImportDialog from '@/components/share/ShareImportDialog.vue';
+import TeamSharePreview from '@/components/share/TeamSharePreview.vue';
 import { useTeamsStore } from '@/store/teams';
 import { authGate } from '@/services/session/authGate';
 import { decodeShareCode, encodeShareCode, ShareCodeError } from '@/services/share/share-code';
-import { normalizePayload } from '@/services/teams/team-model';
+import { emptyPayload, normalizePayload, type TeamPayload } from '@/services/teams/team-model';
 import type { TeamSummary } from '@/services/api/teams';
 import { glyph } from '@/components/icon/glyphs'
 
@@ -156,12 +159,16 @@ async function onMenuAction(id: string | string[]): Promise<void> {
 // ── 分享码：导出 ──
 const exportVisible = ref(false);
 const exportCode = ref('');
+const exportName = ref('');
+const exportPayload = ref<TeamPayload>(emptyPayload());
 
 async function onShare(team: TeamSummary): Promise<void> {
     uni.showLoading({ title: t('teams.sharing'), mask: true });
     try {
         const data = await store.fetchShareData(team.id);
         if (!data) return; // 404：store 已摘除摘要
+        exportName.value = data.name;
+        exportPayload.value = data.payload;
         exportCode.value = encodeShareCode('team', data.name, data.payload);
         exportVisible.value = true;
     } catch (err) {
