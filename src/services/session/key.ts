@@ -16,17 +16,14 @@
  * （不该再重试，也不该当成网络错误报错）。
  */
 import { fetchKey } from '@/services/api/zukanKey';
-import { refresh } from '@/services/api/auth';
 import { RestRequestError } from '@/services/http';
-import { authGate, LoginDismissedError } from './authGate';
-import { getRefreshToken, clearSession, onSessionClear } from './token';
+import { authGate } from './authGate';
+import { onSessionClear } from './token';
+import { refreshSessionOnce } from './refresh';
 import type { DekResponse } from './types';
 
 let keyCache: DekResponse | null = null;
 let keyPromise: Promise<DekResponse> | null = null;
-
-/** 进行中的 refresh。6 个 getKey 调用点并发时只打一次 `/auth/refresh`。 */
-let refreshPromise: Promise<void> | null = null;
 
 /**
  * 是否为"未认证"错误。
@@ -42,28 +39,6 @@ function isUnauthenticated(err: unknown): boolean {
 }
 
 /**
- * 用 refresh token 换新 access token；并发共享同一次请求。
- * 成功 resolve，失败 reject（调用方负责 clearSession + 引导登录）。
- */
-function refreshOnce(): Promise<void> {
-    if (refreshPromise) return refreshPromise;
-
-    // 静态 import：api/auth.ts 只依赖 services/http 与 session/token，不 import
-    // 本模块，不构成 session ⇄ api 环（zukanKey 本已静态引入）。小程序端动态
-    // import 被错编成 await "字符串"，refresh() 会解构出 undefined 抛 TypeError，
-    // 冒泡成 401 → 被当成鉴权失败弹登录层。
-    const p = refresh().then(() => undefined);
-
-    refreshPromise = p;
-    // 无论成败都要清掉，否则第二次过期时会复用已 settle 的 promise
-    p.catch(() => undefined).then(() => {
-        if (refreshPromise === p) refreshPromise = null;
-    });
-
-    return p;
-}
-
-/**
  * 真正取密钥：首次失败于未认证时，按策略恢复后重试一次。
  * `allowRecovery=false` 用于恢复后的那一次重试，避免无限递归。
  */
@@ -73,19 +48,13 @@ async function fetchWithRecovery(allowRecovery = true): Promise<DekResponse> {
     } catch (err) {
         if (!allowRecovery || !isUnauthenticated(err)) throw err;
 
-        if (getRefreshToken()) {
-            try {
-                await refreshOnce();
-                return await fetchKey();
-            } catch (refreshErr) {
-                // refresh token 也失效了（过期 / 改密作废）——
-                // 清掉无效会话，转入登录流程。
-                if (refreshErr instanceof LoginDismissedError) throw refreshErr;
-                clearSession();
-            }
+        // refresh 并发去重 / 失败清会话在 refresh.ts 统一处理
+        const recovered = await refreshSessionOnce();
+        if (recovered) {
+            return await fetchKey();
         }
 
-        // 无 refresh token，或 refresh 失败：要求用户登录后重试。
+        // 无 refresh token 或 refresh 失败：要求用户登录后重试。
         // requireLogin() 在用户关闭弹层时 reject，错误直接冒泡给调用方。
         await authGate.requireLogin();
         return await fetchKey();

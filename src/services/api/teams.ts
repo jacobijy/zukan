@@ -41,26 +41,42 @@ interface TeamsListResponse {
 
 /** 列出队伍摘要。 */
 export async function listTeams(): Promise<TeamSummary[]> {
-    const res = await rest.get<TeamsListResponse>('/teams', { header: authHeader() });
+    const res = await rest.get<TeamsListResponse>('/teams', {
+        header: authHeader(),
+        recoverUnauthorized: true,
+    });
     return res?.teams ?? [];
 }
 
 /** 新建队伍（201）；返回完整队伍，调用方以响应 id 作为之后更新键。 */
 export async function createTeam(name: string, payload: unknown): Promise<Team> {
-    return rest.post<Team, { name: string; payload: unknown }>('/teams', { name, payload }, { header: authHeader() });
+    return rest.post<Team, { name: string; payload: unknown }>(
+        '/teams',
+        { name, payload },
+        {
+            header: authHeader(),
+            recoverUnauthorized: true,
+        },
+    );
 }
 
 /** 读取队伍详情（含 payload）。 */
 export async function getTeam(id: string): Promise<Team> {
-    return rest.get<Team>(`/teams/${id}`, { header: authHeader() });
+    return rest.get<Team>(`/teams/${id}`, {
+        header: authHeader(),
+        recoverUnauthorized: true,
+    });
 }
 
 /** 部分更新：只提交要改的 name / payload（至少一个）。 */
 export async function updateTeam(id: string, fields: { name?: string; payload?: unknown }): Promise<Team> {
-    return rest.put<Team, { name?: string; payload?: unknown }>(`/teams/${id}`, fields, { header: authHeader() });
+    return rest.put<Team, { name?: string; payload?: unknown }>(`/teams/${id}`, fields, {
+        header: authHeader(),
+        recoverUnauthorized: true,
+    });
 }
 
 /** 删除队伍（204）；dataType:'text' 跳过空 body 的 JSON 解析。 */
 export async function deleteTeam(id: string): Promise<void> {
-    await rest.delete<void>(`/teams/${id}`, { header: authHeader(), dataType: 'text' });
+    await rest.delete<void>(`/teams/${id}`, { header: authHeader(), dataType: 'text', recoverUnauthorized: true });
 }

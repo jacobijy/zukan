@@ -41,7 +41,10 @@ interface TemplatesListResponse {
 
 /** 列出模板摘要。 */
 export async function listTemplates(): Promise<TemplateSummary[]> {
-    const res = await rest.get<TemplatesListResponse>('/templates', { header: authHeader() });
+    const res = await rest.get<TemplatesListResponse>('/templates', {
+        header: authHeader(),
+        recoverUnauthorized: true,
+    });
     return res?.templates ?? [];
 }
 
@@ -50,26 +53,30 @@ export async function createTemplate(name: string, payload: unknown): Promise<Te
     return rest.post<Template, { name: string; payload: unknown }>(
         '/templates',
         { name, payload },
-        { header: authHeader() },
+        {
+            header: authHeader(),
+            recoverUnauthorized: true,
+        },
     );
 }
 
 /** 读取模板详情（含 payload）。 */
 export async function getTemplate(id: string): Promise<Template> {
-    return rest.get<Template>(`/templates/${id}`, { header: authHeader() });
+    return rest.get<Template>(`/templates/${id}`, {
+        header: authHeader(),
+        recoverUnauthorized: true,
+    });
 }
 
 /** 部分更新：只提交要改的 name / payload（至少一个）。 */
-export async function updateTemplate(
-    id: string,
-    fields: { name?: string; payload?: unknown },
-): Promise<Template> {
+export async function updateTemplate(id: string, fields: { name?: string; payload?: unknown }): Promise<Template> {
     return rest.put<Template, { name?: string; payload?: unknown }>(`/templates/${id}`, fields, {
         header: authHeader(),
+        recoverUnauthorized: true,
     });
 }
 
 /** 删除模板（204）；dataType:'text' 跳过空 body 的 JSON 解析。 */
 export async function deleteTemplate(id: string): Promise<void> {
-    await rest.delete<void>(`/templates/${id}`, { header: authHeader(), dataType: 'text' });
+    await rest.delete<void>(`/templates/${id}`, { header: authHeader(), dataType: 'text', recoverUnauthorized: true });
 }

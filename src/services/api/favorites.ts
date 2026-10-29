@@ -29,6 +29,7 @@ interface FavoritesListResponse {
 export async function listFavorites(): Promise<number[]> {
     const res = await rest.get<FavoritesListResponse>('/favorites', {
         header: authHeader(),
+        recoverUnauthorized: true,
     });
     const ids = res?.pokemon_ids;
     if (!Array.isArray(ids)) return [];
@@ -44,6 +45,7 @@ export async function addFavorite(pokemonId: number): Promise<void> {
             header: authHeader(),
             // 204 No Content：跳过 JSON 自动解析（部分平台空 body 解析会失败）
             dataType: 'text',
+            recoverUnauthorized: true,
         },
     );
 }
@@ -53,5 +55,6 @@ export async function removeFavorite(pokemonId: number): Promise<void> {
     await rest.delete<void>(`/favorites/${pokemonId}`, {
         header: authHeader(),
         dataType: 'text',
+        recoverUnauthorized: true,
     });
 }
