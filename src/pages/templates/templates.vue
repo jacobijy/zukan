@@ -249,7 +249,7 @@ function onImportConfirm(text: string): void {
         importError.value = t('templates.errBadCode');
         return;
     }
-    store.beginCreate(decoded.name.trim() || t('templates.defaultName'), payload);
+    store.beginCreate(t('templates.defaultName'), payload);
     importVisible.value = false;
     uni.navigateTo({ url: '/pages/templates/template-edit' });
 }

@@ -37,15 +37,15 @@ DetailNavbar 右槽「分享图标 + 保存」（分享见 §3，空队伍禁用
 离线字符串分享，不经过后端；格式权威见 [../data/share-codes.md](../data/share-codes.md)。
 外观是一串无可读明文的 base64url（magic / 版本 / kind 都在内部二进制头，肉眼分不出种类）。
 
-- **导出**：编辑页导航栏分享图标 → 直接 `encodeShareCode` 当前编辑草稿（**不要求先保存**，
-  空队伍 / 未选宝可梦时禁用）→ `ShareExportDialog`（居中弹窗，队名 / 成员立绘 / 格式缩略卡 + 码），
+- **导出**：编辑页导航栏分享图标 → 直接 `encodeShareCode` 当前编辑草稿的 payload（**不要求先保存，
+  名称不进码**；空队伍 / 未选宝可梦时禁用）→ `ShareExportDialog`（居中弹窗，本地缩略卡 + 码），
   「复制分享码」走 `uni.setClipboardData` + toast。
 - **导入**：`ShareImportDialog`（屏幕居中弹窗）单行输入 +「粘贴」一键读剪贴板（不用 textarea，规避小程序
   原生 textarea 弹层层级问题）→ `decodeShareCode`：
   - 损坏 / 版本过新 → 错误文案留在弹层（`errBadCode` / `errNewerVersion`）；
   - 跨 kind（队伍页粘了模板码）→ toast 指引去另一栏目，不跨页传码；
   - 通过 → `normalizePayload`（模板缺 `pokemon_id` 仍按无效码）→
-    `beginCreate(name || 默认名)` + `replacePayload` → 进编辑页。
+    `beginCreate(默认名)` + `replacePayload` → 进编辑页（分享码不含名称，名字由导入方起）。
 - **导入 = 新建**：不直接落库，保存时的 `confirmLogin` 闸门、409 重名、名字/大小校验全部
   复用；模板未登录导入后可先存本地草稿。编解码纯函数在 `services/share/share-code.ts`
   （手写 UTF-8 / base64url，不依赖 btoa / TextEncoder），用例 `tests/shareCode.spec.ts`。

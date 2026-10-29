@@ -5,8 +5,10 @@
  * 与 JSON 信封一起编在 base64 内部，不暴露任何明文标记：
  *
  *   byte0..1  magic = 0x5A 0x4B（'ZK'）
- *   byte2     高 4 位版本（=1），低 4 位 kind（0=team, 1=template）
- *   byte3..   UTF-8 JSON 信封 { "name": string, "payload": object }
+ *   byte2     高 4 位版本（当前 =2），低 4 位 kind（0=team, 1=template）
+ *   byte3..   UTF-8 JSON：v2 起直接是 payload 对象（TeamPayload / TemplatePayload）；
+ *             v1（历史）是 { "name": string, "payload": object } 信封，解码时取
+ *             payload，**name 一律忽略**（分享码不携带名称）。
  *
  * 设计要点：
  * - 零平台依赖（不 import Vue / uni / btoa / TextEncoder —— 小程序不可用，
@@ -20,7 +22,7 @@
 // ── 常量 ───────────────────────────────────────────────
 const MAGIC0 = 0x5a; // 'Z'
 const MAGIC1 = 0x4b; // 'K'
-const FORMAT_VERSION = 1;
+const FORMAT_VERSION = 2;
 const KIND_TEAM = 0;
 const KIND_TEMPLATE = 1;
 /** 分享 payload 上限与 teams/templates 服务端契约（32 KiB）同口径。 */
@@ -175,17 +177,16 @@ function base64UrlDecode(s: string): Uint8Array {
 // ── 编码 ───────────────────────────────────────────────
 /**
  * 把一条队伍 / 模板编码成分享码（纯 base64url，识别信息在内部二进制头）。
- * @param name 原始名称（非字符串按空串处理）
+ * **不携带名称**：body 直接是 payload（v2 起），对方导入后自行命名。
  * @param payload 完整 TeamPayload / TemplatePayload 对象
  * @throws ShareCodeError('payload-too-large') payload JSON 超过 32 KiB
  */
-export function encodeShareCode(kind: ShareKind, name: string, payload: object): string {
+export function encodeShareCode(kind: ShareKind, payload: object): string {
     const payloadJson = JSON.stringify(payload);
     if (utf8ByteLength(payloadJson) > SHARE_PAYLOAD_MAX_BYTES) {
         throw new ShareCodeError('payload-too-large');
     }
-    const envelope = JSON.stringify({ name: typeof name === 'string' ? name : '', payload });
-    const body = encodeUtf8(envelope);
+    const body = encodeUtf8(payloadJson);
     const bytes = new Uint8Array(3 + body.length);
     bytes[0] = MAGIC0;
     bytes[1] = MAGIC1;
@@ -197,8 +198,6 @@ export function encodeShareCode(kind: ShareKind, name: string, payload: object):
 // ── 解码 ───────────────────────────────────────────────
 export interface DecodedShare {
     kind: ShareKind;
-    /** 原始名称（可能为空串；trim / 回落默认名由调用方决定）。 */
-    name: string;
     /** 信封内 payload（unknown；由调用方接 normalizePayload 落地）。 */
     payload: unknown;
 }
@@ -232,16 +231,15 @@ function decodeToken(token: string): DecodedShare | null {
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
         throw new ShareCodeError('bad-envelope');
     }
-    const envelope = parsed as Record<string, unknown>;
-    if (typeof envelope.payload !== 'object' || envelope.payload === null || Array.isArray(envelope.payload)) {
+    // v1 兼容：历史信封 { name, payload } 取 payload、丢弃 name（分享码不再携带名称）；
+    // v2 起 body 直接是 payload 对象。
+    const body = parsed as Record<string, unknown>;
+    const payload = version === 1 ? body.payload : body;
+    if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
         throw new ShareCodeError('bad-envelope');
     }
 
-    return {
-        kind,
-        name: typeof envelope.name === 'string' ? envelope.name : '',
-        payload: envelope.payload,
-    };
+    return { kind, payload };
 }
 
 /**

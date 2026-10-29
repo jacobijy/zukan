@@ -224,7 +224,7 @@ function onImportConfirm(text: string): void {
         uni.showToast({ title: t('teams.errOtherKind'), icon: 'none' });
         return;
     }
-    store.beginCreate(decoded.name.trim() || t('teams.defaultName'));
+    store.beginCreate(t('teams.defaultName'));
     store.replacePayload(normalizePayload(decoded.payload));
     importVisible.value = false;
     uni.navigateTo({ url: '/pages/teams/team-edit' });

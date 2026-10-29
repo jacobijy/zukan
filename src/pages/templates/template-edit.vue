@@ -171,7 +171,7 @@ function onShare(): void {
     const p = store.draftPayload;
     if (!p || p.pokemon_id <= 0) return;
     sharePayload.value = p;
-    exportCode.value = encodeShareCode('template', shareName.value, p);
+    exportCode.value = encodeShareCode('template', p);
     exportVisible.value = true;
 }
 

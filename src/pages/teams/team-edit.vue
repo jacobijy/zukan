@@ -133,7 +133,7 @@ const shareName = computed(() => store.draftName.trim() || t('teams.defaultName'
 
 function onShare(): void {
     if (!canShare.value) return;
-    exportCode.value = encodeShareCode('team', shareName.value, store.draftPayload);
+    exportCode.value = encodeShareCode('team', store.draftPayload);
     exportVisible.value = true;
 }
 
