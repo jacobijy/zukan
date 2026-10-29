@@ -91,6 +91,11 @@
 - **收藏 / 队伍 / 云端模板以服务端为唯一来源，不写本地存储**；唯一例外是模板的「新建草稿」
   （storage `pokemonTemplates`，只存 `local-*` 草稿，上云成功即删）。登出在 `mine.vue`
   调 `resetFavorites()` 清空内存收藏。
+- **队伍 / 模板分享码（外观是无可读明文的 base64url，magic/版本/kind 在内部二进制头；
+  格式权威 `docs/data/share-codes.md`）：
+  导入只走「`beginCreate` + `replacePayload` → 编辑页」的新建流程，不直接 POST / 写列表，
+  保存闸门与 409 重名校验复用既有路径；编解码走 `services/share/share-code.ts` 的纯函数
+  （手写 UTF-8 / base64url，不依赖 btoa / TextEncoder），payload 落地必须过各自 normalize。**
 
 ## 架构入口
 

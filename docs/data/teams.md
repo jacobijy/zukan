@@ -127,6 +127,7 @@
 | payload 类型 / 约束常量 / 归一 / 校验（纯函数，零平台依赖） | `src/services/teams/team-model.ts` |
 | 成员选项（形态→特性 id、可学招式池） | `src/services/teams/member-options.ts` |
 | 「套用对战热门配置」（meta → 成员补丁） | `src/services/teams/popular.ts` |
+| 分享码编解码 / 导入导出 | `src/services/share/share-code.ts` + `store.fetchShareData`（格式权威见 [share-codes.md](share-codes.md)） |
 | 编排：摘要缓存 / 草稿 / 登录闸门 / 错误码分支 | `src/store/teams.ts` |
 
 ### payload 结构（前端自定义、对后端不透明）
@@ -158,7 +159,7 @@ interface TeamPayload { format: TeamFormat; members: TeamMember[] }  // members 
 
 | 页面 | 路径 | 职责 |
 |---|---|---|
-| 我的队伍（列表） | `pages/teams/teams` | 未登录引导、新建、摘要列表、行内「⋯」重命名/删除 |
+| 我的队伍（列表） | `pages/teams/teams` | 未登录引导、新建 / 导入分享码、摘要列表、行内「⋯」分享 / 重命名 / 删除 |
 | 编辑队伍（组队器） | `pages/teams/team-edit` | 队名 + 赛制、成员卡（特性/道具/性格/招式/SP）、添加成员、保存 |
 | 入口 | `pages/features/features.vue` | 功能页签列表（对战模拟器之后） |
 

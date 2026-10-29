@@ -250,6 +250,25 @@ export const useTeamsStore = defineStore('teams', () => {
         return { updated: true };
     }
 
+    // ── 分享 ──
+    /**
+     * 取完整队伍（name + 归一后 payload）用于生成分享码：GET 详情，
+     * **不触碰 currentId / draft**（列表页分享不应污染编辑草稿）。
+     * 404 → 摘除摘要并返回 null；其他错误向上抛。
+     */
+    async function fetchShareData(id: string): Promise<{ name: string; payload: TeamPayload } | null> {
+        try {
+            const team = await teamsApi.getTeam(id);
+            return { name: team.name, payload: normalizePayload(team.payload) };
+        } catch (e) {
+            if (isRestError(e) && e.statusCode === 404) {
+                removeSummary(id);
+                return null;
+            }
+            throw e;
+        }
+    }
+
     /** 退出编辑页时清空草稿。 */
     function clearCurrent(): void {
         currentId.value = null;
@@ -278,6 +297,7 @@ export const useTeamsStore = defineStore('teams', () => {
         save,
         remove,
         rename,
+        fetchShareData,
         clearCurrent,
     };
 });

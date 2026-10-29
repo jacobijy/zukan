@@ -4,15 +4,19 @@
 
         <scroll-view scroll-y class="tpl-scroll mt-[var(--navbar-total-height)] h-[calc(100vh-var(--navbar-total-height))]">
             <view class="mx-auto flex max-w-[720px] flex-col gap-4 px-4 pb-12 pt-3">
-                <button class="create-btn" @click="onCreate">
-                    <!-- #ifdef MP-WEIXIN -->
-                    <text class="ic text-[16px]">{{ glyph('plus') }}</text>
-                    <!-- #endif -->
-                    <!-- #ifndef MP-WEIXIN -->
-                    <svg data-ic="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4"><path d="M12 5v14M5 12h14"></path></svg>
-                    <!-- #endif -->
-                    {{ t('templates.create') }}
-                </button>
+                <view class="action-row">
+                    <button class="action-btn action-btn--primary" @click="onCreate">
+                        <!-- #ifdef MP-WEIXIN -->
+                        <text class="ic text-[16px]">{{ glyph('plus') }}</text>
+                        <!-- #endif -->
+                        <!-- #ifndef MP-WEIXIN -->
+                        <svg data-ic="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4"><path d="M12 5v14M5 12h14"></path></svg>
+                        <!-- #endif -->
+                        {{ t('templates.create') }}
+                    </button>
+
+                    <button class="action-btn action-btn--ghost" @click="onOpenImport">{{ t('templates.importCode') }}</button>
+                </view>
 
                 <!-- 未登录：引导登录查看云端模板（本地草稿仍在下方列出） -->
                 <view v-if="store.needsLogin" class="glass-panel flex flex-col items-center gap-2 px-6 py-8 text-center">
@@ -59,6 +63,27 @@
             @update:model-value="onMenuAction"
         />
 
+        <!-- 分享码导出 / 导入 -->
+        <ShareExportSheet
+            v-model:visible="exportVisible"
+            :title="t('templates.exportTitle')"
+            :hint="t('templates.exportHint')"
+            :code="exportCode"
+            :copy-label="t('templates.copyCode')"
+            @copy="onCopyCode"
+        />
+        <ShareImportSheet
+            :visible="importVisible"
+            :title="t('templates.importTitle')"
+            :hint="t('templates.importHint')"
+            :placeholder="t('templates.importPlaceholder')"
+            :confirm-label="t('templates.importConfirm')"
+            :paste-label="t('templates.paste')"
+            :error="importError"
+            @update:visible="onImportVisible"
+            @confirm="onImportConfirm"
+        />
+
         <!-- 未登录删云端模板 / 保存时 confirmLogin → authGate 打开全局登录层 -->
         <LoginModal v-model:visible="showLogin" @success="onLoginSuccess" />
     </view>
@@ -74,8 +99,12 @@ import DetailNavbar from '@/components/shared/DetailNavbar.vue';
 import LoginModal from '@/components/shared/LoginModal.vue';
 import OptionSheet, { type SheetOption } from '@/components/shared/OptionSheet.vue';
 import TemplateListRow from '@/components/templates/TemplateListRow.vue';
+import ShareExportSheet from '@/components/share/ShareExportSheet.vue';
+import ShareImportSheet from '@/components/share/ShareImportSheet.vue';
 import { authGate } from '@/services/session/authGate';
 import { useTemplatesStore, type TemplateRecord } from '@/store/templates';
+import { decodeShareCode, encodeShareCode, ShareCodeError } from '@/services/share/share-code';
+import { normalizePayload } from '@/services/templates/template-model';
 import { glyph } from '@/components/icon/glyphs';
 
 const pageSafeArea = usePageSafeArea();
@@ -124,6 +153,7 @@ function onOpen(rec: TemplateRecord): void {
 const menuRecord = ref<TemplateRecord | null>(null);
 const menuVisible = ref(false);
 const menuOptions = computed<SheetOption[]>(() => [
+    { id: 'share', label: t('templates.share') },
     { id: 'rename', label: t('templates.rename') },
     { id: 'delete', label: t('templates.delete') },
 ]);
@@ -136,8 +166,75 @@ function onMenu(rec: TemplateRecord): void {
 async function onMenuAction(id: string | string[]): Promise<void> {
     const rec = menuRecord.value;
     if (!rec || typeof id !== 'string') return;
-    if (id === 'rename') onOpen(rec);
+    if (id === 'share') await onShare(rec);
+    else if (id === 'rename') onOpen(rec);
     else if (id === 'delete') await confirmDelete(rec);
+}
+
+// ── 分享码：导出 ──
+const exportVisible = ref(false);
+const exportCode = ref('');
+
+async function onShare(rec: TemplateRecord): Promise<void> {
+    uni.showLoading({ title: t('templates.sharing'), mask: true });
+    try {
+        const data = await store.fetchShareData(rec.id);
+        if (!data) return; // 404：store 已摘除；草稿被删同理
+        exportCode.value = encodeShareCode('template', data.name, data.payload);
+        exportVisible.value = true;
+    } catch (err) {
+        console.warn('[templates] 生成分享码失败', err);
+        uni.showToast({ title: t('templates.errorGeneric'), icon: 'none' });
+    } finally {
+        uni.hideLoading();
+    }
+}
+
+function onCopyCode(): void {
+    uni.setClipboardData({
+        data: exportCode.value,
+        success: () => uni.showToast({ title: t('templates.codeCopied'), icon: 'none' }),
+    });
+}
+
+// ── 分享码：导入（解析后走「新建」流程进编辑页；未登录可先存草稿，上云闸门复用） ──
+const importVisible = ref(false);
+const importError = ref('');
+
+function onOpenImport(): void {
+    importError.value = '';
+    importVisible.value = true;
+}
+
+function onImportVisible(v: boolean): void {
+    importVisible.value = v;
+    if (!v) importError.value = '';
+}
+
+function onImportConfirm(text: string): void {
+    let decoded;
+    try {
+        decoded = decodeShareCode(text);
+    } catch (e) {
+        importError.value =
+            e instanceof ShareCodeError && e.reason === 'bad-version'
+                ? t('templates.errNewerVersion')
+                : t('templates.errBadCode');
+        return;
+    }
+    if (decoded.kind !== 'template') {
+        importVisible.value = false;
+        uni.showToast({ title: t('templates.errOtherKind'), icon: 'none' });
+        return;
+    }
+    const payload = normalizePayload(decoded.payload);
+    if (payload === null) {
+        importError.value = t('templates.errBadCode');
+        return;
+    }
+    store.beginCreate(decoded.name.trim() || t('templates.defaultName'), payload);
+    importVisible.value = false;
+    uni.navigateTo({ url: '/pages/templates/template-edit' });
 }
 
 async function confirmDelete(rec: TemplateRecord): Promise<void> {
@@ -166,22 +263,43 @@ async function confirmDelete(rec: TemplateRecord): Promise<void> {
     width: 100%;
 }
 
-.create-btn {
+.action-row {
     display: flex;
+    gap: 12px;
+}
+
+.action-btn {
+    display: flex;
+    flex: 1;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    height: 48px;
-    border-radius: 16px;
-    color: #ffffff;
-    font-size: 15px;
+    gap: 6px;
+    height: 46px;
+    margin: 0;
+    padding: 0;
+    border-radius: 14px;
+    font-size: 14px;
     font-weight: 800;
-    background: linear-gradient(135deg, #ff8a7e, #e04f47);
-    box-shadow: 0 12px 24px rgba(224, 79, 71, 0.22);
 
     &::after {
         border: none !important;
     }
+
+    &:active {
+        transform: scale(0.98);
+    }
+}
+
+.action-btn--primary {
+    color: #ffffff;
+    background: linear-gradient(135deg, #ff8a7e, #e04f47);
+    box-shadow: 0 12px 24px rgba(224, 79, 71, 0.22);
+}
+
+.action-btn--ghost {
+    color: #e04f47;
+    background: #fff6f5;
+    border: 1.5px solid rgba(224, 79, 71, 0.28);
 }
 
 .nudge-btn {

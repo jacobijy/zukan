@@ -21,6 +21,7 @@
 | 数据 | [data/bundle-decode.md](data/bundle-decode.md) | FlatBuffers bundle 清单、五表 join、`hasSprite` 资源标记、EVO1 进化树、三套 id 空间与 form 重映射 |
 | 数据 | [data/battle-usage.md](data/battle-usage.md) | Champions 对战使用率：明文 JSON 排行榜/单只配置/i18n/link（短缓存）；配套图标 ZKDX 加密、按赛季版本化（DEK 公开、匿名可获取） |
 | 数据 | [data/teams.md](data/teams.md) | 自建队伍后端保存：登录用户多支命名队伍 CRUD、内容不透明（JSON object ≤32KiB）、限额与错误码 |
+| 数据 | [data/share-codes.md](data/share-codes.md) | 队伍/模板分享码（无可读明文的 base64url，magic/版本/kind 在二进制头）：信封格式、版本/错误语义、导入=新建 |
 | 数据 | [data/filtering-sort.md](data/filtering-sort.md) | 图鉴筛选/排序、收藏、世代快照语义 |
 | 多语言 | [i18n/i18n-bundle.md](i18n/i18n-bundle.md) | names/flavor 两类 bundle、UI 语言与内容语言、回落策略 |
 | 功能 | [features/calc-engine.md](features/calc-engine.md) | 伤害计算器数据流、slug→id、招式 flags、WASM 硬编码 |

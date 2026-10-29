@@ -11,7 +11,8 @@
 - 未登录 → 登录引导卡（`authGate.open()`，不主动弹层）。
 - 已登录 → 摘要列表（`store.load(true)`，按 updated_at 降序）；空态 + 「新建队伍」。
 - 行：`teams/TeamListRow.vue`（队名 + 更新时间 UTC + ⋯）。
-- 行内「⋯」→ `OptionSheet`：重命名（进编辑页）/ 删除（`uni.showModal` 二次确认 → `store.remove`）。
+- 行内「⋯」→ `OptionSheet`：分享（生成分享码）/ 重命名（进编辑页）/ 删除（`uni.showModal` 二次确认 → `store.remove`）。
+- 「新建队伍」下有次级按钮「导入分享码」（见 §3）。
 - 新建 → `store.beginCreate(defaultName)` → `team-edit`（无 id）；点行 → `team-edit?id=<id>`。
 
 ## 2. 编辑队伍 `pages/teams/team-edit`
@@ -29,6 +30,24 @@ DetailNavbar 右槽「保存」；顶部队名输入 + `FormatSwitch`（赛制�
 | 招式 | `OptionSheet` multi（`max=4`，搜索；已选 `SelectedMoveChip` 可移除） |
 | SP 加点 | `teams/SpreadEditor.vue`：六维 LevelStepper（0..32）+ 合计 |
 | 一键填充 | 「套用对战热门配置」→ meta rank1 配置反查 id；无统计则降级提示 |
+
+## 3. 分享与导入（队伍 / 模板同构）
+
+离线字符串分享，不经过后端；格式权威见 [../data/share-codes.md](../data/share-codes.md)。
+外观是一串无可读明文的 base64url（magic / 版本 / kind 都在内部二进制头，肉眼分不出种类）。
+
+- **导出**：行内「⋯ → 分享」→ `store.fetchShareData(id)`（云端 GET 详情 / 模板草稿读本地，
+  **不动编辑草稿**，404 摘列表）→ `encodeShareCode` → `ShareExportSheet` 展示码，
+  「复制分享码」走 `uni.setClipboardData` + toast。
+- **导入**：`ShareImportSheet` 单行输入 +「粘贴」一键读剪贴板（不用 textarea，规避小程序
+  原生 textarea 弹层层级问题）→ `decodeShareCode`：
+  - 损坏 / 版本过新 → 错误文案留在弹层（`errBadCode` / `errNewerVersion`）；
+  - 跨 kind（队伍页粘了模板码）→ toast 指引去另一栏目，不跨页传码；
+  - 通过 → `normalizePayload`（模板缺 `pokemon_id` 仍按无效码）→
+    `beginCreate(name || 默认名)` + `replacePayload` → 进编辑页。
+- **导入 = 新建**：不直接落库，保存时的 `confirmLogin` 闸门、409 重名、名字/大小校验全部
+  复用；模板未登录导入后可先存本地草稿。编解码纯函数在 `services/share/share-code.ts`
+  （手写 UTF-8 / base64url，不依赖 btoa / TextEncoder），用例 `tests/shareCode.spec.ts`。
 
 ## 数据流
 

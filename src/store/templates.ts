@@ -423,6 +423,31 @@ export const useTemplatesStore = defineStore('templates', () => {
         return { removed: true };
     }
 
+    // ── 分享 ──
+    /**
+     * 取完整模板（name + payload）用于生成分享码，**不触碰 currentId / draft**：
+     * 本地草稿直接读（克隆）；云端条目 GET 详情并归一。404 → 摘云端列表、返回 null；
+     * 云端数据归一为 null（缺 pokemon_id，理论不会）也返回 null。
+     */
+    async function fetchShareData(id: string): Promise<{ name: string; payload: TemplatePayload } | null> {
+        const draft = findDraft(id);
+        if (draft) {
+            return { name: draft.name, payload: clonePayload(draft.payload) as TemplatePayload };
+        }
+        try {
+            const t = await templatesApi.getTemplate(id);
+            const payload = normalizePayload(t.payload);
+            if (payload === null) return null;
+            return { name: t.name, payload };
+        } catch (e) {
+            if (isRestError(e) && e.statusCode === 404) {
+                removeCloud(id);
+                return null;
+            }
+            throw e;
+        }
+    }
+
     /** 退出编辑页时清空草稿。 */
     function clearCurrent(): void {
         currentId.value = null;
@@ -450,6 +475,7 @@ export const useTemplatesStore = defineStore('templates', () => {
         editingLocalDraft,
         save,
         remove,
+        fetchShareData,
         clearCurrent,
     };
 });

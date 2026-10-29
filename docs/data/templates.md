@@ -200,3 +200,12 @@ type TemplatePayload = StandardTemplate | ChampionsTemplate;
 - 模板是**用户主动保存**的数据，不启动预取；进列表页才 `load()`（未登录只给本地草稿 + 登录引导）。
 - 保存云端 / 删除云端条目走 `confirmLogin()`（未登录先「是否去登录」确认、再弹登录框，登录成功续跑）；
   新建可先「保存草稿」留在本地，登录后再上云。
+
+## 分享码（导入 / 导出）
+
+模板支持与队伍同构的字符串分享：列表行内「⋯ → 分享」生成分享码复制到剪贴板，
+列表页「导入分享码」粘贴他人分享码，经 `normalizePayload` 落地（缺 `pokemon_id` 判无效码），
+再以**新建草稿**形式进编辑页（未登录可先存本地草稿，上云仍走既有闸门）。格式与产品语义
+（版本 / 错误 / 跨 kind 指引）见 [share-codes.md](share-codes.md)；编解码在
+`src/services/share/share-code.ts`，取数走 `store/templates.ts` 的 `fetchShareData`
+（本地草稿直接读、云端 GET 详情，均不触碰编辑草稿）。
