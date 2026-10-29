@@ -243,6 +243,9 @@ const zhHans = {
         sectionPopular: '热门样本',
         sectionBattle: '对战',
         detail: '详情',
+        popular: {
+            favoriteCount: '{n} 人收藏',
+        },
         overview: {
             total: '宝可梦总数',
             totalDesc: '当前图鉴记录的全国编号范围。',
@@ -771,6 +774,9 @@ const en: typeof zhHans = {
         sectionPopular: 'Popular specimens',
         sectionBattle: 'Battle',
         detail: 'Details',
+        popular: {
+            favoriteCount: '{n} favorites',
+        },
         overview: {
             total: 'Total Pokémon',
             totalDesc: 'The national number range recorded in this dex.',

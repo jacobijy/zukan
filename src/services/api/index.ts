@@ -7,6 +7,7 @@
  */
 export * as authApi from './auth';
 export * as favoritesApi from './favorites';
+export * as popularityApi from './popularity';
 export * as teamsApi from './teams';
 export * as templatesApi from './templates';
 
