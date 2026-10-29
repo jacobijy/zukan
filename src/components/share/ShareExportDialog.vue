@@ -5,7 +5,7 @@
         v-if visible 关闭即卸载，只做入场动画（与 ShareImportDialog / LoginModal 一致）。
     -->
     <view v-if="visible" class="export-dialog-root">
-        <view class="export-dialog-mask" @click="close" @touchmove.stop.prevent></view>
+        <view class="export-dialog-mask" @click="close" @touchmove.stop="preventTouchMove"></view>
 
         <view class="export-dialog-panel" @touchmove.stop>
             <view class="export-dialog-header">
@@ -39,6 +39,7 @@
 
 <script lang="ts" setup>
 import { glyph } from '@/components/icon/glyphs';
+import { preventTouchMove } from '@/utils/touch';
 
 defineProps<{
     visible: boolean;

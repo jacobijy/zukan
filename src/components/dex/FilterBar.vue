@@ -4,7 +4,7 @@
       v-if="visible"
       class="filter-mask absolute inset-0 pointer-events-auto"
       @click="closeFilterPanel"
-      @touchmove.stop.prevent
+      @touchmove.stop="preventTouchMove"
     ></view>
 
     <view
@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { preventTouchMove } from '@/utils/touch'
 import { useI18n } from 'vue-i18n'
 import { ALL_TYPE_SLUGS } from '@/constants/pokemonTypes'
 import TypeBadge from '@/components/pokemon/TypeBadge.vue'

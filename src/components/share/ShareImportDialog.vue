@@ -5,7 +5,7 @@
         v-if visible 关闭即卸载（输入态随之重置），只做入场动画。
     -->
     <view v-if="visible" class="import-dialog-root">
-        <view class="import-dialog-mask" @click="close" @touchmove.stop.prevent></view>
+        <view class="import-dialog-mask" @click="close" @touchmove.stop="preventTouchMove"></view>
 
         <view class="import-dialog-panel" @touchmove.stop>
             <view class="import-dialog-header">
@@ -59,6 +59,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
+import { preventTouchMove } from '@/utils/touch';
 import { glyph } from '@/components/icon/glyphs';
 
 defineProps<{

@@ -1,6 +1,6 @@
 <template>
     <view v-if="visible" class="sheet-root">
-        <view class="sheet-mask" @click="onMaskClick" @touchmove.stop.prevent></view>
+        <view class="sheet-mask" @click="onMaskClick" @touchmove.stop="preventTouchMove"></view>
 
         <view
             class="sheet-panel"
@@ -148,6 +148,7 @@
 
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { preventTouchMove } from '@/utils/touch';
 import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
 import { interp } from '@/services/i18n/ui-i18n';

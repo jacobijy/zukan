@@ -12,7 +12,7 @@
     <view
         v-if="visible"
         class="login-mask"
-        @touchmove.stop.prevent
+        @touchmove.stop="preventTouchMove"
         @click.self="handleMaskClick"
     >
         <view class="login-modal" @click.stop>
@@ -199,6 +199,7 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref, watch } from 'vue';
+import { preventTouchMove } from '@/utils/touch';
 import { glyph } from '@/components/icon/glyphs';
 import { useI18n } from 'vue-i18n';
 import { authApi, AuthApiError } from '@/services/api';

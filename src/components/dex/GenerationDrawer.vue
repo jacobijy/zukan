@@ -67,13 +67,14 @@
             v-if="visible"
             class="generation-mask fixed inset-0 z-[998]"
             @click="close"
-            @touchmove.stop.prevent
+            @touchmove.stop="preventTouchMove"
         ></view>
     </view>
 </template>
 
 <script lang="ts" setup>
 import { glyph } from '@/components/icon/glyphs';
+import { preventTouchMove } from '@/utils/touch';
 import PanelActions from '@/components/shared/PanelActions.vue';
 import { useI18n } from 'vue-i18n';
 import { GENERATIONS, formatGenerationRange } from '@/constants/generations';
