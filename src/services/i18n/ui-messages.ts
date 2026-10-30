@@ -232,6 +232,7 @@ const zhHans = {
         menu: {
             settings: '设置',
             settingsDesc: '调整图鉴偏好和展示方式。',
+            settingsMeta: '偏好',
             favorites: '我的收藏',
             favoritesDesc: '查看已经标记的宝可梦样本。',
             history: '浏览历史',
@@ -778,6 +779,7 @@ const en: typeof zhHans = {
         menu: {
             settings: 'Settings',
             settingsDesc: 'Adjust dex preferences and display.',
+            settingsMeta: 'Preferences',
             favorites: 'My favorites',
             favoritesDesc: 'See the Pokémon specimens you marked.',
             history: 'Browsing history',

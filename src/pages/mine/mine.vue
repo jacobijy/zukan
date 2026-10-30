@@ -94,10 +94,8 @@ import { detectPlatform } from '@/infra/platform';
 import { selectVisibleProviders } from '@/services/platform/providerConfig';
 import { AvatarError, clearAvatar, getAvatar, pickAvatar } from '@/services/profile/avatar';
 import { usePokemonStore } from '@/store/pokemon';
-import { useI18nStore } from '@/store/i18n';
 import { useI18n } from 'vue-i18n';
 import { interp } from '@/services/i18n/ui-i18n';
-import { LANGUAGES, UI_LANGUAGES, resolveContentLang, resolveUiLocale } from '@/services/i18n/languages';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
@@ -113,17 +111,7 @@ interface MenuItem {
 
 const pokemonStore = usePokemonStore();
 const { favorites } = storeToRefs(pokemonStore);
-const i18nStore = useI18nStore();
 const { t } = useI18n();
-
-const currentLangLabel = computed(() => {
-    const uiLabel =
-        UI_LANGUAGES.find((l) => l.id === resolveUiLocale(i18nStore.uiLang))?.label ?? '';
-    const contentLabel =
-        LANGUAGES.find((l) => l.id === resolveContentLang(i18nStore.contentLang))?.label ??
-        t('mine.langFallback');
-    return `${uiLabel} · ${contentLabel}`;
-});
 
 const favoritesCount = computed(() => favorites.value.length);
 
@@ -209,7 +197,7 @@ function onLoginSuccess() {
 }
 
 const menuItems = computed<MenuItem[]>(() => [
-    { title: t('mine.menu.settings'), desc: t('mine.menu.settingsDesc'), meta: currentLangLabel.value, icon: 'mine-settings', iconClass: 'list-row__icon--gray' },
+    { title: t('mine.menu.settings'), desc: t('mine.menu.settingsDesc'), meta: t('mine.menu.settingsMeta'), icon: 'mine-settings', iconClass: 'list-row__icon--gray' },
     { title: t('mine.menu.favorites'), desc: t('mine.menu.favoritesDesc'), icon: 'mine-fav', iconClass: 'list-row__icon--gold', count: favoritesCount.value },
     { title: t('mine.menu.history'), desc: t('mine.menu.historyDesc'), meta: t('mine.menu.historyMeta'), icon: 'mine-history', iconClass: 'list-row__icon--blue' },
     // dev-only：门禁为假时整行不渲染，生产用户看不到。文案硬编码中文，不进 i18n
