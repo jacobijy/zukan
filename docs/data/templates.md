@@ -28,7 +28,10 @@ CRUD、配额，**模板内容（`payload`）对后端不透明** —— 结构�
 store（`src/store/templates.ts`）维护两个来源，对外用 `records`（computed）合并，按 `updated_at` 降序：
 
 - **云端模板**：`GET /templates` 摘要仅存**内存**（不持久），打开时 `GET :id` 取 payload；
-  保存 POST/PUT、删除 DELETE，均需登录。以服务端为唯一来源。
+  保存 POST/PUT、删除 DELETE，均需登录。以服务端为唯一来源。列表页为渲染精灵缩略图，会在
+  摘要返回后以 4 并发后台逐条拉详情，结果进 `store.previews`（仅内存、按 `updated_at` 失效）；
+  `records` 里云端条目的 `payload` 仍保持 `null`，行组件通过独立的 `preview` prop 取缩略数据
+  （避免每次预览到达都重建 / 重排整个列表）。
 - **本地草稿（drafts）**：未上云的**新建**内容，持久在本地 storage `pokemonTemplates`，
   列表带「草稿」徽章、重启可续编；保存上云成功后删除草稿、转为云端记录。仅草稿的新增 / 删除免登录。
 
@@ -59,6 +62,7 @@ store（`src/store/templates.ts`）维护两个来源，对外用 `records`（co
 
 `GET /templates` 列表返回 `{ "templates": [{ id, name, created_at, updated_at }] }`，
 刻意**不带 payload**；`POST` / `GET :id` / `PUT :id` 返回完整对象（多一个 `payload`）。
+列表页为缩略图额外逐条拉详情（见上「云端模板与本地草稿」）。
 时间戳为 **RFC3339 / UTC（以 `Z` 结尾）**。
 
 ## payload 结构（存储格式，前端自定义、对后端不透明）
@@ -198,6 +202,7 @@ type TemplatePayload = StandardTemplate | ChampionsTemplate;
 - payload 的类型 / 约束常量 / 归一 / 校验放纯函数模块（参照 teams 的 `team-model.ts`）：
   IV/EV/SP 钳制、招式去重 ≤4、性格与道具合法性回落、**未知字段保留**（前向兼容）。
 - 模板是**用户主动保存**的数据，不启动预取；进列表页才 `load()`（未登录只给本地草稿 + 登录引导）。
+  列表页内为缩略图按 id 逐条拉详情（4 并发、仅内存、按 `updated_at` 失效）。
 - 保存云端 / 删除云端条目走 `confirmLogin()`（未登录先「是否去登录」确认、再弹登录框，登录成功续跑）；
   新建可先「保存草稿」留在本地，登录后再上云。
 - 编辑页 `pages/templates/template-edit` 双模式：打开已有模板默认**观察模式**

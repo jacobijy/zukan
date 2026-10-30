@@ -48,6 +48,7 @@
                         v-for="rec in visibleRecords"
                         :key="rec.id"
                         :record="rec"
+                        :preview="store.previews[rec.id] ?? null"
                         :selecting="managing"
                         :selected="selectedIds.includes(rec.id)"
                         @select="onOpen(rec)"

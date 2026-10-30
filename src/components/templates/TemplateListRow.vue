@@ -16,10 +16,10 @@
             <!-- #endif -->
         </view>
         <view class="template-list-row__main" @click="emit('select')">
-            <!-- 精灵图：本地草稿直接渲染；云端未载入时用占位图标 -->
+            <!-- 精灵图：本地草稿 / 已预取的云端摘要直接渲染；未载入时用占位图标 -->
             <EncryptedSprite
-                v-if="record.payload"
-                :pokemon-id="record.payload.pokemon_id"
+                v-if="displayPayload"
+                :pokemon-id="displayPayload.pokemon_id"
                 variant="front"
                 :preview="false"
                 :has-sprite="speciesModel?.hasSprite"
@@ -41,7 +41,12 @@
                     <text class="template-list-row__name">{{ record.name }}</text>
                     <text v-if="isLocalDraft" class="template-list-row__badge template-list-row__badge--local">{{ t('templates.stateLocal') }}</text>
                 </view>
-                <text class="template-list-row__time">{{ updatedText }}</text>
+                <view class="template-list-row__meta">
+                    <text v-if="speciesName" class="template-list-row__species">{{ speciesName }}</text>
+                    <text v-if="formLabel" class="template-list-row__form">{{ formLabel }}</text>
+                    <text v-if="speciesName" class="template-list-row__dot">·</text>
+                    <text class="template-list-row__time">{{ updatedText }}</text>
+                </view>
             </view>
             <!-- #ifdef MP-WEIXIN -->
             <text v-if="!selecting" class="ic template-list-row__chevron text-[16px]">{{ glyph('chevron-right') }}</text>
@@ -62,15 +67,18 @@ import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
 import { usePokemonStore } from '@/store/pokemon';
 import { glyph } from '@/components/icon/glyphs';
 import type { TemplateRecord } from '@/store/templates';
+import type { TemplatePayload } from '@/services/templates/template-model';
 
 const props = withDefaults(
     defineProps<{
         record: TemplateRecord;
+        /** 云端缩略预览；本地草稿直接用 record.payload */
+        preview?: TemplatePayload | null;
         /** 管理态：行前显示勾选圈 */
         selecting?: boolean;
         selected?: boolean;
     }>(),
-    { selecting: false, selected: false },
+    { preview: null, selecting: false, selected: false },
 );
 const emit = defineEmits<{
     select: [];
@@ -80,9 +88,19 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const pokemonStore = usePokemonStore();
 
+const displayPayload = computed(() => props.record.payload ?? props.preview ?? null);
+
 const speciesModel = computed(() =>
-    props.record.payload ? pokemonStore.getById(props.record.payload.pokemon_id) : undefined,
+    displayPayload.value ? pokemonStore.getById(displayPayload.value.pokemon_id) : undefined,
 );
+
+const speciesName = computed(() => {
+    const payload = displayPayload.value;
+    if (!payload) return '';
+    return speciesModel.value?.name ?? `#${payload.pokemon_id}`;
+});
+
+const formLabel = computed(() => speciesModel.value?.formLabel ?? '');
 
 /** 仅本地草稿显示「草稿」徽章；云端记录不显示同步状态。 */
 const isLocalDraft = computed(() => props.record.sync === 'local');
@@ -157,7 +175,40 @@ const updatedText = computed(() => props.record.updatedAt.replace('T', ' ').slic
     color: #9aa0ab;
 }
 
+.template-list-row__meta {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+}
+
+.template-list-row__species {
+    overflow: hidden;
+    flex-shrink: 1;
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #6f7682;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.template-list-row__form {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: #9aa0ab;
+    white-space: nowrap;
+}
+
+.template-list-row__dot {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #c4c7cf;
+}
+
 .template-list-row__time {
+    flex-shrink: 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 11px;
     font-weight: 700;

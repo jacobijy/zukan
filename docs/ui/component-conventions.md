@@ -30,7 +30,8 @@ src/components/
              BattleItemIcon（道具行赛季版本化加密图标，404 / 未登录回落 bag glyph）、
              SpreadSection（SP 加点分布）、TeammateSection（常见队友）
   teams/     自建队伍：MemberPicker（全屏物种/形态选择）、MemberCard（成员内联编辑，
-             内挂 4 个 OptionSheet）、SpreadEditor（SP 六维）、SelectedMoveChip、TeamListRow
+             内挂 4 个 OptionSheet）、SpreadEditor（SP 六维）、SelectedMoveChip、TeamListRow、
+             TeamMemberStrip（列表行内 6 槽成员缩略条：已选渲染精灵、其余虚线空槽）
   templates/ 个人模板：TemplateBuildEditor（规则版本分段 + 宝可梦/等级/性格 + 六维输入与
              实时能力值的共享配置内核，计算器与模板编辑页共用）、TemplateListRow（模板列表行）
   devtools/  dev-only 排障工具：AssetProbeForm、AssetProbeCard（资源探测器）、

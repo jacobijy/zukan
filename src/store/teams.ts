@@ -20,6 +20,10 @@ import type { TeamSummary } from '@/services/api/teams';
 import { RestRequestError } from '@/services/http';
 import { clearSession, confirmLogin, isAuthenticated } from '@/services/session';
 import { emptyPayload, normalizePayload, validateTeam, type TeamPayload } from '@/services/teams/team-model';
+import { mapWithConcurrency } from '@/utils/concurrency';
+
+/** 列表缩略图预取的并发上限（后端列表不带 payload，详情逐条拉）。 */
+const PREVIEW_CONCURRENCY = 4;
 
 // ── 结果类型 ───────────────────────────────────────────
 export type InvalidReason = 'name-required' | 'name-too-long' | 'payload-too-large';
@@ -40,6 +44,16 @@ function errBody(e: RestRequestError): { code?: string; error?: string } {
     return typeof e.data === 'object' && e.data !== null ? (e.data as { code?: string; error?: string }) : {};
 }
 
+/** payload 是 JSON-only 契约（后端不透明 JSON），用 JSON round-trip 隔离缓存与可编辑草稿。 */
+function cloneTeamPayload(payload: TeamPayload): TeamPayload {
+    return JSON.parse(JSON.stringify(payload)) as TeamPayload;
+}
+
+/** 摘要集合签名：id + updated_at；用于判断刷新后是否需要让在途预取作废。 */
+function summarySignature(list: readonly TeamSummary[]): string {
+    return list.map((s) => `${s.id}:${s.updated_at}`).join('|');
+}
+
 /**
  * 写操作登录闸门：已登录直接通过（access 过期由写请求的 401 会话恢复处理）；
  * 未登录先弹「是否去登录」确认框、确认后再打开登录层；任一步取消 → aborted。
@@ -57,6 +71,15 @@ export const useTeamsStore = defineStore('teams', () => {
     const listLoading = ref(false);
     /** 未登录（含 token 失效）标志：列表页据此显示登录引导空态，不主动弹层 */
     const needsLogin = ref(false);
+
+    /** 列表缩略图：id → 归一化 payload（仅内存，不持久）。 */
+    const previews = ref<Record<string, TeamPayload>>({});
+    /** 预览对应的摘要 updated_at（非响应式）：force 刷新时只失效变更项。 */
+    const previewVersions = new Map<string, string>();
+    /** 同一时刻只跑一批预取；重复调用复用同一个 Promise。 */
+    let previewTask: Promise<void> | null = null;
+    /** 列表 / 会话变更计数：在途预取据此丢弃过期结果并在结束后补跑。 */
+    let previewGeneration = 0;
 
     const currentId = ref<string | null>(null);
     const draftName = ref('');
@@ -83,6 +106,77 @@ export const useTeamsStore = defineStore('teams', () => {
         summaries.value = [...summaries.value].toSorted((a, b) => b.updated_at.localeCompare(a.updated_at));
     }
 
+    // ── 列表缩略图（previews） ──
+    function setPreview(id: string, payload: TeamPayload, updatedAt: string): void {
+        previews.value[id] = cloneTeamPayload(payload);
+        previewVersions.set(id, updatedAt);
+    }
+
+    function dropPreview(id: string): void {
+        if (id in previews.value) delete previews.value[id];
+        previewVersions.delete(id);
+    }
+
+    /** 清空预览缓存（登出 / 列表清空时调用）。 */
+    function clearPreviews(): void {
+        previewGeneration++;
+        previews.value = {};
+        previewVersions.clear();
+    }
+
+    /** 摘要已删除或 updated_at 变化 → 丢弃对应预览，下次预取重拉。 */
+    function syncPreviews(): void {
+        const versions = new Map(summaries.value.map((s) => [s.id, s.updated_at]));
+        for (const id of Object.keys(previews.value)) {
+            if (versions.get(id) !== previewVersions.get(id)) dropPreview(id);
+        }
+    }
+
+    /**
+     * 后台预取列表缩略图：跳过已缓存项、4 并发、永不抛错。
+     * 401（REST 层 refresh 也无法恢复）→ 停止剩余请求，不弹层、不改列表；
+     * 404 → 摘除摘要（与 open 一致）；其它错误静默，下次 load 可重试。
+     */
+    function prefetchPreviews(): Promise<void> {
+        if (previewTask) return previewTask;
+        const ids = summaries.value.filter((s) => !(s.id in previews.value)).map((s) => s.id);
+        if (ids.length === 0) return Promise.resolve();
+
+        const generation = previewGeneration;
+        previewTask = (async () => {
+            let aborted = false;
+            await mapWithConcurrency(ids, PREVIEW_CONCURRENCY, async (id) => {
+                if (aborted || generation !== previewGeneration) return;
+                try {
+                    const team = await teamsApi.getTeam(id);
+                    // 列表 / 会话已变（如登出、force 刷新）或前台已写入更新数据（open/save）→ 丢弃
+                    if (generation === previewGeneration && !(id in previews.value)) {
+                        setPreview(id, normalizePayload(team.payload), team.updated_at);
+                    }
+                } catch (e) {
+                    if (isRestError(e) && e.statusCode === 404) {
+                        removeSummary(id);
+                        dropPreview(id);
+                    } else if (isRestError(e) && e.statusCode === 401) {
+                        aborted = true;
+                        console.warn('[teams] 缩略图预取 401，停止剩余请求');
+                    } else {
+                        console.warn('[teams] 缩略图预取失败', id, e);
+                    }
+                }
+            });
+        })()
+            .catch((e) => {
+                console.warn('[teams] 缩略图预取中止', e);
+            })
+            .finally(() => {
+                previewTask = null;
+                // 预取期间列表变过 → 为新列表补跑一轮（失败项同样会重试一次）
+                if (generation !== previewGeneration) void prefetchPreviews();
+            });
+        return previewTask;
+    }
+
     // ── 列表 ──
     /**
      * 加载队伍摘要。未登录 → needsLogin=true、空列表（不抛错、不弹层）。
@@ -92,20 +186,29 @@ export const useTeamsStore = defineStore('teams', () => {
         if (!isAuthenticated()) {
             needsLogin.value = true;
             summaries.value = [];
+            clearPreviews();
             listLoaded.value = true;
             return;
         }
         needsLogin.value = false;
-        if (listLoaded.value && !force) return;
+        if (listLoaded.value && !force) {
+            void prefetchPreviews();
+            return;
+        }
 
         listLoading.value = true;
         try {
+            const before = summarySignature(summaries.value);
             summaries.value = await teamsApi.listTeams();
             listLoaded.value = true;
+            if (summarySignature(summaries.value) !== before) previewGeneration++;
+            syncPreviews();
+            void prefetchPreviews();
         } catch (e) {
             if (isRestError(e) && e.statusCode === 401) {
                 needsLogin.value = true;
                 summaries.value = [];
+                clearPreviews();
             } else {
                 throw e;
             }
@@ -127,11 +230,14 @@ export const useTeamsStore = defineStore('teams', () => {
         currentId.value = id;
         try {
             const team = await teamsApi.getTeam(id);
+            const payload = normalizePayload(team.payload);
             draftName.value = team.name;
-            draftPayload.value = normalizePayload(team.payload);
+            draftPayload.value = payload;
+            setPreview(id, payload, team.updated_at);
         } catch (e) {
             if (isRestError(e) && e.statusCode === 404) {
                 removeSummary(id);
+                dropPreview(id);
                 currentId.value = null;
             }
             throw e;
@@ -178,7 +284,10 @@ export const useTeamsStore = defineStore('teams', () => {
             if (isRestError(e)) {
                 const body = errBody(e);
                 if (e.statusCode === 404) {
-                    if (currentId.value) removeSummary(currentId.value);
+                    if (currentId.value) {
+                        dropPreview(currentId.value);
+                        removeSummary(currentId.value);
+                    }
                     currentId.value = null;
                     return { status: 'error', reason: 'not-found', message: body.error };
                 }
@@ -201,10 +310,12 @@ export const useTeamsStore = defineStore('teams', () => {
             const created = await teamsApi.createTeam(trimmedName, payload);
             currentId.value = created.id;
             upsertSummary(created);
+            setPreview(created.id, payload, created.updated_at);
             return { status: 'saved', id: created.id };
         }
         const updated = await teamsApi.updateTeam(currentId.value, { name: trimmedName, payload });
         upsertSummary(updated);
+        setPreview(updated.id, payload, updated.updated_at);
         return { status: 'saved', id: updated.id };
     }
 
@@ -236,6 +347,7 @@ export const useTeamsStore = defineStore('teams', () => {
             if (!(isRestError(e) && e.statusCode === 404)) throw e;
         }
         removeSummary(id);
+        dropPreview(id);
         if (currentId.value === id) clearCurrent();
         return { removed: true };
     }
@@ -253,6 +365,7 @@ export const useTeamsStore = defineStore('teams', () => {
         listLoaded,
         listLoading,
         needsLogin,
+        previews,
         currentId,
         draftName,
         draftPayload,
@@ -261,6 +374,8 @@ export const useTeamsStore = defineStore('teams', () => {
         draft,
         // actions
         load,
+        prefetchPreviews,
+        clearPreviews,
         beginCreate,
         open,
         setName,

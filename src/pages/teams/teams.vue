@@ -49,6 +49,7 @@
                             v-for="team in store.summaries"
                             :key="team.id"
                             :team="team"
+                            :preview="store.previews[team.id] ?? null"
                             :selecting="managing"
                             :selected="selectedIds.includes(team.id)"
                             @select="onOpen(team)"

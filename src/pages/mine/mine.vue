@@ -72,6 +72,8 @@ import { authGate } from '@/services/session/authGate';
 import { detectPlatform } from '@/infra/platform';
 import { selectVisibleProviders } from '@/services/platform/providerConfig';
 import { usePokemonStore } from '@/store/pokemon';
+import { useTeamsStore } from '@/store/teams';
+import { useTemplatesStore } from '@/store/templates';
 import { useI18nStore } from '@/store/i18n';
 import { useI18n } from 'vue-i18n';
 import { interp } from '@/services/i18n/ui-i18n';
@@ -90,6 +92,8 @@ interface MenuItem {
 }
 
 const pokemonStore = usePokemonStore();
+const teamsStore = useTeamsStore();
+const templatesStore = useTemplatesStore();
 const { favorites } = storeToRefs(pokemonStore);
 const i18nStore = useI18nStore();
 const { t } = useI18n();
@@ -136,6 +140,9 @@ function onTrainerCardClick() {
                     clearItemIconCache();
                     // 收藏已纯后端化：登出清空内存，避免下一账号看到上一账号的收藏。
                     pokemonStore.resetFavorites();
+                    // 队伍 / 模板列表缩略图缓存同理：payload 属于当前账号。
+                    teamsStore.clearPreviews();
+                    templatesStore.clearPreviews();
                     loggedIn.value = false;
                     uni.showToast({ title: t('mine.toastLoggedOut'), icon: 'none' });
                 }

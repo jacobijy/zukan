@@ -31,6 +31,10 @@ import {
     validateTemplate,
     type TemplatePayload,
 } from '@/services/templates/template-model';
+import { mapWithConcurrency } from '@/utils/concurrency';
+
+/** 列表缩略图预取的并发上限（后端列表不带 payload，详情逐条拉）。 */
+const PREVIEW_CONCURRENCY = 4;
 
 // ── 结果类型 ───────────────────────────────────────────
 export type TemplateInvalidReason = 'name-required' | 'name-too-long' | 'payload-too-large' | 'pokemon-required';
@@ -153,6 +157,11 @@ function clonePayload(p: TemplatePayload | null): TemplatePayload | null {
     return p === null ? null : (JSON.parse(JSON.stringify(p)) as TemplatePayload);
 }
 
+/** 摘要集合签名：id + updated_at；用于判断刷新后是否需要让在途预取作废。 */
+function summarySignature(list: readonly TemplateSummary[]): string {
+    return list.map((s) => `${s.id}:${s.updated_at}`).join('|');
+}
+
 type CloudMeta = Pick<TemplateSummary, 'id' | 'name' | 'created_at' | 'updated_at'>;
 
 export const useTemplatesStore = defineStore('templates', () => {
@@ -165,6 +174,18 @@ export const useTemplatesStore = defineStore('templates', () => {
     let listLoaded = false;
     /** 未登录（无法看云端）时，列表页显示登录引导。 */
     const needsLogin = ref(false);
+
+    /**
+     * 云端模板缩略图：id → 归一化 payload（仅内存）。
+     * 值为 `null` 表示已拉取但 payload 非法；key 存在即不再重拉。
+     */
+    const previews = ref<Record<string, TemplatePayload | null>>({});
+    /** 预览对应的摘要 updated_at（非响应式）：force 刷新时只失效变更项。 */
+    const previewVersions = new Map<string, string>();
+    /** 同一时刻只跑一批预取；重复调用复用同一个 Promise。 */
+    let previewTask: Promise<void> | null = null;
+    /** 列表 / 会话变更计数：在途预取据此丢弃过期结果并在结束后补跑。 */
+    let previewGeneration = 0;
 
     const currentId = ref<string | null>(null);
     const draftName = ref('');
@@ -205,6 +226,76 @@ export const useTemplatesStore = defineStore('templates', () => {
         cloudSummaries.value = cloudSummaries.value.filter((s) => s.id !== id);
     }
 
+    // ── 列表缩略图（previews，仅云端模板） ──
+    function setPreview(id: string, payload: TemplatePayload | null, updatedAt: string): void {
+        previews.value[id] = clonePayload(payload);
+        previewVersions.set(id, updatedAt);
+    }
+
+    function dropPreview(id: string): void {
+        if (id in previews.value) delete previews.value[id];
+        previewVersions.delete(id);
+    }
+
+    /** 清空预览缓存（登出 / 云端列表清空时调用）。 */
+    function clearPreviews(): void {
+        previewGeneration++;
+        previews.value = {};
+        previewVersions.clear();
+    }
+
+    /** 摘要已删除或 updated_at 变化 → 丢弃对应预览，下次预取重拉。 */
+    function syncPreviews(): void {
+        const versions = new Map(cloudSummaries.value.map((s) => [s.id, s.updated_at]));
+        for (const id of Object.keys(previews.value)) {
+            if (versions.get(id) !== previewVersions.get(id)) dropPreview(id);
+        }
+    }
+
+    /**
+     * 后台预取云端模板缩略图：本地草稿自带 payload，不请求。
+     * 跳过已缓存项、4 并发、永不抛错；401 停止剩余、404 摘除云端记录。
+     */
+    function prefetchPreviews(): Promise<void> {
+        if (previewTask) return previewTask;
+        const ids = cloudSummaries.value.filter((s) => !(s.id in previews.value)).map((s) => s.id);
+        if (ids.length === 0) return Promise.resolve();
+
+        const generation = previewGeneration;
+        previewTask = (async () => {
+            let aborted = false;
+            await mapWithConcurrency(ids, PREVIEW_CONCURRENCY, async (id) => {
+                if (aborted || generation !== previewGeneration) return;
+                try {
+                    const t = await templatesApi.getTemplate(id);
+                    // 列表 / 会话已变（如登出、force 刷新）或前台已写入更新数据（open/save）→ 丢弃
+                    if (generation === previewGeneration && !(id in previews.value)) {
+                        setPreview(id, normalizePayload(t.payload), t.updated_at);
+                    }
+                } catch (e) {
+                    if (isRestError(e) && e.statusCode === 404) {
+                        removeCloud(id);
+                        dropPreview(id);
+                    } else if (isRestError(e) && e.statusCode === 401) {
+                        aborted = true;
+                        console.warn('[templates] 缩略图预取 401，停止剩余请求');
+                    } else {
+                        console.warn('[templates] 缩略图预取失败', id, e);
+                    }
+                }
+            });
+        })()
+            .catch((e) => {
+                console.warn('[templates] 缩略图预取中止', e);
+            })
+            .finally(() => {
+                previewTask = null;
+                // 预取期间列表变过 → 为新列表补跑一轮（失败项同样会重试一次）
+                if (generation !== previewGeneration) void prefetchPreviews();
+            });
+        return previewTask;
+    }
+
     // ── 列表 ──
     /**
      * 加载云端摘要。未登录 → needsLogin=true、清空云端（草稿仍在），不发请求、不弹层。
@@ -214,25 +305,38 @@ export const useTemplatesStore = defineStore('templates', () => {
         if (!isAuthenticated()) {
             needsLogin.value = true;
             cloudSummaries.value = [];
+            clearPreviews();
             listLoaded = false;
             return;
         }
         needsLogin.value = false;
-        if (listLoaded && !force) return;
+        if (listLoaded && !force) {
+            void prefetchPreviews();
+            return;
+        }
 
         try {
+            const before = summarySignature(cloudSummaries.value);
             cloudSummaries.value = await templatesApi.listTemplates();
             listLoaded = true;
+            if (summarySignature(cloudSummaries.value) !== before) previewGeneration++;
+            syncPreviews();
+            void prefetchPreviews();
         } catch (e) {
             if (isRestError(e) && e.statusCode === 401) {
                 try {
+                    const before = summarySignature(cloudSummaries.value);
                     await authApi.refresh();
                     cloudSummaries.value = await templatesApi.listTemplates();
                     listLoaded = true;
+                    if (summarySignature(cloudSummaries.value) !== before) previewGeneration++;
+                    syncPreviews();
+                    void prefetchPreviews();
                 } catch {
                     clearSession();
                     needsLogin.value = true;
                     cloudSummaries.value = [];
+                    clearPreviews();
                     listLoaded = false;
                 }
             } else {
@@ -265,12 +369,15 @@ export const useTemplatesStore = defineStore('templates', () => {
 
         try {
             const t = await templatesApi.getTemplate(id);
+            const payload = normalizePayload(t.payload);
             currentId.value = id;
             draftName.value = t.name;
-            draftPayload.value = normalizePayload(t.payload);
+            draftPayload.value = clonePayload(payload);
+            setPreview(id, payload, t.updated_at);
         } catch (e) {
             if (isRestError(e) && e.statusCode === 404) {
                 removeCloud(id);
+                dropPreview(id);
                 currentId.value = null;
             }
             throw e;
@@ -346,7 +453,10 @@ export const useTemplatesStore = defineStore('templates', () => {
             if (isRestError(e)) {
                 const body = errBody(e);
                 if (e.statusCode === 404) {
-                    if (currentId.value) removeCloud(currentId.value);
+                    if (currentId.value) {
+                        dropPreview(currentId.value);
+                        removeCloud(currentId.value);
+                    }
                     currentId.value = null;
                     return { status: 'error', reason: 'not-found', message: body.error };
                 }
@@ -371,6 +481,7 @@ export const useTemplatesStore = defineStore('templates', () => {
             if (draft) drafts.value = drafts.value.filter((d) => d.id !== draft.id);
             persistDrafts();
             upsertCloud(created);
+            setPreview(created.id, payload, created.updated_at);
             currentId.value = created.id;
             return { status: 'saved', id: created.id };
         }
@@ -379,6 +490,7 @@ export const useTemplatesStore = defineStore('templates', () => {
         if (!id) return { status: 'error', reason: 'invalid-input' };
         const updated: Template = await templatesApi.updateTemplate(id, { name: trimmedName, payload });
         upsertCloud(updated);
+        setPreview(updated.id, payload, updated.updated_at);
         return { status: 'saved', id: updated.id };
     }
 
@@ -419,6 +531,7 @@ export const useTemplatesStore = defineStore('templates', () => {
             if (!(isRestError(e) && e.statusCode === 404)) throw e;
         }
         removeCloud(id);
+        dropPreview(id);
         if (currentId.value === id) clearCurrent();
         return { removed: true };
     }
@@ -435,6 +548,7 @@ export const useTemplatesStore = defineStore('templates', () => {
         drafts,
         cloudSummaries,
         needsLogin,
+        previews,
         records,
         currentId,
         draftName,
@@ -442,6 +556,8 @@ export const useTemplatesStore = defineStore('templates', () => {
         saving,
         // actions
         load,
+        prefetchPreviews,
+        clearPreviews,
         beginCreate,
         open,
         setName,

@@ -33,7 +33,7 @@ vi.mock('@/services/api', () => ({
 }));
 
 import { RestRequestError } from '@/services/http';
-import { normalizePayload } from '@/services/teams/team-model';
+import { emptyMember, normalizePayload } from '@/services/teams/team-model';
 import { useTeamsStore } from '@/store/teams';
 
 const gone = { id: 'gone', name: 'g', created_at: 'c', updated_at: 'u' };
@@ -217,5 +217,192 @@ describe('401 会话恢复', () => {
         const out = await store.save();
         expect(out).toEqual({ status: 'error', reason: 'conflict' });
         expect(ctrl.refresh).not.toHaveBeenCalled();
+    });
+});
+
+// ── 列表缩略图预取（previews） ─────────────────────────
+
+function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+    return { promise, resolve, reject };
+}
+
+const teamSummary = (id: string, updated_at = 'u') => ({ id, name: id, created_at: 'c', updated_at });
+
+const teamDetail = (id: string, members: unknown[] = [{ species_id: 25 }], format = 'singles') => ({
+    id,
+    name: id,
+    payload: { format, members },
+    created_at: 'c',
+    updated_at: 'u',
+});
+
+describe('列表缩略图预取', () => {
+    it('load 先返回摘要，详情在后台填充 previews（不阻塞）', async () => {
+        const store = useTeamsStore();
+        const gate = deferred<ReturnType<typeof teamDetail>>();
+        ctrl.list = vi.fn().mockResolvedValue([teamSummary('t1')]);
+        ctrl.get = vi.fn(() => gate.promise);
+
+        await store.load();
+        expect(store.summaries.map((s) => s.id)).toEqual(['t1']);
+        expect(store.previews).toEqual({});
+
+        gate.resolve(teamDetail('t1', [{ species_id: 25 }, { species_id: 6, form_id: 10006 }]));
+        await store.prefetchPreviews();
+
+        expect(store.previews.t1.members).toHaveLength(2);
+        expect(store.previews.t1.members[1]).toMatchObject({ species_id: 6, form_id: 10006 });
+    });
+
+    it('4 并发预取；已缓存 / 无新增时不重复请求', async () => {
+        const store = useTeamsStore();
+        let active = 0;
+        let maxActive = 0;
+        ctrl.list = vi.fn().mockResolvedValue(Array.from({ length: 20 }, (_, i) => teamSummary(`t${i}`)));
+        ctrl.get = vi.fn(async (id: string) => {
+            active++;
+            maxActive = Math.max(maxActive, active);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            active--;
+            return teamDetail(id);
+        });
+
+        await store.load();
+        await store.prefetchPreviews();
+        expect(ctrl.get).toHaveBeenCalledTimes(20);
+        expect(maxActive).toBeLessThanOrEqual(4);
+        expect(Object.keys(store.previews)).toHaveLength(20);
+
+        ctrl.get = vi.fn();
+        await store.prefetchPreviews();
+        expect(ctrl.get).not.toHaveBeenCalled();
+    });
+
+    it('重复调用复用同一个预取任务（不重复发请求）', async () => {
+        const store = useTeamsStore();
+        const gate = deferred<ReturnType<typeof teamDetail>>();
+        ctrl.list = vi.fn().mockResolvedValue([teamSummary('t1')]);
+        ctrl.get = vi.fn(() => gate.promise);
+
+        await store.load();
+        // Pinia 会包装 action 返回的 Promise（每次调用拿到新包装），因此断言底层只发一次请求
+        const a = store.prefetchPreviews();
+        const b = store.prefetchPreviews();
+        expect(ctrl.get).toHaveBeenCalledTimes(1);
+
+        gate.resolve(teamDetail('t1'));
+        await Promise.all([a, b]);
+        expect(store.previews.t1).toBeDefined();
+    });
+
+    it('404 → 摘除摘要并丢弃预览', async () => {
+        const store = useTeamsStore();
+        ctrl.list = vi.fn().mockResolvedValue([teamSummary('gone'), teamSummary('ok')]);
+        ctrl.get = vi.fn(async (id: string) => {
+            if (id === 'gone') throw new RestRequestError('x', 404, { code: 'NOT_FOUND' });
+            return teamDetail(id);
+        });
+
+        await store.load();
+        await store.prefetchPreviews();
+
+        expect(store.summaries.map((s) => s.id)).toEqual(['ok']);
+        expect(store.previews.gone).toBeUndefined();
+        expect(store.previews.ok).toBeDefined();
+    });
+
+    it('401 → 停止剩余请求且不抛错', async () => {
+        const store = useTeamsStore();
+        ctrl.list = vi.fn().mockResolvedValue(Array.from({ length: 20 }, (_, i) => teamSummary(`t${i}`)));
+        ctrl.get = vi.fn().mockRejectedValue(new RestRequestError('过期', 401, { code: 'UNAUTHENTICATED' }));
+
+        await store.load();
+        await expect(store.prefetchPreviews()).resolves.toBeUndefined();
+        expect(ctrl.get.mock.calls.length).toBeLessThanOrEqual(4);
+        expect(store.previews).toEqual({});
+    });
+
+    it('open() 写预览，且草稿改动不影响缓存（克隆隔离）', async () => {
+        const store = useTeamsStore();
+        ctrl.get = vi.fn().mockResolvedValue(teamDetail('srv-id', [{ species_id: 25 }]));
+
+        await store.open('srv-id');
+        expect(store.previews['srv-id'].members).toHaveLength(1);
+
+        store.draftPayload.members.push(emptyMember(6));
+        expect(store.previews['srv-id'].members).toHaveLength(1);
+    });
+
+    it('save() 成功后写预览', async () => {
+        const store = useTeamsStore();
+        store.beginCreate('新队');
+        store.replacePayload(normalizePayload({ format: 'doubles', members: [{ species_id: 25 }] }));
+        ctrl.create = vi.fn().mockResolvedValue({ ...teamDetail('srv-new', [{ species_id: 25 }], 'doubles') });
+
+        const out = await store.save();
+        expect(out).toEqual({ status: 'saved', id: 'srv-new' });
+        expect(store.previews['srv-new'].format).toBe('doubles');
+        expect(store.previews['srv-new'].members).toHaveLength(1);
+    });
+
+    it('load(force) 按 updated_at 失效：变更才重拉，删除的 id 清缓存', async () => {
+        const store = useTeamsStore();
+        ctrl.list = vi.fn().mockResolvedValue([{ ...teamSummary('t1'), updated_at: 'u1' }]);
+        ctrl.get = vi.fn().mockResolvedValue({ ...teamDetail('t1'), updated_at: 'u1' });
+        await store.load();
+        await store.prefetchPreviews();
+
+        // updated_at 未变 → 不重拉
+        ctrl.get = vi.fn().mockResolvedValue({ ...teamDetail('t1'), updated_at: 'u1' });
+        await store.load(true);
+        await store.prefetchPreviews();
+        expect(ctrl.get).not.toHaveBeenCalled();
+
+        // updated_at 变化 → 重拉并覆盖
+        ctrl.list = vi.fn().mockResolvedValue([{ ...teamSummary('t1'), updated_at: 'u2' }]);
+        ctrl.get = vi.fn().mockResolvedValue({
+            ...teamDetail('t1', [{ species_id: 6 }]),
+            updated_at: 'u2',
+        });
+        await store.load(true);
+        await store.prefetchPreviews();
+        expect(ctrl.get).toHaveBeenCalledTimes(1);
+        expect(store.previews.t1.members[0].species_id).toBe(6);
+
+        // 摘要被删除 → 预览一并清掉
+        ctrl.list = vi.fn().mockResolvedValue([]);
+        await store.load(true);
+        await store.prefetchPreviews();
+        expect(store.previews).toEqual({});
+    });
+
+    it('未登录 load 清空预览', async () => {
+        const store = useTeamsStore();
+        store.previews = { stale: normalizePayload({ format: 'singles', members: [] }) };
+        ctrl.isAuth = false;
+
+        await store.load();
+        expect(store.previews).toEqual({});
+    });
+
+    it('登出后到达的过期详情不会写回缓存', async () => {
+        const store = useTeamsStore();
+        const gate = deferred<ReturnType<typeof teamDetail>>();
+        ctrl.list = vi.fn().mockResolvedValue([teamSummary('t1')]);
+        ctrl.get = vi.fn(() => gate.promise);
+
+        await store.load(); // 预取在途
+        ctrl.isAuth = false;
+        await store.load(); // 清空缓存并让在途任务作废
+
+        gate.resolve(teamDetail('t1'));
+        await store.prefetchPreviews();
+        expect(store.previews).toEqual({});
     });
 });

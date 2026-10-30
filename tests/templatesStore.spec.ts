@@ -307,3 +307,174 @@ describe('删除云端条目', () => {
         expect(store.records.some((r) => r.id === 'srv-1')).toBe(true);
     });
 });
+
+// ── 列表缩略图预取（previews） ─────────────────────────
+
+function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+    return { promise, resolve, reject };
+}
+
+describe('列表缩略图预取', () => {
+    it('load 先返回摘要，详情在后台填充 previews；records.payload 保持 null', async () => {
+        const store = newStore();
+        const gate = deferred<ReturnType<typeof full>>();
+        ctrl.list = vi.fn().mockResolvedValue([summary('srv-1', '云端')]);
+        ctrl.get = vi.fn(() => gate.promise);
+
+        await store.load();
+        expect(store.records[0].payload).toBeNull();
+        expect(store.previews).toEqual({});
+
+        gate.resolve(full('srv-1', '云端'));
+        await store.prefetchPreviews();
+
+        // 设计：cloud records 不合并 preview，行组件单独接收 preview prop
+        expect(store.records[0].payload).toBeNull();
+        expect(store.previews['srv-1']?.pokemon_id).toBe(6);
+    });
+
+    it('4 并发预取；已缓存 / 无新增时不重复请求', async () => {
+        const store = newStore();
+        let active = 0;
+        let maxActive = 0;
+        ctrl.list = vi.fn().mockResolvedValue(Array.from({ length: 20 }, (_, i) => summary(`srv-${i}`)));
+        ctrl.get = vi.fn(async (id: string) => {
+            active++;
+            maxActive = Math.max(maxActive, active);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            active--;
+            return full(id, id);
+        });
+
+        await store.load();
+        await store.prefetchPreviews();
+        expect(ctrl.get).toHaveBeenCalledTimes(20);
+        expect(maxActive).toBeLessThanOrEqual(4);
+        expect(Object.keys(store.previews)).toHaveLength(20);
+
+        ctrl.get = vi.fn();
+        await store.prefetchPreviews();
+        expect(ctrl.get).not.toHaveBeenCalled();
+    });
+
+    it('本地草稿不触发详情请求', async () => {
+        const store = newStore();
+        store.beginCreate('草稿');
+        store.replacePayload(payload());
+        store.saveDraft();
+
+        await store.load();
+        await store.prefetchPreviews();
+        expect(ctrl.get).not.toHaveBeenCalled();
+        expect(store.previews).toEqual({});
+        expect(store.records).toHaveLength(1);
+    });
+
+    it('404 → 摘除云端记录并丢弃预览', async () => {
+        const store = newStore();
+        ctrl.list = vi.fn().mockResolvedValue([summary('gone'), summary('ok')]);
+        ctrl.get = vi.fn(async (id: string) => {
+            if (id === 'gone') throw new RestRequestError('x', 404, { code: 'NOT_FOUND' });
+            return full(id, id);
+        });
+
+        await store.load();
+        await store.prefetchPreviews();
+
+        expect(store.cloudSummaries.map((s) => s.id)).toEqual(['ok']);
+        expect(store.previews.gone).toBeUndefined();
+        expect(store.previews.ok).toBeDefined();
+    });
+
+    it('401 → 停止剩余请求且不抛错', async () => {
+        const store = newStore();
+        ctrl.list = vi.fn().mockResolvedValue(Array.from({ length: 20 }, (_, i) => summary(`srv-${i}`)));
+        ctrl.get = vi.fn().mockRejectedValue(new RestRequestError('过期', 401, { code: 'UNAUTHENTICATED' }));
+
+        await store.load();
+        await expect(store.prefetchPreviews()).resolves.toBeUndefined();
+        expect(ctrl.get.mock.calls.length).toBeLessThanOrEqual(4);
+        expect(store.previews).toEqual({});
+    });
+
+    it('open() 写预览，且草稿改动不影响缓存（克隆隔离）', async () => {
+        const store = newStore();
+        ctrl.get = vi.fn().mockResolvedValue(full('srv-1', '云端'));
+
+        await store.open('srv-1');
+        expect(store.previews['srv-1']?.pokemon_id).toBe(6);
+
+        store.draftPayload?.moves.push(1);
+        expect(store.previews['srv-1']?.moves).toEqual([]);
+    });
+
+    it('save() 成功后写预览', async () => {
+        const store = newStore();
+        store.beginCreate('新模板');
+        store.replacePayload(payload());
+        ctrl.create = vi.fn().mockResolvedValue(full('srv-new', '新模板'));
+
+        const out = await store.save();
+        expect(out).toEqual({ status: 'saved', id: 'srv-new' });
+        expect(store.previews['srv-new']?.pokemon_id).toBe(6);
+    });
+
+    it('load(force) 按 updated_at 失效：变更才重拉，删除的 id 清缓存', async () => {
+        const store = newStore();
+        ctrl.list = vi.fn().mockResolvedValue([summary('srv-1', '云端', 'u1')]);
+        ctrl.get = vi.fn().mockResolvedValue({ ...full('srv-1', '云端'), updated_at: 'u1' });
+        await store.load();
+        await store.prefetchPreviews();
+
+        ctrl.get = vi.fn().mockResolvedValue({ ...full('srv-1', '云端'), updated_at: 'u1' });
+        await store.load(true);
+        await store.prefetchPreviews();
+        expect(ctrl.get).not.toHaveBeenCalled();
+
+        ctrl.list = vi.fn().mockResolvedValue([summary('srv-1', '云端', 'u2')]);
+        ctrl.get = vi.fn().mockResolvedValue({
+            ...full('srv-1', '云端'),
+            payload: { ...payload(), pokemon_id: 25 },
+            updated_at: 'u2',
+        });
+        await store.load(true);
+        await store.prefetchPreviews();
+        expect(ctrl.get).toHaveBeenCalledTimes(1);
+        expect(store.previews['srv-1']?.pokemon_id).toBe(25);
+
+        ctrl.list = vi.fn().mockResolvedValue([]);
+        await store.load(true);
+        await store.prefetchPreviews();
+        expect(store.previews).toEqual({});
+    });
+
+    it('未登录 load 清空预览（本地草稿保留）', async () => {
+        const store = newStore();
+        store.previews = { stale: payload() };
+        ctrl.isAuth = false;
+
+        await store.load();
+        expect(store.previews).toEqual({});
+    });
+
+    it('登出后到达的过期详情不会写回缓存', async () => {
+        const store = newStore();
+        const gate = deferred<ReturnType<typeof full>>();
+        ctrl.list = vi.fn().mockResolvedValue([summary('srv-1', '云端')]);
+        ctrl.get = vi.fn(() => gate.promise);
+
+        await store.load(); // 预取在途
+        ctrl.isAuth = false;
+        await store.load(); // 清空缓存并让在途任务作废
+
+        gate.resolve(full('srv-1', '云端'));
+        await store.prefetchPreviews();
+        expect(store.previews).toEqual({});
+    });
+});

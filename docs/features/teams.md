@@ -10,7 +10,11 @@
 
 - 未登录 → 登录引导卡（`authGate.open()`，不主动弹层）。
 - 已登录 → 摘要列表（`store.load(true)`，按 updated_at 降序）；空态 + 「新建队伍」。
-- 行：`teams/TeamListRow.vue`（队名 + 更新时间 UTC + chevron；管理态行前出勾选圈、chevron 隐藏）。
+- 行：`teams/TeamListRow.vue` 两行式 —— 第一行队名 + 更新时间 UTC + chevron；第二行
+  `teams/TeamMemberStrip.vue` 最多 6 个 32px 精灵槽（未满留虚线空槽）+ `n/6 · 单打/双打`。
+  管理态行前出勾选圈、chevron 与 meta 隐藏。摘要列表本不含 payload，列表页进入后由
+  `store.prefetchPreviews()` 4 并发后台拉详情填充缩略图（仅内存、按 `updated_at` 失效，
+  不阻塞列表渲染）。
 - 列表导航栏「编辑」进多选管理态：勾选圈批量删除（`uni.showModal` 二次确认 → 顺序 `store.remove`，
   云端首个过 `confirmLogin`）；管理态点行仍进编辑页。改名在编辑页名称输入框随保存提交，无独立重命名入口。
 - 「新建队伍」下有次级按钮「导入分享码」（见 §3）。
@@ -57,7 +61,8 @@
 ## 数据流
 
 - HTTP：`api/teams.ts` 走 `rest`（自动补 `/api/v1`，Bearer 头，204 用 text）。
-- 状态/编排：`store/teams.ts` —— 摘要缓存、`draftName/draftPayload`、登录闸门、错误码分支。
+- 状态/编排：`store/teams.ts` —— 摘要缓存、`previews` 缩略图缓存（4 并发后台拉详情）、
+  `draftName/draftPayload`、登录闸门、错误码分支。
 - 归一/校验：`team-model.ts` 纯函数（成员≤6、招式去重≤4、SP clamp、未知字段保留、
   名字 1–50、payload ≤32KiB）。
 - 成员选项：`member-options.ts`（形态 abilityEntries → 特性 id；`loadMovesForPokemon` 去重）。
