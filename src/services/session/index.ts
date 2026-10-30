@@ -7,7 +7,7 @@ export { getToken, setToken, getRefreshToken, setRefreshToken, isAuthenticated, 
 
 export { getKey, clearKeyCache } from './key';
 
-export { refreshSessionOnce } from './refresh';
+export { refreshSessionOnce, ensureFreshSession } from './refresh';
 
 export { confirmLogin } from './confirmLogin';
 

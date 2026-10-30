@@ -18,7 +18,7 @@ import { defineStore } from 'pinia';
 import { authApi, teamsApi } from '@/services/api';
 import type { TeamSummary } from '@/services/api/teams';
 import { RestRequestError } from '@/services/http';
-import { clearSession, confirmLogin, isAuthenticated } from '@/services/session';
+import { clearSession, confirmLogin, ensureFreshSession, isAuthenticated } from '@/services/session';
 import { emptyPayload, normalizePayload, validateTeam, type TeamPayload } from '@/services/teams/team-model';
 import { mapWithConcurrency } from '@/utils/concurrency';
 
@@ -193,6 +193,13 @@ export const useTeamsStore = defineStore('teams', () => {
         needsLogin.value = false;
         if (listLoaded.value && !force) {
             void prefetchPreviews();
+            return;
+        }
+        // access 过期时先续期，避免列表请求先打一发必 401 的请求再重试。
+        if (!(await ensureFreshSession())) {
+            needsLogin.value = true;
+            summaries.value = [];
+            clearPreviews();
             return;
         }
 

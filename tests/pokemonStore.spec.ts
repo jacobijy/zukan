@@ -55,6 +55,7 @@ vi.mock('@/services/api', () => ({
 }));
 vi.mock('@/services/session', () => ({
     isAuthenticated: () => false,
+    ensureFreshSession: () => Promise.resolve(false),
     // 收藏筛选用例：闸门一律放行（等价于已确认登录），聚焦 store 自身行为
     confirmLogin: () => Promise.resolve(true),
 }));

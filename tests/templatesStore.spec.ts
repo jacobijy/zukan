@@ -16,6 +16,7 @@ const ctrl = vi.hoisted<Record<string, any>>(() => ({}));
 
 vi.mock('@/services/session', () => ({
     isAuthenticated: () => ctrl.isAuth,
+    ensureFreshSession: () => Promise.resolve(ctrl.isAuth),
     confirmLogin: () => ctrl.confirmLogin(),
     clearSession: () => {
         ctrl.sessionCleared = true;

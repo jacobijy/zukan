@@ -14,9 +14,13 @@
 
 import { refresh } from '@/services/api/auth';
 import { setUnauthorizedHandler } from '@/services/http';
-import { clearSession, getRefreshToken } from './token';
+import { clearSession, getRefreshToken, getToken } from './token';
+import { jwtExpiresAt } from '@/utils/jwt';
 
 let inFlight: Promise<boolean> | null = null;
+
+/** 提前 60s 视为过期：避免请求在途中跨过 exp 边界。 */
+const EXPIRY_SKEW_SECONDS = 60;
 
 /**
  * 用 refresh token 换新 access token；并发共享同一次请求。
@@ -41,6 +45,29 @@ export function refreshSessionOnce(): Promise<boolean> {
         });
     inFlight = p;
     return p;
+}
+
+/**
+ * 在打「需要登录」的请求前确保 access token 未过期：
+ * - 未登录 / 解析不出 exp → false / true（前者不请求，后者交给 401 恢复兜底）；
+ * - 仍有效 → true，不发任何请求；
+ * - 已过期（或 60s 内过期）→ 主动 refresh，避免先打一发必 401 的请求再重试。
+ *
+ * 用于启动时的收藏拉取：浏览器刷新后 access 往往已过期，不提前刷新会在
+ * Network 里留下一次 401。refresh 失败会清会话并返回 false。
+ */
+export async function ensureFreshSession(): Promise<boolean> {
+    const token = getToken();
+    if (!token) return false;
+    const exp = jwtExpiresAt(token);
+    if (exp === null) return true;
+
+    const now = Math.floor(Date.now() / 1000);
+    if (exp - now > EXPIRY_SKEW_SECONDS) return true;
+
+    const refreshed = await refreshSessionOnce();
+    if (!refreshed) clearSession();
+    return refreshed;
 }
 
 // http REST 层遇 401 时自动走这里的恢复；模块被任一会话入口 import 即生效。

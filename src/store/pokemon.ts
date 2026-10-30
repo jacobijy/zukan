@@ -1,6 +1,6 @@
 import { fetchPokemonList, type NameResolvers } from '@/services/pokemon';
 import { favoritesApi } from '@/services/api';
-import { confirmLogin, isAuthenticated } from '@/services/session';
+import { confirmLogin, ensureFreshSession, isAuthenticated } from '@/services/session';
 import { useI18nStore } from '@/store/i18n';
 import { dexNumber, padId } from '@/utils/helpers';
 import { filterAndSortPokemons, type DexFilterCriteria } from '@/utils/dexFilter';
@@ -155,6 +155,12 @@ export const usePokemonStore = defineStore('pokemon', () => {
         }
         if (favoritesLoaded.value && !force) return;
         try {
+            // 刷新页面后 access 常常已过期：先续期再拉，避免先打一发必 401 的请求。
+            if (!(await ensureFreshSession())) {
+                favorites.value = [];
+                favoritesLoaded.value = false;
+                return;
+            }
             const ids = await favoritesApi.listFavorites();
             // 再守一道不变量：favorites 必须是有限数字数组，脏数据不灌进筛选 / UI。
             favorites.value = ids.filter((id) => typeof id === 'number' && Number.isFinite(id));

@@ -23,6 +23,7 @@ vi.mock('@/services/api', () => ({
 }));
 vi.mock('@/services/session', () => ({
     isAuthenticated: () => ctrl.isAuth,
+    ensureFreshSession: () => Promise.resolve(ctrl.isAuth),
     confirmLogin: () => ctrl.confirmLogin(),
 }));
 

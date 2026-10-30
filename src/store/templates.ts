@@ -24,7 +24,7 @@ import { defineStore } from 'pinia';
 import { authApi, templatesApi } from '@/services/api';
 import type { Template, TemplateSummary } from '@/services/api/templates';
 import { RestRequestError } from '@/services/http';
-import { clearSession, confirmLogin, isAuthenticated } from '@/services/session';
+import { clearSession, confirmLogin, ensureFreshSession, isAuthenticated } from '@/services/session';
 import {
     emptyTemplate,
     normalizePayload,
@@ -312,6 +312,14 @@ export const useTemplatesStore = defineStore('templates', () => {
         needsLogin.value = false;
         if (listLoaded && !force) {
             void prefetchPreviews();
+            return;
+        }
+        // access 过期时先续期，避免列表请求先打一发必 401 的请求再重试。
+        if (!(await ensureFreshSession())) {
+            needsLogin.value = true;
+            cloudSummaries.value = [];
+            clearPreviews();
+            listLoaded = false;
             return;
         }
 

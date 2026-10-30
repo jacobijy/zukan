@@ -29,6 +29,18 @@ CDN 403 重签时各再调一次。
 - refresh 本身并发去重（`refreshPromise`），6 个调用点并发只打一次 `/auth/refresh`。
 - 用户关闭登录层抛 `LoginDismissedError`，调用方**静默降级**（不重试、不报错）。
 
+### 启动时提前续期：`ensureFreshSession()`
+
+浏览器刷新后 access 往往已过期（后端 access TTL 15 分钟）。收藏、队伍、模板列表在打
+取数请求前先调 `ensureFreshSession()`：
+
+- 解 JWT 的 `exp`（`utils/jwt.ts`，**不验签**，仅本地判断）；剩余 > 60s 直接放行，不产生请求；
+- 已过期 / 快过期 → 先 `/auth/refresh`（与 401 恢复共用同一份并发去重），成功后再拉数据；
+- refresh 失败 → `clearSession()`，列表转登录引导。
+
+这样 Network 里不会先出现一次必 401 的 `/favorites`（或 teams / templates）再重试。
+401 自动恢复仍然保留，覆盖「用着用着过期」等场景。
+
 ## `authGate` 是模块级单例
 
 `authGate.ts` 负责登录弹层去重 —— 6 个 getKey 调用点不会各开一个弹窗。
