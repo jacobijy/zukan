@@ -59,11 +59,11 @@ tools/                         # 数据处理脚本（python / typescript）
 | 宝可梦详情 | `pages/detail/detail` | 键页 |
 | 功能中心 | `pages/features/features` | 导航枢纽 |
 | 资料中心 | `pages/data/data` | 键页 |
-| 个人中心 | `pages/mine/mine` | 键页 |
+| 个人中心 | `pages/mine/mine` | 键页（训练师卡：已登录点头像更换本机头像，未登录点按登录；退出登录在设置页） |
 | 伤害计算器 | `pages/calc/calc` | 键页（计算引擎在 `calc-engine.ts`） |
 | 能力值计算器 | `pages/statcalc/statcalc` | 键页（纯 TS 公式在 `statcalc-engine.ts`，性格表在 `statcalc-options.ts`） |
 | 对战模拟器 | `pages/simulate/simulate` | **UI 骨架**（`noop` 占位，无实际交互） |
-| 设置 | `pages/settings/settings` | 子页（`DetailNavbar`，语言等系统设置；点选项弹 `OptionSheet`） |
+| 设置 | `pages/settings/settings` | 子页（`DetailNavbar`，语言设置 + 账号退出登录；点选项弹 `OptionSheet`） |
 | 属性/招式/特性/道具图鉴 | `pages/archive/*` | 资料中心四个栏目，列表页 + 详情页共 8 个（`types`/`type-detail`、`moves`/`move-detail`、`abilities`/`ability-detail`、`items`/`item-detail`）；数据流见 [../features/archive.md](../features/archive.md) |
 | 开发者工具 | `pages/devtools/devtools` | **dev-only 子页**（我的 → 开发者工具）：资源探测器（取密文 → 解密 → 显示，绕开缓存）+ 文本浏览（走 resourceManager）。门禁 `import.meta.env.DEV`，实现体动态 import，正式构建被 Rollup 剔除。见 [../security/encryption-pipeline.md](../security/encryption-pipeline.md) 6.0 / 6.0.1 |
 | 对战数据 | `pages/meta/meta`、`pages/meta/pokemon-meta` | 子页 ×2（资料中心 → 对战详情）：使用率排行榜（上游只给名次无 %）+ 对战配置（选用率 / SP 加点 / 队友）；明文公开 JSON，见 [../data/battle-usage.md](../data/battle-usage.md)、[../features/metagame-usage.md](../features/metagame-usage.md) |

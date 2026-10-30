@@ -39,6 +39,13 @@
                         </template>
                     </ListRow>
                 </view>
+
+                <template v-if="loggedIn">
+                    <text class="section-label mt-3">{{ t('settings.sectionAccount') }}</text>
+                    <view class="glass-panel account-panel">
+                        <button class="logout-btn" @click="onLogout">{{ t('settings.logout') }}</button>
+                    </view>
+                </template>
             </view>
         </scroll-view>
 
@@ -63,8 +70,11 @@
 
 <script lang="ts" setup>
 import { usePageSafeArea } from '@/composables/usePageSafeArea';
+import { useLogout } from '@/composables/useLogout';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { onShow } from '@dcloudio/uni-app';
+import { isAuthenticated } from '@/services/session';
 import { interp } from '@/services/i18n/ui-i18n';
 import { glyph } from '@/components/icon/glyphs';
 import DetailNavbar from '@/components/shared/DetailNavbar.vue';
@@ -86,9 +96,16 @@ const pageSafeArea = usePageSafeArea();
 
 const { t } = useI18n();
 const i18nStore = useI18nStore();
+const { logout } = useLogout();
 
 const uiSheetOpen = ref(false);
 const contentSheetOpen = ref(false);
+
+/** 退出登录按钮仅登录后显示；设置页可能在登录态变化后被重新打开。 */
+const loggedIn = ref(isAuthenticated());
+onShow(() => {
+    loggedIn.value = isAuthenticated();
+});
 
 // ── 选项：把「跟随系统」作为首项注入 ──
 
@@ -166,7 +183,54 @@ async function onContentChange(value: string | string[]) {
     await i18nStore.setContentLang(id);
 }
 
+function onLogout(): void {
+    uni.showModal({
+        title: t('mine.logoutTitle'),
+        content: t('mine.logoutContent'),
+        confirmText: t('settings.logout'),
+        cancelText: t('common.cancel'),
+        success: (res) => {
+            if (!res.confirm) return;
+            logout();
+            loggedIn.value = false;
+            uni.showToast({ title: t('mine.toastLoggedOut'), icon: 'none' });
+            uni.navigateBack();
+        },
+    });
+}
+
 const goBack = () => {
     // DetailNavbar 内部已处理 navigateBack
 };
 </script>
+
+<style lang="scss" scoped>
+.account-panel {
+    padding: 10px;
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 48px;
+    margin: 0;
+    padding: 0;
+    border: 1.5px solid rgba(224, 79, 71, 0.28);
+    border-radius: 14px;
+    color: #e04f47;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 48px;
+    background: #fff6f5;
+
+    &::after {
+        border: none !important;
+    }
+
+    &:active {
+        transform: scale(0.99);
+    }
+}
+</style>

@@ -1,7 +1,28 @@
 <template>
     <TabPageShell :title="t('mine.title')" :tabIndex="3" @tab-change="onTabChange">
         <view class="trainer-card glass-panel mb-6" @click="onTrainerCardClick">
-            <PokeballLogo :size="60" variant="blue" />
+            <view class="trainer-card__avatar" @click.stop="onAvatarClick">
+                <image
+                    v-if="loggedIn && avatarUrl"
+                    :src="avatarUrl"
+                    mode="aspectFill"
+                    class="trainer-card__avatar-img"
+                    @error="onAvatarError"
+                />
+                <PokeballLogo v-else :size="60" variant="blue" />
+                <!-- 已登录时提示头像可替换 -->
+                <view v-if="loggedIn" class="trainer-card__avatar-badge">
+                    <!-- #ifdef MP-WEIXIN -->
+                    <text class="ic text-[12px]">{{ glyph('refresh-ccw') }}</text>
+                    <!-- #endif -->
+                    <!-- #ifndef MP-WEIXIN -->
+                    <svg data-ic="refresh-ccw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
+                        <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                    </svg>
+                    <!-- #endif -->
+                </view>
+            </view>
             <view class="min-w-0 flex-1">
                 <text v-if="loggedIn" class="block text-[20px] font-bold leading-6 tracking-[-0.03em] text-[#24262b]">{{ t('mine.trainer') }}</text>
                 <text v-else class="block text-[20px] font-bold leading-6 tracking-[-0.03em] text-[#24262b]">{{ t('mine.loggedOut') }}</text>
@@ -65,15 +86,14 @@ import LoginModal from "@/components/shared/LoginModal.vue";
 import AccountBindings from "@/components/shared/AccountBindings.vue";
 import PokeballLogo from "@/components/shared/PokeballLogo.vue";
 import HubIcon, { type HubIconName } from '@/components/shared/HubIcon.vue';
-import { isAuthenticated, clearSession } from '@/services/session';
-import { clearSpriteCache, clearItemIconCache } from '@/services/resources';
+import { glyph } from '@/components/icon/glyphs';
+import { isAuthenticated } from '@/services/session';
 import { devtoolsEnabled } from '@/services/devtools/enabled';
 import { authGate } from '@/services/session/authGate';
 import { detectPlatform } from '@/infra/platform';
 import { selectVisibleProviders } from '@/services/platform/providerConfig';
+import { AvatarError, clearAvatar, getAvatar, pickAvatar } from '@/services/profile/avatar';
 import { usePokemonStore } from '@/store/pokemon';
-import { useTeamsStore } from '@/store/teams';
-import { useTemplatesStore } from '@/store/templates';
 import { useI18nStore } from '@/store/i18n';
 import { useI18n } from 'vue-i18n';
 import { interp } from '@/services/i18n/ui-i18n';
@@ -92,8 +112,6 @@ interface MenuItem {
 }
 
 const pokemonStore = usePokemonStore();
-const teamsStore = useTeamsStore();
-const templatesStore = useTemplatesStore();
 const { favorites } = storeToRefs(pokemonStore);
 const i18nStore = useI18nStore();
 const { t } = useI18n();
@@ -116,42 +134,71 @@ const showLogin = computed({
 });
 
 const loggedIn = ref(isAuthenticated());
-// 页面由 switchTab 保活、不再重跑 setup，onShow 时刷新登录态
-// （用户在别处登录/登出后切到本页也能正确反映）
+/** 本机头像（data URL 或 USER_DATA_PATH 文件路径）；空 = 用默认精灵球。 */
+const avatarUrl = ref(getAvatar());
+const avatarBusy = ref(false);
+// 页面由 switchTab 保活、不再重跑 setup，onShow 时刷新登录态与头像
+// （用户在别处登录/登出或更换头像后切到本页也能正确反映）
 onShow(() => {
     loggedIn.value = isAuthenticated();
+    avatarUrl.value = getAvatar();
 });
 
 // 平台在页面生命周期内不变；默认（未配置 VITE_AUTH_PROVIDERS）为 []，绑定区不出现。
 const visibleProviders = selectVisibleProviders(detectPlatform());
 
+/** 卡片本身只作为未登录时的登录入口；退出登录已移到设置页。 */
 function onTrainerCardClick() {
-    if (loggedIn.value) {
-        uni.showModal({
-            title: t('mine.logoutTitle'),
-            content: t('mine.logoutContent'),
-            success: (res) => {
-                if (res.confirm) {
-                    clearSession();
-                    // sprite / 道具图是用旧 DEK 解出来的，登出后一并撤销所有 Blob URL。
-                    // 放在这里而不是 clearSession() 里：session 层引入 resources
-                    // 会形成 session ⇄ resources 循环依赖。
-                    clearSpriteCache();
-                    clearItemIconCache();
-                    // 收藏已纯后端化：登出清空内存，避免下一账号看到上一账号的收藏。
-                    pokemonStore.resetFavorites();
-                    // 队伍 / 模板列表缩略图缓存同理：payload 属于当前账号。
-                    teamsStore.clearPreviews();
-                    templatesStore.clearPreviews();
-                    loggedIn.value = false;
-                    uni.showToast({ title: t('mine.toastLoggedOut'), icon: 'none' });
-                }
-            }
-        });
-    } else {
-        // 复用全局 gate，避免与首页的自动登录弹层各开一个。
+    if (!loggedIn.value) authGate.open();
+}
+
+function onAvatarClick() {
+    if (!loggedIn.value) {
         authGate.open();
+        return;
     }
+    if (!avatarUrl.value) {
+        void changeAvatar();
+        return;
+    }
+    uni.showActionSheet({
+        itemList: [t('mine.avatarChange'), t('mine.avatarReset')],
+        success: (res) => {
+            if (res.tapIndex === 0) void changeAvatar();
+            else if (res.tapIndex === 1) resetAvatar();
+        },
+        fail: () => {},
+    });
+}
+
+async function changeAvatar(): Promise<void> {
+    if (avatarBusy.value) return;
+    avatarBusy.value = true;
+    try {
+        const src = await pickAvatar();
+        if (src) {
+            avatarUrl.value = src;
+            uni.showToast({ title: t('mine.avatarUpdated'), icon: 'none' });
+        }
+    } catch (err) {
+        console.warn('[mine] 更换头像失败', err);
+        const key = err instanceof AvatarError && err.reason === 'too-large' ? 'mine.avatarTooLarge' : 'mine.avatarFailed';
+        uni.showToast({ title: t(key), icon: 'none' });
+    } finally {
+        avatarBusy.value = false;
+    }
+}
+
+function resetAvatar(): void {
+    clearAvatar();
+    avatarUrl.value = '';
+    uni.showToast({ title: t('mine.avatarUpdated'), icon: 'none' });
+}
+
+/** 文件被系统清理 / data URL 失效时回落到默认精灵球。 */
+function onAvatarError(): void {
+    clearAvatar();
+    avatarUrl.value = '';
 }
 
 function onLoginSuccess() {
@@ -191,6 +238,41 @@ const onTabChange = (_index: number) => {
     align-items: center;
     gap: 14px;
     padding: 16px;
+}
+
+.trainer-card__avatar {
+    position: relative;
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+
+    &:active {
+        transform: scale(0.96);
+    }
+}
+
+.trainer-card__avatar-img {
+    display: block;
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    background: #eef1f6;
+    box-shadow: 0 10px 20px rgba(63, 70, 86, 0.12);
+}
+
+.trainer-card__avatar-badge {
+    position: absolute;
+    right: -4px;
+    bottom: -4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    color: #e04f47;
+    background: #ffffff;
+    box-shadow: 0 3px 8px rgba(48, 55, 72, 0.18);
 }
 
 .trainer-card__badge {
