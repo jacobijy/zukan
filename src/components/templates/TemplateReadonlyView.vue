@@ -170,6 +170,12 @@ function statTotal(s: Stats): number {
     gap: 14px;
 }
 
+/* 白卡内边距与编辑模式（edit-head / moves-panel / field-row，均 14px）对齐；
+ * 漏掉时文字贴着卡片边缘，会被圆角 + overflow:hidden 切掉半个字。 */
+.tpl-ro__hero {
+    padding: 14px;
+}
+
 .tpl-ro__hero-main {
     display: flex;
     align-items: center;
@@ -233,6 +239,7 @@ function statTotal(s: Stats): number {
 .tpl-ro__rows {
     display: flex;
     flex-direction: column;
+    padding: 0 14px;
 }
 
 .tpl-ro__row {
@@ -274,6 +281,7 @@ function statTotal(s: Stats): number {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    padding: 14px;
 }
 
 .tpl-ro__section-head {
