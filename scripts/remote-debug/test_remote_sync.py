@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import subprocess
 import sys
 import tempfile
@@ -9,8 +10,10 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
+import pull
 from remote_sync import (
     ChangeEntry,
+    build_remote_manifest_command,
     build_rsync_command,
     build_sftp_batch,
     build_sftp_command,
@@ -18,9 +21,13 @@ from remote_sync import (
     classify_change,
     get_target_config,
     human_size,
+    local_manifest,
     parse_config,
+    parse_remote_manifest,
+    plan_sftp_changes,
     run_rsync,
     run_sftp_fetch,
+    settle_sftp_sync,
     settle_sync,
 )
 
@@ -367,6 +374,125 @@ class SftpFetchTests(unittest.TestCase):
             )
         self.assertIn("Permission denied", str(caught.exception))
         self.assertIn("/remote", str(caught.exception))
+
+
+def md5(data: bytes) -> str:
+    return hashlib.md5(data).hexdigest()
+
+
+def manifest_stdout(files: dict[str, bytes]) -> str:
+    """构造 ssh 远端清单命令的输出（大小段 + 分隔符 + MD5 段）。"""
+    sizes = "".join(f"{len(data)}\t./{path}\n" for path, data in files.items())
+    hashes = "".join(f"{md5(data)}  ./{path}\n" for path, data in files.items())
+    return sizes + "--HASH--\n" + hashes
+
+
+class SftpSyncFallbackTests(unittest.TestCase):
+    def test_remote_manifest_command_runs_md5_on_remote(self) -> None:
+        command = build_remote_manifest_command(
+            {"remote": "user@host", "remote_dir": "~/Code/zukan/dist", "ssh_cmd": "ssh", "ssh_port": "22"}
+        )
+        self.assertEqual(command[0], "ssh")
+        self.assertEqual(command[1], "user@host")
+        self.assertIn("~/Code/zukan/dist", command[2])
+        self.assertIn("md5sum", command[2])
+
+    def test_parse_remote_manifest_pairs_size_and_hash(self) -> None:
+        manifest = parse_remote_manifest(manifest_stdout({"a.js": b"hello", "pages/b.wxml": b"x"}))
+        self.assertEqual(
+            manifest,
+            {"a.js": (5, md5(b"hello")), "pages/b.wxml": (1, md5(b"x"))},
+        )
+        self.assertEqual(parse_remote_manifest(""), {})
+
+    def test_plan_sftp_changes_detects_create_update_delete(self) -> None:
+        remote = {"same.js": (1, "aaa"), "new.js": (2, "bbb"), "changed.js": (3, "ccc")}
+        local = {"same.js": (1, "aaa"), "changed.js": (3, "old"), "gone.js": (4, "ddd")}
+        plan = plan_sftp_changes(remote, local)
+        self.assertEqual(
+            [(entry.kind, entry.path) for entry in plan],
+            [("update", "changed.js"), ("create", "new.js"), ("delete", "gone.js")],
+        )
+        self.assertEqual(
+            [(entry.kind, entry.path) for entry in plan_sftp_changes(remote, local, mirror=False)],
+            [("update", "changed.js"), ("create", "new.js")],
+        )
+
+    def test_local_manifest_hashes_files_recursively(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            (base / "sub").mkdir()
+            (base / "a.js").write_bytes(b"a")
+            (base / "sub" / "b.js").write_bytes(b"bb")
+            manifest = local_manifest(base)
+            self.assertEqual(manifest["a.js"], (1, md5(b"a")))
+            self.assertEqual(manifest["sub/b.js"], (2, md5(b"bb")))
+
+    @patch("remote_sync.shutil.which", return_value="/usr/bin/tool")
+    @patch("remote_sync.subprocess.run")
+    def test_settle_sftp_sync_applies_after_two_stable_manifests(self, run, _which) -> None:
+        remote_files = {"a.js": b"v2", "new.js": b"n"}
+        sftp_batches: list[str] = []
+
+        def fake_run(command, **kwargs):
+            if command[0] == "ssh":
+                return subprocess.CompletedProcess(
+                    command, 0, stdout=manifest_stdout(remote_files), stderr=""
+                )
+            sftp_batches.append(kwargs.get("input", ""))
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+        run.side_effect = fake_run
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            (base / "a.js").write_bytes(b"v1")
+            (base / "gone.js").write_bytes(b"g")
+
+            output = StringIO()
+            cfg = {
+                "remote": "user@host",
+                "remote_dir": "/build",
+                "ssh_cmd": "ssh",
+                "ssh_port": "22",
+                "ssh_key": "",
+            }
+            with redirect_stdout(output):
+                pending, applied = settle_sftp_sync(cfg, base, None)
+            self.assertFalse(applied)  # 首轮只记候选
+            self.assertEqual(
+                pending, {"a.js": (2, md5(b"v2")), "new.js": (1, md5(b"n"))}
+            )
+            self.assertEqual(sftp_batches, [])
+            self.assertEqual(output.getvalue(), "")
+
+            with redirect_stdout(output):
+                pending, applied = settle_sftp_sync(cfg, base, pending)
+            self.assertTrue(applied)
+            self.assertIsNone(pending)
+            self.assertEqual(len(sftp_batches), 1)
+            self.assertIn("get a.js", sftp_batches[0])
+            self.assertIn("get new.js", sftp_batches[0])
+            self.assertNotIn("gone.js", sftp_batches[0])
+            self.assertFalse((base / "gone.js").exists())  # 镜像删除
+            self.assertIn("共 3 项", output.getvalue())
+
+
+class PullTransportTests(unittest.TestCase):
+    @patch("pull.run_sftp_sync")
+    @patch("pull.run_rsync")
+    @patch("pull.shutil.which", return_value="/usr/bin/rsync")
+    def test_sync_once_prefers_rsync(self, _which, run_rsync, run_sftp) -> None:
+        pull.sync_once({"local_dir": "/tmp/zukan"})
+        run_rsync.assert_called_once()
+        run_sftp.assert_not_called()
+
+    @patch("pull.run_sftp_sync")
+    @patch("pull.run_rsync")
+    @patch("pull.shutil.which", return_value=None)
+    def test_sync_once_falls_back_to_sftp(self, _which, run_rsync, run_sftp) -> None:
+        pull.sync_once({"local_dir": "/tmp/zukan"})
+        run_sftp.assert_called_once()
+        run_rsync.assert_not_called()
 
 
 class PullCliTests(unittest.TestCase):

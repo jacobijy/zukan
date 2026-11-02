@@ -5,17 +5,19 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
 
 from remote_sync import (
     TARGET_DEFAULTS,
-    ChangeEntry,
     get_target_config,
     load_config,
     resolve_local_path,
     run_rsync,
+    run_sftp_sync,
+    settle_sftp_sync,
     settle_sync,
 )
 
@@ -53,7 +55,10 @@ def parse_args() -> argparse.Namespace:
 
 def sync_once(target_cfg: dict[str, str]) -> None:
     local_dir = resolve_local_path(target_cfg["local_dir"])
-    run_rsync(target_cfg, local_dir)
+    if shutil.which("rsync"):
+        run_rsync(target_cfg, local_dir)
+    else:
+        run_sftp_sync(target_cfg, local_dir)
 
 
 def main() -> int:
@@ -86,13 +91,24 @@ def main() -> int:
         interval = float(target_cfg["interval"])
         if interval <= 0:
             raise ValueError("INTERVAL 必须大于 0")
-        # 上一轮 dry-run 扫描到的候选变更；连续两轮一致才真正同步，
+        # 没装 rsync 时退回 sftp：用远端内容哈希做变更检测（等价 --checksum），
+        # 变更文件逐个 get，并删除本地多余文件。
+        use_rsync = shutil.which("rsync") is not None
+        if not use_rsync:
+            print(
+                "未找到 rsync，改用 sftp 回退模式（按内容哈希逐文件下载，速度较慢）",
+                file=sys.stderr,
+            )
+        # 上一轮扫描到的候选变更；连续两轮一致才真正同步，
         # 跳过 watch 重编译“清空 → 重建”的中间态。
-        pending: list[ChangeEntry] | None = None
+        pending = None
         while True:
             try:
                 local_dir = resolve_local_path(target_cfg["local_dir"])
-                pending, _applied = settle_sync(target_cfg, local_dir, pending)
+                if use_rsync:
+                    pending, _applied = settle_sync(target_cfg, local_dir, pending)
+                else:
+                    pending, _applied = settle_sftp_sync(target_cfg, local_dir, pending)
             except Exception as exc:
                 print(f"同步失败：{exc}；{interval:g}s 后重试", file=sys.stderr)
             time.sleep(interval)

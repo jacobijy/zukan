@@ -199,14 +199,19 @@ WSL 的 `/mnt/d`），保留不了 Linux 权限位，否则每轮会把全部文
 > **连续两轮扫描结果一致**（编译已落定）才真正同步；清空后又生成相同内容时扫描为空，
 > 全程不落盘。代价是变更落地多等约 1 个轮询间隔；`--once` 不做稳定检测、立即同步一轮。
 
+> 没装 rsync 时 `pull.py` 会自动退回 sftp 模式：用 `ssh` 在远端算 `md5sum` 清单做内容
+> 比对（等价 `--checksum`），只下载变化文件并删除本地多余文件，同样带两轮稳定检测；
+> 但每轮要全量远程哈希、逐文件下载，速度明显更慢，能用 rsync 就优先用 rsync。
+
 > 不建议用 sshfs / NFS 直接挂载再让开发者工具读：FUSE 上的文件事件不可靠，
 > 开发者工具经常不自动刷新、扫描也慢。同步成本地真实目录最稳（这也是本方案
 > 与"挂载远端目录"的关键区别）。
 
 ### 方案 C（Windows）：Python + rsync
 
-Windows 使用同一份 Python 实现，但仍需安装 rsync（例如 MSYS2、Cygwin 或 WSL 提供的
-rsync），并让 `rsync` 和 `ssh` 命令可从运行 Python 的终端找到。
+Windows 使用同一份 Python 实现，推荐安装 rsync（例如 MSYS2、Cygwin 或 WSL 提供的
+rsync），并让 `rsync` 和 `ssh` 命令可从运行 Python 的终端找到；未安装 rsync 时会自动
+退回 sftp 模式（只需 OpenSSH 的 `ssh`/`sftp`）。
 
 先在 **PowerShell** 里配置免密（Windows 没有 `ssh-copy-id`）：
 
