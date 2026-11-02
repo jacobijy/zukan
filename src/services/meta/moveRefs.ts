@@ -6,11 +6,12 @@
  * damageClassId）。这里用**英文名称表**（i18n names, en 的 moves 表：id → enName）把
  * 英文名反查成 move id，再 join 招式列表。
  *
- * 重依赖（resourceManager / pokemon archive）刻意 **动态 import**，让本模块顶层无平台 /
- * 加密依赖，下面的纯函数可直接在 node 测试环境 import。
+ * 重依赖（resourceManager / pokemon archive）**必须静态 import**：小程序端动态 import
+ * 会被错编成 `await "字符串"`，解构出 undefined（历史 bug：招式反查表在小程序不可用）。
  */
 import { buildNamesLookup } from '@/services/i18n/lookup';
-import type { MoveListRow } from '@/services/pokemon/archive';
+import { resourceManager } from '@/services/resources/resourceManager';
+import { loadMoveList, type MoveListRow } from '@/services/pokemon/archive';
 
 /** 反查命中的招式数值（只留 UI 需要的两列）。 */
 export interface MoveMetaLookup {
@@ -45,10 +46,6 @@ let indexPromise: Promise<Map<string, MoveMetaLookup>> | null = null;
 let resolvedIndex: Map<string, MoveMetaLookup> | null = null;
 
 async function loadIndex(): Promise<Map<string, MoveMetaLookup>> {
-    const [{ resourceManager }, { loadMoveList }] = await Promise.all([
-        import('@/services/resources/resourceManager'),
-        import('@/services/pokemon/archive'),
-    ]);
     const bundle = await resourceManager.getI18nNames('en');
     const enNames = buildNamesLookup(bundle).moves;
     const moveList = await loadMoveList();

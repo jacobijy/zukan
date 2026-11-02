@@ -31,7 +31,7 @@
 
 | 现象 / 报错 | 平台根因 | 规避 |
 |---|---|---|
-| 动态 `import('x')` 拿到 `undefined`，或 `"x".then is not a function` | 编译器把 `import('x')` 错编成 `await "x.js"`，只 await 字符串、不加载 | **不用动态 import 断环**；靠依赖方向（注入 resolver / 纯函数 + 回调）。`moveRefs.ts` 是唯一已知例外（仅 H5 调用链） |
+| 动态 `import('x')` 拿到 `undefined`，或 `"x".then is not a function` | 编译器把 `import('x')` 错编成 `await "x.js"`，只 await 字符串、不加载 | **不用动态 import 断环**；靠依赖方向（注入 resolver / 纯函数 + 回调）。`moveRefs.ts` 曾踩过（解构出 undefined 的 resourceManager），已改静态引入 |
 | `ReferenceError: WebAssembly is not defined` | 小程序无标准 `WebAssembly` 全局 | 用 `WXWebAssembly`；vite 插件 `adaptWasmToWx` 已改 glue |
 | wasm 初始化 `invalid value type 'externref'` | 旧开发者工具的模拟引擎未开 reference-types，**wasm 本身没问题** | **先升级开发者工具再怀疑代码**；别用 `target-feature=-reference-types` 硬关 |
 | `<component is=""/> is not supported` | 小程序编译器不支持动态组件 | devtools 等用 `#ifdef H5` 包住，非 H5 显示降级提示 |

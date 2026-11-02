@@ -74,8 +74,8 @@
 依赖方向与平台：
 
 - **断环靠依赖方向本身（注入 resolver / 纯函数 + 回调），不用动态 `import()`** ——
-  小程序端动态 import 被错编成 `await "字符串"`，整体失效。`meta/moveRefs.ts` 是已知例外
-  （仅 H5 调用链使用），接进小程序前必须改静态引入。
+  小程序端动态 import 被错编成 `await "字符串"`，整体失效（`meta/moveRefs.ts` 曾因此
+  在小程序静默拿到过 undefined 的 resourceManager，现已改静态引入）。
 - **dev-only 页走「页壳 + 守卫块内字面量动态 import 实现体」**，门禁单点
   `src/services/devtools/enabled.ts`；只能拉构建产物 grep 核对，type-check 与用例都看不见。
 - **登出清缓存在 `mine.vue` 路径调 `clearSpriteCache()`**，不放进 `clearSession()`

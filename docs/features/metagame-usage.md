@@ -61,7 +61,8 @@ hero：精灵图（link 映射 speciesId）+ 名 + 格式 / 赛季胶囊。空�
 - 道具 / 精灵 / 属性图标：`services/resources/battleImage.ts` —— 字符串键 + 按赛季版本化
   的加密图片实例（engine 已泛化接受 `number | string` id）；`acquireBattleIcon(cat, key)`，
   key `encodeURIComponent`，DEK 公开下发，404 静默回落。
-- 招式属性 / 分类反查：`services/meta/moveRefs.ts` —— 动态 import en 名称表 + `loadMoveList`，
+- 招式属性 / 分类反查：`services/meta/moveRefs.ts` —— 静态 import en 名称表 + `loadMoveList`
+  （小程序端动态 import 会被错编成字符串，不可用），
   `buildMoveMetaIndex`（纯函数）建「英文招式名（规范化）→ typeId / damageClassId」索引，
   module 单例；页面 `loadAll` 末尾 `ensureMoveRefs`，失败不阻塞（招式行不显示徽章）。
 

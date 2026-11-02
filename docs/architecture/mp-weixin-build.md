@@ -173,9 +173,10 @@ store）、`pages/calc/calc-engine.ts`（wasm pkg + TypeChart）、`services/ses
 （authApi.refresh）。
 
 排查手法：`grep -rn 'import(' src`，逐个看它要拿的东西在小程序上是必须成功的还是可
-静默降级的。**注意 `services/meta/moveRefs.ts` 仍是动态 import**（刻意：让模块顶层
-无平台依赖，好在 node 单测环境跑）。目前它所在调用链都在 H5 才走，但一旦小程序端
-页面依赖 `moveRefs` 反查，会静默拿到空索引 —— 接之前先把那处改成静态引入。
+静默降级的。`services/meta/moveRefs.ts` 曾在无意间用了动态 import（目的只是让 node
+单测不加载重依赖），但 `pokemon-meta` 页面在小程序端会走它 → 解构出 undefined 的
+`resourceManager`，招式属性 / 分类徽章静默丢失。现已改静态引入；单测仍可跑，因为
+WASM glue 的顶层没有副作用。
 
 核对方式：构建后 grep 产物，出现 `"./xxx.js"` 紧跟 `.then` 就是漏网的动态 import：
 
