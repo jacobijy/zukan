@@ -26,6 +26,7 @@ src/components/
              DamageResultCard、CalcSideCard、StatInputRow
   sprite/    图片加载：EncryptedSprite（宝可梦立绘，走加密图片通道）
   meta/      对战数据：FormatSwitch（单人/双人分段）、UsageRankingRow（排行榜行）、
+             RankBadge（名次徽标：前三金/银/铜皇冠，其余两位序号）、
              MetaRateSection（选用率；招式行经 moveRefs 反查属性徽章 + 物理/特殊/变化）、
              BattleItemIcon（道具行赛季版本化加密图标，404 / 未登录回落 bag glyph）、
              SpreadSection（SP 加点分布）、TeammateSection（常见队友）

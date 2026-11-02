@@ -1,6 +1,6 @@
 <template>
     <view class="archive-row" @click="emit('select')">
-        <text class="rank-num" :class="{ 'rank-num--top': rank <= 3 }">{{ String(rank).padStart(2, '0') }}</text>
+        <RankBadge :rank="rank" />
 
         <EncryptedSprite
             v-if="speciesId"
@@ -34,6 +34,7 @@
 <script lang="ts" setup>
 import { glyph } from '@/components/icon/glyphs';
 import EncryptedSprite from '@/components/sprite/EncryptedSprite.vue';
+import RankBadge from './RankBadge.vue';
 
 defineProps<{
     rank: number;
@@ -45,22 +46,6 @@ const emit = defineEmits<{ select: [] }>();
 </script>
 
 <style lang="scss" scoped>
-.rank-num {
-    width: 24px;
-    flex-shrink: 0;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 13px;
-    font-weight: 800;
-    color: #b6bac3;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-}
-
-.rank-num--top {
-    color: #e0a923;
-    font-weight: 900;
-}
-
 .rank-neutral {
     flex-shrink: 0;
     border-radius: 10px;

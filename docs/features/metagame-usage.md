@@ -15,7 +15,8 @@
 - `#tools`：`meta/FormatSwitch.vue`（单人/双人）+ `meta/SeasonSwitch.vue`（赛季切换；
   `seasons` 来自 `meta.json`，当前季标签 = `meta.season`）。历史季选中后 `service.ts` 走
   `/assets/battle/<season>/` 子树（当前季仍走根路径）；历史季数据缺失（404）时优雅降级为空态。
-- 行组件 `meta/UsageRankingRow.vue`：排名（前三金色）+ 精灵图 + 名称（+形态小字）；
+- 行组件 `meta/UsageRankingRow.vue`：名次徽标（`meta/RankBadge.vue`，前三名金/银/铜
+  三色皇冠，第四名起显示两位序号）+ 精灵图 + 名称（+形态小字）；
   **无百分比 / 进度条**（上游 leaderboard 无数值）。
 - 点行 → `pages/meta/pokemon-meta?slug=<slug>&format=<fmt>`。
 
