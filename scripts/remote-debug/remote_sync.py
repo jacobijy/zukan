@@ -360,13 +360,30 @@ def build_sftp_command(target_cfg: dict[str, str]) -> list[str]:
     return args
 
 
+def _sftp_remote_path(remote_dir: str) -> str:
+    """把配置里的远端目录转成 sftp 批处理能用的路径。
+
+    sftp 的 cd/get 不展开 `~`（会被当成相对路径），而 sftp 会话启动时就在远端
+    家目录，所以 `~/x` 直接写成相对路径 `x`；`~user/` 无法可靠还原，直接报错。
+    """
+    path = remote_dir.rstrip("/")
+    if path in ("", "~"):
+        return ""  # 已在远端家目录，无需 cd
+    if path.startswith("~/"):
+        return path[2:]
+    if path.startswith("~"):
+        raise ValueError(f"sftp 不支持 ~user/ 形式的远端路径，请改用绝对路径：{path}")
+    return path
+
+
 def build_sftp_batch(remote_dir: str, local_dir: Path, filenames: Sequence[str]) -> str:
     """生成 sftp 批处理指令：切到远端脚本目录，逐个取回指定的固定文件。"""
     local_posix = str(local_dir).replace("\\", "/")  # Windows 路径给 sftp 用正斜杠
-    lines = [
-        f"cd {_quote_sftp_path(remote_dir.rstrip('/'))}",
-        f"lcd {_quote_sftp_path(local_posix)}",
-    ]
+    lines: list[str] = []
+    remote_path = _sftp_remote_path(remote_dir)
+    if remote_path:
+        lines.append(f"cd {_quote_sftp_path(remote_path)}")
+    lines.append(f"lcd {_quote_sftp_path(local_posix)}")
     lines.extend(f"get {_quote_sftp_path(name)}" for name in filenames)
     return "\n".join(lines) + "\n"
 
@@ -390,6 +407,9 @@ def run_sftp_fetch(
         text=True,
     )
     if result.returncode:
-        if result.stderr:
-            print(result.stderr, end="", file=sys.stderr)
-        raise subprocess.CalledProcessError(result.returncode, command)
+        detail = "\n".join(part.strip() for part in (result.stderr, result.stdout) if part.strip())
+        # sftp 批处理遇错即中止，但不说是哪一步；把批处理内容和远端目录一并带出。
+        raise RuntimeError(
+            f"sftp 退出码 {result.returncode}（远端目录 {target_cfg['remote_dir']}）；"
+            + (f"报错：{detail}" if detail else "请确认该目录及文件存在、密钥可用")
+        )

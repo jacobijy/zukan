@@ -4,7 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
@@ -311,21 +311,34 @@ class SftpFetchTests(unittest.TestCase):
         self.assertEqual(command[command.index("-P") + 1], "2200")
         self.assertIn("BatchMode=yes", command)
 
-    def test_sftp_batch_only_lists_requested_files(self) -> None:
+    def test_sftp_batch_strips_tilde_from_home_relative_dir(self) -> None:
+        # sftp 不展开 ~，登录后已在远端家目录，所以 ~/x 要写成相对路径 x。
         batch = build_sftp_batch(
             "~/Code/zukan/scripts/remote-debug/",
             Path("/local/scripts"),
             ("README.md", "pull.py"),
         )
-        self.assertIn("cd ~/Code/zukan/scripts/remote-debug\n", batch)
+        self.assertIn("cd Code/zukan/scripts/remote-debug\n", batch)
+        self.assertNotIn("~", batch)
         self.assertIn("lcd /local/scripts\n", batch)
         self.assertIn("get README.md\n", batch)
         self.assertIn("get pull.py\n", batch)
         self.assertNotIn("pull.conf", batch)
 
+    def test_sftp_batch_keeps_absolute_dir_and_skips_cd_for_home(self) -> None:
+        absolute = build_sftp_batch("/srv/scripts", Path("/local"), ("pull.py",))
+        self.assertIn("cd /srv/scripts\n", absolute)
+
+        home = build_sftp_batch("~", Path("/local"), ("pull.py",))
+        self.assertFalse(any(line.startswith("cd ") for line in home.splitlines()))
+
+    def test_sftp_batch_rejects_user_home_shorthand(self) -> None:
+        with self.assertRaises(ValueError):
+            build_sftp_batch("~jacobi/Code/zukan", Path("/local"), ("pull.py",))
+
     def test_sftp_batch_quotes_paths_with_spaces(self) -> None:
         batch = build_sftp_batch("~/my scripts", Path("C:/Users/Test User/scripts"), ("pull.py",))
-        self.assertIn('cd "~/my scripts"', batch)
+        self.assertIn('cd "my scripts"', batch)
         self.assertIn('lcd "C:/Users/Test User/scripts"', batch)
 
     @patch("remote_sync.shutil.which", return_value="/usr/bin/sftp")
@@ -346,12 +359,14 @@ class SftpFetchTests(unittest.TestCase):
     @patch("remote_sync.subprocess.run")
     def test_run_sftp_fetch_raises_on_failure(self, run, _which) -> None:
         run.return_value = subprocess.CompletedProcess([], 1, stdout="", stderr="Permission denied\n")
-        with redirect_stderr(StringIO()), self.assertRaises(subprocess.CalledProcessError):
+        with self.assertRaises(RuntimeError) as caught:
             run_sftp_fetch(
                 {"remote": "user@host", "remote_dir": "/remote", "ssh_cmd": "ssh", "ssh_port": "22"},
                 Path("/local"),
                 ("pull.py",),
             )
+        self.assertIn("Permission denied", str(caught.exception))
+        self.assertIn("/remote", str(caught.exception))
 
 
 class PullCliTests(unittest.TestCase):
