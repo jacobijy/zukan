@@ -4,7 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
@@ -12,12 +12,15 @@ from unittest.mock import patch
 from remote_sync import (
     ChangeEntry,
     build_rsync_command,
+    build_sftp_batch,
+    build_sftp_command,
     change_signature,
     classify_change,
     get_target_config,
     human_size,
     parse_config,
     run_rsync,
+    run_sftp_fetch,
     settle_sync,
 )
 
@@ -277,6 +280,78 @@ class RsyncCommandTests(unittest.TestCase):
         self.assertEqual(human_size(512), "512 B")
         self.assertEqual(human_size(2048), "2.0 KB")
         self.assertEqual(human_size(5 * 1024 * 1024), "5.0 MB")
+
+
+class SftpFetchTests(unittest.TestCase):
+    def test_sftp_command_maps_port_and_key(self) -> None:
+        command = build_sftp_command(
+            {
+                "remote": "user@host",
+                "ssh_cmd": "ssh",
+                "ssh_port": "2222",
+                "ssh_key": "",
+            }
+        )
+        self.assertEqual(command[:3], ["sftp", "-b", "-"])
+        self.assertIn("-P", command)
+        self.assertIn("2222", command)
+        self.assertEqual(command[-1], "user@host")
+
+    def test_sftp_command_converts_ssh_port_option(self) -> None:
+        # SSH_CMD 里已带 -p 时透传为 -P，且不再重复追加 SSH_PORT。
+        command = build_sftp_command(
+            {
+                "remote": "user@host",
+                "ssh_cmd": "ssh -p 2200 -o BatchMode=yes",
+                "ssh_port": "22",
+                "ssh_key": "",
+            }
+        )
+        self.assertNotIn("-p", command)
+        self.assertEqual(command[command.index("-P") + 1], "2200")
+        self.assertIn("BatchMode=yes", command)
+
+    def test_sftp_batch_only_lists_requested_files(self) -> None:
+        batch = build_sftp_batch(
+            "~/Code/zukan/scripts/remote-debug/",
+            Path("/local/scripts"),
+            ("README.md", "pull.py"),
+        )
+        self.assertIn("cd ~/Code/zukan/scripts/remote-debug\n", batch)
+        self.assertIn("lcd /local/scripts\n", batch)
+        self.assertIn("get README.md\n", batch)
+        self.assertIn("get pull.py\n", batch)
+        self.assertNotIn("pull.conf", batch)
+
+    def test_sftp_batch_quotes_paths_with_spaces(self) -> None:
+        batch = build_sftp_batch("~/my scripts", Path("C:/Users/Test User/scripts"), ("pull.py",))
+        self.assertIn('cd "~/my scripts"', batch)
+        self.assertIn('lcd "C:/Users/Test User/scripts"', batch)
+
+    @patch("remote_sync.shutil.which", return_value="/usr/bin/sftp")
+    @patch("remote_sync.subprocess.run")
+    def test_run_sftp_fetch_feeds_batch_and_is_quiet(self, run, _which) -> None:
+        run.return_value = subprocess.CompletedProcess([], 0, stdout="sftp> get pull.py\n", stderr="")
+        output = StringIO()
+        with redirect_stdout(output):
+            run_sftp_fetch(
+                {"remote": "user@host", "remote_dir": "/remote", "ssh_cmd": "ssh", "ssh_port": "22"},
+                Path("/local"),
+                ("pull.py",),
+            )
+        self.assertEqual(output.getvalue(), "")
+        self.assertEqual(run.call_args.kwargs["input"], "cd /remote\nlcd /local\nget pull.py\n")
+
+    @patch("remote_sync.shutil.which", return_value="/usr/bin/sftp")
+    @patch("remote_sync.subprocess.run")
+    def test_run_sftp_fetch_raises_on_failure(self, run, _which) -> None:
+        run.return_value = subprocess.CompletedProcess([], 1, stdout="", stderr="Permission denied\n")
+        with redirect_stderr(StringIO()), self.assertRaises(subprocess.CalledProcessError):
+            run_sftp_fetch(
+                {"remote": "user@host", "remote_dir": "/remote", "ssh_cmd": "ssh", "ssh_port": "22"},
+                Path("/local"),
+                ("pull.py",),
+            )
 
 
 class PullCliTests(unittest.TestCase):

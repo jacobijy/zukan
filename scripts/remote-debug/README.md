@@ -5,7 +5,8 @@
 ## 环境准备
 
 - Python 3
-- `rsync` 和 OpenSSH `ssh` 命令，且均可从当前终端的 `PATH` 找到
+- `pull.py`：`rsync` 和 OpenSSH `ssh` 命令，且均可从当前终端的 `PATH` 找到
+- `fetch-pull-scripts.py`：只需 OpenSSH 的 `sftp`（Windows 10+ 自带），无需 `rsync`
 - Linux 开发机的 SSH 免密登录已配置；首次连接前先运行 `ssh user@host` 并确认主机指纹
 
 ## 同步产物
@@ -96,7 +97,7 @@ python3 scripts/remote-debug/fetch-pull-scripts.py
 python3 scripts/remote-debug/fetch-pull-scripts.py ~/remote-debug
 ```
 
-它接受一个可选的本机目标目录（默认当前目录），以及 `--remote`、`--remote-dir`、`--ssh-key`、`--ssh-port`、`--ssh-cmd` 连接参数。为避免覆盖机器专属配置，拉取会排除 `pull.conf`、`pull.conf.local` 和缓存/系统文件。
+它接受一个可选的本机目标目录（默认当前目录），以及 `--remote`、`--remote-dir`、`--ssh-key`、`--ssh-port`、`--ssh-cmd` 连接参数。它用 OpenSSH `sftp` 按固定文件名列表逐个取回（`README.md`、`fetch-pull-scripts.py`、`pull.py`、`remote_sync.py`、`test_remote_sync.py`），因此**不需要安装 rsync**，也不会覆盖 `pull.conf`、`pull.conf.local` 等本机配置与缓存。以后新增脚本文件时，记得同步补进 `fetch-pull-scripts.py` 的 `FETCH_FILES`。
 
 ## 配置
 

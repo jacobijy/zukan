@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch the remote-debug helper directory using rsync over SSH."""
+"""Fetch the remote-debug helper directory using sftp over SSH."""
 
 from __future__ import annotations
 
@@ -8,27 +8,23 @@ import os
 import sys
 from pathlib import Path
 
-from remote_sync import load_config, resolve_local_path, run_rsync
+from remote_sync import load_config, resolve_local_path, run_sftp_fetch
 
-CACHE_EXCLUDES = (
-    "__pycache__/",
-    "pull.conf",
-    "pull.conf.local",
-    "*.py[cod]",
-    ".pytest_cache/",
-    ".mypy_cache/",
-    ".ruff_cache/",
-    ".tox/",
-    ".coverage",
-    ".DS_Store",
-    "Thumbs.db",
+# 本目录只有这几个需要下发的文件（配置、缓存、字节码都不拉）。
+# 新增脚本文件时记得补进这里，否则老机器上自举拉不到。
+FETCH_FILES = (
+    "README.md",
+    "fetch-pull-scripts.py",
+    "pull.py",
+    "remote_sync.py",
+    "test_remote_sync.py",
 )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="通过 SSH/rsync 将 Linux 上的 remote-debug 辅助脚本拉取到本机。",
-        epilog="拉取时会排除配置文件、缓存目录、Python 字节码和常见系统文件。",
+        description="通过 SSH/sftp 将 Linux 上的 remote-debug 辅助脚本拉取到本机。",
+        epilog="只拉取固定的脚本文件，不会覆盖 pull.conf / pull.conf.local 等本机配置。",
     )
     parser.add_argument(
         "local_dir",
@@ -61,7 +57,7 @@ def main() -> int:
 
     try:
         local_dir.mkdir(parents=True, exist_ok=True)
-        run_rsync(
+        run_sftp_fetch(
             {
                 "remote": remote,
                 "remote_dir": remote_dir,
@@ -70,8 +66,7 @@ def main() -> int:
                 "ssh_cmd": ssh_cmd,
             },
             local_dir,
-            mirror=False,
-            exclude_patterns=CACHE_EXCLUDES,
+            FETCH_FILES,
         )
         return 0
     except Exception as exc:

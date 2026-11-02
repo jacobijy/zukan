@@ -120,10 +120,10 @@ while true; do pnpm build:app; sleep 5; done
 > ```
 >
 > 拉成 `remote-debug/` 目录（先配 ssh 免密，并手动 `ssh` 一次确认主机指纹）。
-> 取回后可用 Python 引导脚本调用 rsync 拉取并更新脚本目录：
+> 取回后可用 Python 引导脚本调用 `sftp` 按固定文件列表更新脚本目录（**不需要 rsync**）：
 > `python remote-debug/fetch-pull-scripts.py [目标目录]`（默认当前目录）。
-> 拉取时会排除 `pull.conf`、`pull.conf.local`、`__pycache__/`、`.pytest_cache/`、`.mypy_cache/`、`.ruff_cache/`、
-> `.tox/`、`.coverage`、`.DS_Store`、`Thumbs.db` 和 `*.py[cod]`。
+> 它只拉取 `README.md`、`fetch-pull-scripts.py`、`pull.py`、`remote_sync.py`、
+> `test_remote_sync.py`，不会覆盖 `pull.conf` / `pull.conf.local` 等本机配置与缓存。
 >
 > 当前统一使用通用配置文件 `scripts/remote-debug/pull.conf`（可覆盖同目录的
 > `pull.conf.local`），以及单一 Python 入口：

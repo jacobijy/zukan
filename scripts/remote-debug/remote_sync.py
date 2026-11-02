@@ -7,6 +7,7 @@ import os
 import shlex
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -309,3 +310,86 @@ def settle_sync(
         render_changes(plan, target_cfg, local_dir, started_at, finished_at)
         return None, True
     return plan, False
+
+
+# SSH_CMD 里可原样透传给 sftp 的选项（均需带一个值）。
+_SFTP_VALUE_OPTS = {"-o", "-i", "-F", "-J", "-l", "-c", "-m", "-O"}
+
+
+def _quote_sftp_path(value: str) -> str:
+    """sftp 批处理按空格切分参数，含空格的路径用双引号包起来。"""
+    if any(char in value for char in " \t"):
+        return '"' + value.replace('"', '""') + '"'
+    return value
+
+
+def build_sftp_command(target_cfg: dict[str, str]) -> list[str]:
+    """构造 sftp 命令（-b - 表示批处理指令从 stdin 读入）。"""
+    ssh_parts = shlex.split(target_cfg.get("ssh_cmd", "ssh"))
+    if not ssh_parts:
+        raise ValueError("SSH_CMD 不能为空")
+
+    args = ["sftp", "-b", "-"]
+    options = ssh_parts[1:]
+    index = 0
+    port_set = False
+    key_set = False
+    while index < len(options):
+        option = options[index]
+        if option == "-p" and index + 1 < len(options):
+            # ssh 用小写 -p 指定端口，sftp 是大写 -P。
+            args.extend(["-P", options[index + 1]])
+            port_set = True
+            index += 2
+            continue
+        if option in _SFTP_VALUE_OPTS and index + 1 < len(options):
+            args.extend([option, options[index + 1]])
+            key_set = key_set or option == "-i"
+            index += 2
+            continue
+        args.append(option)
+        index += 1
+
+    port = str(target_cfg.get("ssh_port", "22"))
+    if not port_set and port != "22":
+        args.extend(["-P", port])
+    ssh_key = target_cfg.get("ssh_key", "")
+    if ssh_key and not key_set:
+        args.extend(["-i", str(resolve_local_path(ssh_key))])
+    args.append(target_cfg["remote"])
+    return args
+
+
+def build_sftp_batch(remote_dir: str, local_dir: Path, filenames: Sequence[str]) -> str:
+    """生成 sftp 批处理指令：切到远端脚本目录，逐个取回指定的固定文件。"""
+    local_posix = str(local_dir).replace("\\", "/")  # Windows 路径给 sftp 用正斜杠
+    lines = [
+        f"cd {_quote_sftp_path(remote_dir.rstrip('/'))}",
+        f"lcd {_quote_sftp_path(local_posix)}",
+    ]
+    lines.extend(f"get {_quote_sftp_path(name)}" for name in filenames)
+    return "\n".join(lines) + "\n"
+
+
+def run_sftp_fetch(
+    target_cfg: dict[str, str],
+    local_dir: Path,
+    filenames: Sequence[str],
+) -> None:
+    """用 sftp 取回固定文件列表（脚本目录自举用，不依赖 rsync）。"""
+    if shutil.which("sftp") is None:
+        raise FileNotFoundError("找不到 sftp，请安装 OpenSSH 客户端并确保其位于 PATH 中")
+    command = build_sftp_command(target_cfg)
+    batch = build_sftp_batch(target_cfg["remote_dir"], local_dir, filenames)
+    result = subprocess.run(
+        command,
+        input=batch,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode:
+        if result.stderr:
+            print(result.stderr, end="", file=sys.stderr)
+        raise subprocess.CalledProcessError(result.returncode, command)
