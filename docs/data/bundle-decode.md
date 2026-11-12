@@ -8,8 +8,9 @@
 
 ## 分块 bundle 的加载语义
 
-> 体积超过 256KB 明文的大 bundle（如 `moves/vg-*`、大 `moves_data/*`）现以**分块产物**发布：
-> 每个 bundle 一个目录 `/assets/encrypted/fb/chunked/<bundle>/v<N>/index.json + NNNN.bin`，
+> 体积超过 256KB 明文的大 bundle（如 `moves/vg-*` 招式学习记录、若干大 i18n names/flavor）
+> 现以**分块产物**发布：每个 bundle 一个目录
+> `/assets/encrypted/fb/chunked/<bundle>/v<N>/index.json + NNNN.bin`，
 > 每块是独立的 ZKDX 密文，可单独解密、单独缓存。分块格式、索引结构、路径与版本失效见
 > [../security/encryption-pipeline.md](../security/encryption-pipeline.md#211-分块大-bundlechunked按需拉取)。
 >
