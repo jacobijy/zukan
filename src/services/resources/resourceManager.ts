@@ -44,6 +44,7 @@ import {
 import { fetchBinary, BinaryRequestError } from '@/services/http';
 import { getKey, clearKeyCache } from '@/services/session/key';
 import { buildCdnUrl } from '@/services/resources/cdn';
+import type { CdnToken } from '@/services/session/types';
 import { currentDataVersion } from '@/services/resources/dataVersion';
 import { pruneSpriteVersions } from '@/services/resources/spritePersist';
 import { pruneItemIconVersions } from '@/services/resources/itemImage';
@@ -67,6 +68,18 @@ export const FLAVOR_SLICE_SIZE = 128;
 /** 描述组实体族 —— 决定分片文件名 `{family}-sNN.bin`，也作 PKFL 的向量字段名 */
 export type FlavorFamily = 'species' | 'moves' | 'abilities' | 'items';
 
+/**
+ * 分块 bundle 的明文索引（`chunked/<bundle>/v<N>/index.json`，后端 encrypt-fb 生成）。
+ * camelCase 与后端契约一致（design D2）。
+ */
+export interface ChunkedIndex {
+    fid: string;
+    format: number;
+    plainLen: number;
+    blockSize: number;
+    blocks: { n: number; file: string; off: number; len: number }[];
+}
+
 interface ResourceStats {
     memoryEntries: number;
     inflight: number;
@@ -86,6 +99,23 @@ const inflight = new Map<string, Promise<unknown>>();
 // ─────────────────────────────────────────────────────────
 
 const pad2 = (n: number): string => String(n).padStart(2, '0');
+
+const TEXT_DECODER = new TextDecoder();
+
+function bytesToUtf8(bytes: Uint8Array): string {
+    return TEXT_DECODER.decode(bytes);
+}
+
+/** 清理某个 bundle 的全部缓存字节：单文件删 cacheKey；chunked 删索引 + 各块子 key。 */
+async function purgeBundleBytes(spec: BundleSpec): Promise<void> {
+    if (spec.mode !== 'chunked') {
+        return binaryStorage.delete(spec.cacheKey).catch(() => {});
+    }
+    // chunked 的索引与块都以 `cacheKey:` 为子 key 前缀，一并删净。
+    const keys: string[] = await binaryStorage.keys(`${spec.cacheKey}:`).catch(() => []);
+    keys.push(`${spec.cacheKey}:index`, spec.cacheKey);
+    await Promise.all(keys.map((k) => binaryStorage.delete(k).catch(() => {})));
+}
 
 /**
  * 缓存 key 前缀基于**服务端下发**的资源版本运行时派生：
@@ -129,9 +159,18 @@ function assertVgId(kind: string, vgId: number | undefined): asserts vgId is num
 interface BundleSpec {
     cacheKey: string;
     remotePath: string;
+    /**
+     * `chunked` 模式：remotePath 是 bundle 目录前缀（不含版本段），实际产物在
+     * `chunked/<bundle>/v<版本>/index.json + NNNN.bin`，加载器按当前 dataVersion 拼版本路径、
+     * 逐块解密并按索引偏移合并。默认 `single`（整包单文件，现有行为）。
+     */
+    mode?: 'single' | 'chunked';
 }
 
 async function fetchDecrypted(spec: BundleSpec, allowKeyRetry = true): Promise<Uint8Array> {
+    if (spec.mode === 'chunked') {
+        return fetchChunkedDecrypted(spec, allowKeyRetry);
+    }
     // 1. 存储读取与「WASM + 密钥」并发启动 —— 三者互不依赖，串行会白等一个
     //    IDB 往返。密钥必须先到位才能签 CDN URL，故仍与 initWasm 一起 await。
     const bytesPromise = binaryStorage.get(spec.cacheKey).catch((err) => {
@@ -175,6 +214,135 @@ async function fetchDecrypted(spec: BundleSpec, allowKeyRetry = true): Promise<U
 }
 
 /**
+ * 分块 bundle 的加密块与索引由当前 dataVersion 拼出 URL。
+ * 块字节以 `cacheKey:chunk:<n>` 存存储，索引以 `cacheKey:index` 存 —— `fb:v{N}:` 前缀
+ * 失效语义不变（bump 版本即换路径 + prune 清旧字节）。
+ */
+function chunkedPaths(spec: BundleSpec): { indexKey: string; versionPath: string } {
+    const v = currentDataVersion();
+    return {
+        indexKey: `${spec.cacheKey}:index`,
+        versionPath: `${spec.remotePath}/v${v}`,
+    };
+}
+
+/**
+ * 分块加载：读（或缓存）索引 → 按索引逐块取字节（存储命中优先，miss 则网络并与
+ * 缓存重试）→ 逐块 `decryptZukan` → 按 `off` 合并 → 以 `plainLen` 断言完整性 → 返回明文。
+ */
+async function fetchChunkedDecrypted(
+    spec: BundleSpec,
+    allowKeyRetry = true,
+): Promise<Uint8Array> {
+    const { indexKey, versionPath } = chunkedPaths(spec);
+
+    // 1. WASM + 密钥 + 索引（读存储或网络，结果回写）
+    await initWasm();
+    const [key, indexBytes] = await Promise.all([
+        getKey(),
+        binaryStorage.get(indexKey).catch(() => null),
+    ]);
+    let dek = key.dek;
+    let cdn = key.cdn;
+    let indexJson = indexBytes ? bytesToUtf8(indexBytes) : null;
+    if (!indexJson) {
+        const idxPath = `${versionPath}/index.json`;
+        let idxBin: Uint8Array;
+        try {
+            idxBin = await fetchBinary(buildCdnUrl(idxPath, cdn));
+        } catch (err) {
+            if (allowKeyRetry && err instanceof BinaryRequestError && err.statusCode === 403) {
+                clearKeyCache();
+                const k2 = await getKey();
+                dek = k2.dek;
+                cdn = k2.cdn;
+                idxBin = await fetchBinary(buildCdnUrl(idxPath, cdn));
+            } else {
+                throw err;
+            }
+        }
+        await binaryStorage.put(indexKey, idxBin).catch(() => {});
+        indexJson = bytesToUtf8(idxBin);
+    }
+
+    let index: ChunkedIndex;
+    try {
+        index = JSON.parse(indexJson) as ChunkedIndex;
+    } catch (err) {
+        // 索引损坏（明文无 GCM）→ 删后重拉一次
+        console.warn('[resourceManager] chunked 索引解析失败，删缓存重拉', spec.cacheKey, err);
+        await binaryStorage.delete(indexKey).catch(() => {});
+        throw err;
+    }
+    if (index.format !== 1) {
+        throw new Error(`chunked 索引 format=${index.format} 不支持（须为 1）`);
+    }
+
+    // 2. 逐块取字节（网络 miss 时并发拉取，受 `fetchBinary` 自身重试保护）
+    const byteKey = (n: number) => `${spec.cacheKey}:chunk:${n}`;
+    const chunks: (Uint8Array | null)[] = await Promise.all(
+        index.blocks.map(async (b) => {
+            const k = byteKey(b.n);
+            const cached = await binaryStorage.get(k).catch(() => null);
+            if (cached) return cached;
+            const raw = await fetchBlockWithRetry(`${versionPath}/${b.file}`, cdn, allowKeyRetry);
+            await binaryStorage.put(k, raw).catch(() => {});
+            return raw;
+        }),
+    );
+    for (const c of chunks) {
+        if (c == null) {
+            throw new Error(`chunked bundle 存在缺失块: ${spec.cacheKey}`);
+        }
+    }
+
+    // 3. 逐块解密 + 按 off 合并 + plainLen 断言
+    const decrypted = chunks.map((c) => decryptZukan(c!, dek));
+    return mergePlainBlocks(index, decrypted);
+
+async function fetchBlockWithRetry(
+        path: string,
+        cdnToken: CdnToken | undefined,
+        retry: boolean,
+    ): Promise<Uint8Array> {
+        try {
+            return await fetchBinary(buildCdnUrl(path, cdnToken));
+        } catch (err) {
+            if (retry && err instanceof BinaryRequestError && err.statusCode === 403) {
+                clearKeyCache();
+                const k2 = await getKey();
+                dek = k2.dek;
+                cdn = k2.cdn;
+                return fetchBinary(buildCdnUrl(path, cdn));
+            }
+            throw err;
+        }
+    }
+}
+
+/** 合并分块 bundle 的已解密块到完整明文，按 `plainLen` 断言完整性。导出供单测。 */
+export function mergePlainBlocks(
+    index: ChunkedIndex,
+    decryptedBlocks: Uint8Array[],
+): Uint8Array {
+    if (decryptedBlocks.length !== index.blocks.length) {
+        throw new Error(
+            `chunked 块数不匹配：索引 ${index.blocks.length}，实际 ${decryptedBlocks.length}`,
+        );
+    }
+    const merged = new Uint8Array(index.plainLen);
+    for (let i = 0; i < index.blocks.length; i++) {
+        const b = index.blocks[i];
+        const dec = decryptedBlocks[i];
+        if (b.off + dec.length > merged.length) {
+            throw new Error(`chunked 块 ${b.n} 明文越界（索引损坏?）`);
+        }
+        merged.set(dec, b.off);
+    }
+    return merged;
+}
+
+/**
  * 通用加载路径。dedup 通过 `inflight` map；解密/解码失败自动重试一次
  * （覆盖缓存过期 / schema drift）。
  */
@@ -194,11 +362,7 @@ async function loadBundle<T>(spec: BundleSpec, decoder: (u8: Uint8Array) => T): 
         } catch (err) {
             // 缓存字节可能已过期（DEK 轮换 / schema drift）—— 清 key 后重下重解一次
             console.warn('[resourceManager] 首次解密/解码失败，尝试重下', spec.cacheKey, err);
-            try {
-                await binaryStorage.delete(spec.cacheKey);
-            } catch {
-                // ignore
-            }
+            await purgeBundleBytes(spec);
             const decrypted = await fetchDecrypted(spec, false);
             return decoder(decrypted);
         }
@@ -226,9 +390,12 @@ function specPokemonGen(genId: number): BundleSpec {
 }
 
 function specVgMoves(vgId: number): BundleSpec {
+    // 招式学习记录是当前最大的数据 bundle（vg-NN 有 >256KB 者），后端产出 chunked 块；
+    // remotePath 为 chunked 目录前缀（加载器按 dataVersion 拼 `/v<N>/` 版本段）。
     return {
         cacheKey: `${currentCacheKeyPrefix()}:vgmoves:${pad2(vgId)}`,
-        remotePath: `/assets/encrypted/fb/moves/vg-${pad2(vgId)}.bin`,
+        remotePath: `/assets/encrypted/fb/moves/vg-${pad2(vgId)}`,
+        mode: 'chunked',
     };
 }
 

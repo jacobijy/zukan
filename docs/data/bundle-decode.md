@@ -6,6 +6,18 @@
 > 加密格式、下载、缓存见 [../security/encryption-pipeline.md](../security/encryption-pipeline.md)
 > 和 [../caching/resource-cache.md](../caching/resource-cache.md)。本文只讲数据结构与 id 对应。
 
+## 分块 bundle 的加载语义
+
+> 体积超过 256KB 明文的大 bundle（如 `moves/vg-*`、大 `moves_data/*`）现以**分块产物**发布：
+> 每个 bundle 一个目录 `/assets/encrypted/fb/chunked/<bundle>/v<N>/index.json + NNNN.bin`，
+> 每块是独立的 ZKDX 密文，可单独解密、单独缓存。分块格式、索引结构、路径与版本失效见
+> [../security/encryption-pipeline.md](../security/encryption-pipeline.md#211-分块大-bundlechunked按需拉取)。
+>
+> **解码函数不受影响**：`chunked` 模式只是把「一个 URL → 整包解密」换成了
+> 「读索引 → 按需拉所需块 → 逐块 `decryptZukan` → 按索引偏移合并为完整明文 → 再交
+> `decode*Bundle()`」。合并后字节与原明文完全一致，fid 分派、表结构、join 逻辑均无变化。
+> 小 bundle（≤256KB，如 `evolution.bin`）仍是单文件整包，加载路径不变。
+
 ## FlatBuffers bundle 清单
 
 解码在 `src/infra/wasm/index.ts`，按文件头 4 字节 fid 分派：
