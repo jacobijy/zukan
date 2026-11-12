@@ -32,25 +32,6 @@ fb:v{version}:<kind>:<...>
   `currentDataVersion()` 派生前缀。
 - 数据 bundle 和 sprite 密文**共用同一个版本号前缀**，DEK 轮换时一起失效。
 
-### chunked 分块 bundle 的块级缓存
-
-`mode:'chunked'` 的 bundle（见 [加密文档 §2.1.1](../security/encryption-pipeline.md#211-分块大-bundlechunked按需拉取)）
-在固定前缀下**再按块拆子 key**，索引与各块各自独立缓存：
-
-```
-fb:v1:vgmoves:18:index           # 明文 index.json 字节
-fb:v1:vgmoves:18:chunk:0         # 块 0 密文
-fb:v1:vgmoves:18:chunk:1         # 块 1 密文
-```
-
-- 加载序：先取索引（存储命中或网络）→ 按所需明文范围换算命中块集合 → 逐块取字节
-  （存储命中优先，miss 才网络）→ 逐块 `decryptZukan` → 按索引 `off` 合并 → 校验
-  合并长度 == `plainLen` → 交解码器。
-- 缓存前缀仍是全局限权：版本 bump 换路径 + `pruneOtherVersions` 删旧前缀，块作为
-  整体一起失效（不做单块/bundle 细粒度失效，见 design）。
-- 失败重试与清理走 `purgeBundleBytes`：单文件删自身 cacheKey，chunked 连索引 + 全部
-  `:chunk:` 子 key 一起删净后重下重解一次。
-
 ## 版本失效
 
 `boot.ts` 启动时比对服务端 version 与本地 `zukan_data_version`：
