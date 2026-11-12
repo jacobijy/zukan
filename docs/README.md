@@ -35,6 +35,7 @@
 | 缓存 | [caching/resource-cache.md](caching/resource-cache.md) | resourceManager 三层缓存、inflight 去重、版本失效 |
 | 缓存 | [caching/sprite-cache.md](caching/sprite-cache.md) | 加密图片（sprite + 道具图标）：imageCache 三条调度不变量 + imagePersist 四条持久化不变量 + 渐进式两段加载 + 回落落点记录 + 对战图标（字符串键 / 赛季版本化；道具已接，精灵待接） |
 | 缓存 | [caching/fs-backend-plan.md](caching/fs-backend-plan.md) | 小程序 / App 加密资源本地缓存 fs 后端：主线已实现（按种类注入、预算 + 保护集），真机行为待验证、下载去重未做 |
+| 部署 | [operations/deployment-h5.md](operations/deployment-h5.md) | 前端 H5 线上发布：构建机 `build:h5` → rsync 静态目录 → 与 zukan-server 同域 nginx 分路由衔接 → 前端侧验收 checklist |
 
 > 历史文档保留在 [`archive/`](archive/)，不再维护。包括早期加密方案稿、解密流程稿、
 > 旧架构图、REST/encrypted-assets 归档稿等。需要追溯「当初为什么这么设计」时再翻。
