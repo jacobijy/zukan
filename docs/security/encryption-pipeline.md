@@ -96,43 +96,6 @@ Makefile 从 `.env` 取；`ZUKAN_DEK_VERSION` 只打印提示，**不写进文�
 
 旧的鉴权数据通道 `GET /api/v1/zukan/{era}/{id}` 仍在，但前端当前全部走 `/assets/encrypted/fb/**`。
 
-#### 2.1.1 分块大 bundle（chunked，按需拉取）
-
-超过 256KB 明文的数据 bundle 在构建期切成**等分 256KB 的独立 ZKDX 块**，每 bundle 一个目录
-（`crates/server/src/bin/encrypt-fb.rs --chunked`；`make encrypt-fb CHUNKED=1`），发布在既有
-`/assets/encrypted/**` 静态通道上，服务端零逻辑（不切、不拼、不解密）：
-
-```
-/assets/encrypted/fb/chunked/<bundle>/v<N>/index.json   # 明文索引（亦 immutable）
-/assets/encrypted/fb/chunked/<bundle>/v<N>/0000.bin     # 块 0，独立 ZKDX 密文
-/assets/encrypted/fb/chunked/<bundle>/v<N>/0001.bin     # 块 1
-…（块数为 ceil(明文长度 / 262144)）
-```
-
-- `<bundle>` 为 rel 路径去掉 `.bin`（保留中间目录，如 `moves_data/common`、`i18n/zh-hans/names`）。
-- `<N>` = `ZUKAN_DEK_VERSION`（全局版本号）。目录名带版本 → bump 后所有块 URL 整批变化，
-  immutable 缓存与前端 `fb:v{N}:` 前缀一并失效。
-- **每个块独立 nonce + GCM tag**，可单独下载、单独 `decrypt_zukan`、单独验签，块间无依赖。
-- `index.json` 结构（camelCase）：
-
-```json
-{
-  "fid": "PKMB",
-  "format": 1,
-  "plainLen": 2745123,
-  "blockSize": 262144,
-  "blocks": [
-    { "n": 0, "file": "0000.bin", "off": 0,       "len": 262144 },
-    { "n": 10, "file": "0010.bin", "off": 2621440, "len": 123683 }
-  ]
-}
-```
-
-- 前端加载序：先拉 `index.json` → 按所需的明文偏移换算命中块集合 → 并发拉块 →
-  逐块 `decrypt_zukan` → 按 `blocks` 偏移合并 → 校验合并长度 == `plainLen` → 交 `decode*Bundle()`。
-- 与 `zukan-binary` / `chunked-binary` openspec 规格对应（`openspec/changes/encrypted-chunked-static`）。
-- 单文件 `.bin` 产物仍保留（双轨并存）：小 bundle（≤256KB）一律单文件，前端可按需取舍。
-
 ### 2.2 密钥下发
 
 `GET /api/v1/zukan/key`（需鉴权）→ `{ "dek": "<64 hex>", "version": 1, "algorithm": "AES-256-GCM" }`。
@@ -161,10 +124,6 @@ AES-256-GCM 解密验 tag。数据 bundle 解密后按 fid 交 `decode*Bundle()`
 ## 4. 资源清单
 
 ### 4.1 数据 bundle（`/assets/encrypted/fb/`）
-
-> **大于 256KB 明文的数据 bundle 现以分块产物发布**（`chunked/<bundle>/v<N>/index.json + NNNN.bin`，
-> 每块独立 ZKDX、按需拉取），不再依赖单文件整包；路径与索引结构见 §2.1.1。下表按逻辑 bundle 列出
-> （单文件路径是 ≤256KB 产物或兼容旧版的形态，chunked 产物路径 = `/assets/encrypted/fb/chunked/<bundle>/v<N>/`）。
 
 | 远端路径 | fid | 解码器 | 内容 |
 |----------|-----|--------|------|
