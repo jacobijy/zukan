@@ -12,6 +12,7 @@ import { getKey } from '@/services/session/key';
 import { isAuthenticated } from '@/services/session';
 import { getStoredDataVersion, setStoredDataVersion } from '@/services/resources/dataVersion';
 import { resourceManager } from '@/services/resources/resourceManager';
+import { refreshManifest } from '@/services/resources/imageManifest';
 import { resolveContentLang } from '@/services/i18n/languages';
 import { useI18nStore } from '@/store/i18n';
 import { usePokemonStore } from '@/store/pokemon';
@@ -42,6 +43,11 @@ export async function bootPrefetch(): Promise<void> {
                 setStoredDataVersion(serverVersion);
             }
         }
+
+        // C1-A：图片 hash 清单放在版本比对 / prune 之后才刷新（fire-and-forget，不 await）——
+        // 避免新 hash 快照抢在 `setStoredDataVersion` 之前落地、套上旧 `v{N}` 前缀。
+        // 网络失败静默降级：快照维持上次内容 / null，图片按无 hash 旧路径走，等同现状。
+        void refreshManifest();
 
         // 预取最新世代 + 用户内容语言名称组（inflight 去重；错误静默）。
         // 两者并发，互不依赖；i18n store 内部会用同一份内存缓存把名称映射到宝可梦列表。

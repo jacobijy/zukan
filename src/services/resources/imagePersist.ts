@@ -64,6 +64,7 @@ import {
     type BinaryStorage,
 } from '@/infra/storage/binaryStorage';
 import { currentDataVersion } from '@/services/resources/dataVersion';
+import { hashForPath } from '@/services/resources/imageManifest';
 import type { ImageKindSpec } from '@/services/resources/imageKind';
 
 /** 索引落盘防抖：滚动时会连续写入几十条，逐条同步写 storage 会卡主线程 */
@@ -129,13 +130,17 @@ export function createImagePersist(
      * 每次重查 `wx`，因为小程序端 `wx` 是运行时注入的全局，import 那一刻
      * 可能尚未就绪。
      */
-    const isPersistable =
-        storageBackend !== 'memory' && (hasFileSystemBackend() || storageBackend === 'idb');
+    const isPersistable = storageBackend !== 'memory' && (hasFileSystemBackend() || storageBackend === 'idb');
 
     function storageKey(id: number | string, variant: string): string {
-        // 前缀（root）已区隔种类，key 内不再带目录名 —— 保持 pokemon 的
-        // `sprite:v<ver>:<id>/<variant>` 格式与历史缓存一致。
-        return `${root}v${currentDataVersion()}:${id}${variant ? `/${variant}` : ''}`;
+        const base = `${root}v${currentDataVersion()}:`;
+        // hash 段插在版本号之后：`sprite:v<ver>:<hash8>:<id>/<variant>`，仍以 `sprite:v<ver>:`
+        // 开头（pruneVersions 前缀匹配不受影响）；hash 未就绪（老后端 / 清单首拉未完成）回落旧
+        // 格式 `sprite:v<ver>:<id>/<variant>`，兼容历史磁盘缓存 —— 否则一次清单抖动就会让全量
+        // 已缓存图片 miss（这正是 C1-A 要消灭的「误连坐」，见 docs/caching/sprite-invalidation-c1.md）。
+        const hash = hashForPath(spec.remotePath(id, variant));
+        const suffix = `${id}${variant ? `/${variant}` : ''}`;
+        return hash ? `${base}${hash}:${suffix}` : `${base}${suffix}`;
     }
 
     // ── 索引读写 ──────────────────────────────────────────────
@@ -221,10 +226,16 @@ export function createImagePersist(
 
     /**
      * 解析 key 里的数字 id（`sprite:v1:123/front` → 123）用于保护集判断。
-     * 取第一段冒号后的纯数字前缀；取不到或非有限数返回 -1（不保护）。
+     * 取**末段**的纯数字前缀；取不到或非有限数返回 -1（不保护）。
+     *
+     * 为什么是末段而不是 `split(':')[2]`：新 key 因 C1-A 多了 hash 段
+     * （`sprite:v1:a1b2c3d4:123/front`），[2] 会拿到 hash —— 若 hash 恰为全数字还会被误当
+     * 成保护 id。末段对 3 段（旧格式）与 4 段（hash 段存在）都成立；battle 等字符串键
+     * （`battle-img:sM6:v1:items/x`）末段非数字开头 → -1（该种类不设保护集，无碍）。
+     * 用 `slice(-1)` 而非 `.at(-1)`：`.at()` 是运行时方法，转译不降级，老 webview 不支持。
      */
     function keyId(key: string): number {
-        const seg = key.split(':')[2] ?? '';
+        const seg = key.split(':').slice(-1)[0] ?? '';
         const m = /^(\d+)/.exec(seg);
         return m ? Number(m[1]) : -1;
     }
@@ -245,10 +256,8 @@ export function createImagePersist(
         // 候选按「保护与否」分两组，各自按淘汰序排；先排空非保护组。
         // protectedIdMax <= 0 表示不启用保护集，退化成纯插入序（近似 FIFO）。
         const candidates = Object.entries(idx.e);
-        const unprotected =
-            protectedIdMax > 0 ? candidates.filter(([k]) => keyId(k) > protectedIdMax) : candidates;
-        const protectedSet =
-            protectedIdMax > 0 ? candidates.filter(([k]) => keyId(k) <= protectedIdMax) : [];
+        const unprotected = protectedIdMax > 0 ? candidates.filter(([k]) => keyId(k) > protectedIdMax) : candidates;
+        const protectedSet = protectedIdMax > 0 ? candidates.filter(([k]) => keyId(k) <= protectedIdMax) : [];
         for (const group of [unprotected, protectedSet]) {
             for (const [key, size] of group) {
                 if (totalBytes <= maxBytes) break;

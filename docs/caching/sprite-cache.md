@@ -76,6 +76,9 @@
 ## 三条调度不变量（别改坏）
 
 引擎 key = `<kind>:<id>/<variant>`（item 的 variant 恒为占位串 `icon`），值是 `{ url, refs }`。
+C1-A 后清单（`sprites.json`）hash 就绪时末尾带 `:{hash8}`（如 `pokemon:25/home:a1b2c3d4`）——
+让「内容变了」的图拿到新内存 key，旧 Blob URL 不被误复用；hash 未就绪回落无 hash 段。
+详见 [./sprite-invalidation-c1.md](./sprite-invalidation-c1.md)。
 
 1. **限流 4 并发**。不限流时几十个请求同时丢给浏览器，浏览器 FIFO 排队，当前视口排在已划过去的行后面。
    （H5 单域 6 连接，留余量给 FB bundle；解密是主线程 WASM。）
@@ -160,8 +163,10 @@ deps 就能覆盖全部分支（`tests/spriteLoader.spec.ts`）。
 按插入序 FIFO 淘汰（LRU 每次命中要回写索引，多一次 IDB 往返，不值），索引落盘带 500ms 防抖。
 **保护集**：fs 后端下 id ≤ `CACHE_CONFIG.protectedIdMax`（默认 100）的图鉴优先保留，
 非保护项删完仍超预算才回落删保护项（H5 按 0 关）。预算与保护集集中配置见 `cacheConfig.ts`。
-磁盘 key 形如 `<root>v<ver>:<id>[/<variant>]`（pokemon 带 variant，item 不带）；
+磁盘 key 形如 `<root>v<ver>[:<hash8>]:<id>[/<variant>]`（C1-A 清单 hash 就绪时多 hash 段，
+未就绪回落旧格式，不影响 `pruneVersions` 前缀匹配；保护集解析取**末段**纯数字 id，与 hash 段无关）；
 索引 key sprite 为 `zukan_sprite_index`、item 为 `zukan_item_img_index`。
+图片 URL 在清单 hash 命中时带 `?v=<hash8>`（`imageCache` 拼装，`buildCdnUrl` 的 `sign&t` 照常追加）。
 
 ## 图片缺失
 

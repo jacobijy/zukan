@@ -26,3 +26,8 @@
   [resource-cache.md「dev 下的两层缓存都不跨刷新」](./resource-cache.md)。
 - 版本号来自 `GET /api/v1/zukan/key`，FB bundle 与 sprite 密文共用同一版本前缀，
   DEK 轮换时一起失效。
+- 图片另有 **内容 hash 信号**（C1-A，[sprite-invalidation-c1.md](./sprite-invalidation-c1.md)）：
+  清单 `sprites.json`（no-cache）记录每张图明文 sha256 前 8 位，hash 命中时图片 URL 带 `?v=`、
+  缓存 key 带 hash 段 —— **改图不 bump 数据版本也能精确失效**（只重下变了的图）；清单未就绪 /
+  老后端回落无 hash 旧路径。清单刷新时机 = 前台切换 / 刷新（`App.vue onShow` + `boot` 首拉，
+  5 分钟时间闸）。

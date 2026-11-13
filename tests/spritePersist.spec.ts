@@ -499,6 +499,54 @@ describe('删除与版本清理', () => {
     });
 });
 
+describe('C1-A 清单 hash（imageManifest 注入）', () => {
+    const MB = 1024 * 1024;
+
+    it('hash 命中时磁盘 key 带 hash 段；未收录回落旧格式', async () => {
+        const mod = await freshPersist();
+        const { refreshManifest } = await import('@/services/resources/imageManifest');
+        await refreshManifest({
+            fetch: async () =>
+                new TextEncoder().encode(
+                    JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'aabbccdd' } } }),
+                ),
+        });
+
+        await mod.saveSpriteBytes(1, 'home', bytesOfSize(1000));
+        await mod.saveSpriteBytes(2, 'home', bytesOfSize(1000));
+
+        expect(fsDisk.has('sprite:v1:aabbccdd:1/home')).toBe(true);
+        expect(fsDisk.has('sprite:v1:2/home')).toBe(true);
+    });
+
+    it('保护集不受 hash 段干扰（含 hash 恰为全数字的情形）', async () => {
+        const mod = await freshPersist();
+        const { refreshManifest } = await import('@/services/resources/imageManifest');
+        // id=1 保护（hash 恰为全数字，最毒：若回退成 `split(':')[2]` 解析会把它误当 id
+        // 12345678 → 判定为非保护、首轮就被淘汰）；id=101 / 102 非保护。
+        await refreshManifest({
+            fetch: async () =>
+                new TextEncoder().encode(
+                    JSON.stringify({
+                        files: {
+                            'pokemon/1/home.bin': { h: '12345678' },
+                            'pokemon/101/home.bin': { h: 'aabbccdd' },
+                        },
+                    }),
+                ),
+        });
+
+        // 预算 40MB：保护 id=1(25MB) + 2×非保护 101,102(各20MB) = 65MB > 40 → 非保护先删
+        await mod.saveSpriteBytes(1, 'home', bytesOfSize(25 * MB));
+        await mod.saveSpriteBytes(101, 'home', bytesOfSize(20 * MB));
+        await mod.saveSpriteBytes(102, 'home', bytesOfSize(20 * MB));
+
+        expect(fsDisk.has('sprite:v1:12345678:1/home')).toBe(true);
+        expect(fsDisk.has('sprite:v1:aabbccdd:101/home')).toBe(false);
+        expect(fsDisk.has('sprite:v1:102/home')).toBe(false);
+    });
+});
+
 // ─────────────────────────────────────────────────────────
 // 与 spriteCache 的联调
 // ─────────────────────────────────────────────────────────

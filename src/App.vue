@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onError, onLaunch, onUnhandledRejection } from "@dcloudio/uni-app";
+import { onError, onLaunch, onShow, onUnhandledRejection } from "@dcloudio/uni-app";
 import { applySafeArea } from "@/infra/platform/applySafeArea";
 import { bootPrefetch } from "@/services/boot";
+import { refreshManifest } from "@/services/resources/imageManifest";
 onLaunch(() => {
   // 安全区注入：读系统状态栏高度写成 CSS 变量，供全站 padding/导航栏消费。
   // 必须在 bootPrefetch 之前，避免首帧标题压进刘海/挖孔。
@@ -9,6 +10,11 @@ onLaunch(() => {
   // 后台预热：拉 /api/v1/zukan/key + 版本对比 + 预取最新一代 bundle。
   // 不 await，网络失败也不阻塞 UI。
   bootPrefetch();
+});
+onShow(() => {
+  // 图片 hash 清单（sprites.json，no-cache）：回到前台重拉，改图后下次前台即精确失效。
+  // 失败静默 —— 快照维持上次内容 / null，图片按无 hash 旧路径走，等同现状。
+  void refreshManifest();
 });
 // 框架内部错误（如组件渲染、生命周期回调里抛出的错误）会带完整堆栈走到这里；
 // 微信开发者工具控制台有时只打印一句 message，拿这个堆栈才能定位。

@@ -853,3 +853,90 @@ describe('Blob MIME 按内容判定', () => {
         expect(blobTypes).toEqual(['image/png']);
     });
 });
+
+describe('C1-A 清单 hash（imageManifest 注入）', () => {
+    function bytesOf(s: string): Uint8Array {
+        return new TextEncoder().encode(s);
+    }
+
+    it('清单 hash 命中时请求 URL 带 ?v=hash', async () => {
+        const { acquireSprite } = await freshModule();
+        const { refreshManifest } = await import('@/services/resources/imageManifest');
+        await refreshManifest({
+            fetch: async () =>
+                bytesOf(
+                    JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'aabbccdd' } } }),
+                ),
+        });
+
+        await acquireSprite(1, 'home');
+
+        expect(fetchBinary).toHaveBeenCalledWith(
+            'https://cdn.test/assets/encrypted/pokemon/1/home.bin?v=aabbccdd',
+            expect.anything(),
+        );
+    });
+
+    it('清单未收录 / 缺席时 URL 不带 ?v=（向后兼容）', async () => {
+        const { acquireSprite } = await freshModule();
+
+        await acquireSprite(1, 'home');
+
+        expect(fetchBinary).toHaveBeenCalledWith(
+            'https://cdn.test/assets/encrypted/pokemon/1/home.bin',
+            expect.anything(),
+        );
+    });
+
+    it('清单 hash 变化后再次取用走新 URL、不复用旧 Blob', async () => {
+        vi.useFakeTimers();
+        const { acquireSprite } = await freshModule();
+        const manifest = await import('@/services/resources/imageManifest');
+
+        await manifest.refreshManifest({
+            fetch: async () =>
+                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'aaa11111' } } })),
+        });
+        const oldUrl = await acquireSprite(1, 'home');
+
+        await vi.advanceTimersByTimeAsync(manifest.MIN_REFRESH_INTERVAL_MS + 1_000);
+        await manifest.refreshManifest({
+            fetch: async () =>
+                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'bbb22222' } } })),
+        });
+        const newUrl = await acquireSprite(1, 'home');
+
+        expect(newUrl).not.toBe(oldUrl);
+        expect(fetchBinary).toHaveBeenCalledTimes(2);
+        expect(fetchBinary).toHaveBeenLastCalledWith(
+            'https://cdn.test/assets/encrypted/pokemon/1/home.bin?v=bbb22222',
+            expect.anything(),
+        );
+        vi.useRealTimers();
+    });
+
+    it('清单快照翻转两侧 acquire/release 不 pin 住旧条目（release 前缀兜底）', async () => {
+        vi.useFakeTimers();
+        const mod = await freshModule();
+        const manifest = await import('@/services/resources/imageManifest');
+
+        await manifest.refreshManifest({
+            fetch: async () =>
+                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'aaa11111' } } })),
+        });
+        await mod.acquireSprite(1, 'home');
+        expect(mod.spriteCacheStats().refs).toBe(1);
+
+        // 快照翻转：release 时当前 hash 已是新值，直接按新 hash 算 key 找不到旧条目
+        await vi.advanceTimersByTimeAsync(manifest.MIN_REFRESH_INTERVAL_MS + 1_000);
+        await manifest.refreshManifest({
+            fetch: async () =>
+                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'bbb22222' } } })),
+        });
+
+        mod.releaseSprite(1, 'home');
+
+        expect(mod.spriteCacheStats().refs).toBe(0);
+        vi.useRealTimers();
+    });
+});

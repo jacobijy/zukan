@@ -61,6 +61,7 @@ import { initWasm, decryptZukan } from '@/infra/wasm';
 import { getKey, clearKeyCache } from '@/services/session';
 import { fetchBinary, BinaryRequestError } from '@/services/http';
 import { buildCdnUrl } from '@/services/resources/cdn';
+import { hashForPath } from '@/services/resources/imageManifest';
 import { sniffImageMime } from '@/services/resources/imageMime';
 import type { ImageKindSpec } from '@/services/resources/imageKind';
 import { createImageObjectUrl, releaseImageObjectUrl } from '@/services/resources/objectUrl';
@@ -165,7 +166,11 @@ export function createImageCache(
 
     function cacheKey(id: number | string, variant: string): string {
         // 扁平种类（item / battle）variant 为空：不带尾斜杠；pokemon 保留 `<id>/<variant>`
-        return `${kind}:${id}${variant ? `/${variant}` : ''}`;
+        const base = `${kind}:${id}${variant ? `/${variant}` : ''}`;
+        // C1-A：清单 hash 就绪时末尾带 `:{hash}` —— 改图后 hash 变、内存 key 变，旧 Blob URL
+        // 条目拿不到新图形。hash 未就绪（老后端 / 首拉未完成）回落无 hash 段旧格式。
+        const hash = hashForPath(spec.remotePath(id, variant));
+        return hash ? `${base}:${hash}` : base;
     }
 
     /**
@@ -222,6 +227,10 @@ export function createImageCache(
         let { dek, cdn } = key;
 
         const remotePath = spec.remotePath(id, variant);
+        // C1-A：清单命中 hash 时 URL 带 `?v={hash}` —— 改图后 hash 变、URL 变，CDN / 浏览器旧
+        // 字节命中不了新 URL，只重下变了的那几张。hash 未就绪不带 query（等同现状）。
+        const hash = hashForPath(remotePath);
+        const urlPath = hash ? `${remotePath}?v=${hash}` : remotePath;
 
         // 取消可能发生在等 IDB / 密钥期间；此时一个请求都还没发，直接退出
         if (signal?.aborted) throw newAbortError(cacheKey(id, variant));
@@ -240,14 +249,14 @@ export function createImageCache(
 
         let encrypted: Uint8Array;
         try {
-            encrypted = await fetchBinary(buildCdnUrl(remotePath, cdn), { signal });
+            encrypted = await fetchBinary(buildCdnUrl(urlPath, cdn), { signal });
         } catch (err) {
             if (err instanceof BinaryRequestError && err.statusCode === 403) {
                 clearKeyCache();
                 const fresh = await getKey();
                 dek = fresh.dek;
                 cdn = fresh.cdn;
-                encrypted = await fetchBinary(buildCdnUrl(remotePath, cdn), { signal });
+                encrypted = await fetchBinary(buildCdnUrl(urlPath, cdn), { signal });
             } else {
                 throw err;
             }
@@ -455,8 +464,24 @@ export function createImageCache(
     }
 
     function release(id: number | string, variant: string): void {
-        const entry = cache.get(cacheKey(id, variant));
-        if (entry && entry.refs > 0) entry.refs -= 1;
+        const key = cacheKey(id, variant);
+        const entry = cache.get(key);
+        if (entry) {
+            if (entry.refs > 0) entry.refs -= 1;
+            return;
+        }
+        // C1-A 兜底：acquire 与 release 若落在清单快照翻转两侧，release 用新 hash 算出的 key
+        // 会找不到旧 hash 条目 —— 不处理则那次的 refs 永不归零、条目被 pin 在 LRU（小程序侧
+        // 对象 URL 文件也不 unlink）。对同 `<kind>:<id>[/<variant>]:` 前缀的旧条目 best-effort
+        // 递减，交给古董条目所在 LRU 自然淘汰。正常路径（key 一致）上面的 get 已命中，零开销。
+        const prefix = `${kind}:${id}${variant ? `/${variant}` : ''}:`;
+        for (const orphanKey of cache.keys()) {
+            if (orphanKey.startsWith(prefix)) {
+                const orphan = cache.get(orphanKey)!;
+                if (orphan.refs > 0) orphan.refs -= 1;
+                return;
+            }
+        }
     }
 
     /**
