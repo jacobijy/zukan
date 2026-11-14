@@ -508,7 +508,7 @@ describe('C1-A 清单 hash（imageManifest 注入）', () => {
         await refreshManifest({
             fetch: async () =>
                 new TextEncoder().encode(
-                    JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'aabbccdd' } } }),
+                    JSON.stringify({ files: { 'pokemon/1/home.bin': 'aabbccdd' } }),
                 ),
         });
 
@@ -529,8 +529,8 @@ describe('C1-A 清单 hash（imageManifest 注入）', () => {
                 new TextEncoder().encode(
                     JSON.stringify({
                         files: {
-                            'pokemon/1/home.bin': { h: '12345678' },
-                            'pokemon/101/home.bin': { h: 'aabbccdd' },
+                            'pokemon/1/home.bin': '12345678',
+                            'pokemon/101/home.bin': 'aabbccdd',
                         },
                     }),
                 ),

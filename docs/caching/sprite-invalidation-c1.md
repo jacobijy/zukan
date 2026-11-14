@@ -46,17 +46,15 @@ manifest URL:  /assets/encrypted/sprites.json            ← 固定路径,no-cac
 {
   "version": 3,
   "files": {
-    "pokemon/25/home.bin":     { "h": "a1b2c3d4", "m": 1712345678 },
-    "pokemon/25/home-shiny.bin": { "h": "e5f6a7b8", "m": 1712345678 },
-    "items/4.bin":             { "h": "cafebabe", "m": 1712345678 },
-    "badges/1.bin":            { "h": "d0e1f2a3", "m": 1712345678 },
-    "types/1.bin":             { "h": "e5f6a7b8", "m": 1712345678 }
+    "pokemon/25/home.bin":       "a1b2c3d4",
+    "pokemon/25/home-shiny.bin": "e5f6a7b8",
+    "items/4.bin":               "cafebabe"
   }
 }
 ```
 
-- **key 是相对输出路径**(`pokemon/<id>/<variant>.bin` / `items/<id>.bin` …),扁平索引、覆盖 pokemon/items/badges/types,不按 kind 分层——前端直接拿 remotePath 的相对部分查询,加密器无需感知语义。
-- **`h`** = 明文内容 sha256 前 8 位(前端 URL `?v=` 用);**`m`** = 源文件 mtime(毫秒),仅后端增量的继承判定,前端忽略。
+- **key 是相对输出路径**(`pokemon/<id>/<variant>.bin` / `items/<id>.bin` …),扁平索引、覆盖 pokemon/items/badges/types,不按 kind 分层——前端直接拿 remotePath 的相对部分查询。
+- **value 就是明文内容 sha256 前 8 位**(前端 URL `?v=` 用)。文件里**没有 mtime**——后端增量的 `m` 字段已拆到 `assets/meta/sprites.meta.json`(后端内部台账,**不推送到前端**),下发保持紧凑(约 2.5MB → gzip 后约 550KB;内容未变时走 304 不传正文)。
 - 固定文件名(不带版本段)—— 版本信号由 no-cache + 内容自身变化表达。
 - `"version"` 字段记录生成时的密钥版本,供前端诊断,不作寻址。
 
@@ -74,7 +72,7 @@ manifest URL:  /assets/encrypted/sprites.json            ← 固定路径,no-cac
 
 ### 4.1 hash 查询层(新增)
 - 读 manifest:`fetchBinary(/assets/encrypted/sprites.json)`(**不走 immutable 缓存**),会话内缓存 1 份(`Map`);每次进页面重新拉一次(no-cache 下成本≈304 往返)。
-- `hashFor(remotePath): string | undefined`:把 `/assets/encrypted/` 前缀去掉、取相对部分(如 `pokemon/25/home.bin`)查 `files[...].h`。缺失/404(老后端或该图未收录)→ undefined → 兜底 URL(不带 `?v=`),保持现状行为。**向后兼容**。
+- `hashFor(remotePath): string | undefined`:把 `/assets/encrypted/` 前缀去掉、取相对部分(如 `pokemon/25/home.bin`),从 `files[相对路径]` 取 hash 字符串。缺失/404(老后端或该图未收录)→ undefined → 兜底 URL(不带 `?v=`),保持现状行为。**向后兼容**。
 
 ### 4.2 URL 拼装
 - `imageKind.ts` 的 `remotePath` 从纯路径改为「拼上 hash query」:`/pokemon/{id}/{variant}.bin` + (`hashFor(remotePath)` 命中 ? `?v={hash}` : 空)。
@@ -122,12 +120,13 @@ manifest URL:  /assets/encrypted/sprites.json            ← 固定路径,no-cac
 ## 8. 风险 / 未决
 
 1. **每次会话多一次 manifest 请求**:no-cache 下前端每次回源校验 manifest(未变 304)。
-   **实测体积(2026-11-13):清单 47581 条,未压缩 5.0 MB,`gzip -c` 后约 756 KB / 6.5:1。** 因此:
-   - H5:浏览器 no-cache + 304 协商,重复访问近免费(仅首会 5 MB 一次性下载);
-   - **微信小程序 `wx.request` 不执行条件请求 / 304 —— 每次前台都整包拉 5 MB**,前端侧已加
-     5 分钟刷新时间闸(`imageManifest.MIN_REFRESH_INTERVAL_MS`)收敛,但首拉仍是一次 5 MB;
-   - 建议后端产 minify JSON(去 `m` 字段 / 压缩)并启用 gzip 响应,可把传输量拉到 ~700 KB 级
-     (小程序若自动解压 gzip 则无忧,需真机确认)。
+   **实测体积(2026-11-13):清单 47581 条,value 字符串化 + 去掉 `m` 后未压缩 2.5 MB
+   (较初版 `{h,m}` 的 5.0 MB 减半);服务器当前未启用 gzip,本地 `gzip -c` 约 550 KB。** 因此:
+   - H5:浏览器 no-cache + 304 协商,重复访问近免费(仅首会 2.5 MB 一次性下载);
+   - **微信小程序 `wx.request` 不执行条件请求 / 304 —— 每次前台整包拉 2.5 MB**,前端侧已加
+     5 分钟刷新时间闸(`imageManifest.MIN_REFRESH_INTERVAL_MS`)收敛;
+   - 推荐后端启用 gzip 响应(约 550 KB)或进一步 minify;小程序若自动解压 gzip 则直连无忧,
+     需真机确认。
 
 2. **【后端】manifest 缓存头必须单独覆盖**:不覆盖则进 controlled 的 immutable 层,A 失效。
    §3.2 是后端必改项。**已实现并验证**(2026-11-13):`assets/handler.rs::sprites_no_cache`
@@ -157,6 +156,7 @@ manifest URL:  /assets/encrypted/sprites.json            ← 固定路径,no-cac
 - **`imageManifest.ts`(新)**:`refreshManifest()` 拉 `/assets/encrypted/sprites.json`(走 `fetchBinary`/
   `buildAssetUrl`,**无 CDN 签名**以保留 304 协商;dev 下 `_dc` 自动 bust),模块级同步快照
   `snapshot`,`hashForPath(remotePath)` 同步查表。要点:
+  - 解析兼容 `files` 值的**字符串**(当前契约,见 §3.1)与 `{h}` 对象(老中间形态)两种格式;
   - **失败保留旧快照**、首拉失败 = 现状(全 undefined);
   - **5 分钟刷新时间闸**(`MIN_REFRESH_INTERVAL_MS`):小程序无 304 会整包重拉,限频;快照为 null
     (从未成功)时不受闸;
@@ -174,7 +174,7 @@ manifest URL:  /assets/encrypted/sprites.json            ← 固定路径,no-cac
 
 遗留 / 上线待办:
 
-- **后端产 minify / gzip**:5 MB 未压缩对小程序前台重拉仍重(见 §8 风险 1 实测)。
+- **后端启用 gzip / minify**:2.5 MB 未压缩对小程序前台重拉仍重(见 §8 风险 1 实测;开 gzip 后约 550 KB)。
 - **CDN 缓存键含 `?v=` 确认**(§8 风险 3):上线时在 CDN 侧确认 query 计入缓存键。
 - **改图端到端手工验证**:重跑 `encrypt-assets` 改单图 → 重新前台 → 只重下单图(本机已验
   证 manifest 头 no-cache + 前端模块可加载,未执行整条资产重打包)。

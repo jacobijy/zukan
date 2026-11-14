@@ -39,7 +39,7 @@ describe('hashForPath 相对路径解析', () => {
         const { refreshManifest, hashForPath } = await freshManifest();
         await refreshManifest({
             fetch: async () =>
-                manifest({ 'pokemon/1/home.bin': { h: 'aabbccdd' }, 'items/4.bin': { h: '11223344' } }),
+                manifest({ 'pokemon/1/home.bin': 'aabbccdd', 'items/4.bin': '11223344' }),
         });
 
         expect(hashForPath('/assets/encrypted/pokemon/1/home.bin')).toBe('aabbccdd');
@@ -47,7 +47,7 @@ describe('hashForPath 相对路径解析', () => {
         expect(hashForPath('/assets/encrypted/pokemon/1/home.bin?v=aabbccdd')).toBe('aabbccdd');
     });
 
-    it('未收录 / 无 h 字段的条目不进快照 → undefined', async () => {
+    it('未收录 / 对象旧格式缺 h 的条目不进快照 → undefined', async () => {
         const { refreshManifest, hashForPath } = await freshManifest();
         await refreshManifest({
             fetch: async () => manifest({ 'pokemon/2/home.bin': { m: 1712 } }),
@@ -57,10 +57,24 @@ describe('hashForPath 相对路径解析', () => {
         expect(hashForPath('/assets/encrypted/pokemon/2/home.bin')).toBeUndefined();
     });
 
+    it('兼容旧 { h, m } 对象格式（老后端 / 回退中间形态），空 h 仍被跳过', async () => {
+        const { refreshManifest, hashForPath } = await freshManifest();
+        await refreshManifest({
+            fetch: async () =>
+                manifest({
+                    'pokemon/1/home.bin': { h: 'aabbccdd', m: 1712 },
+                    'pokemon/2/home.bin': { h: '' },
+                }),
+        });
+
+        expect(hashForPath('/assets/encrypted/pokemon/1/home.bin')).toBe('aabbccdd');
+        expect(hashForPath('/assets/encrypted/pokemon/2/home.bin')).toBeUndefined();
+    });
+
     it('前缀剥取不会误伤 encrypted-assets 这类近名目录（剥不掉则查表 miss）', async () => {
         const { refreshManifest, hashForPath } = await freshManifest();
         await refreshManifest({
-            fetch: async () => manifest({ 'pokemon/1/home.bin': { h: 'aabbccdd' } }),
+            fetch: async () => manifest({ 'pokemon/1/home.bin': 'aabbccdd' }),
         });
 
         expect(hashForPath('/assets/encrypted-assets/pokemon/1/home.bin')).toBeUndefined();
@@ -80,7 +94,7 @@ describe('快照维护', () => {
         vi.useFakeTimers();
         const { refreshManifest, hashForPath } = await freshManifest();
         await refreshManifest({
-            fetch: async () => manifest({ 'pokemon/1/home.bin': { h: 'aabbccdd' } }),
+            fetch: async () => manifest({ 'pokemon/1/home.bin': 'aabbccdd' }),
         });
         expect(hashForPath('/assets/encrypted/pokemon/1/home.bin')).toBe('aabbccdd');
 
@@ -95,7 +109,7 @@ describe('快照维护', () => {
         vi.useFakeTimers();
         const { refreshManifest, hashForPath } = await freshManifest();
         await refreshManifest({
-            fetch: async () => manifest({ 'pokemon/1/home.bin': { h: 'aabbccdd' } }),
+            fetch: async () => manifest({ 'pokemon/1/home.bin': 'aabbccdd' }),
         });
         await vi.advanceTimersByTimeAsync(MIN + 1_000);
 

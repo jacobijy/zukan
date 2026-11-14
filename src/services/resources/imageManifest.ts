@@ -3,9 +3,11 @@
  *
  * 契约（见 `docs/caching/sprite-invalidation-c1.md`，后端已实现）：
  * - 后端把每张图明文内容 sha256 前 8 位 hex 汇总成固定路径 `/assets/encrypted/sprites.json`，
- *   形如 `{ "version": 3, "files": { "pokemon/25/home.bin": { "h": "a1b2c3d4", "m": ... } } }`；
- *   服务端对该文件单独发 `Cache-Control: no-cache`（其余加密资源仍 immutable）。
+ *   `files` 的值是**纯字符串 hash**（`"pokemon/25/home.bin": "a1b2c3d4"`；源 mtime 已拆到后端
+ *   内部台账 `sprites.meta.json`，不推送）。服务端对该文件单独发 `Cache-Control: no-cache`
+ *   （其余加密资源仍 immutable）。
  * - 前端每次「进页面 / 回前台」拉一次清单：未变 304（H5 协商缓存），改了才能拿到新 hash。
+ *   解析对 `{ h, m }` 对象旧格式也兼容（老后端 / 回退期间的中间形态）。
  *
  * 用途：URL 拼接（`.../{id}/{variant}.bin?v=<hash>`）与两级缓存 key（`sprite:v{N}:{hash}:{id}/...`）
  * 都要 hash，因此这里维护**同步可读**的模块级快照，拉取与查表分离：
@@ -62,14 +64,16 @@ async function doRefresh(fetchImpl: ManifestFetch): Promise<void> {
     try {
         const bytes = await fetchImpl(MANIFEST_URL);
         const parsed = JSON.parse(decodeManifest(bytes)) as {
-            files?: Record<string, { h?: unknown }>;
+            files?: Record<string, unknown>;
         } | null;
 
         const next: Record<string, string> = {};
         if (parsed && parsed.files && typeof parsed.files === 'object') {
             for (const [rel, file] of Object.entries(parsed.files)) {
-                const h = file?.h;
-                if (typeof h === 'string' && h) next[rel] = h;
+                // 契约从 `{ h, m }` 演进为纯字符串值（m 拆到 `sprites.meta.json`，不推送）。
+                // 兼容读两种：字符串直接用；对象取 `.h`（老后端 / 回退中间形态）。
+                const hash = typeof file === 'string' ? file : (file as { h?: unknown } | null)?.h;
+                if (typeof hash === 'string' && hash) next[rel] = hash;
             }
         }
         snapshot = next;

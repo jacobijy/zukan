@@ -865,7 +865,7 @@ describe('C1-A 清单 hash（imageManifest 注入）', () => {
         await refreshManifest({
             fetch: async () =>
                 bytesOf(
-                    JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'aabbccdd' } } }),
+                    JSON.stringify({ files: { 'pokemon/1/home.bin': 'aabbccdd' } }),
                 ),
         });
 
@@ -895,14 +895,14 @@ describe('C1-A 清单 hash（imageManifest 注入）', () => {
 
         await manifest.refreshManifest({
             fetch: async () =>
-                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'aaa11111' } } })),
+                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': 'aaa11111' } })),
         });
         const oldUrl = await acquireSprite(1, 'home');
 
         await vi.advanceTimersByTimeAsync(manifest.MIN_REFRESH_INTERVAL_MS + 1_000);
         await manifest.refreshManifest({
             fetch: async () =>
-                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'bbb22222' } } })),
+                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': 'bbb22222' } })),
         });
         const newUrl = await acquireSprite(1, 'home');
 
@@ -922,7 +922,7 @@ describe('C1-A 清单 hash（imageManifest 注入）', () => {
 
         await manifest.refreshManifest({
             fetch: async () =>
-                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'aaa11111' } } })),
+                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': 'aaa11111' } })),
         });
         await mod.acquireSprite(1, 'home');
         expect(mod.spriteCacheStats().refs).toBe(1);
@@ -931,7 +931,7 @@ describe('C1-A 清单 hash（imageManifest 注入）', () => {
         await vi.advanceTimersByTimeAsync(manifest.MIN_REFRESH_INTERVAL_MS + 1_000);
         await manifest.refreshManifest({
             fetch: async () =>
-                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': { h: 'bbb22222' } } })),
+                bytesOf(JSON.stringify({ files: { 'pokemon/1/home.bin': 'bbb22222' } })),
         });
 
         mod.releaseSprite(1, 'home');
