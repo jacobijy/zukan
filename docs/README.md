@@ -29,6 +29,7 @@
 | 功能 | [features/archive.md](features/archive.md) | 资料中心属性/招式/特性/道具图鉴：列表虚拟化、反查索引、flavor 多表、道具图标 manifest |
 | 功能 | [features/teams.md](features/teams.md) | 自建队伍组队器：我的队伍列表 + 编辑（成员/特性/道具/性格/招式/SP），登录保存、热门配置一键填充 |
 | 功能 | [features/metagame-usage.md](features/metagame-usage.md) | 对战使用率页面：排行榜 + 宝可梦对战配置页的数据流（明文 JSON，适配层 / 词典翻译） |
+| 功能 | [features/notices-page.md](features/notices-page.md) | 资料中心官方公告：公开 JSON 快照（不加密不鉴权）、会话缓存 + endAt 过滤、外链打开策略 |
 | 加密 | [security/encryption-pipeline.md](security/encryption-pipeline.md) | ZKDX 格式、后端构建分发、前端解密、version 字节双身份、variant 体积对照与回落链、对战图标（§4.6，赛季版本化）、排障（含 dev-only 资源探测器） |
 | 加密 | [security/auth-session.md](security/auth-session.md) | DEK 唯一入口、401 恢复决策树、登录弹层去重 |
 | 缓存 | [caching/overview.md](caching/overview.md) | 全部缓存一张速查表：层级 / 持久化 / 版本失效 |

@@ -67,6 +67,7 @@ tools/                         # 数据处理脚本（python / typescript）
 | 属性/招式/特性/道具图鉴 | `pages/archive/*` | 资料中心四个栏目，列表页 + 详情页共 8 个（`types`/`type-detail`、`moves`/`move-detail`、`abilities`/`ability-detail`、`items`/`item-detail`）；数据流见 [../features/archive.md](../features/archive.md) |
 | 开发者工具 | `pages/devtools/devtools` | **dev-only 子页**（我的 → 开发者工具）：资源探测器（取密文 → 解密 → 显示，绕开缓存）+ 文本浏览（走 resourceManager）。门禁 `import.meta.env.DEV`，实现体动态 import，正式构建被 Rollup 剔除。见 [../security/encryption-pipeline.md](../security/encryption-pipeline.md) 6.0 / 6.0.1 |
 | 对战数据 | `pages/meta/meta`、`pages/meta/pokemon-meta` | 子页 ×2（资料中心 → 对战详情）：使用率排行榜（上游只给名次无 %）+ 对战配置（选用率 / SP 加点 / 队友）；明文公开 JSON，见 [../data/battle-usage.md](../data/battle-usage.md)、[../features/metagame-usage.md](../features/metagame-usage.md) |
+| 官方公告 | `pages/notices/notices` | 子页（资料中心 → 资讯）：Pokémon HOME 公告列表（明文公开 JSON 快照，不加密不鉴权），点行外跳官方 webview；见 [../features/notices-page.md](../features/notices-page.md)、[../features/notices.md](../features/notices.md) |
 | 我的队伍 | `pages/teams/teams`、`pages/teams/team-edit` | 子页 ×2（**功能页签**进入）：队伍 CRUD + 完整组队器；payload 对后端不透明、只存稳定 id，写前 `authGate.requireLogin()`；普通 JSON 不涉 DEK，见 [../data/teams.md](../data/teams.md)、[../features/teams.md](../features/teams.md) |
 
 **tab 保活**：`pages.json` 声明原生 `tabBar`（不设 custom），由 `useHideNativeTabBar` 在 onShow 调

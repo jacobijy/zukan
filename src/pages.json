@@ -136,6 +136,13 @@
       }
     },
     {
+      "path": "pages/notices/notices",
+      "style": {
+        "navigationBarTitleText": "官方公告",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/devtools/devtools",
       "style": {
         "navigationBarTitleText": "开发者工具",

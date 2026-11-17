@@ -10,6 +10,7 @@ export * as favoritesApi from './favorites';
 export * as popularityApi from './popularity';
 export * as teamsApi from './teams';
 export * as templatesApi from './templates';
+export * as noticesApi from './notices';
 
 // 常用 error 类型直接导出，方便 catch 分支 instanceof
 export { AuthApiError } from './auth';

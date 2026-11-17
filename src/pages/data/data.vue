@@ -25,12 +25,27 @@
                 :title="t('meta.entryTitle')"
                 :desc="t('meta.entryDesc')"
                 iconClass="list-row__icon--violet"
-                last
                 showChevron
                 @click="goBattleData"
             >
                 <template #icon>
                     <HubIcon name="data-meta" />
+                </template>
+            </ListRow>
+        </view>
+
+        <view class="section-label mt-6">{{ t('data.sectionNotice') }}</view>
+        <view class="data-list glass-panel">
+            <ListRow
+                :title="t('data.notice')"
+                :desc="t('data.noticeDesc')"
+                iconClass="list-row__icon--blue"
+                last
+                showChevron
+                @click="goNotices"
+            >
+                <template #icon>
+                    <HubIcon name="data-notice" />
                 </template>
             </ListRow>
         </view>
@@ -87,6 +102,10 @@ const goOverview = (item: OverviewEntry) => {
 
 const goBattleData = () => {
     uni.navigateTo({ url: '/pages/meta/meta' });
+};
+
+const goNotices = () => {
+    uni.navigateTo({ url: '/pages/notices/notices' });
 };
 
 const onTabChange = (_index: number) => {

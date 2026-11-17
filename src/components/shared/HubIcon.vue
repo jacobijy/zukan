@@ -20,6 +20,7 @@ export type HubIconName =
     | 'data-item'
     | 'data-egg'
     | 'data-meta'
+    | 'data-notice'
     // 功能
     | 'hub-damage'
     | 'hub-stat'
@@ -42,6 +43,7 @@ const RASTER_ICONS: Record<HubIconName, string> = {
     'data-item': '/static/img/hub-icons/item.png',
     'data-egg': '/static/img/hub-icons/egg.png',
     'data-meta': '/static/img/hub-icons/meta.png',
+    'data-notice': '/static/img/hub-icons/notice.png',
     'hub-damage': '/static/img/hub-icons/damage.png',
     'hub-stat': '/static/img/hub-icons/stat.png',
     'hub-battle': '/static/img/hub-icons/battle.png',
