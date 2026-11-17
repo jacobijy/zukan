@@ -11,4 +11,6 @@ export { refreshSessionOnce, ensureFreshSession } from './refresh';
 
 export { confirmLogin } from './confirmLogin';
 
+export { onSessionChange, notifySessionChange } from './sessionChange';
+
 export type { DekResponse, CdnToken } from './types';

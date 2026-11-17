@@ -7,6 +7,8 @@
  * 否则 token → key → api/zukanKey → token 会形成环（见 docs/security/auth-session.md）。
  */
 
+import { notifySessionChange } from './sessionChange';
+
 const TOKEN_KEY = 'zukan_token';
 const REFRESH_TOKEN_KEY = 'zukan_refresh_token';
 
@@ -89,4 +91,5 @@ export function clearSession(): void {
     setToken(null);
     setRefreshToken(null);
     for (const hook of clearHooks) hook();
+    notifySessionChange();
 }

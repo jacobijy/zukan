@@ -209,6 +209,7 @@ import { detectPlatform } from '@/infra/platform';
 import { selectVisibleProviders } from '@/services/platform/providerConfig';
 import { getPlatformManager } from '@/services/platform/managers';
 import { usePokemonStore } from '@/store/pokemon';
+import { notifySessionChange } from '@/services/session/sessionChange';
 
 const { t } = useI18n();
 
@@ -280,6 +281,8 @@ const wechatError = ref('');
  */
 function reportSuccess(payload: { mode: Mode; identifier: string }) {
     void usePokemonStore().loadFavorites(true);
+    // 广播会话变化：保活页面的登录态快照（如 NavBar 头像）据此刷新
+    notifySessionChange();
     emit('success', payload);
     emit('update:visible', false);
 }

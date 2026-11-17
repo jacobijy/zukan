@@ -93,6 +93,7 @@ import { authGate } from '@/services/session/authGate';
 import { detectPlatform } from '@/infra/platform';
 import { selectVisibleProviders } from '@/services/platform/providerConfig';
 import { AvatarError, clearAvatar, getAvatar, pickAvatar } from '@/services/profile/avatar';
+import { notifySessionChange } from '@/services/session/sessionChange';
 import { usePokemonStore } from '@/store/pokemon';
 import { useI18n } from 'vue-i18n';
 import { interp } from '@/services/i18n/ui-i18n';
@@ -166,6 +167,7 @@ async function changeAvatar(): Promise<void> {
         const src = await pickAvatar();
         if (src) {
             avatarUrl.value = src;
+            notifySessionChange(); // NavBar 等保活组件同步新头像
             uni.showToast({ title: t('mine.avatarUpdated'), icon: 'none' });
         }
     } catch (err) {
@@ -180,6 +182,7 @@ async function changeAvatar(): Promise<void> {
 function resetAvatar(): void {
     clearAvatar();
     avatarUrl.value = '';
+    notifySessionChange(); // NavBar 等保活组件同步清空
     uni.showToast({ title: t('mine.avatarUpdated'), icon: 'none' });
 }
 
