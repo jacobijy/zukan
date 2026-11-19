@@ -1,15 +1,15 @@
 <template>
     <TabPageShell :title="t('features.title')" :tabIndex="1" @tab-change="onTabChange">
-        <view class="section-label">{{ t('features.sectionTools') }}</view>
+        <view class="section-label">{{ t(toolsSection.labelKey) }}</view>
         <view class="feature-list glass-panel">
             <ListRow
-                v-for="(item, index) in featureItems"
-                :key="item.title"
-                :title="item.title"
-                :desc="item.desc"
-                :meta="item.meta"
+                v-for="(item, index) in toolsSection.rows"
+                :key="item.key"
+                :title="t(item.titleKey)"
+                :desc="t(item.descKey)"
+                :meta="metaText(item.meta)"
                 :iconClass="item.iconClass"
-                :last="index === featureItems.length - 1"
+                :last="index === toolsSection.rows.length - 1"
                 showChevron
                 @click="goToPage(item.url)"
             >
@@ -22,35 +22,23 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import TabPageShell from "@/components/shared/TabPageShell.vue";
 import { navigateToAuto } from "@/utils/navigation";
 import ListRow from "@/components/shared/ListRow.vue";
-import HubIcon, { type HubIconName } from '@/components/shared/HubIcon.vue';
+import HubIcon from '@/components/shared/HubIcon.vue';
+import { FEATURE_SECTIONS, resolveSections, type EntryCountMeta } from '@/constants/entryConfig';
 
 const { t } = useI18n();
 
-interface FeatureEntry {
-    title: string;
-    desc: string;
-    meta: string;
-    url: string;
-    icon: HubIconName;
-    iconClass: string;
-}
+/** 功能页单分区（配置见 src/constants/entryConfig.ts，条目 key 自由组合） */
+const toolsSection = resolveSections(FEATURE_SECTIONS)[0];
 
-const featureItems = computed<FeatureEntry[]>(() => [
-    { title: t('features.calc.title'), desc: t('features.calc.desc'), meta: t('features.calc.meta'), url: '/pages/calc/calc', icon: 'hub-damage', iconClass: 'list-row__icon--green' },
-    { title: t('features.statcalc.title'), desc: t('features.statcalc.desc'), meta: t('features.statcalc.meta'), url: '/pages/statcalc/statcalc', icon: 'hub-stat', iconClass: 'list-row__icon--blue' },
-    { title: t('features.simulate.title'), desc: t('features.simulate.desc'), meta: t('features.simulate.meta'), url: '/pages/simulate/simulate', icon: 'hub-battle', iconClass: 'list-row__icon--gray' },
-    { title: t('features.teams.title'), desc: t('features.teams.desc'), meta: t('features.teams.meta'), url: '/pages/teams/teams', icon: 'hub-team', iconClass: 'list-row__icon--gold' },
-    { title: t('features.templates.title'), desc: t('features.templates.desc'), meta: t('features.templates.meta'), url: '/pages/templates/templates', icon: 'hub-template', iconClass: 'list-row__icon--violet' },
-    { title: t('features.stats.title'), desc: t('features.stats.desc'), meta: t('features.stats.meta'), url: '/pages/data/data', icon: 'hub-stats', iconClass: 'list-row__icon--violet' },
-]);
+/** 功能页第三列都是 i18n key；计数型兜底为空（功能页不使用） */
+const metaText = (m: string | EntryCountMeta | undefined): string => (typeof m === 'string' ? t(m) : '');
 
 const goToPage = (url: string) => {
-    // /pages/data/data 是 tabBar 页 → 自动 switchTab（保活）；其余 navigateTo
+    // tab 页 → switchTab（保活）；其余 navigateTo（同为既有导航封装）
     navigateToAuto(url);
 };
 

@@ -39,9 +39,12 @@
 
 ## 入口与图标
 
-资料页 `data.vue` 新增「资讯」分区（`data.sectionNotice`）+ 单行入口
-（`data.notice`），图标 `data-notice` = `static/img/hub-icons/notice.png`
-（3D 炫彩套，源图 `tmp/notice.png` 1254px 缩到 144px 母版）。
+公告入口卡由 `src/constants/entryConfig.ts` 的注册表条目 `notice` 定义一份，被两处
+分区引用：资料页 `data.vue`「资讯」分区（`DATA_SECTIONS`）+ 功能 tab `features.vue`
+列表尾（`FEATURE_SECTIONS`，文案同用 `data.notice`/`data.noticeDesc`）。两页入口
+布局只改 `entryConfig.ts` 即可（增删条目、挪分区、调顺序），图标统一 `data-notice` =
+`static/img/hub-icons/notice.png`（3D 炫彩套，源图 `tmp/notice.png` 1254px 缩到
+144px 母版）。
 
 ## 降级语义
 

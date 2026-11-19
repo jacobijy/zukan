@@ -263,8 +263,10 @@ const zhHans = {
         overview: {
             total: '宝可梦总数',
             totalDesc: '当前图鉴记录的全国编号范围。',
+            pokemonMeta: '1025',
             types: '属性种类',
             typesDesc: '用于筛选、克制和组合分析。',
+            typesMeta: '18',
             moves: '招式数量',
             movesDesc: '覆盖对战计算和招式检索。',
             abilities: '特性记录',
@@ -829,8 +831,10 @@ const en: typeof zhHans = {
         overview: {
             total: 'Total Pokémon',
             totalDesc: 'The national number range recorded in this dex.',
+            pokemonMeta: '1025',
             types: 'Types',
             typesDesc: 'Used for filtering, matchups and combos.',
+            typesMeta: '18',
             moves: 'Moves',
             movesDesc: 'Covering battle calculation and move lookup.',
             abilities: 'Abilities',

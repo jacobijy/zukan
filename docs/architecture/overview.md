@@ -70,6 +70,12 @@ tools/                         # 数据处理脚本（python / typescript）
 | 官方公告 | `pages/notices/notices` | 子页（资料中心 → 资讯）：Pokémon HOME 公告列表（明文公开 JSON 快照，不加密不鉴权），点行外跳官方 webview；见 [../features/notices-page.md](../features/notices-page.md)、[../features/notices.md](../features/notices.md) |
 | 我的队伍 | `pages/teams/teams`、`pages/teams/team-edit` | 子页 ×2（**功能页签**进入）：队伍 CRUD + 完整组队器；payload 对后端不透明、只存稳定 id，写前 `authGate.requireLogin()`；普通 JSON 不涉 DEK，见 [../data/teams.md](../data/teams.md)、[../features/teams.md](../features/teams.md) |
 
+**导航枢纽入口卡片**：功能中心与资料中心两页的入口卡片统一由
+`src/constants/entryConfig.ts` 管理（注册表 `ENTRY_REGISTRY` + 分区引用 `FEATURE_SECTIONS` /
+`DATA_SECTIONS`）。条目只定义一次，分区按 key 引用自由组合布局（如 `notice` 公告同时进
+功能列表与资料页「资讯」分区）；title/desc/meta 存 i18n key，动态条目计数走 `countOf`
+字段（见 [../features/notices-page.md](../features/notices-page.md) 入口段）。
+
 **tab 保活**：`pages.json` 声明原生 `tabBar`（不设 custom），由 `useHideNativeTabBar` 在 onShow 调
 `uni.hideTabBar()` 隐藏原生条，tab 页被**平台保活**（只创建一次、切走 onHide、切回 onShow，
 页面状态与滚动位置保留；旧的 `reLaunch` 方案每次销毁重建、回顶）。Tab 切换走 `uni.switchTab`，
