@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "Vue.volar",
+        "bradlc.vscode-tailwindcss",
+        "lokalise.i18n-ally",
+        "rust-lang.rust-analyzer"
+    ],
+    "unwantedRecommendations": [
+        "octref.vetur"
+    ]
+}
